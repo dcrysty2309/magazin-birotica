@@ -1,0 +1,165 @@
+/*
+Theme Name: Papetarie Store
+Theme URI: http://localhost:8080
+Author: Codex
+Description: Tema custom de start pentru un magazin online de papetarie.
+Version: 1.0.0
+Requires at least: 6.0
+Tested up to: 6.8
+Requires PHP: 8.1
+Text Domain: papetarie-store
+*/
+
+:root {
+  --paper: #f7f1e3;
+  --ink: #1f2933;
+  --accent: #df6d2d;
+  --accent-dark: #b44f17;
+  --surface: #fffdf8;
+  --surface-strong: #efe4cf;
+  --line: #dccfb7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(223, 109, 45, 0.15), transparent 30%),
+    linear-gradient(180deg, #fffaf0 0%, #f5ebd8 100%);
+}
+
+a {
+  color: inherit;
+}
+
+.site-header,
+.site-footer {
+  padding: 1rem 1.5rem;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+}
+
+.hero,
+.content-section {
+  width: min(1100px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.hero {
+  display: grid;
+  gap: 2rem;
+  padding: 4rem 0;
+}
+
+.hero-card,
+.feature-card {
+  background: rgba(255, 253, 248, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(73, 46, 26, 0.08);
+}
+
+.hero-card {
+  padding: 2rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  color: var(--accent-dark);
+}
+
+.hero h1 {
+  margin: 0.5rem 0 1rem;
+  font-size: clamp(2.6rem, 8vw, 5rem);
+  line-height: 0.94;
+}
+
+.hero p {
+  max-width: 40rem;
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.button-link {
+  display: inline-block;
+  padding: 0.9rem 1.3rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.button-link.primary {
+  background: var(--accent);
+  color: white;
+}
+
+.button-link.secondary {
+  background: transparent;
+  border: 1px solid var(--line);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  padding-bottom: 4rem;
+}
+
+.feature-card {
+  padding: 1.25rem;
+}
+
+.content-section {
+  padding: 2rem 0 4rem;
+}
+
+.section-panel {
+  padding: 2rem;
+  background: var(--surface);
+  border-radius: 24px;
+  border: 1px solid var(--line);
+}
+
+.site-footer {
+  color: rgba(31, 41, 51, 0.8);
+}
+
+@media (max-width: 700px) {
+  .hero {
+    padding-top: 2rem;
+  }
+
+  .hero-card,
+  .section-panel {
+    padding: 1.4rem;
+  }
+}
