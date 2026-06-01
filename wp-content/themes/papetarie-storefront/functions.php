@@ -16,17 +16,21 @@ function papetarie_storefront_setup(): void
 
     register_nav_menus(
         [
-            'top-links' => __('Top Links', 'papetarie-storefront'),
-            'primary' => __('Primary Menu', 'papetarie-storefront'),
-            'utility' => __('Utility Menu', 'papetarie-storefront'),
-            'footer-shop' => __('Footer Shop', 'papetarie-storefront'),
-            'footer-categories' => __('Footer Categories', 'papetarie-storefront'),
-            'footer-help' => __('Footer Help', 'papetarie-storefront'),
-            'footer-about' => __('Footer About', 'papetarie-storefront'),
+            'top-links' => __('Linkuri sus', 'papetarie-storefront'),
+            'primary' => __('Meniu principal', 'papetarie-storefront'),
+            'utility' => __('Meniu utilitar', 'papetarie-storefront'),
+            'footer-shop' => __('Footer magazin', 'papetarie-storefront'),
+            'footer-categories' => __('Footer categorii', 'papetarie-storefront'),
+            'footer-help' => __('Footer ajutor', 'papetarie-storefront'),
+            'footer-about' => __('Footer despre noi', 'papetarie-storefront'),
         ]
     );
 }
 add_action('after_setup_theme', 'papetarie_storefront_setup');
+
+if (is_admin()) {
+    require_once __DIR__ . '/admin-category-ordering.php';
+}
 
 function papetarie_storefront_enqueue_styles(): void
 {
@@ -42,6 +46,13 @@ function papetarie_storefront_enqueue_styles(): void
         get_stylesheet_uri(),
         ['storefront-parent-style'],
         wp_get_theme()->get('Version')
+    );
+
+    wp_enqueue_style(
+        'papetarie-storefront-fontawesome',
+        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css',
+        [],
+        '6.5.2'
     );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_styles');
@@ -71,3 +82,283 @@ function papetarie_storefront_cart_total(): string
 
     return wp_strip_all_tags((string) WC()->cart->get_cart_subtotal());
 }
+
+function papetarie_storefront_icon(string $name): string
+{
+    $icons = [
+        'search' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 015.98 12.03l4.25 4.24-1.42 1.42-4.24-4.25A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z" fill="currentColor"/></svg>',
+        'account' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4.5 4.5 0 100-9 4.5 4.5 0 000 9zm0 2c-4.14 0-7.5 2.69-7.5 6v1h15v-1c0-3.31-3.36-6-7.5-6z" fill="currentColor"/></svg>',
+        'upload' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l4 4h-3v7h-2V7H8l4-4zm-7 12h14v6H5v-6zm2 2v2h10v-2H7z" fill="currentColor"/></svg>',
+        'cart' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4H4v2h1l2.6 8.59A2 2 0 009.52 16H18v-2H9.52l-.31-1H17a2 2 0 001.92-1.45L21 6H7.42L7 4zm3 14a2 2 0 100 4 2 2 0 000-4zm8 0a2 2 0 100 4 2 2 0 000-4z" fill="currentColor"/></svg>',
+        'menu' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v2H4V7zm0 4h16v2H4v-2zm0 4h16v2H4v-2z" fill="currentColor"/></svg>',
+        'chevron' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z" fill="currentColor"/></svg>',
+        'help' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 17a1.25 1.25 0 110-2.5A1.25 1.25 0 0112 19zm1.33-5.94-.58.33c-.94.53-1.25.98-1.25 1.86h-2c0-1.67.79-2.67 2.27-3.5l.76-.43c.78-.44 1.22-1.02 1.22-1.76 0-1.16-.95-1.92-2.39-1.92-1.31 0-2.31.57-3.18 1.64L6.6 7.99C7.77 6.43 9.5 5.5 11.73 5.5c2.77 0 4.85 1.57 4.85 4.1 0 1.5-.75 2.67-3.25 3.46z" fill="currentColor"/></svg>',
+        'shield' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l7 3v6c0 4.97-3.06 9.63-7 11-3.94-1.37-7-6.03-7-11V5l7-3zm-1 13l5-5-1.41-1.41L11 12.17l-1.59-1.58L8 12l3 3z" fill="currentColor"/></svg>',
+        'tag' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.59 13.41L11 3.83V3H4v7h.83l9.58 9.59a2 2 0 002.83 0l3.35-3.35a2 2 0 000-2.83zM6.5 8A1.5 1.5 0 118 6.5 1.5 1.5 0 016.5 8z" fill="currentColor"/></svg>',
+        'truck' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v9h2.17a3 3 0 015.66 1H23v2h-1a3 3 0 11-6 0H9a3 3 0 11-6 0H2v-2h1V5zm13 2v5h3.59L18.09 9H16z" fill="currentColor"/></svg>',
+        'pen' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17.25 10.58-10.59 3.76 3.76L6.75 21H3v-3.75Zm12-9.66 1.41-1.42a2 2 0 0 1 2.83 0l.17.17a2 2 0 0 1 0 2.83L18 10.59 15 7.59Z" fill="currentColor"/></svg>',
+        'paper' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm6 1.5V9h4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 13h6M9 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'archive' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4zM3 4h18v3H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'organize' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v6H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 13h7v6H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+        'office' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+        'school' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-6 8v4c0 1.66 2.69 3 6 3s6-1.34 6-3v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+        'display' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v10H4zM9 19h6M12 15v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'it' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v10H4zM9 20h6M12 16v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 10h.01M12 10h.01M16 10h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'machine' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14v10H5zM8 4h8M8 11h8M8 15h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'stapler' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h10l4 3H8a4 4 0 0 1-4-4v-1l7-5 6 1 3 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+    ];
+
+    return $icons[$name] ?? '';
+}
+
+function papetarie_storefront_has_real_logo(): bool
+{
+    if (!has_custom_logo()) {
+        return false;
+    }
+
+    $logo_id = (int) get_theme_mod('custom_logo');
+
+    if ($logo_id <= 0) {
+        return false;
+    }
+
+    $logo_url = wp_get_attachment_image_url($logo_id, 'full');
+
+    if (!$logo_url) {
+        return false;
+    }
+
+    return strpos($logo_url, 'woocommerce-placeholder') === false;
+}
+
+function papetarie_storefront_term_order(\WP_Term $term): int
+{
+    return (int) get_term_meta($term->term_id, 'order', true);
+}
+
+function papetarie_storefront_sort_terms(array $terms): array
+{
+    usort(
+        $terms,
+        static function (\WP_Term $left, \WP_Term $right): int {
+            $left_order = papetarie_storefront_term_order($left);
+            $right_order = papetarie_storefront_term_order($right);
+
+            if ($left_order === $right_order) {
+                return strcasecmp($left->name, $right->name);
+            }
+
+            return $left_order <=> $right_order;
+        }
+    );
+
+    return $terms;
+}
+
+function papetarie_storefront_mega_menu_icon(string $slug, string $name): string
+{
+    $map = [
+        'instrumente-de-scris-si-corectura' => 'pen',
+        'articole-din-hartie' => 'paper',
+        'arhivare' => 'archive',
+        'organizare' => 'organize',
+        'accesorii-pentru-birou' => 'office',
+        'articole-scolare' => 'school',
+        'consumabile-si-indosariere' => 'archive',
+        'sisteme-de-prezentare-si-afisare' => 'display',
+        'accesorii-it' => 'it',
+        'echipamente-birou' => 'machine',
+        'capsatoare-si-perforatoare' => 'stapler',
+    ];
+
+    if (isset($map[$slug])) {
+        return $map[$slug];
+    }
+
+    $normalized = sanitize_title($name);
+
+    return $map[$normalized] ?? 'menu';
+}
+
+function papetarie_storefront_get_mega_menu_categories(): array
+{
+    if (!taxonomy_exists('product_cat')) {
+        return [];
+    }
+
+    $default_category = (int) get_option('default_product_cat');
+    $parents = get_terms(
+        [
+            'taxonomy' => 'product_cat',
+            'hide_empty' => false,
+            'parent' => 0,
+            'exclude' => array_filter([$default_category]),
+        ]
+    );
+
+    if (is_wp_error($parents) || !$parents) {
+        return [];
+    }
+
+    $items = [];
+
+    foreach (papetarie_storefront_sort_terms($parents) as $parent) {
+        $children = get_terms(
+            [
+                'taxonomy' => 'product_cat',
+                'hide_empty' => false,
+                'parent' => $parent->term_id,
+            ]
+        );
+
+        if (is_wp_error($children)) {
+            $children = [];
+        }
+
+        $children = papetarie_storefront_sort_terms($children);
+
+        $items[] = [
+            'term_id' => $parent->term_id,
+            'slug' => $parent->slug,
+            'name' => $parent->name,
+            'url' => get_term_link($parent),
+            'description' => wp_strip_all_tags((string) term_description($parent->term_id, 'product_cat')),
+            'icon' => papetarie_storefront_mega_menu_icon($parent->slug, $parent->name),
+            'children' => array_map(
+                static function (\WP_Term $child): array {
+                    $grandchildren = get_terms(
+                        [
+                            'taxonomy' => 'product_cat',
+                            'hide_empty' => false,
+                            'parent' => $child->term_id,
+                        ]
+                    );
+
+                    if (is_wp_error($grandchildren)) {
+                        $grandchildren = [];
+                    }
+
+                    $grandchildren = papetarie_storefront_sort_terms($grandchildren);
+
+                    return [
+                        'term_id' => $child->term_id,
+                        'slug' => $child->slug,
+                        'name' => $child->name,
+                        'url' => get_term_link($child),
+                        'description' => wp_strip_all_tags((string) term_description($child->term_id, 'product_cat')),
+                        'children' => array_map(
+                            static function (\WP_Term $grandchild): array {
+                                return [
+                                    'term_id' => $grandchild->term_id,
+                                    'slug' => $grandchild->slug,
+                                    'name' => $grandchild->name,
+                                    'url' => get_term_link($grandchild),
+                                    'description' => wp_strip_all_tags((string) term_description($grandchild->term_id, 'product_cat')),
+                                ];
+                            },
+                            $grandchildren
+                        ),
+                    ];
+                },
+                $children
+            ),
+        ];
+    }
+
+    return array_values(array_filter($items, static fn (array $item): bool => !empty($item['children'])));
+}
+
+function papetarie_storefront_active_mega_menu_slug(array $categories): string
+{
+    if (!$categories) {
+        return '';
+    }
+
+    if (is_tax('product_cat')) {
+        $queried = get_queried_object();
+
+        if ($queried instanceof \WP_Term) {
+            foreach ($categories as $category) {
+                if ($queried->term_id === $category['term_id']) {
+                    return $category['slug'];
+                }
+
+                foreach ($category['children'] as $child) {
+                    if ($child['term_id'] === $queried->term_id) {
+                        return $category['slug'];
+                    }
+                }
+            }
+        }
+    }
+
+    return $categories[0]['slug'];
+}
+
+function papetarie_storefront_short_category_name(string $slug, string $name): string
+{
+    $map = [
+        'instrumente-de-scris-si-corectura' => 'Instrumente de scris',
+        'capsatoare-si-perforatoare' => 'Capsatoare',
+        'accesorii-pentru-birou' => 'Accesorii birou',
+        'articole-din-hartie' => 'Articole hârtie',
+        'sisteme-de-prezentare-si-afisare' => 'Prezentare',
+        'consumabile-si-indosariere' => 'Consumabile',
+        'accesorii-it' => 'Accesorii IT',
+        'articole-scolare' => 'Școlare',
+        'echipamente-birou' => 'Echipamente',
+    ];
+
+    return $map[$slug] ?? $name;
+}
+
+function papetarie_storefront_ajax_add_to_cart(): void
+{
+    if (!function_exists('WC') || !WC()->cart) {
+        wp_send_json_error(['message' => __('Coșul nu este disponibil momentan.', 'papetarie-storefront')], 400);
+    }
+
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, 'pap_home_add_to_cart')) {
+        wp_send_json_error(['message' => __('Sesiunea a expirat. Reîncarcă pagina.', 'papetarie-storefront')], 403);
+    }
+
+    $product_id = isset($_POST['product_id']) ? absint($_POST['product_id']) : 0;
+    $quantity = isset($_POST['quantity']) ? max(1, absint($_POST['quantity'])) : 1;
+    $product = $product_id ? wc_get_product($product_id) : false;
+
+    if (!$product instanceof WC_Product) {
+        wp_send_json_error(['message' => __('Produsul nu a fost găsit.', 'papetarie-storefront')], 404);
+    }
+
+    if (!$product->is_purchasable() || !$product->is_in_stock()) {
+        wp_send_json_error(['message' => __('Produsul nu poate fi adăugat în coș.', 'papetarie-storefront')], 400);
+    }
+
+    $added = WC()->cart->add_to_cart($product_id, $quantity);
+
+    if (!$added) {
+        wp_send_json_error(['message' => __('Nu am putut adăuga produsul în coș.', 'papetarie-storefront')], 400);
+    }
+
+    $image_url = '';
+    $image_id = $product->get_image_id();
+    if ($image_id) {
+        $image_data = wp_get_attachment_image_src($image_id, 'thumbnail');
+        if ($image_data) {
+            $image_url = $image_data[0];
+        }
+    }
+
+    wp_send_json_success([
+        'message' => __('Produsul a fost adăugat în coș', 'papetarie-storefront'),
+        'name' => $product->get_name(),
+        'price_html' => $product->get_price_html(),
+        'cart_url' => wc_get_cart_url(),
+        'image_url' => $image_url,
+        'cart_count' => WC()->cart->get_cart_contents_count(),
+    ]);
+}
+add_action('wp_ajax_pap_home_add_to_cart', 'papetarie_storefront_ajax_add_to_cart');
+add_action('wp_ajax_nopriv_pap_home_add_to_cart', 'papetarie_storefront_ajax_add_to_cart');
