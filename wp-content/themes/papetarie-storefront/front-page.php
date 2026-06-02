@@ -406,29 +406,6 @@ get_header();
     </div>
   </section>
 
-  <section class="pap-shell pap-brand-section">
-    <div class="pap-section-head pap-section-head-soft">
-      <h2><?php esc_html_e('Branduri populare', 'papetarie-storefront'); ?></h2>
-      <p><?php esc_html_e('Nume cunoscute, într-o selecție mai curată și mai ușor de parcurs.', 'papetarie-storefront'); ?></p>
-    </div>
-    <div id="brands" class="pap-brand-row pap-brand-row-pills">
-      <?php foreach ($brands as $brand) : ?>
-        <span><?php echo esc_html($brand); ?></span>
-      <?php endforeach; ?>
-    </div>
-  </section>
-
-  <section class="pap-shell pap-catalog-callout">
-    <div class="pap-catalog-callout-copy">
-      <span><?php esc_html_e('Răsfoiește selecția completă', 'papetarie-storefront'); ?></span>
-      <h2><?php esc_html_e('Vrei o vedere mai amplă asupra gamei? Deschide catalogul și continuă apoi cu produsele importante pentru tine.', 'papetarie-storefront'); ?></h2>
-    </div>
-    <div class="pap-catalog-callout-actions">
-      <a class="pap-button pap-button-secondary" href="<?php echo esc_url(home_url('/supplier-evident-catalog.pdf')); ?>"><?php esc_html_e('Deschide catalogul', 'papetarie-storefront'); ?></a>
-      <a class="pap-button pap-button-primary" href="<?php echo esc_url($shop_url); ?>"><?php esc_html_e('Vezi magazinul', 'papetarie-storefront'); ?></a>
-    </div>
-  </section>
-
 </main>
 <script>
   (function () {

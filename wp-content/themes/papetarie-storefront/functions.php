@@ -28,6 +28,22 @@ function papetarie_storefront_setup(): void
 }
 add_action('after_setup_theme', 'papetarie_storefront_setup');
 
+function papetarie_storefront_widgets_init(): void
+{
+    register_sidebar(
+        [
+            'name' => __('Footer newsletter', 'papetarie-storefront'),
+            'id' => 'footer-newsletter',
+            'description' => __('Widget area pentru un bloc de newsletter in footer.', 'papetarie-storefront'),
+            'before_widget' => '<section class="pap-footer-newsletter-widget">',
+            'after_widget' => '</section>',
+            'before_title' => '<h3 class="pap-footer-widget-title">',
+            'after_title' => '</h3>',
+        ]
+    );
+}
+add_action('widgets_init', 'papetarie_storefront_widgets_init');
+
 if (is_admin()) {
     require_once __DIR__ . '/admin-category-ordering.php';
 }
