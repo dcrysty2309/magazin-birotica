@@ -136,52 +136,27 @@ if (empty($products) && function_exists('wc_get_products')) {
     ]);
 }
 
-$need_sections = [
+$trust_features = [
     [
-        'title' => 'Pentru birou',
-        'copy' => 'Produse esențiale pentru biroul tău',
-        'image' => $asset_base . '/need-office-reference.png',
-        'media_bg' => '#f3f1f0',
-        'media_size' => 'auto 92%',
-        'media_position' => 'center center',
-        'url' => $shop_url,
+        'icon' => 'truck-outline',
+        'title' => 'Livrare rapida',
+        'copy' => 'In 24-48h oriunde in tara',
     ],
     [
-        'title' => 'Pentru școală',
-        'copy' => 'Rechizite și accesorii pentru elevi',
-        'image' => $asset_base . '/need-school-user.png',
-        'media_bg' => '#f3f1f0',
-        'media_size' => 'auto 76%',
-        'media_position' => 'center center',
-        'url' => $shop_url,
+        'icon' => 'truck-outline',
+        'title' => 'Transport gratuit',
+        'copy' => 'La comenzi de la 300 RON',
     ],
     [
-        'title' => 'Organizare birou',
-        'copy' => 'Ordine, eficiență și productivitate',
-        'image' => $asset_base . '/need-organization-reference.png',
-        'media_bg' => '#f3f1f0',
-        'media_size' => 'auto 76%',
-        'media_position' => 'center center',
-        'url' => $shop_url,
+        'icon' => 'lock-outline',
+        'title' => 'Plata securizata',
+        'copy' => '100% sigur si protejat',
     ],
     [
-        'title' => 'Arhivare documente',
-        'copy' => 'Sisteme sigure pentru stocare și arhivare',
-        'image' => $asset_base . '/need-archive-reference.png',
-        'media_bg' => '#f3f1f0',
-        'media_size' => 'auto 76%',
-        'media_position' => 'center center',
-        'url' => $shop_url,
+        'icon' => 'headset-outline',
+        'title' => 'Suport dedicat',
+        'copy' => 'Suntem aici sa te ajutam',
     ],
-];
-
-$brands = ['BIC', 'STAEDTLER', 'Leuchtturm1917', 'Fellowes', 'tesa', 'PaperOne'];
-
-$benefits = [
-    ['icon' => 'truck', 'title' => 'Livrare rapidă', 'copy' => 'Produse utile, trimise rapid din stocurile disponibile.'],
-    ['icon' => 'shield', 'title' => 'Selecție curată', 'copy' => 'Mai puțin zgomot, mai multe produse pe care chiar merită să le cumperi.'],
-    ['icon' => 'tag', 'title' => 'Prețuri corecte', 'copy' => 'Game accesibile pentru birou, școală și organizare de zi cu zi.'],
-    ['icon' => 'help', 'title' => 'Suport real', 'copy' => 'Dacă nu știi exact ce ți se potrivește, te ajutăm să alegi mai simplu.'],
 ];
 
 get_header();
@@ -369,39 +344,16 @@ get_header();
     </div>
   </div>
 
-  <section class="pap-shell pap-needs">
-    <div class="pap-section-head pap-section-head-soft">
-      <h2><?php esc_html_e('Cumpără după nevoie', 'papetarie-storefront'); ?></h2>
-      <p><?php esc_html_e('Intrări rapide pentru scenariile cele mai utile: birou, școală, organizare și arhivare.', 'papetarie-storefront'); ?></p>
-    </div>
-    <div class="pap-need-grid">
-      <?php foreach ($need_sections as $need) : ?>
-        <article class="pap-need-card">
-          <a class="pap-need-media" href="<?php echo esc_url($need['url']); ?>" aria-label="<?php echo esc_attr($need['title']); ?>" style="background-image: url('<?php echo esc_url($need['image']); ?>'); background-color: <?php echo esc_attr($need['media_bg'] ?? '#fff'); ?>; background-size: <?php echo esc_attr($need['media_size'] ?? 'cover'); ?>; background-position: <?php echo esc_attr($need['media_position'] ?? 'center center'); ?>;"></a>
-          <div class="pap-need-copy">
-            <h3><?php echo esc_html($need['title']); ?></h3>
-            <p><?php echo esc_html($need['copy']); ?></p>
-            <a href="<?php echo esc_url($need['url']); ?>"><?php esc_html_e('Vezi produse', 'papetarie-storefront'); ?></a>
+  <section class="pap-shell pap-trust-bar">
+    <div class="pap-trust-strip" aria-label="<?php esc_attr_e('Avantaje magazin', 'papetarie-storefront'); ?>">
+      <?php foreach ($trust_features as $feature) : ?>
+        <div class="pap-trust-item">
+          <span class="pap-trust-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($feature['icon']); ?></span>
+          <div class="pap-trust-copy">
+            <strong><?php echo esc_html($feature['title']); ?></strong>
+            <span><?php echo esc_html($feature['copy']); ?></span>
           </div>
-        </article>
-      <?php endforeach; ?>
-    </div>
-  </section>
-
-  <section class="pap-shell pap-benefits pap-benefits-boutique">
-    <div class="pap-section-head pap-section-head-soft">
-      <h2><?php esc_html_e('De ce revii la noi', 'papetarie-storefront'); ?></h2>
-      <p><?php esc_html_e('Mai puțin haos, mai multă claritate în ce alegi și în cum găsești produsele potrivite.', 'papetarie-storefront'); ?></p>
-    </div>
-    <div class="pap-benefit-grid pap-benefit-grid-cards">
-      <?php foreach ($benefits as $benefit) : ?>
-        <article class="pap-benefit-card">
-          <span class="pap-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($benefit['icon']); ?></span>
-          <div class="pap-benefit-copy">
-            <strong><?php echo esc_html($benefit['title']); ?></strong>
-            <span><?php echo esc_html($benefit['copy']); ?></span>
-          </div>
-        </article>
+        </div>
       <?php endforeach; ?>
     </div>
   </section>

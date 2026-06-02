@@ -38,6 +38,10 @@ Aceste reguli se aplica in acest proiect si au prioritate cand lucrez la layout,
 - Daca un stil pare ca nu se vede, verifica ultimele override-uri din CSS inainte sa presupui ca e cache.
 - Nu rescrie intreaga tema pentru o problema mica de layout.
 - Cand ajustezi footerul, trateaza prioritar alinierea si consistenta, apoi culoarea.
+- Pe homepage si oriunde pe site, adauga doar elemente care se potrivesc natural cu tema si cu rolul magazinului; nu inventa sectiuni decorative care nu au sens pentru papetarie.
+- Daca o sectiune din homepage nu ajuta clar la navigare, selectie sau vanzare, nu o pastra doar ca sa umple spatiul.
+- Pentru homepage, gandeste intai arhitectura: produse recomandate, categorii utile, beneficii, incredere si call-to-action-uri naturale, apoi designul.
+- Daca doua sectiuni seamana vizual dar nu au acelasi rol, refa-le ca sa aiba sens impreuna sau elimina una dintre ele.
 - Inainte sa adaugi o implementare custom, verifica daca WordPress sau WooCommerce au deja un comportament, o setare sau un mecanism nativ care rezolva problema.
 - Foloseste custom doar pentru ce nu poate fi rezolvat curat din administrare sau din comportamentul implicit al platformei.
 - Daca exista o solutie standard in WordPress, prefera acea solutie inainte sa inventezi una noua.
