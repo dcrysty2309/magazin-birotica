@@ -159,6 +159,48 @@ $trust_features = [
     ],
 ];
 
+$package_offers = [
+    [
+        'title' => 'Kit birou esențial',
+        'items' => ['5 caiete A4', '10 pixuri albastre', 'Sticky notes', 'Corector bandă'],
+        'price' => '39.90 lei',
+        'old_price' => '64.60 lei',
+        'image' => [
+            $asset_base . '/product-notebook-a5.png',
+            $asset_base . '/product-pens-blue.png',
+            $asset_base . '/product-sticky-notes.png',
+            $asset_base . '/product-correction-tape.png',
+            $asset_base . '/product-clipboard.png',
+        ],
+    ],
+    [
+        'title' => 'Kit elev',
+        'items' => ['3 caiete A4', '12 markere colorate', 'Penar echipat', 'Lipici solid'],
+        'price' => '59.90 lei',
+        'old_price' => '78.40 lei',
+        'image' => [
+            $asset_base . '/product-highlighters.png',
+            $asset_base . '/product-pens-blue.png',
+            $asset_base . '/product-notebook-a5.png',
+            $asset_base . '/product-glue-stick.png',
+            $asset_base . '/product-calculator.png',
+        ],
+    ],
+    [
+        'title' => 'Kit arhivare',
+        'items' => ['4 bibliorafturi', 'Separatoare color', 'Etichete autoadezive', 'Folii protectoare'],
+        'price' => '69.90 lei',
+        'old_price' => '92.60 lei',
+        'image' => [
+            $asset_base . '/product-binders-a4.png',
+            $asset_base . '/product-clipboard.png',
+            $asset_base . '/product-paper-ream.png',
+            $asset_base . '/product-mesh-organizer.png',
+            $asset_base . '/product-scissors.png',
+        ],
+    ],
+];
+
 get_header();
 ?>
 <main id="primary" class="site-main pap-homepage">
@@ -354,6 +396,48 @@ get_header();
             <span><?php echo esc_html($feature['copy']); ?></span>
           </div>
         </div>
+      <?php endforeach; ?>
+    </div>
+  </section>
+
+  <section class="pap-shell pap-packages" id="recommended-packages">
+    <div class="pap-packages-head">
+      <div class="pap-section-head pap-section-head-packages">
+        <h2><?php esc_html_e('Pachete recomandate', 'papetarie-storefront'); ?></h2>
+      </div>
+      <p class="pap-packages-subtitle"><?php esc_html_e('Selecție de pachete utile pentru birou, școală și organizare de zi cu zi.', 'papetarie-storefront'); ?></p>
+    </div>
+
+    <div class="pap-packages-grid">
+      <?php foreach ($package_offers as $package) : ?>
+        <article class="pap-package-card">
+          <div class="pap-package-copy">
+            <h3><?php echo esc_html($package['title']); ?></h3>
+            <ul class="pap-package-list">
+              <?php foreach ($package['items'] as $item) : ?>
+                <li><?php echo esc_html($item); ?></li>
+              <?php endforeach; ?>
+            </ul>
+            <div class="pap-package-pricing">
+              <strong class="pap-package-price"><?php echo esc_html($package['price']); ?></strong>
+              <span class="pap-package-old-price"><?php echo esc_html($package['old_price']); ?></span>
+            </div>
+            <a class="pap-package-button" href="<?php echo esc_url($shop_url); ?>">
+              <?php esc_html_e('Adaugă în coș', 'papetarie-storefront'); ?>
+            </a>
+          </div>
+
+          <div class="pap-package-art" aria-hidden="true">
+            <?php foreach ($package['image'] as $index => $image) : ?>
+              <img
+                class="pap-package-art-image pap-package-art-image-<?php echo esc_attr((string) ($index + 1)); ?>"
+                src="<?php echo esc_url($image); ?>"
+                alt=""
+                loading="lazy"
+              >
+            <?php endforeach; ?>
+          </div>
+        </article>
       <?php endforeach; ?>
     </div>
   </section>
