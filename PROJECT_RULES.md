@@ -45,6 +45,8 @@ Aceste reguli se aplica in acest proiect si au prioritate cand lucrez la layout,
 - Inainte sa adaugi o implementare custom, verifica daca WordPress sau WooCommerce au deja un comportament, o setare sau un mecanism nativ care rezolva problema.
 - Foloseste custom doar pentru ce nu poate fi rezolvat curat din administrare sau din comportamentul implicit al platformei.
 - Daca exista o solutie standard in WordPress, prefera acea solutie inainte sa inventezi una noua.
+- Daca ai nevoie de un icon, cauta mai intai in Font Awesome sau in setul de iconuri deja folosit de tema.
+- Nu introduce un icon custom daca exista deja unul potrivit in aceeasi familie vizuala.
 - Orice plan nou trebuie sa fie integrat in structura curenta a site-ului, nu tratat ca un experiment separat.
 - Nu introduce colturi rotunjite noi pe butoane, formulare sau sectiuni daca tema nu cere explicit asta.
 - Foloseste `!important` doar in situatii exceptionale, cand ai verificat ca nu exista alta solutie curata prin specificitate, structura sau setarea nativa.

@@ -161,43 +161,28 @@ $trust_features = [
 
 $package_offers = [
     [
-        'title' => 'Kit birou esențial',
-        'items' => ['5 caiete A4', '10 pixuri albastre', 'Sticky notes', 'Corector bandă'],
+        'slug' => 'office',
+        'title' => 'Kit birou esential',
+        'items' => ['5 caiete A4', '10 pixuri albastre', 'Sticky notes', 'Corector banda'],
         'price' => '39.90 lei',
         'old_price' => '64.60 lei',
-        'image' => [
-            $asset_base . '/product-notebook-a5.png',
-            $asset_base . '/product-pens-blue.png',
-            $asset_base . '/product-sticky-notes.png',
-            $asset_base . '/product-correction-tape.png',
-            $asset_base . '/product-clipboard.png',
-        ],
+        'image' => $asset_base . '/package-office-photo.png',
     ],
     [
+        'slug' => 'student',
         'title' => 'Kit elev',
         'items' => ['3 caiete A4', '12 markere colorate', 'Penar echipat', 'Lipici solid'],
         'price' => '59.90 lei',
         'old_price' => '78.40 lei',
-        'image' => [
-            $asset_base . '/product-highlighters.png',
-            $asset_base . '/product-pens-blue.png',
-            $asset_base . '/product-notebook-a5.png',
-            $asset_base . '/product-glue-stick.png',
-            $asset_base . '/product-calculator.png',
-        ],
+        'image' => $asset_base . '/package-student-photo.png',
     ],
     [
+        'slug' => 'archive',
         'title' => 'Kit arhivare',
         'items' => ['4 bibliorafturi', 'Separatoare color', 'Etichete autoadezive', 'Folii protectoare'],
         'price' => '69.90 lei',
         'old_price' => '92.60 lei',
-        'image' => [
-            $asset_base . '/product-binders-a4.png',
-            $asset_base . '/product-clipboard.png',
-            $asset_base . '/product-paper-ream.png',
-            $asset_base . '/product-mesh-organizer.png',
-            $asset_base . '/product-scissors.png',
-        ],
+        'image' => $asset_base . '/package-archive-photo.png',
     ],
 ];
 
@@ -410,7 +395,7 @@ get_header();
 
     <div class="pap-packages-grid">
       <?php foreach ($package_offers as $package) : ?>
-        <article class="pap-package-card">
+        <article class="pap-package-card pap-package-card--<?php echo esc_attr($package['slug']); ?>">
           <div class="pap-package-copy">
             <h3><?php echo esc_html($package['title']); ?></h3>
             <ul class="pap-package-list">
@@ -428,14 +413,12 @@ get_header();
           </div>
 
           <div class="pap-package-art" aria-hidden="true">
-            <?php foreach ($package['image'] as $index => $image) : ?>
-              <img
-                class="pap-package-art-image pap-package-art-image-<?php echo esc_attr((string) ($index + 1)); ?>"
-                src="<?php echo esc_url($image); ?>"
-                alt=""
-                loading="lazy"
-              >
-            <?php endforeach; ?>
+            <img
+              class="pap-package-art-image"
+              src="<?php echo esc_url($package['image']); ?>"
+              alt=""
+              loading="lazy"
+            >
           </div>
         </article>
       <?php endforeach; ?>
@@ -711,3 +694,4 @@ get_header();
 </script>
 <?php
 get_footer();
+
