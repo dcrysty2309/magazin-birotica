@@ -162,13 +162,6 @@
       openMenu(slug, true);
     });
 
-    item.addEventListener('click', () => {
-      if (hoverQuery.matches) {
-        return;
-      }
-
-      openMenu(slug, true);
-    });
   });
 
   document.addEventListener('keydown', (event) => {

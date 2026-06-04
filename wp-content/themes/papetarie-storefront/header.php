@@ -94,9 +94,9 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
                   <aside class="pap-category-menu-nav pap-showcase-nav" aria-label="<?php esc_attr_e('Categorii principale', 'papetarie-storefront'); ?>">
                     <div class="pap-category-menu-nav-list pap-showcase-nav-list">
                       <?php foreach ($header_menu_categories as $category) : ?>
-                        <button
+                        <a
                           class="pap-category-menu-nav-item pap-showcase-nav-item<?php echo $category['slug'] === $header_menu_active_slug ? ' is-active' : ''; ?>"
-                          type="button"
+                          href="<?php echo esc_url($category['url']); ?>"
                           data-category-menu-item="<?php echo esc_attr($category['slug']); ?>"
                           data-category-menu-target="<?php echo esc_attr($category['slug']); ?>"
                           aria-controls="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
@@ -104,7 +104,7 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
                         >
                           <span class="pap-category-menu-nav-icon pap-showcase-nav-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
                           <span class="pap-category-menu-nav-copy pap-showcase-nav-label"><?php echo esc_html(papetarie_storefront_short_category_name($category['slug'], $category['name'])); ?></span>
-                        </button>
+                        </a>
                       <?php endforeach; ?>
                     </div>
                   </aside>
@@ -200,9 +200,9 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
           <aside class="pap-category-menu-nav pap-showcase-nav" aria-label="<?php esc_attr_e('Categorii principale', 'papetarie-storefront'); ?>">
             <div class="pap-category-menu-nav-list pap-showcase-nav-list">
               <?php foreach ($header_menu_categories as $category) : ?>
-                <button
+                <a
                   class="pap-category-menu-nav-item pap-showcase-nav-item<?php echo $category['slug'] === $header_menu_active_slug ? ' is-active' : ''; ?>"
-                  type="button"
+                  href="<?php echo esc_url($category['url']); ?>"
                   data-category-menu-item="<?php echo esc_attr($category['slug']); ?>"
                   data-category-menu-target="<?php echo esc_attr($category['slug']); ?>"
                   aria-controls="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
@@ -210,7 +210,7 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
                 >
                   <span class="pap-category-menu-nav-icon pap-showcase-nav-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
                   <span class="pap-category-menu-nav-copy pap-showcase-nav-label"><?php echo esc_html(papetarie_storefront_short_category_name($category['slug'], $category['name'])); ?></span>
-                </button>
+                </a>
               <?php endforeach; ?>
             </div>
           </aside>
