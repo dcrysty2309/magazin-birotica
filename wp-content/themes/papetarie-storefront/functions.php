@@ -70,6 +70,13 @@ function papetarie_storefront_enqueue_styles(): void
         [],
         '6.5.2'
     );
+
+    wp_enqueue_style(
+        'papetarie-storefront-open-sans',
+        'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap',
+        [],
+        null
+    );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_styles');
 
