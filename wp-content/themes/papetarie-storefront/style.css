@@ -45,7 +45,7 @@ Text Domain: papetarie-storefront
 body.theme-papetarie {
   background: #f6f8fc;
   color: var(--pap-text);
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: "Open Sans", Arial, sans-serif;
 }
 
 body.theme-papetarie p,
@@ -1511,7 +1511,7 @@ a:focus-visible {
 }
 
 .pap-section-head h2 {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Open Sans", Arial, sans-serif;
   font-size: 27px;
   font-weight: 700;
   text-transform: none;
@@ -1586,7 +1586,7 @@ a:focus-visible {
 }
 
 .pap-section-head-packages h2 {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Open Sans", Arial, sans-serif;
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -1629,11 +1629,15 @@ a:focus-visible {
 .pap-package-copy h3 {
   margin: 2px 0 10px;
   color: var(--pap-ink);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 19px;
-  line-height: 1.15;
+  font-family: "Open Sans", Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.08;
   font-weight: 700;
   letter-spacing: -0.01em;
+  min-height: 1.2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pap-package-list {
@@ -1642,22 +1646,13 @@ a:focus-visible {
   list-style: none;
   display: grid;
   gap: 8px;
+  min-height: 114px;
 }
 
 .pap-package-list li {
-  position: relative;
-  padding-left: 13px;
   color: #6c7f9b;
   font-size: 12px;
   line-height: 1.35;
-}
-
-.pap-package-list li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: #6c7f9b;
 }
 
 .pap-package-pricing {
@@ -2413,6 +2408,60 @@ a:focus-visible {
   scroll-snap-align: start;
   aspect-ratio: 1 / 1;
   height: 100%;
+}
+
+.pap-product-card--offer {
+  padding-top: 22px;
+}
+
+.pap-offer-badge {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: #ff2a1f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.pap-offer-link {
+  display: block;
+  text-decoration: none;
+}
+
+.pap-offers .pap-product-thumb {
+  height: 160px;
+}
+
+.pap-offer-meta {
+  align-items: flex-end;
+}
+
+.pap-offer-prices {
+  display: grid;
+  gap: 4px;
+}
+
+.pap-offer-old-price {
+  color: #98a7bb;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: line-through;
+}
+
+.pap-offer-price {
+  font-size: 17px;
 }
 
 .pap-featured-slider-shell {

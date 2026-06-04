@@ -64,6 +64,19 @@ function papetarie_storefront_enqueue_styles(): void
         wp_get_theme()->get('Version')
     );
 
+    wp_enqueue_style(
+        'papetarie-storefront-fontawesome',
+        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css',
+        [],
+        '6.5.2'
+    );
+
+    wp_enqueue_style(
+        'papetarie-storefront-open-sans',
+        'https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap',
+        [],
+        null
+    );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_styles');
 
