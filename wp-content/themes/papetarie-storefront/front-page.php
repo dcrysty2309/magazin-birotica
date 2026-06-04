@@ -286,7 +286,7 @@ get_header();
 
     <div class="pap-featured-slider-shell">
       <button class="pap-featured-nav pap-featured-nav-prev" type="button" aria-label="<?php esc_attr_e('Produse anterioare', 'papetarie-storefront'); ?>" data-featured-prev>
-        <i class="fa-solid fa-angle-left pap-featured-nav-icon" aria-hidden="true"></i>
+        <span class="pap-featured-nav-icon pap-featured-nav-icon-prev" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
       </button>
       <div class="pap-featured-slider" data-featured-slider>
         <div class="pap-product-grid">
@@ -348,7 +348,7 @@ get_header();
         </div>
       </div>
       <button class="pap-featured-nav pap-featured-nav-next" type="button" aria-label="<?php esc_attr_e('Produse următoare', 'papetarie-storefront'); ?>" data-featured-next>
-        <i class="fa-solid fa-angle-right pap-featured-nav-icon" aria-hidden="true"></i>
+        <span class="pap-featured-nav-icon pap-featured-nav-icon-next" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
       </button>
     </div>
   </section>

@@ -64,14 +64,36 @@ function papetarie_storefront_enqueue_styles(): void
         wp_get_theme()->get('Version')
     );
 
-    wp_enqueue_style(
-        'papetarie-storefront-fontawesome',
-        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css',
-        [],
-        '6.5.2'
-    );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_styles');
+
+function papetarie_storefront_enqueue_archive_scripts(): void
+{
+    if (!(is_shop() || is_product_category() || is_product_taxonomy())) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'papetarie-storefront-archive-filters',
+        get_stylesheet_directory_uri() . '/assets/js/archive-filters.js',
+        [],
+        wp_get_theme()->get('Version'),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_archive_scripts');
+
+function papetarie_storefront_enqueue_header_menu_script(): void
+{
+    wp_enqueue_script(
+        'papetarie-storefront-header-menu',
+        get_stylesheet_directory_uri() . '/assets/js/header-menu.js',
+        [],
+        wp_get_theme()->get('Version'),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_header_menu_script');
 
 function papetarie_storefront_body_class(array $classes): array
 {
@@ -80,6 +102,105 @@ function papetarie_storefront_body_class(array $classes): array
     return $classes;
 }
 add_filter('body_class', 'papetarie_storefront_body_class');
+
+function papetarie_storefront_stock_status_options(): array
+{
+    if (function_exists('wc_get_product_stock_status_options')) {
+        return wc_get_product_stock_status_options();
+    }
+
+    return [
+        'instock' => __('În stoc', 'papetarie-storefront'),
+        'outofstock' => __('Stoc epuizat', 'papetarie-storefront'),
+        'onbackorder' => __('În precomandă', 'papetarie-storefront'),
+    ];
+}
+
+function papetarie_storefront_get_archive_price_bounds(?\WP_Term $term = null): array
+{
+    global $wpdb;
+
+    $table = $wpdb->prefix . 'wc_product_meta_lookup';
+    $post_type = 'product';
+    $post_status = 'publish';
+
+    $sql = "
+        SELECT MIN(lookup.min_price) AS min_price, MAX(lookup.max_price) AS max_price
+        FROM {$table} lookup
+        INNER JOIN {$wpdb->posts} posts ON posts.ID = lookup.product_id
+        WHERE posts.post_type = %s
+          AND posts.post_status = %s
+    ";
+
+    $params = [$post_type, $post_status];
+
+    if ($term instanceof \WP_Term) {
+        $term_ids = array_merge([$term->term_id], get_term_children($term->term_id, 'product_cat'));
+        $term_ids = array_map('absint', array_filter($term_ids));
+
+        if ($term_ids) {
+            $placeholders = implode(',', array_fill(0, count($term_ids), '%d'));
+            $sql .= "
+                AND EXISTS (
+                    SELECT 1
+                    FROM {$wpdb->term_relationships} rel
+                    INNER JOIN {$wpdb->term_taxonomy} tax ON tax.term_taxonomy_id = rel.term_taxonomy_id
+                    WHERE rel.object_id = posts.ID
+                      AND tax.taxonomy = 'product_cat'
+                      AND tax.term_id IN ({$placeholders})
+                )
+            ";
+            $params = array_merge($params, $term_ids);
+        }
+    }
+
+    $query = $wpdb->prepare($sql, $params);
+    $bounds = $wpdb->get_row($query, ARRAY_A);
+
+    $min = isset($bounds['min_price']) ? (float) $bounds['min_price'] : 0.0;
+    $max = isset($bounds['max_price']) ? (float) $bounds['max_price'] : 0.0;
+
+    if ($max < $min) {
+        $max = $min;
+    }
+
+    return [
+        'min' => $min,
+        'max' => $max,
+    ];
+}
+
+function papetarie_storefront_filter_stock_status_query(array $meta_query, $query): array
+{
+    if (is_admin()) {
+        return $meta_query;
+    }
+
+    if (!(is_shop() || is_product_category() || is_product_taxonomy())) {
+        return $meta_query;
+    }
+
+    $stock_status = isset($_GET['stock_status']) ? sanitize_key(wp_unslash($_GET['stock_status'])) : '';
+
+    if ($stock_status === '' || $stock_status === 'all') {
+        return $meta_query;
+    }
+
+    $allowed_statuses = array_keys(papetarie_storefront_stock_status_options());
+
+    if (!in_array($stock_status, $allowed_statuses, true)) {
+        return $meta_query;
+    }
+
+    $meta_query[] = [
+        'key' => '_stock_status',
+        'value' => $stock_status,
+        'compare' => '=',
+    ];
+
+    return $meta_query;
+}
+add_filter('woocommerce_product_query_meta_query', 'papetarie_storefront_filter_stock_status_query', 20, 2);
 
 function papetarie_storefront_cart_count(): string
 {
@@ -105,7 +226,7 @@ function papetarie_storefront_icon(string $name): string
         'search' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 015.98 12.03l4.25 4.24-1.42 1.42-4.24-4.25A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z" fill="currentColor"/></svg>',
         'account' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4.5 4.5 0 100-9 4.5 4.5 0 000 9zm0 2c-4.14 0-7.5 2.69-7.5 6v1h15v-1c0-3.31-3.36-6-7.5-6z" fill="currentColor"/></svg>',
         'upload' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l4 4h-3v7h-2V7H8l4-4zm-7 12h14v6H5v-6zm2 2v2h10v-2H7z" fill="currentColor"/></svg>',
-        'cart' => '<i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>',
+        'cart' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.1 10.5A2 2 0 0 0 9.3 16h7.9a2 2 0 0 0 2-1.6l1.3-7.4H6.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 20a1.1 1.1 0 1 0 0-.01M17.5 20a1.1 1.1 0 1 0 0-.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         'menu' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v2H4V7zm0 4h16v2H4v-2zm0 4h16v2H4v-2z" fill="currentColor"/></svg>',
         'chevron' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z" fill="currentColor"/></svg>',
         'help' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 17a1.25 1.25 0 110-2.5A1.25 1.25 0 0112 19zm1.33-5.94-.58.33c-.94.53-1.25.98-1.25 1.86h-2c0-1.67.79-2.67 2.27-3.5l.76-.43c.78-.44 1.22-1.02 1.22-1.76 0-1.16-.95-1.92-2.39-1.92-1.31 0-2.31.57-3.18 1.64L6.6 7.99C7.77 6.43 9.5 5.5 11.73 5.5c2.77 0 4.85 1.57 4.85 4.1 0 1.5-.75 2.67-3.25 3.46z" fill="currentColor"/></svg>',
