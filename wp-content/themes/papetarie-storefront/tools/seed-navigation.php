@@ -266,6 +266,14 @@ $categoryTree = [
             ['name' => 'Consumabile echipamente', 'slug' => 'consumabile-echipamente'],
         ],
     ],
+    [
+        'name' => 'Test',
+        'slug' => 'test',
+        'description' => 'Categorie de lucru pentru produsele aflate în dezvoltare.',
+        'children' => [
+            ['name' => 'Produse test', 'slug' => 'produse-test'],
+        ],
+    ],
 ];
 
 $parentOrder = 0;

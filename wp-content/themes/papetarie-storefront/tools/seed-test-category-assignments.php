@@ -16,51 +16,112 @@ if (!function_exists('wc_get_product')) {
     exit(1);
 }
 
-$assignments = [
-    'caiet-spirala-a5-160-file' => ['notebook-uri'],
-    'pix-cu-bila-albastru-07' => ['pixuri-cu-mecanism'],
-    'set-pixuri-albastre-10-buc' => ['pixuri-cu-mecanism'],
-    'biblioraft-a4-75mm' => ['bibliorafturi'],
-    'sticky-notes-neon-76x76' => ['accesorii-marunte-birou'],
-    'organizator-birou-metalic' => ['organizatoare-birou'],
-    'highlightere-set-4' => ['markere-si-evidentiatoare'],
-    'marker-text-pastel' => ['markere-si-evidentiatoare'],
-    'dosar-a4-cu-sina' => ['dosare-si-mape'],
-    'bloc-notes-autoadeziv' => ['notebook-uri'],
-    'caiet-a5-notite-zilnice' => ['notebook-uri'],
-    'suport-birou-pentru-accesorii' => ['seturi-birou'],
-];
+function pap_seed_category(string $name, string $slug, int $parentId = 0, string $description = ''): int
+{
+    $existing = get_term_by('slug', $slug, 'product_cat');
+
+    if ($existing instanceof WP_Term) {
+        wp_update_term(
+            $existing->term_id,
+            'product_cat',
+            [
+                'name' => $name,
+                'parent' => $parentId,
+                'description' => $description,
+                'slug' => $slug,
+            ]
+        );
+
+        return (int) $existing->term_id;
+    }
+
+    $created = wp_insert_term(
+        $name,
+        'product_cat',
+        [
+            'slug' => $slug,
+            'parent' => $parentId,
+            'description' => $description,
+        ]
+    );
+
+    if (is_wp_error($created)) {
+        throw new RuntimeException('Could not create category ' . $name . ': ' . $created->get_error_message());
+    }
+
+    return (int) $created['term_id'];
+}
+
+function pap_delete_category_if_empty(string $slug): void
+{
+    $term = get_term_by('slug', $slug, 'product_cat');
+
+    if (!($term instanceof WP_Term)) {
+        return;
+    }
+
+    if ((int) $term->count === 0) {
+        wp_delete_term($term->term_id, 'product_cat');
+    }
+}
+
+$test_parent_id = pap_seed_category(
+    'Test',
+    'test',
+    0,
+    'Categorie de lucru pentru produsele aflate în dezvoltare.'
+);
+
+$test_child_id = pap_seed_category(
+    'Produse test',
+    'produse-test',
+    $test_parent_id,
+    'Produse de test folosite pentru dezvoltarea site-ului.'
+);
+
+$parents = get_terms(
+    [
+        'taxonomy' => 'product_cat',
+        'hide_empty' => false,
+        'parent' => 0,
+        'exclude' => array_filter([(int) get_option('default_product_cat')]),
+    ]
+);
+
+$max_order = 0;
+if (!is_wp_error($parents) && $parents) {
+    foreach ($parents as $parent) {
+        $max_order = max($max_order, (int) get_term_meta((int) $parent->term_id, 'order', true));
+    }
+}
+
+update_term_meta($test_parent_id, 'order', $max_order + 1);
+update_term_meta($test_child_id, 'order', 0);
 
 $default_category = (int) get_option('default_product_cat');
+$product_ids = get_posts(
+    [
+        'post_type' => 'product',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+        'orderby' => 'ID',
+        'order' => 'ASC',
+    ]
+);
 
-foreach ($assignments as $product_slug => $category_slugs) {
-    $post = get_page_by_path($product_slug, OBJECT, 'product');
-
-    if (!$post instanceof WP_Post) {
-        echo "Skipped {$product_slug}: product not found\n";
-        continue;
-    }
-
-    $term_ids = [];
-    foreach ($category_slugs as $category_slug) {
-        $term = get_term_by('slug', $category_slug, 'product_cat');
-        if ($term instanceof WP_Term) {
-            $term_ids[] = (int) $term->term_id;
-        }
-    }
-
-    if (!$term_ids) {
-        echo "Skipped {$product_slug}: no matching categories\n";
-        continue;
-    }
-
-    wp_set_object_terms($post->ID, $term_ids, 'product_cat', false);
+foreach ($product_ids as $product_id) {
+    wp_set_object_terms((int) $product_id, [$test_child_id], 'product_cat', false);
 
     if ($default_category > 0) {
-        wp_remove_object_terms($post->ID, [$default_category], 'product_cat');
+        wp_remove_object_terms((int) $product_id, [$default_category], 'product_cat');
     }
 
-    echo "Assigned {$product_slug} -> " . implode(', ', $category_slugs) . PHP_EOL;
+    echo "Assigned product {$product_id} -> produse-test" . PHP_EOL;
 }
+
+pap_delete_category_if_empty('uncategorized');
+pap_delete_category_if_empty('casual');
+pap_delete_category_if_empty('travel');
 
 echo "Done." . PHP_EOL;
