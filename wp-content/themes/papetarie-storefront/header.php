@@ -77,19 +77,24 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
           class="pap-category-trigger"
           type="button"
           aria-expanded="false"
-          aria-controls="pap-category-menu"
-          data-category-menu-trigger
+          aria-controls="pap-header-category-menu"
+          data-header-category-menu-trigger
         >
           <span class="pap-category-trigger-icon"><?php echo papetarie_storefront_icon('menu'); ?></span>
           <span><?php esc_html_e('Toate categoriile', 'papetarie-storefront'); ?></span>
         </button>
-          <?php if ($show_header_category_menu) : ?>
-            <div class="pap-category-menu-shell is-open" data-category-menu-shell>
+          <?php if (false && $show_header_category_menu) : ?>
+            <div
+              class="pap-category-menu-shell is-open"
+              data-category-menu-shell
+              data-category-menu-force-open="<?php echo $header_menu_force_debug ? '1' : '0'; ?>"
+            >
               <div class="pap-category-menu-inner">
                 <div
                   id="pap-category-menu"
                   class="pap-category-menu pap-showcase-grid is-panel-visible"
                   data-category-menu
+                  <?php echo $header_menu_force_debug ? '' : 'hidden'; ?>
                 >
                   <aside class="pap-category-menu-nav pap-showcase-nav" aria-label="<?php esc_attr_e('Categorii principale', 'papetarie-storefront'); ?>">
                     <div class="pap-category-menu-nav-list pap-showcase-nav-list">
@@ -111,6 +116,17 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
 
                   <div class="pap-category-menu-panels pap-showcase-stage">
                     <div class="pap-showcase-panels">
+                      <?php papetarie_storefront_render_mega_menu_panels(
+                          $header_menu_categories,
+                          $header_menu_active_slug,
+                          [
+                              'nav_aria_label' => __('Categorii principale', 'papetarie-storefront'),
+                              'panel_include_id' => true,
+                              'panel_id_prefix' => 'pap-category-menu-panel-',
+                              'panel_data_attr' => 'data-category-menu-panel',
+                          ]
+                      ); ?>
+                      <?php if (false) : ?>
                       <?php foreach ($header_menu_categories as $category) : ?>
                         <section
                           id="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
@@ -138,8 +154,6 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
                                             </li>
                                           <?php endforeach; ?>
                                         </ul>
-                                      <?php else : ?>
-                                        <p class="pap-showcase-panel-group-note"><?php esc_html_e('Fără subcategorii în acest moment.', 'papetarie-storefront'); ?></p>
                                       <?php endif; ?>
                                     </div>
                                   <?php endforeach; ?>
@@ -154,12 +168,15 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
                           </div>
                         </section>
                       <?php endforeach; ?>
+                      <?php endif; ?>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           <?php endif; ?>
+          <?php papetarie_storefront_render_header_category_menu($header_menu_categories, $header_menu_active_slug); ?>
+        </div>
         <nav class="pap-main-nav" aria-label="<?php esc_attr_e('Meniu principal', 'papetarie-storefront'); ?>">
           <?php
           wp_nav_menu(
@@ -188,7 +205,7 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
         );
           ?>
       </div>
-    <?php if ($show_header_category_menu) : ?>
+    <?php if (false && $show_header_category_menu) : ?>
       <div class="pap-category-menu-shell" data-category-menu-shell>
         <div class="pap-shell pap-category-menu-inner">
           <div
@@ -244,8 +261,6 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
                                     </li>
                                   <?php endforeach; ?>
                                 </ul>
-                              <?php else : ?>
-                                <p class="pap-showcase-panel-group-note"><?php esc_html_e('Fără subcategorii în acest moment.', 'papetarie-storefront'); ?></p>
                               <?php endif; ?>
                             </div>
                           <?php endforeach; ?>

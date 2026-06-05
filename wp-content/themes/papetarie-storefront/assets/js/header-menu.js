@@ -1,18 +1,18 @@
 (() => {
-  const shell = document.querySelector('[data-category-menu-shell]');
+  const shell = document.querySelector('[data-header-catmenu-shell]');
+
   if (!shell) {
     return;
   }
 
-  const navRow = shell.closest('.pap-nav-row');
-  const trigger = shell.querySelector('[data-category-menu-trigger]');
-  const menu = shell.querySelector('[data-category-menu]');
-  const stage = shell.querySelector('.pap-category-menu-panels');
-  const items = Array.from(shell.querySelectorAll('[data-category-menu-item]'));
-  const panels = Array.from(shell.querySelectorAll('[data-category-menu-panel]'));
+  const trigger = document.querySelector('[data-header-category-menu-trigger]');
+  const anchor = document.querySelector('.pap-category-menu-anchor');
+  const menu = shell.querySelector('.pap-header-catmenu');
+  const items = Array.from(shell.querySelectorAll('[data-header-catmenu-item]'));
+  const panels = Array.from(shell.querySelectorAll('[data-header-catmenu-panel]'));
   const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
-  const defaultActiveItem = shell.querySelector('.pap-category-menu-nav-item.is-active');
-  const defaultSlug = (defaultActiveItem && defaultActiveItem.getAttribute('data-category-menu-target')) || (items[0] && items[0].getAttribute('data-category-menu-target')) || '';
+  const activeItem = shell.querySelector('.pap-header-catmenu-item.is-active');
+  const defaultSlug = (activeItem && activeItem.getAttribute('data-header-catmenu-target')) || (items[0] && items[0].getAttribute('data-header-catmenu-target')) || '';
 
   let isOpen = false;
   let closeTimer = null;
@@ -24,75 +24,52 @@
     }
   };
 
-  const setPanelVisible = (visible) => {
-    if (!menu) {
-      return;
-    }
-
-    menu.classList.toggle('is-panel-visible', visible);
-
-    if (stage) {
-      stage.hidden = !visible;
-    }
-
-    if (!visible) {
-      panels.forEach((panel) => {
-        panel.classList.remove('is-active');
-        panel.hidden = true;
-      });
-    }
-  };
-
-  const setActive = (slug, revealPanel = false) => {
+  const setActive = (slug) => {
     if (!slug) {
       return;
     }
 
     items.forEach((item) => {
-      const isActive = item.getAttribute('data-category-menu-target') === slug;
-      item.classList.toggle('is-active', isActive);
-      item.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+      const isItemActive = item.getAttribute('data-header-catmenu-target') === slug;
+      item.classList.toggle('is-active', isItemActive);
+      item.setAttribute('aria-expanded', isItemActive ? 'true' : 'false');
     });
 
     panels.forEach((panel) => {
-      const isActive = panel.getAttribute('data-category-menu-panel') === slug;
-      panel.classList.toggle('is-active', isActive && revealPanel);
-      panel.hidden = !(isActive && revealPanel);
+      const isPanelActive = panel.getAttribute('data-header-catmenu-panel') === slug;
+      panel.classList.toggle('is-active', isPanelActive);
+      panel.hidden = !isPanelActive;
     });
   };
 
-  const openMenu = (slug = defaultSlug, revealPanel = false) => {
-    if (!menu) {
-      return;
-    }
-
+  const openMenu = (slug = defaultSlug) => {
     clearCloseTimer();
     isOpen = true;
-    menu.hidden = false;
+    shell.hidden = false;
+    if (menu) {
+      menu.hidden = false;
+    }
     shell.classList.add('is-open');
-    setPanelVisible(revealPanel);
-
     if (trigger) {
       trigger.setAttribute('aria-expanded', 'true');
     }
-
-    setActive(slug, revealPanel);
+    setActive(slug);
   };
 
   const closeMenu = () => {
-    if (!menu) {
-      return;
-    }
-
     clearCloseTimer();
     isOpen = false;
     shell.classList.remove('is-open');
-    menu.hidden = true;
-    setPanelVisible(false);
-
+    shell.hidden = true;
+    if (menu) {
+      menu.hidden = true;
+    }
     if (trigger) {
       trigger.setAttribute('aria-expanded', 'false');
     }
+    panels.forEach((panel) => {
+      panel.hidden = true;
+    });
   };
 
   const scheduleClose = () => {
@@ -107,24 +84,14 @@
     }, 120);
   };
 
-  if (navRow) {
-    navRow.addEventListener('mouseenter', () => {
+  if (trigger) {
+    trigger.addEventListener('mouseenter', () => {
       if (hoverQuery.matches) {
-        openMenu(defaultSlug, false);
+        openMenu(defaultSlug);
       }
     });
 
-    navRow.addEventListener('mouseleave', scheduleClose);
-  }
-
-  shell.addEventListener('mouseenter', clearCloseTimer);
-  shell.addEventListener('mouseleave', scheduleClose);
-
-  if (trigger) {
-    trigger.addEventListener('focus', () => {
-      openMenu(defaultSlug, false);
-    });
-
+    trigger.addEventListener('focus', () => openMenu(defaultSlug));
     trigger.addEventListener('click', () => {
       if (hoverQuery.matches) {
         return;
@@ -135,42 +102,49 @@
         return;
       }
 
-      openMenu();
+      openMenu(defaultSlug);
     });
   }
 
-  menu.addEventListener('mouseenter', clearCloseTimer);
-  menu.addEventListener('mouseleave', scheduleClose);
-  shell.addEventListener('focusout', (event) => {
-    const nextTarget = event.relatedTarget;
-
-    if (!nextTarget || !shell.contains(nextTarget)) {
-      scheduleClose();
-    }
-  });
+  shell.addEventListener('mouseenter', clearCloseTimer);
+  shell.addEventListener('mouseleave', scheduleClose);
+  menu && menu.addEventListener('mouseenter', clearCloseTimer);
+  menu && menu.addEventListener('mouseleave', scheduleClose);
 
   items.forEach((item) => {
-    const slug = item.getAttribute('data-category-menu-target');
+    const slug = item.getAttribute('data-header-catmenu-target');
 
     item.addEventListener('mouseenter', () => {
-      if (hoverQuery.matches) {
-        openMenu(slug, true);
-      }
+      openMenu(slug);
     });
 
     item.addEventListener('focus', () => {
-      openMenu(slug, true);
+      openMenu(slug);
     });
+  });
 
+  document.addEventListener('pointerover', (event) => {
+    if (!hoverQuery.matches || !isOpen) {
+      return;
+    }
+
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    if (anchor && anchor.contains(target)) {
+      return;
+    }
+
+    closeMenu();
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && isOpen) {
       closeMenu();
-
-      if (trigger) {
-        trigger.focus();
-      }
+      trigger && trigger.focus();
     }
   });
 
@@ -182,6 +156,5 @@
     });
   }
 
-  setPanelVisible(false);
   closeMenu();
 })();

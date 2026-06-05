@@ -267,15 +267,15 @@ get_header();
       <aside class="pap-showcase-nav" aria-label="<?php esc_attr_e('Categorii produse', 'papetarie-storefront'); ?>">
         <div class="pap-showcase-nav-list">
           <?php foreach ($showcase_categories as $category) : ?>
-            <button
+            <a
               class="pap-showcase-nav-item<?php echo $category['slug'] === $showcase_active_slug ? ' is-active' : ''; ?>"
-              type="button"
+              href="<?php echo esc_url($category['url']); ?>"
               data-showcase-tab="<?php echo esc_attr($category['slug']); ?>"
               title="<?php echo esc_attr($category['name']); ?>"
             >
               <span class="pap-showcase-nav-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
               <span class="pap-showcase-nav-label"><?php echo esc_html(papetarie_storefront_short_category_name($category['slug'], $category['name'])); ?></span>
-            </button>
+            </a>
           <?php endforeach; ?>
         </div>
       </aside>
@@ -300,6 +300,16 @@ get_header();
         </div>
 
         <div class="pap-showcase-panels">
+          <?php papetarie_storefront_render_mega_menu_panels(
+              $showcase_categories,
+              $showcase_active_slug,
+              [
+                  'nav_aria_label' => __('Categorii produse', 'papetarie-storefront'),
+                  'panel_data_attr' => 'data-showcase-panel',
+                  'panel_include_id' => false,
+              ]
+          ); ?>
+          <?php if (false) : ?>
           <?php foreach ($showcase_categories as $category) : ?>
             <section class="pap-showcase-panel<?php echo $category['slug'] === $showcase_active_slug ? ' is-active' : ''; ?>" data-showcase-panel="<?php echo esc_attr($category['slug']); ?>" <?php echo $category['slug'] === $showcase_active_slug ? '' : 'hidden'; ?>>
               <div class="pap-showcase-panel-layout">
@@ -346,6 +356,7 @@ get_header();
               </div>
             </section>
           <?php endforeach; ?>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -665,10 +676,6 @@ get_header();
       });
 
       item.addEventListener('focus', function () {
-        setActivePanel(slug, true);
-      });
-
-      item.addEventListener('click', function () {
         setActivePanel(slug, true);
       });
     });
