@@ -1110,6 +1110,14 @@ body.tax-product_cat .pap-header-catmenu-panel {
   align-self: start;
 }
 
+.pap-showcase-grid.is-leaf-active {
+  grid-template-columns: 207px;
+}
+
+.pap-showcase-grid.is-leaf-active .pap-showcase-stage {
+  display: none;
+}
+
 .pap-showcase-slides {
   position: absolute;
   inset: 0;

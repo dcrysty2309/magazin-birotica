@@ -629,6 +629,10 @@ get_header();
         }
       });
 
+      if (showcaseGrid) {
+        showcaseGrid.classList.toggle('is-leaf-active', !!slug && !hasPanel);
+      }
+
       if (hasPanel && activePanel) {
         stage.classList.toggle('is-panel-visible', keepVisible !== false);
       } else {
