@@ -605,7 +605,10 @@ get_header();
         return;
       }
 
-      stage.style.height = nav.offsetHeight + 'px';
+      var nextHeight = Math.ceil(nav.getBoundingClientRect().height);
+      if (nextHeight > 0) {
+        stage.style.height = nextHeight + 'px';
+      }
     }
 
     function setActivePanel(slug, keepVisible) {
@@ -860,6 +863,17 @@ get_header();
     startSlider();
     window.addEventListener('resize', syncStageHeight);
     window.addEventListener('load', syncStageHeight);
+
+    if (window.ResizeObserver && nav) {
+      var navResizeObserver = new ResizeObserver(function () {
+        syncStageHeight();
+      });
+
+      navResizeObserver.observe(nav);
+      window.addEventListener('beforeunload', function () {
+        navResizeObserver.disconnect();
+      });
+    }
   })();
 </script>
 <?php
