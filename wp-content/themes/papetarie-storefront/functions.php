@@ -419,7 +419,12 @@ function papetarie_storefront_get_mega_menu_categories(): array
         ];
     }
 
-    return array_values(array_filter($items, static fn (array $item): bool => !empty($item['children'])));
+    return array_values(
+        array_filter(
+            $items,
+            static fn (array $item): bool => !empty($item['children']) || $item['slug'] === 'test'
+        )
+    );
 }
 
 function papetarie_storefront_active_mega_menu_slug(array $categories): string
