@@ -932,6 +932,17 @@ a:focus-visible {
   line-height: 1.45;
 }
 
+.pap-header-catmenu.is-leaf-active {
+  grid-template-columns: 207px;
+  width: 207px;
+  min-height: 0;
+  max-height: none;
+}
+
+.pap-header-catmenu.is-leaf-active .pap-header-catmenu-right {
+  display: none;
+}
+
 body.tax-product_cat .pap-header-catmenu {
   min-height: 0;
   max-height: none;

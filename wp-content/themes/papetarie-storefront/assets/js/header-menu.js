@@ -39,7 +39,12 @@
   };
 
   const setActive = (slug) => {
+    const hasPanel = !!(slug && panelSlugs.has(slug));
+
+    shell.classList.toggle('is-leaf-active', !!slug && !hasPanel);
+
     if (!slug) {
+      shell.classList.remove('is-leaf-active');
       items.forEach((item) => {
         item.classList.remove('is-active');
         item.setAttribute('aria-expanded', 'false');
@@ -55,7 +60,7 @@
     items.forEach((item) => {
       const isItemActive = item.getAttribute('data-header-catmenu-target') === slug;
       item.classList.toggle('is-active', isItemActive);
-      const itemHasPanel = item.getAttribute('data-header-catmenu-has-children') === '1' && panelSlugs.has(slug);
+      const itemHasPanel = item.getAttribute('data-header-catmenu-has-children') === '1' && hasPanel;
       item.setAttribute('aria-expanded', isItemActive && itemHasPanel ? 'true' : 'false');
     });
 
@@ -74,6 +79,7 @@
       menu.hidden = false;
     }
     shell.classList.add('is-open');
+    shell.classList.toggle('is-leaf-active', !!slug && !panelSlugs.has(slug));
     if (trigger) {
       trigger.setAttribute('aria-expanded', 'true');
     }
@@ -84,6 +90,7 @@
     clearCloseTimer();
     isOpen = false;
     shell.classList.remove('is-open');
+    shell.classList.remove('is-leaf-active');
     shell.hidden = true;
     if (menu) {
       menu.hidden = true;
