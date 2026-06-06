@@ -422,7 +422,7 @@ function papetarie_storefront_get_mega_menu_categories(): array
     return array_values(
         array_filter(
             $items,
-            static fn (array $item): bool => !empty($item['children']) || $item['slug'] === 'test'
+            static fn (array $item): bool => !empty($item['children']) || in_array($item['slug'], ['test', 'test-2'], true)
         )
     );
 }

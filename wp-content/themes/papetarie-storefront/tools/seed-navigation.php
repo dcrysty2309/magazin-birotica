@@ -205,6 +205,12 @@ $categoryTree = [
         ],
     ],
     [
+        'name' => 'Test 2',
+        'slug' => 'test-2',
+        'description' => 'Categorie de test pentru poziționare și hover în lista principală.',
+        'children' => [],
+    ],
+    [
         'name' => 'Sisteme de prezentare și afișare',
         'slug' => 'sisteme-de-prezentare-si-afisare',
         'description' => 'Flipchart-uri, whiteboard-uri și accesorii pentru prezentare.',

@@ -268,7 +268,7 @@ get_header();
         <div class="pap-showcase-nav-list">
           <?php foreach ($showcase_categories as $category) : ?>
             <a
-              class="pap-showcase-nav-item<?php echo $category['slug'] === $showcase_active_slug ? ' is-active' : ''; ?>"
+              class="pap-showcase-nav-item<?php echo $category['slug'] === $showcase_active_slug && !empty($category['children']) ? ' is-active' : ''; ?>"
               href="<?php echo esc_url($category['url']); ?>"
               data-showcase-tab="<?php echo esc_attr($category['slug']); ?>"
               data-showcase-has-children="<?php echo !empty($category['children']) ? '1' : '0'; ?>"
@@ -600,15 +600,23 @@ get_header();
         return;
       }
 
-      if (window.matchMedia('(max-width: 980px)').matches) {
+      stage.style.height = '';
+    }
+
+    function resetShowcaseState() {
+      if (stage) {
         stage.style.height = '';
-        return;
+        stage.classList.remove('is-panel-visible');
       }
 
-      var nextHeight = Math.ceil(nav.getBoundingClientRect().height);
-      if (nextHeight > 0) {
-        stage.style.height = nextHeight + 'px';
-      }
+      navItems.forEach(function (item) {
+        item.classList.remove('is-active');
+      });
+
+      panels.forEach(function (panel) {
+        panel.hidden = false;
+        panel.classList.remove('is-active');
+      });
     }
 
     function setActivePanel(slug, keepVisible) {
@@ -632,14 +640,16 @@ get_header();
         }
       });
 
-      if (showcaseGrid) {
-        showcaseGrid.classList.toggle('is-leaf-active', !!slug && !hasPanel);
-      }
-
       if (hasPanel && activePanel) {
+        if (stage) {
+          stage.style.display = '';
+        }
         stage.classList.toggle('is-panel-visible', keepVisible !== false);
       } else {
-        stage.classList.remove('is-panel-visible');
+        if (stage) {
+          stage.classList.remove('is-panel-visible');
+          stage.style.display = '';
+        }
         panels.forEach(function (panel) {
           panel.hidden = true;
           panel.classList.remove('is-active');
@@ -656,14 +666,7 @@ get_header();
         return;
       }
 
-      stage.classList.remove('is-panel-visible');
-      panels.forEach(function (panel) {
-        panel.hidden = false;
-        panel.classList.remove('is-active');
-      });
-      navItems.forEach(function (item) {
-        item.classList.remove('is-active');
-      });
+      resetShowcaseState();
     }
 
     function showSlide(index) {
@@ -694,15 +697,25 @@ get_header();
       var slug = item.getAttribute('data-showcase-tab');
       var hasPanel = item.getAttribute('data-showcase-has-children') === '1';
 
-      item.addEventListener('mouseenter', function () {
-        if (window.matchMedia('(min-width: 981px)').matches) {
-          setActivePanel(slug, hasPanel);
-        }
-      });
+      if (hasPanel) {
+        item.addEventListener('mouseenter', function () {
+          if (window.matchMedia('(min-width: 981px)').matches) {
+            setActivePanel(slug, hasPanel);
+          }
+        });
 
-      item.addEventListener('focus', function () {
-        setActivePanel(slug, hasPanel);
-      });
+        item.addEventListener('focus', function () {
+          setActivePanel(slug, hasPanel);
+        });
+      } else {
+        item.addEventListener('mouseenter', function () {
+          resetShowcaseState();
+        });
+
+        item.addEventListener('focus', function () {
+          resetShowcaseState();
+        });
+      }
     });
 
     if (showcaseGrid) {
@@ -857,12 +870,19 @@ get_header();
     if (debugOpen) {
       setActivePanel('<?php echo esc_js($showcase_active_slug); ?>', true);
     } else {
+      resetShowcaseState();
       hidePanels();
     }
     syncStageHeight();
     startSlider();
     window.addEventListener('resize', syncStageHeight);
     window.addEventListener('load', syncStageHeight);
+    window.addEventListener('pageshow', function () {
+      if (!window.matchMedia('(max-width: 980px)').matches) {
+        resetShowcaseState();
+      }
+      window.requestAnimationFrame(syncStageHeight);
+    });
 
     if (window.ResizeObserver && nav) {
       var navResizeObserver = new ResizeObserver(function () {
