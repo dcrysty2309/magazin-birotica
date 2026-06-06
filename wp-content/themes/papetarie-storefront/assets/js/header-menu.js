@@ -40,14 +40,11 @@
 
   const setActive = (slug) => {
     if (!slug) {
-      panels.forEach((panel) => {
-        panel.classList.remove('is-active');
-        panel.hidden = true;
+      items.forEach((item) => {
+        item.classList.remove('is-active');
+        item.setAttribute('aria-expanded', 'false');
       });
-      return;
-    }
 
-    if (!panelSlugs.has(slug)) {
       panels.forEach((panel) => {
         panel.classList.remove('is-active');
         panel.hidden = true;
@@ -58,7 +55,8 @@
     items.forEach((item) => {
       const isItemActive = item.getAttribute('data-header-catmenu-target') === slug;
       item.classList.toggle('is-active', isItemActive);
-      item.setAttribute('aria-expanded', isItemActive ? 'true' : 'false');
+      const itemHasPanel = item.getAttribute('data-header-catmenu-has-children') === '1' && panelSlugs.has(slug);
+      item.setAttribute('aria-expanded', isItemActive && itemHasPanel ? 'true' : 'false');
     });
 
     panels.forEach((panel) => {
@@ -139,23 +137,12 @@
 
   items.forEach((item) => {
     const slug = item.getAttribute('data-header-catmenu-target');
-    const hasPanel = item.getAttribute('data-header-catmenu-has-children') === '1' && panelSlugs.has(slug || '');
 
     item.addEventListener('mouseenter', () => {
-      if (!hasPanel) {
-        closeMenu();
-        return;
-      }
-
       openMenu(slug);
     });
 
     item.addEventListener('focus', () => {
-      if (!hasPanel) {
-        closeMenu();
-        return;
-      }
-
       openMenu(slug);
     });
   });
