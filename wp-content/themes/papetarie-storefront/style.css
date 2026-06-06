@@ -932,14 +932,14 @@ a:focus-visible {
   line-height: 1.45;
 }
 
-.pap-header-catmenu.is-leaf-active {
+.pap-header-catmenu-shell.is-leaf-active .pap-header-catmenu {
   grid-template-columns: 207px;
   width: 207px;
   min-height: 0;
   max-height: none;
 }
 
-.pap-header-catmenu.is-leaf-active .pap-header-catmenu-right {
+.pap-header-catmenu-shell.is-leaf-active .pap-header-catmenu-right {
   display: none;
 }
 
