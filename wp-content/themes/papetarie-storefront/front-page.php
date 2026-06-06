@@ -271,6 +271,7 @@ get_header();
               class="pap-showcase-nav-item<?php echo $category['slug'] === $showcase_active_slug ? ' is-active' : ''; ?>"
               href="<?php echo esc_url($category['url']); ?>"
               data-showcase-tab="<?php echo esc_attr($category['slug']); ?>"
+              data-showcase-has-children="<?php echo !empty($category['children']) ? '1' : '0'; ?>"
               title="<?php echo esc_attr($category['name']); ?>"
             >
               <span class="pap-showcase-nav-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
@@ -609,18 +610,34 @@ get_header();
 
     function setActivePanel(slug, keepVisible) {
       var isMobile = window.matchMedia('(max-width: 980px)').matches;
+      var activePanel = null;
+      var hasPanel = false;
 
       navItems.forEach(function (item) {
         item.classList.toggle('is-active', item.getAttribute('data-showcase-tab') === slug);
+        if (item.getAttribute('data-showcase-tab') === slug) {
+          hasPanel = item.getAttribute('data-showcase-has-children') === '1';
+        }
       });
 
       panels.forEach(function (panel) {
         var active = panel.getAttribute('data-showcase-panel') === slug;
         panel.classList.toggle('is-active', active);
         panel.hidden = isMobile ? !active : false;
+        if (active) {
+          activePanel = panel;
+        }
       });
 
-      stage.classList.toggle('is-panel-visible', keepVisible !== false);
+      if (hasPanel && activePanel) {
+        stage.classList.toggle('is-panel-visible', keepVisible !== false);
+      } else {
+        stage.classList.remove('is-panel-visible');
+        panels.forEach(function (panel) {
+          panel.hidden = true;
+          panel.classList.remove('is-active');
+        });
+      }
     }
 
     function hidePanels() {
@@ -668,15 +685,16 @@ get_header();
 
     navItems.forEach(function (item) {
       var slug = item.getAttribute('data-showcase-tab');
+      var hasPanel = item.getAttribute('data-showcase-has-children') === '1';
 
       item.addEventListener('mouseenter', function () {
         if (window.matchMedia('(min-width: 981px)').matches) {
-          setActivePanel(slug, true);
+          setActivePanel(slug, hasPanel);
         }
       });
 
       item.addEventListener('focus', function () {
-        setActivePanel(slug, true);
+        setActivePanel(slug, hasPanel);
       });
     });
 
