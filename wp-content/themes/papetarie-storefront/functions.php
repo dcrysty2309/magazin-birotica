@@ -517,6 +517,7 @@ function papetarie_storefront_render_mega_menu_panels(array $categories, string 
 
     ?>
     <?php foreach ($categories as $category) : ?>
+      <?php if (empty($category['children'])) { continue; } ?>
       <section
         class="<?php echo esc_attr($panel_item_class); ?><?php echo $category['slug'] === $active_slug ? ' is-active' : ''; ?>"
         <?php if ($include_id) : ?>
@@ -529,35 +530,28 @@ function papetarie_storefront_render_mega_menu_panels(array $categories, string 
             <div class="<?php echo esc_attr($panel_copy_class); ?>">
             <div class="<?php echo esc_attr($panel_title_class); ?>"><?php echo esc_html($category['name']); ?></div>
             <div class="<?php echo esc_attr($panel_columns_class); ?>">
-              <?php if (!empty($category['children'])) : ?>
-                <?php foreach ($category['children'] as $child) : ?>
-                  <div class="<?php echo esc_attr($panel_group_class); ?>">
-                    <?php if (!empty($child['children'])) : ?>
-                      <a class="<?php echo esc_attr($panel_group_title_class); ?>" href="<?php echo esc_url($child['url']); ?>">
-                        <?php echo esc_html($child['name']); ?>
-                      </a>
-                      <ul class="<?php echo esc_attr($panel_sublist_class); ?>">
-                        <?php foreach ($child['children'] as $grandchild) : ?>
-                          <li>
-                            <a href="<?php echo esc_url($grandchild['url']); ?>">
-                              <?php echo esc_html($grandchild['name']); ?>
-                            </a>
-                          </li>
-                        <?php endforeach; ?>
-                      </ul>
-                    <?php else : ?>
-                      <a class="<?php echo esc_attr($panel_group_title_class); ?>" href="<?php echo esc_url($child['url']); ?>">
-                        <?php echo esc_html($child['name']); ?>
-                      </a>
-                    <?php endif; ?>
-                  </div>
-                <?php endforeach; ?>
-              <?php else : ?>
-                <div class="<?php echo esc_attr($panel_empty_class); ?>">
-                  <strong><?php esc_html_e('Categoria este în curs de populare', 'papetarie-storefront'); ?></strong>
-                  <span><?php esc_html_e('Vom adăuga în scurt timp subcategorii și produse relevante aici.', 'papetarie-storefront'); ?></span>
+              <?php foreach ($category['children'] as $child) : ?>
+                <div class="<?php echo esc_attr($panel_group_class); ?>">
+                  <?php if (!empty($child['children'])) : ?>
+                    <a class="<?php echo esc_attr($panel_group_title_class); ?>" href="<?php echo esc_url($child['url']); ?>">
+                      <?php echo esc_html($child['name']); ?>
+                    </a>
+                    <ul class="<?php echo esc_attr($panel_sublist_class); ?>">
+                      <?php foreach ($child['children'] as $grandchild) : ?>
+                        <li>
+                          <a href="<?php echo esc_url($grandchild['url']); ?>">
+                            <?php echo esc_html($grandchild['name']); ?>
+                          </a>
+                        </li>
+                      <?php endforeach; ?>
+                    </ul>
+                  <?php else : ?>
+                    <a class="<?php echo esc_attr($panel_group_title_class); ?>" href="<?php echo esc_url($child['url']); ?>">
+                      <?php echo esc_html($child['name']); ?>
+                    </a>
+                  <?php endif; ?>
                 </div>
-              <?php endif; ?>
+              <?php endforeach; ?>
             </div>
           </div>
         </div>
@@ -583,8 +577,11 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
                 href="<?php echo esc_url($category['url']); ?>"
                 data-header-catmenu-item="<?php echo esc_attr($category['slug']); ?>"
                 data-header-catmenu-target="<?php echo esc_attr($category['slug']); ?>"
-                aria-controls="pap-header-catmenu-panel-<?php echo esc_attr($category['slug']); ?>"
-                aria-expanded="<?php echo $category['slug'] === $active_slug ? 'true' : 'false'; ?>"
+                data-header-catmenu-has-children="<?php echo !empty($category['children']) ? '1' : '0'; ?>"
+                <?php if (!empty($category['children'])) : ?>
+                  aria-controls="pap-header-catmenu-panel-<?php echo esc_attr($category['slug']); ?>"
+                <?php endif; ?>
+                aria-expanded="<?php echo !empty($category['children']) && $category['slug'] === $active_slug ? 'true' : 'false'; ?>"
               >
                 <span class="pap-showcase-nav-icon pap-header-catmenu-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
                 <span class="pap-showcase-nav-label pap-header-catmenu-label"><?php echo esc_html(papetarie_storefront_short_category_name($category['slug'], $category['name'])); ?></span>
@@ -596,6 +593,7 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
         <div class="pap-header-catmenu-right">
           <div class="pap-header-catmenu-panels">
             <?php foreach ($categories as $category) : ?>
+              <?php if (empty($category['children'])) { continue; } ?>
               <section
                 class="pap-header-catmenu-panel<?php echo $category['slug'] === $active_slug ? ' is-active' : ''; ?>"
                 data-header-catmenu-panel="<?php echo esc_attr($category['slug']); ?>"
@@ -603,32 +601,26 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
                 <?php echo $category['slug'] === $active_slug ? '' : 'hidden'; ?>
               >
                 <div class="pap-header-catmenu-panel-title"><?php echo esc_html($category['name']); ?></div>
-                <?php if (!empty($category['children'])) : ?>
-                  <div class="pap-header-catmenu-group-list">
-                    <?php foreach ($category['children'] as $child) : ?>
-                      <div class="pap-header-catmenu-group">
-                        <a class="pap-header-catmenu-group-title" href="<?php echo esc_url($child['url']); ?>">
-                          <?php echo esc_html($child['name']); ?>
-                        </a>
-                        <?php if (!empty($child['children'])) : ?>
-                          <ul class="pap-header-catmenu-sublist">
-                            <?php foreach ($child['children'] as $grandchild) : ?>
-                              <li>
-                                <a href="<?php echo esc_url($grandchild['url']); ?>">
-                                  <?php echo esc_html($grandchild['name']); ?>
-                                </a>
-                              </li>
-                            <?php endforeach; ?>
-                          </ul>
-                        <?php endif; ?>
-                      </div>
-                    <?php endforeach; ?>
-                  </div>
-                <?php else : ?>
-                  <div class="pap-header-catmenu-empty">
-                    <strong><?php esc_html_e('Categoria este în curs de populare', 'papetarie-storefront'); ?></strong>
-                  </div>
-                <?php endif; ?>
+                <div class="pap-header-catmenu-group-list">
+                  <?php foreach ($category['children'] as $child) : ?>
+                    <div class="pap-header-catmenu-group">
+                      <a class="pap-header-catmenu-group-title" href="<?php echo esc_url($child['url']); ?>">
+                        <?php echo esc_html($child['name']); ?>
+                      </a>
+                      <?php if (!empty($child['children'])) : ?>
+                        <ul class="pap-header-catmenu-sublist">
+                          <?php foreach ($child['children'] as $grandchild) : ?>
+                            <li>
+                              <a href="<?php echo esc_url($grandchild['url']); ?>">
+                                <?php echo esc_html($grandchild['name']); ?>
+                              </a>
+                            </li>
+                          <?php endforeach; ?>
+                        </ul>
+                      <?php endif; ?>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
               </section>
             <?php endforeach; ?>
           </div>

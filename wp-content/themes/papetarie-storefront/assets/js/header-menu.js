@@ -11,8 +11,22 @@
   const items = Array.from(shell.querySelectorAll('[data-header-catmenu-item]'));
   const panels = Array.from(shell.querySelectorAll('[data-header-catmenu-panel]'));
   const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const panelSlugs = new Set(panels.map((panel) => panel.getAttribute('data-header-catmenu-panel')).filter(Boolean));
   const activeItem = shell.querySelector('.pap-header-catmenu-item.is-active');
-  const defaultSlug = (activeItem && activeItem.getAttribute('data-header-catmenu-target')) || (items[0] && items[0].getAttribute('data-header-catmenu-target')) || '';
+  const activeItemSlug = activeItem && activeItem.getAttribute('data-header-catmenu-target');
+  const activeItemHasPanel = !!(activeItemSlug && panelSlugs.has(activeItemSlug));
+  let fallbackSlug = '';
+
+  for (let index = 0; index < items.length; index += 1) {
+    const candidateSlug = items[index].getAttribute('data-header-catmenu-target') || '';
+
+    if (candidateSlug && panelSlugs.has(candidateSlug)) {
+      fallbackSlug = candidateSlug;
+      break;
+    }
+  }
+
+  const defaultSlug = activeItemHasPanel ? activeItemSlug : fallbackSlug;
 
   let isOpen = false;
   let closeTimer = null;
@@ -26,6 +40,18 @@
 
   const setActive = (slug) => {
     if (!slug) {
+      panels.forEach((panel) => {
+        panel.classList.remove('is-active');
+        panel.hidden = true;
+      });
+      return;
+    }
+
+    if (!panelSlugs.has(slug)) {
+      panels.forEach((panel) => {
+        panel.classList.remove('is-active');
+        panel.hidden = true;
+      });
       return;
     }
 
@@ -113,12 +139,23 @@
 
   items.forEach((item) => {
     const slug = item.getAttribute('data-header-catmenu-target');
+    const hasPanel = item.getAttribute('data-header-catmenu-has-children') === '1' && panelSlugs.has(slug || '');
 
     item.addEventListener('mouseenter', () => {
+      if (!hasPanel) {
+        closeMenu();
+        return;
+      }
+
       openMenu(slug);
     });
 
     item.addEventListener('focus', () => {
+      if (!hasPanel) {
+        closeMenu();
+        return;
+      }
+
       openMenu(slug);
     });
   });

@@ -104,8 +104,11 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
                           href="<?php echo esc_url($category['url']); ?>"
                           data-category-menu-item="<?php echo esc_attr($category['slug']); ?>"
                           data-category-menu-target="<?php echo esc_attr($category['slug']); ?>"
-                          aria-controls="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
-                          aria-expanded="<?php echo $category['slug'] === $header_menu_active_slug ? 'true' : 'false'; ?>"
+                          data-category-menu-has-children="<?php echo !empty($category['children']) ? '1' : '0'; ?>"
+                          <?php if (!empty($category['children'])) : ?>
+                            aria-controls="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
+                          <?php endif; ?>
+                          aria-expanded="<?php echo !empty($category['children']) && $category['slug'] === $header_menu_active_slug ? 'true' : 'false'; ?>"
                         >
                           <span class="pap-category-menu-nav-icon pap-showcase-nav-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
                           <span class="pap-category-menu-nav-copy pap-showcase-nav-label"><?php echo esc_html(papetarie_storefront_short_category_name($category['slug'], $category['name'])); ?></span>
@@ -216,15 +219,16 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
           >
           <aside class="pap-category-menu-nav pap-showcase-nav" aria-label="<?php esc_attr_e('Categorii principale', 'papetarie-storefront'); ?>">
             <div class="pap-category-menu-nav-list pap-showcase-nav-list">
-              <?php foreach ($header_menu_categories as $category) : ?>
-                <a
-                  class="pap-category-menu-nav-item pap-showcase-nav-item<?php echo $category['slug'] === $header_menu_active_slug ? ' is-active' : ''; ?>"
-                  href="<?php echo esc_url($category['url']); ?>"
-                  data-category-menu-item="<?php echo esc_attr($category['slug']); ?>"
-                  data-category-menu-target="<?php echo esc_attr($category['slug']); ?>"
-                  aria-controls="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
-                  aria-expanded="<?php echo $category['slug'] === $header_menu_active_slug ? 'true' : 'false'; ?>"
-                >
+                      <?php foreach ($header_menu_categories as $category) : ?>
+                        <a
+                          class="pap-category-menu-nav-item pap-showcase-nav-item<?php echo $category['slug'] === $header_menu_active_slug ? ' is-active' : ''; ?>"
+                          href="<?php echo esc_url($category['url']); ?>"
+                          data-category-menu-item="<?php echo esc_attr($category['slug']); ?>"
+                          data-category-menu-target="<?php echo esc_attr($category['slug']); ?>"
+                          data-category-menu-has-children="<?php echo !empty($category['children']) ? '1' : '0'; ?>"
+                          aria-controls="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
+                          aria-expanded="<?php echo !empty($category['children']) && $category['slug'] === $header_menu_active_slug ? 'true' : 'false'; ?>"
+                        >
                   <span class="pap-category-menu-nav-icon pap-showcase-nav-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
                   <span class="pap-category-menu-nav-copy pap-showcase-nav-label"><?php echo esc_html(papetarie_storefront_short_category_name($category['slug'], $category['name'])); ?></span>
                 </a>
@@ -234,45 +238,39 @@ $show_header_category_menu = !is_front_page() && !empty($header_menu_categories)
 
           <div class="pap-category-menu-panels pap-showcase-stage">
             <div class="pap-showcase-panels">
-              <?php foreach ($header_menu_categories as $category) : ?>
-                <section
-                  id="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
-                  class="pap-category-menu-panel pap-showcase-panel<?php echo $category['slug'] === $header_menu_active_slug ? ' is-active' : ''; ?>"
+                      <?php foreach ($header_menu_categories as $category) : ?>
+                        <?php if (empty($category['children'])) { continue; } ?>
+                        <section
+                          id="pap-category-menu-panel-<?php echo esc_attr($category['slug']); ?>"
+                          class="pap-category-menu-panel pap-showcase-panel<?php echo $category['slug'] === $header_menu_active_slug ? ' is-active' : ''; ?>"
                   data-category-menu-panel="<?php echo esc_attr($category['slug']); ?>"
                   <?php echo $category['slug'] === $header_menu_active_slug ? '' : 'hidden'; ?>
                 >
-                  <div class="pap-showcase-panel-layout">
-                    <div class="pap-showcase-panel-copy">
-                      <div class="pap-showcase-panel-title"><?php echo esc_html($category['name']); ?></div>
-                      <div class="pap-showcase-panel-columns">
-                        <?php if (!empty($category['children'])) : ?>
-                          <?php foreach ($category['children'] as $child) : ?>
-                            <div class="pap-showcase-panel-group">
-                              <a class="pap-showcase-panel-group-title" href="<?php echo esc_url($child['url']); ?>">
-                                <?php echo esc_html($child['name']); ?>
-                              </a>
-                              <?php if (!empty($child['children'])) : ?>
-                                <ul class="pap-showcase-panel-sublist">
-                                  <?php foreach ($child['children'] as $grandchild) : ?>
-                                    <li>
-                                      <a href="<?php echo esc_url($grandchild['url']); ?>">
-                                        <?php echo esc_html($grandchild['name']); ?>
-                                      </a>
-                                    </li>
-                                  <?php endforeach; ?>
-                                </ul>
-                              <?php endif; ?>
+                          <div class="pap-showcase-panel-layout">
+                            <div class="pap-showcase-panel-copy">
+                              <div class="pap-showcase-panel-title"><?php echo esc_html($category['name']); ?></div>
+                              <div class="pap-showcase-panel-columns">
+                                <?php foreach ($category['children'] as $child) : ?>
+                                  <div class="pap-showcase-panel-group">
+                                    <a class="pap-showcase-panel-group-title" href="<?php echo esc_url($child['url']); ?>">
+                                      <?php echo esc_html($child['name']); ?>
+                                    </a>
+                                    <?php if (!empty($child['children'])) : ?>
+                                      <ul class="pap-showcase-panel-sublist">
+                                        <?php foreach ($child['children'] as $grandchild) : ?>
+                                          <li>
+                                            <a href="<?php echo esc_url($grandchild['url']); ?>">
+                                              <?php echo esc_html($grandchild['name']); ?>
+                                            </a>
+                                          </li>
+                                        <?php endforeach; ?>
+                                      </ul>
+                                    <?php endif; ?>
+                                  </div>
+                                <?php endforeach; ?>
+                              </div>
                             </div>
-                          <?php endforeach; ?>
-                        <?php else : ?>
-                          <div class="pap-showcase-panel-empty">
-                            <strong><?php esc_html_e('Categoria este în curs de populare', 'papetarie-storefront'); ?></strong>
-                            <span><?php esc_html_e('Vom adăuga în scurt timp subcategorii și produse relevante aici.', 'papetarie-storefront'); ?></span>
                           </div>
-                        <?php endif; ?>
-                      </div>
-                    </div>
-                  </div>
                 </section>
               <?php endforeach; ?>
             </div>
