@@ -270,9 +270,7 @@ $categoryTree = [
         'name' => 'Test',
         'slug' => 'test',
         'description' => 'Categorie de lucru pentru produsele aflate în dezvoltare.',
-        'children' => [
-            ['name' => 'Produse test', 'slug' => 'produse-test'],
-        ],
+        'children' => [],
     ],
 ];
 

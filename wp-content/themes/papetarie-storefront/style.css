@@ -932,6 +932,22 @@ a:focus-visible {
   line-height: 1.45;
 }
 
+body.tax-product_cat .pap-header-catmenu {
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+body.tax-product_cat .pap-header-catmenu-list {
+  overflow: visible;
+}
+
+body.tax-product_cat .pap-header-catmenu-right,
+body.tax-product_cat .pap-header-catmenu-panels,
+body.tax-product_cat .pap-header-catmenu-panel {
+  overflow: visible;
+}
+
 @media (max-width: 860px) {
   .pap-header-catmenu {
     width: calc(100vw - 32px);

@@ -72,13 +72,6 @@ $test_parent_id = pap_seed_category(
     'Categorie de lucru pentru produsele aflate în dezvoltare.'
 );
 
-$test_child_id = pap_seed_category(
-    'Produse test',
-    'produse-test',
-    $test_parent_id,
-    'Produse de test folosite pentru dezvoltarea site-ului.'
-);
-
 $parents = get_terms(
     [
         'taxonomy' => 'product_cat',
@@ -96,7 +89,6 @@ if (!is_wp_error($parents) && $parents) {
 }
 
 update_term_meta($test_parent_id, 'order', $max_order + 1);
-update_term_meta($test_child_id, 'order', 0);
 
 $default_category = (int) get_option('default_product_cat');
 $product_ids = get_posts(
@@ -111,17 +103,18 @@ $product_ids = get_posts(
 );
 
 foreach ($product_ids as $product_id) {
-    wp_set_object_terms((int) $product_id, [$test_child_id], 'product_cat', false);
+    wp_set_object_terms((int) $product_id, [$test_parent_id], 'product_cat', false);
 
     if ($default_category > 0) {
         wp_remove_object_terms((int) $product_id, [$default_category], 'product_cat');
     }
 
-    echo "Assigned product {$product_id} -> produse-test" . PHP_EOL;
+    echo "Assigned product {$product_id} -> test" . PHP_EOL;
 }
 
 pap_delete_category_if_empty('uncategorized');
 pap_delete_category_if_empty('casual');
 pap_delete_category_if_empty('travel');
+pap_delete_category_if_empty('produse-test');
 
 echo "Done." . PHP_EOL;
