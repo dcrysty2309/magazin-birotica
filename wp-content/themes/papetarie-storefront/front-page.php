@@ -409,7 +409,7 @@ get_header();
             $product_subtitle = wp_trim_words($product_subtitle, 8, '');
             ?>
             <article class="pap-product-card">
-              <button class="pap-wishlist" type="button" aria-label="<?php esc_attr_e('Adaugă la favorite', 'papetarie-storefront'); ?>">♡</button>
+              <?php echo papetarie_storefront_wishlist_button_html($product_id, 'home'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <div class="pap-product-thumb">
                 <?php echo $product_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               </div>
@@ -514,6 +514,7 @@ get_header();
           <?php foreach ($offer_products as $offer) : ?>
             <article class="pap-product-card pap-product-card--offer">
               <span class="pap-offer-badge">-<?php echo esc_html((string) $offer['discount']); ?>%</span>
+              <?php echo papetarie_storefront_wishlist_button_html((int) $offer['id'], 'home'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <a class="pap-offer-link" href="<?php echo esc_url($offer['url']); ?>" aria-label="<?php echo esc_attr($offer['name']); ?>">
                 <div class="pap-product-thumb">
                   <?php echo $offer['image']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>

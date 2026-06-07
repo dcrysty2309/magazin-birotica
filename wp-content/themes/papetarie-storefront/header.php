@@ -51,11 +51,11 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
       </form>
 
       <div class="pap-header-tools">
-        <a class="pap-tool-card pap-tool-card-account" href="<?php echo esc_url(wp_login_url()); ?>">
+        <a class="pap-tool-card pap-tool-card-account" href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : wp_login_url()); ?>">
           <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('account'); ?></i>
           <span class="pap-tool-copy">
             <strong><?php esc_html_e('Cont', 'papetarie-storefront'); ?></strong>
-            <span><?php esc_html_e('Autentificare', 'papetarie-storefront'); ?></span>
+            <span><?php echo esc_html(is_user_logged_in() ? __('Contul meu', 'papetarie-storefront') : __('Autentificare', 'papetarie-storefront')); ?></span>
           </span>
         </a>
         <a class="pap-tool-card pap-tool-card-cart" href="<?php echo esc_url(function_exists('wc_get_cart_url') ? wc_get_cart_url() : '#'); ?>">
@@ -105,7 +105,7 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
                   'container' => false,
                   'menu_class' => 'pap-utility-menu',
                   'fallback_cb' => static function (): void {
-                    echo '<ul class="pap-utility-menu"><li><a href="#">' . papetarie_storefront_icon('help') . '<span>Ai nevoie de ajutor?</span></a></li></ul>';
+                    echo '<ul class="pap-utility-menu"><li><a href="#">' . papetarie_storefront_icon('headset-outline') . '<span>Ai nevoie de ajutor?</span></a></li></ul>';
                 },
             ]
         );

@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Outreach furnizori papetărie</title>
+  <style>
+    :root {
+      --bg: #f6f8fc;
+      --card: #ffffff;
+      --text: #17324d;
+      --muted: #5d6b7a;
+      --line: #d9e2ec;
+      --accent: #0b5cab;
+      --accent-soft: #e9f2fb;
+      --accent-hover: #094c8e;
+      --good: #137333;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(28px, 3vw, 40px);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 920px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,.7);
+      border: 1px solid var(--line);
+      border-radius: 0;
+    }
+
+    .toolbar code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 2px 6px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 0;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: background-color .15s ease, border-color .15s ease, transform .15s ease;
+    }
+
+    .btn:hover,
+    .btn:focus-visible {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn.secondary {
+      background: #fff;
+      color: var(--accent);
+    }
+
+    .btn.secondary:hover,
+    .btn.secondary:focus-visible {
+      background: var(--accent-soft);
+      color: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1120px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fbff;
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: #516173;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    tbody td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    tbody tr:hover {
+      background: #fbfdff;
+    }
+
+    .supplier-name {
+      font-weight: 700;
+    }
+
+    .meta {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-size: 12px;
+      color: var(--muted);
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .email {
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #334155;
+    }
+
+    .status {
+      color: var(--good);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .status.is-sent {
+      color: var(--good);
+    }
+
+    .status.is-pending {
+      color: #b45309;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Outreach furnizori papetărie</h1>
+      <p>
+        Pagina asta deschide Gmail cu un mesaj precompletat pentru fiecare furnizor public relevant.
+        Folosește-o ca listă de contact inițială pentru cerere de ofertă, acces B2B sau model dropshipping.
+      </p>
+    </div>
+
+      <div class="toolbar">
+      <div>
+        <div><strong>Mesaj standard</strong></div>
+        <div class="small">Subiect și body sunt definite în script. Le poți ajusta direct în JS.</div>
+      </div>
+      <div class="actions">
+        <button class="btn secondary" id="reset-statuses">Resetează stările</button>
+        <button class="btn secondary" id="copy-template">Copiază template</button>
+        <a class="btn" href="#table">Sari la tabel</a>
+      </div>
+    </div>
+
+    <div class="table-wrap" id="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Furnizor</th>
+            <th>Email</th>
+            <th>Website</th>
+            <th>Ce merită întrebat</th>
+            <th>Status</th>
+            <th>Acțiune</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-name="Evident Group" data-email="" data-contact-url="https://www.evidentgroup.ro/articole/contact.html" data-website="https://www.evidentgroup.ro/" data-sent="1">
+            <td>
+              <div class="supplier-name">Evident Group</div>
+              <span class="meta">B2B / discount pe cont</span>
+            </td>
+            <td class="email">Contact page</td>
+            <td><a href="https://www.evidentgroup.ro/" target="_blank" rel="noopener">evidentgroup.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">acces B2B</span>
+                <span class="chip">condiții livrare</span>
+                <span class="chip">dropshipping</span>
+                <span class="chip">listă produse</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Trimis</span></td>
+            <td>
+              <div class="actions">
+                <button class="btn secondary toggle-status">Marchează</button>
+                <button class="btn open-gmail">Deschide contact</button>
+              </div>
+            </td>
+          </tr>
+
+          <tr data-name="Office Max" data-email="[email protected]" data-website="https://omax.ro/" data-sent="1">
+            <td>
+              <div class="supplier-name">Office Max</div>
+              <span class="meta">office supplies / B2B</span>
+            </td>
+            <td class="email">[email protected]</td>
+            <td><a href="https://omax.ro/" target="_blank" rel="noopener">omax.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">cont B2B</span>
+                <span class="chip">catalog</span>
+                <span class="chip">livrare</span>
+                <span class="chip">condiții comerciale</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Trimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+
+          <tr data-name="Adaconi" data-email="secretariat@adaconi.ro" data-website="https://adaconi.ro/" data-sent="1">
+            <td>
+              <div class="supplier-name">Adaconi</div>
+              <span class="meta">rechizite / papetărie / birou</span>
+            </td>
+            <td class="email">secretariat@adaconi.ro</td>
+            <td><a href="https://adaconi.ro/" target="_blank" rel="noopener">adaconi.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">solicită ofertă</span>
+                <span class="chip">B2B</span>
+                <span class="chip">delivery terms</span>
+                <span class="chip">dropshipping</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Trimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+
+          <tr data-name="Office Supply" data-email="office@officesupply.ro" data-website="https://officesupply.ro/" data-sent="1">
+            <td>
+              <div class="supplier-name">Office Supply</div>
+              <span class="meta">papetărie / birotică</span>
+            </td>
+            <td class="email">office@officesupply.ro</td>
+            <td><a href="https://officesupply.ro/" target="_blank" rel="noopener">officesupply.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">listă preț</span>
+                <span class="chip">livrare</span>
+                <span class="chip">stoc</span>
+                <span class="chip">parteneriat</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Trimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+
+          <tr data-name="Vectordirect" data-email="office@vectordirect.ro" data-website="https://www.vectordirect.ro/" data-sent="1">
+            <td>
+              <div class="supplier-name">Vectordirect</div>
+              <span class="meta">papetărie / rechizite / curățenie</span>
+            </td>
+            <td class="email">office@vectordirect.ro</td>
+            <td><a href="https://www.vectordirect.ro/" target="_blank" rel="noopener">vectordirect.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">B2B</span>
+                <span class="chip">catalog</span>
+                <span class="chip">stoc</span>
+                <span class="chip">dropshipping</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Trimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+
+          <tr data-name="DPAP" data-email="" data-contact-url="https://www.dpap.ro/contact.html" data-website="https://www.dpap.ro/" data-sent="1">
+            <td>
+              <div class="supplier-name">DPAP</div>
+              <span class="meta">birotică / papetărie</span>
+            </td>
+            <td class="email">Contact page</td>
+            <td><a href="https://www.dpap.ro/" target="_blank" rel="noopener">dpap.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">platformă B2B</span>
+                <span class="chip">livrare</span>
+                <span class="chip">condiții</span>
+                <span class="chip">listă produse</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Trimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide contact</button></td>
+          </tr>
+
+          <tr data-name="Officeclass" data-email="contact@officeclass.ro" data-website="https://www.officeclass.ro/" data-sent="1">
+            <td>
+              <div class="supplier-name">Officeclass</div>
+              <span class="meta">birotică / papetărie</span>
+            </td>
+            <td class="email">contact@officeclass.ro</td>
+            <td><a href="https://www.officeclass.ro/" target="_blank" rel="noopener">officeclass.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">catalog</span>
+                <span class="chip">preț</span>
+                <span class="chip">livrare</span>
+                <span class="chip">B2B</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Trimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+
+          <tr data-name="Concret Consult" data-email="comenzi@concretconsult.ro" data-website="https://www.concretconsult.ro/" data-sent="0">
+            <td>
+              <div class="supplier-name">Concret Consult</div>
+              <span class="meta">consumabile / print / birotică</span>
+            </td>
+            <td class="email">comenzi@concretconsult.ro</td>
+            <td><a href="https://www.concretconsult.ro/" target="_blank" rel="noopener">concretconsult.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">consumabile</span>
+                <span class="chip">laminare</span>
+                <span class="chip">indosariere</span>
+                <span class="chip">B2B</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Netrimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+
+          <tr data-name="Scribant" data-email="" data-contact-url="https://www.scribant.ro/" data-website="https://www.scribant.ro/" data-sent="0">
+            <td>
+              <div class="supplier-name">Scribant</div>
+              <span class="meta">papetărie / birotică / revânzători</span>
+            </td>
+            <td class="email">Contact page</td>
+            <td><a href="https://www.scribant.ro/" target="_blank" rel="noopener">scribant.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">revânzători</span>
+                <span class="chip">Aperta B2B</span>
+                <span class="chip">catalog</span>
+                <span class="chip">produse office</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Netrimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide contact</button></td>
+          </tr>
+
+          <tr data-name="Office Direct" data-email="" data-contact-url="https://www.officedirect.ro/contact" data-website="https://www.officedirect.ro/" data-sent="0">
+            <td>
+              <div class="supplier-name">Office Direct</div>
+              <span class="meta">papetărie / birotică / livrare rapidă</span>
+            </td>
+            <td class="email">Contact page</td>
+            <td><a href="https://www.officedirect.ro/" target="_blank" rel="noopener">officedirect.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">stoc</span>
+                <span class="chip">livrare rapidă</span>
+                <span class="chip">rechizite</span>
+                <span class="chip">consumabile</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Netrimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide contact</button></td>
+          </tr>
+
+          <tr data-name="Office Zone" data-email="info@officezone.ro" data-website="https://officezone.ro/" data-sent="0">
+            <td>
+              <div class="supplier-name">Office Zone</div>
+              <span class="meta">integrator soluții office / B2B</span>
+            </td>
+            <td class="email">info@officezone.ro</td>
+            <td><a href="https://officezone.ro/" target="_blank" rel="noopener">officezone.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">one stop shop</span>
+                <span class="chip">office supplies</span>
+                <span class="chip">livrare rapidă</span>
+                <span class="chip">cont dedicat</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Netrimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+
+          <tr data-name="Evo Papetarie" data-email="office@evopapetarie.ro" data-website="https://www.evopapetarie.ro/" data-sent="0">
+            <td>
+              <div class="supplier-name">Evo Papetarie</div>
+              <span class="meta">papetărie / birotică / școală</span>
+            </td>
+            <td class="email">office@evopapetarie.ro</td>
+            <td><a href="https://www.evopapetarie.ro/" target="_blank" rel="noopener">evopapetarie.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">școală</span>
+                <span class="chip">birotică</span>
+                <span class="chip">livrare 24/48h</span>
+                <span class="chip">parteneriat</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Netrimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+
+          <tr data-name="Next Office" data-email="office@nextoffice.ro" data-website="https://nextoffice.ro/" data-sent="0">
+            <td>
+              <div class="supplier-name">Next Office</div>
+              <span class="meta">birotică / papetărie / școală</span>
+            </td>
+            <td class="email">office@nextoffice.ro</td>
+            <td><a href="https://nextoffice.ro/" target="_blank" rel="noopener">nextoffice.ro</a></td>
+            <td>
+              <div class="chips">
+                <span class="chip">articole birou</span>
+                <span class="chip">articole școală</span>
+                <span class="chip">scris & corectat</span>
+                <span class="chip">contact B2B</span>
+              </div>
+            </td>
+            <td><span class="status" data-status>Netrimis</span></td>
+            <td><button class="btn secondary toggle-status">Marchează</button> <button class="btn open-gmail">Deschide Gmail</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer-note">
+      Mesajul este intenționat scurt și comercial. Dacă vrei, îl schimbăm pe:
+      cerere de ofertă, parteneriat dropshipping, acces B2B sau listă de prețuri.
+    </div>
+  </div>
+
+  <script>
+    const SUBJECT = "Cerere parteneriat B2B / dropshipping papetărie";
+    const BODY = `Bună ziua,
+
+Sunt în căutarea unui partener B2B pentru produse din nișa de papetărie și birotică, respectiv opțiuni de dropshipping, dacă există.
+
+Mă interesează, pe scurt:
+- acces la catalog / platformă B2B;
+- condiții comerciale și discounturi;
+- timp de livrare și cost transport;
+- dacă puteți livra direct către clientul final;
+- dacă aveți feed, listă de produse sau integrare.
+
+Dacă este posibil, vă rog să-mi trimiteți condițiile de colaborare și datele de acces, dacă există.
+
+Mulțumesc
+`;
+
+    function gmailComposeUrl(to, subject, body) {
+      const params = new URLSearchParams({
+        view: 'cm',
+        fs: '1',
+        to,
+        su: subject,
+        body
+      });
+      return `https://mail.google.com/mail/?${params.toString()}`;
+    }
+
+    function storageKey(name) {
+      return `supplier_outreach_sent:${name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+    }
+
+    function setRowStatus(row, sent) {
+      row.dataset.sent = sent ? '1' : '0';
+      const status = row.querySelector('[data-status]');
+      const toggle = row.querySelector('.toggle-status');
+      if (status) {
+        status.textContent = sent ? 'Trimis' : 'Netrimis';
+        status.classList.toggle('is-sent', sent);
+        status.classList.toggle('is-pending', !sent);
+      }
+      if (toggle) {
+        toggle.textContent = sent ? 'Marcat' : 'Marchează';
+      }
+      localStorage.setItem(storageKey(row.dataset.name || ''), sent ? '1' : '0');
+    }
+
+    document.querySelectorAll('.open-gmail').forEach((button) => {
+      button.addEventListener('click', () => {
+        const row = button.closest('tr');
+        const name = row.dataset.name || '';
+        const email = row.dataset.email || '';
+        const website = row.dataset.website || '';
+        const contactUrl = row.dataset.contactUrl || website;
+        const customBody = `Bună ziua,
+
+Sunt în căutarea unui partener B2B pentru produse din nișa de papetărie și birotică, respectiv opțiuni de dropshipping, dacă există.
+
+Mă interesează, pe scurt:
+- acces la catalog / platformă B2B;
+- condiții comerciale și discounturi;
+- timp de livrare și cost transport;
+- dacă puteți livra direct către clientul final;
+- dacă aveți feed, listă de produse sau integrare.
+
+Dacă este posibil, vă rog să-mi trimiteți condițiile de colaborare și datele de acces, dacă există.
+
+Mulțumesc`;
+
+        if (!email) {
+          window.open(contactUrl, '_blank', 'noopener,noreferrer');
+          return;
+        }
+
+        window.open(gmailComposeUrl(email, SUBJECT, customBody), '_blank', 'noopener,noreferrer');
+      });
+    });
+
+    document.querySelectorAll('.toggle-status').forEach((button) => {
+      button.addEventListener('click', () => {
+        const row = button.closest('tr');
+        const current = row.dataset.sent === '1';
+        setRowStatus(row, !current);
+      });
+    });
+
+    document.querySelectorAll('tbody tr').forEach((row) => {
+      const stored = localStorage.getItem(storageKey(row.dataset.name || ''));
+      const sent = stored !== null ? stored === '1' : row.dataset.sent === '1';
+      setRowStatus(row, sent);
+    });
+
+    document.getElementById('reset-statuses').addEventListener('click', () => {
+      document.querySelectorAll('tbody tr').forEach((row) => {
+        localStorage.removeItem(storageKey(row.dataset.name || ''));
+        setRowStatus(row, false);
+      });
+    });
+
+    document.getElementById('copy-template').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(`Subiect: ${SUBJECT}\n\n${BODY}`);
+        const btn = document.getElementById('copy-template');
+        const old = btn.textContent;
+        btn.textContent = 'Copiat';
+        setTimeout(() => { btn.textContent = old; }, 1200);
+      } catch (err) {
+        alert('Nu am putut copia în clipboard.');
+      }
+    });
+  </script>
+</body>
+</html>

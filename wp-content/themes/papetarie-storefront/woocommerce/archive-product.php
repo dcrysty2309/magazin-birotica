@@ -18,21 +18,15 @@ if (is_wp_error($archive_action_url) || !$archive_action_url) {
     $archive_action_url = home_url('/');
 }
 
-$price_bounds = function_exists('papetarie_storefront_get_archive_price_bounds') ? papetarie_storefront_get_archive_price_bounds($current_term) : ['min' => 0, 'max' => 0];
-$price_min_bound = isset($price_bounds['min']) ? (float) $price_bounds['min'] : 0.0;
-$price_max_bound = isset($price_bounds['max']) ? (float) $price_bounds['max'] : 0.0;
-
-if ($price_max_bound < $price_min_bound) {
-    $price_max_bound = $price_min_bound;
-}
-
-$current_min_price = isset($_GET['min_price']) ? (float) wc_format_decimal(wp_unslash($_GET['min_price'])) : $price_min_bound;
-$current_max_price = isset($_GET['max_price']) ? (float) wc_format_decimal(wp_unslash($_GET['max_price'])) : $price_max_bound;
-$current_min_price = max($price_min_bound, min($current_min_price, $price_max_bound));
-$current_max_price = max($current_min_price, min($current_max_price, $price_max_bound));
 $current_stock_status = isset($_GET['stock_status']) ? sanitize_key(wp_unslash($_GET['stock_status'])) : 'all';
 $stock_status_options = function_exists('papetarie_storefront_stock_status_options') ? papetarie_storefront_stock_status_options() : [];
 $current_orderby = isset($_GET['orderby']) ? sanitize_key(wp_unslash($_GET['orderby'])) : '';
+$price_ranges = function_exists('papetarie_storefront_price_ranges') ? papetarie_storefront_price_ranges() : [];
+$selected_price_ranges = function_exists('papetarie_storefront_get_selected_price_range_keys') ? papetarie_storefront_get_selected_price_range_keys() : [];
+$custom_price_filter = function_exists('papetarie_storefront_get_custom_price_filter') ? papetarie_storefront_get_custom_price_filter() : ['min' => null, 'max' => null, 'active' => false, 'valid' => false];
+$price_range_counts = function_exists('papetarie_storefront_get_price_range_counts') ? papetarie_storefront_get_price_range_counts($current_term) : [];
+$custom_price_min = isset($custom_price_filter['min']) && $custom_price_filter['min'] !== null ? (float) $custom_price_filter['min'] : '';
+$custom_price_max = isset($custom_price_filter['max']) && $custom_price_filter['max'] !== null ? (float) $custom_price_filter['max'] : '';
 
 $categories_tree = papetarie_storefront_get_mega_menu_categories();
 $current_parent_category = null;
@@ -114,42 +108,62 @@ get_header();
 
               <div class="pap-archive-filter-group">
                 <label><?php esc_html_e('Preț', 'papetarie-storefront'); ?></label>
-                <div
-                  class="pap-archive-price-slider"
-                  data-currency="<?php echo esc_attr(get_woocommerce_currency()); ?>"
-                  data-min-bound="<?php echo esc_attr($price_min_bound); ?>"
-                  data-max-bound="<?php echo esc_attr($price_max_bound); ?>"
-                >
-                  <div class="pap-archive-price-slider-values">
-                    <span data-price-min-value><?php echo wp_kses_post(wc_price($current_min_price)); ?></span>
-                    <span data-price-max-value><?php echo wp_kses_post(wc_price($current_max_price)); ?></span>
-                  </div>
-                  <div class="pap-archive-price-slider-track">
-                    <span class="pap-archive-price-slider-rail" aria-hidden="true"></span>
-                    <span class="pap-archive-price-slider-fill" aria-hidden="true"></span>
-                    <input
-                      type="range"
-                      name="min_price"
-                      min="<?php echo esc_attr($price_min_bound); ?>"
-                      max="<?php echo esc_attr($price_max_bound); ?>"
-                      step="1"
-                      value="<?php echo esc_attr($current_min_price); ?>"
-                      data-price-slider="min"
-                      aria-label="<?php esc_attr_e('Preț minim', 'papetarie-storefront'); ?>"
-                    >
-                    <input
-                      type="range"
-                      name="max_price"
-                      min="<?php echo esc_attr($price_min_bound); ?>"
-                      max="<?php echo esc_attr($price_max_bound); ?>"
-                      step="1"
-                      value="<?php echo esc_attr($current_max_price); ?>"
-                      data-price-slider="max"
-                      aria-label="<?php esc_attr_e('Preț maxim', 'papetarie-storefront'); ?>"
-                    >
-                  </div>
+                <div class="pap-archive-price-options" role="group" aria-label="<?php esc_attr_e('Intervale de preț', 'papetarie-storefront'); ?>">
+                  <?php foreach ($price_ranges as $price_range) : ?>
+                    <?php
+                    $range_key = (string) $price_range['key'];
+                    $range_count = isset($price_range_counts[$range_key]) ? (int) $price_range_counts[$range_key] : 0;
+                    $is_disabled = $range_count === 0;
+                    $is_checked = in_array($range_key, $selected_price_ranges, true);
+                    ?>
+                    <label class="pap-archive-price-option<?php echo $is_checked ? ' is-selected' : ''; ?><?php echo $is_disabled ? ' is-disabled' : ''; ?>">
+                      <input
+                        type="checkbox"
+                        name="price_range[]"
+                        value="<?php echo esc_attr($range_key); ?>"
+                        <?php checked($is_checked); ?>
+                        <?php disabled($is_disabled); ?>
+                      >
+                      <span class="pap-archive-price-option-label"><?php echo esc_html($price_range['label']); ?></span>
+                      <span class="pap-archive-price-option-count"><?php echo esc_html(sprintf('(%d)', $range_count)); ?></span>
+                    </label>
+                  <?php endforeach; ?>
                 </div>
               </div>
+
+              <div class="pap-archive-filter-group">
+                <label><?php esc_html_e('Interval personalizat', 'papetarie-storefront'); ?></label>
+                <div class="pap-archive-price-custom">
+                  <label>
+                    <span><?php esc_html_e('Min', 'papetarie-storefront'); ?></span>
+                    <input
+                      type="number"
+                      name="custom_price_min"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                      value="<?php echo esc_attr($custom_price_min); ?>"
+                      data-custom-price-min
+                    >
+                  </label>
+                  <label>
+                    <span><?php esc_html_e('Max', 'papetarie-storefront'); ?></span>
+                    <input
+                      type="number"
+                      name="custom_price_max"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                      value="<?php echo esc_attr($custom_price_max); ?>"
+                      data-custom-price-max
+                    >
+                  </label>
+                </div>
+              </div>
+
+              <?php if (!empty($custom_price_filter['active']) && empty($custom_price_filter['valid'])) : ?>
+                <p class="pap-archive-filter-note" role="alert"><?php esc_html_e('Intervalul personalizat trebuie să aibă valori numerice pozitive și Min mai mic sau egal cu Max.', 'papetarie-storefront'); ?></p>
+              <?php endif; ?>
 
               <div class="pap-archive-filter-group">
                 <label for="pap-filter-stock-status"><?php esc_html_e('Disponibilitate', 'papetarie-storefront'); ?></label>
@@ -179,7 +193,7 @@ get_header();
                 </svg>
               </span>
               <h2><?php esc_html_e('Produse în pregătire', 'papetarie-storefront'); ?></h2>
-              <p><?php esc_html_e('Selecția acestei categorii este în curs de actualizare. Revino curând pentru produse alese cu grijă.', 'papetarie-storefront'); ?></p>
+              <p><?php esc_html_e('În această categorie urmează să adăugăm produse potrivite. Revino curând pentru selecția completă.', 'papetarie-storefront'); ?></p>
             </div>
           </div>
         <?php endif; ?>
@@ -244,6 +258,7 @@ get_header();
             $action_class = $can_add_to_cart && $product->is_type('simple') ? 'add_to_cart_button ajax_add_to_cart' : '';
             ?>
             <article class="pap-product-card pap-product-card--archive">
+              <?php echo papetarie_storefront_wishlist_button_html($product->get_id(), 'archive'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <a class="pap-product-card-link" href="<?php echo esc_url($product_url); ?>">
                 <div class="pap-product-thumb pap-product-thumb--archive">
                   <?php echo $product_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -277,6 +292,24 @@ get_header();
         <div class="pap-archive-pagination">
           <?php woocommerce_pagination(); ?>
         </div>
+
+        <div class="pap-cart-modal" data-cart-modal hidden>
+          <div class="pap-cart-modal-backdrop" data-cart-modal-close></div>
+          <div class="pap-cart-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pap-cart-modal-title">
+            <button class="pap-cart-modal-dismiss" type="button" aria-label="<?php esc_attr_e('Închide', 'papetarie-storefront'); ?>" data-cart-modal-close>×</button>
+            <h3 id="pap-cart-modal-title"><?php esc_html_e('Produsul a fost adăugat în coș', 'papetarie-storefront'); ?></h3>
+            <div class="pap-cart-modal-product">
+              <div class="pap-cart-modal-thumb" data-cart-modal-thumb hidden>
+                <img src="" alt="" data-cart-modal-image>
+              </div>
+              <div class="pap-cart-modal-copy">
+                <strong data-cart-modal-name></strong>
+                <span data-cart-modal-price></span>
+              </div>
+            </div>
+            <a class="pap-cart-modal-link" href="<?php echo esc_url(function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/')); ?>" data-cart-modal-link><?php esc_html_e('Vezi detalii coș', 'papetarie-storefront'); ?></a>
+          </div>
+        </div>
       <?php else : ?>
         <div class="pap-archive-empty">
           <span class="pap-archive-empty-icon" aria-hidden="true">
@@ -293,7 +326,7 @@ get_header();
             </svg>
           </span>
           <h2><?php esc_html_e('Nu există produse în această categorie încă', 'papetarie-storefront'); ?></h2>
-          <p><?php esc_html_e('Această categorie este în pregătire. Revino curând pentru produse alese cu grijă.', 'papetarie-storefront'); ?></p>
+          <p><?php esc_html_e('În această categorie urmează să adăugăm produse potrivite. Revino curând pentru selecția completă.', 'papetarie-storefront'); ?></p>
         </div>
       <?php endif; ?>
     </div>
