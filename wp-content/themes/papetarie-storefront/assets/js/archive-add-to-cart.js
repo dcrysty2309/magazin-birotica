@@ -104,6 +104,7 @@
         }
 
         openCartModal(response.data || {});
+        window.dispatchEvent(new CustomEvent('pap:cart-updated', { detail: response.data || {} }));
       })
       .catch(function () {
         window.location.href = button.getAttribute('href') || papArchiveAddToCart.cartUrl;
