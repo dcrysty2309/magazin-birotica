@@ -16,14 +16,17 @@
   var content = drawer.querySelector('[data-cart-drawer-content]');
   var subtotalTargets = Array.prototype.slice.call(drawer.querySelectorAll('[data-cart-drawer-subtotal]'));
   var totalTargets = Array.prototype.slice.call(drawer.querySelectorAll('[data-cart-drawer-total]'));
-  var countTarget = document.querySelector('[data-pap-cart-count]');
   var lastFocus = null;
   var syncInFlight = null;
   var syncController = null;
   var hoverCloseTimer = null;
+  var scrollLockActive = false;
 
   function setBodyLocked(isLocked) {
     document.body.classList.toggle('pap-cart-drawer-open', isLocked && isMobileLayout());
+    scrollLockActive = isLocked && !isMobileLayout();
+    document.body.classList.toggle('pap-cart-drawer-scroll-locked', scrollLockActive);
+    document.documentElement.classList.toggle('pap-cart-drawer-scroll-locked', scrollLockActive);
   }
 
   function setTriggerState(isOpen) {
@@ -41,6 +44,81 @@
     return window.matchMedia('(max-width: 768px)').matches;
   }
 
+  function isScrollableElement(element) {
+    if (!element) {
+      return false;
+    }
+
+    return element.scrollHeight > element.clientHeight + 1;
+  }
+
+  function canElementScroll(element, deltaY) {
+    if (!isScrollableElement(element)) {
+      return false;
+    }
+
+    if (deltaY < 0 && element.scrollTop <= 0) {
+      return false;
+    }
+
+    if (deltaY > 0 && element.scrollTop + element.clientHeight >= element.scrollHeight - 1) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function getScrollableDrawerElement(target) {
+    if (!target || !panel) {
+      return null;
+    }
+
+    var scroller = target.closest('[data-cart-drawer-content]');
+    if (scroller && panel.contains(scroller)) {
+      return scroller;
+    }
+
+    return target.closest('.pap-cart-drawer-panel');
+  }
+
+  function handleScrollLockWheel(event) {
+    if (!scrollLockActive || drawer.hidden) {
+      return;
+    }
+
+    var scroller = getScrollableDrawerElement(event.target);
+    var deltaY = event.deltaY || 0;
+
+    if (scroller && canElementScroll(scroller, deltaY)) {
+      return;
+    }
+
+    event.preventDefault();
+  }
+
+  function handleScrollLockTouch(event) {
+    if (!scrollLockActive || drawer.hidden) {
+      return;
+    }
+
+    if (event.target.closest('.pap-cart-drawer-panel')) {
+      return;
+    }
+
+    event.preventDefault();
+  }
+
+  function handleScrollLockKeydown(event) {
+    if (!scrollLockActive || drawer.hidden) {
+      return;
+    }
+
+    var keys = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '];
+    if (keys.indexOf(event.key) !== -1 && !event.target.closest('.pap-cart-drawer-panel')) {
+      event.preventDefault();
+    }
+  }
+
   function positionDrawer() {
     if (isMobileLayout()) {
       drawer.style.removeProperty('--pap-cart-drawer-top');
@@ -49,9 +127,11 @@
       return;
     }
 
+    var headerShell = document.querySelector('.pap-header-main') || document.querySelector('.pap-shell');
     var triggerRect = trigger.getBoundingClientRect();
-    var panelWidth = Math.min(292, window.innerWidth - 24);
-    var rightOffset = Math.max(12, window.innerWidth - triggerRect.right);
+    var shellRect = headerShell ? headerShell.getBoundingClientRect() : triggerRect;
+    var panelWidth = Math.min(340, Math.max(0, shellRect.width - 16));
+    var rightOffset = Math.max(12, window.innerWidth - shellRect.right);
     var topOffset = Math.max(12, triggerRect.bottom + 10);
 
     drawer.style.setProperty('--pap-cart-drawer-top', topOffset + 'px');
@@ -61,11 +141,36 @@
 
   function setBusy(isBusy) {
     drawer.classList.toggle('is-loading', isBusy);
+    if (isBusy && window.papSetActionBusy) {
+      window.papSetActionBusy('Coșul se actualizează...');
+    }
+
+    if (!isBusy && window.papClearActionBusy) {
+      window.papClearActionBusy();
+    }
+  }
+
+  function getCountTargets() {
+    return Array.prototype.slice.call(document.querySelectorAll('[data-pap-cart-count]'));
+  }
+
+  function formatCountLabel(count) {
+    var safeCount = Math.max(0, parseInt(count, 10) || 0);
+    return safeCount === 1 ? '1 produs' : safeCount + ' produse';
   }
 
   function updateSummary(data) {
-    if (countTarget && typeof data.count_label === 'string') {
-      countTarget.textContent = data.count_label;
+    var countLabel = null;
+    if (typeof data.count_label === 'string') {
+      countLabel = data.count_label;
+    } else if (typeof data.count === 'number') {
+      countLabel = formatCountLabel(data.count);
+    }
+
+    if (countLabel !== null) {
+      getCountTargets().forEach(function (target) {
+        target.textContent = countLabel;
+      });
     }
 
     if (typeof data.subtotal_html === 'string') {
@@ -150,6 +255,10 @@
 
     return syncInFlight;
   }
+
+  window.papRefreshCartDrawer = function (mode, payload) {
+    return syncCart(mode || 'refresh', payload);
+  };
 
   function openDrawer() {
     if (!drawer.hidden) {
@@ -302,6 +411,10 @@
       closeDrawer();
     });
   }
+
+  document.addEventListener('wheel', handleScrollLockWheel, { passive: false, capture: true });
+  document.addEventListener('touchmove', handleScrollLockTouch, { passive: false, capture: true });
+  document.addEventListener('keydown', handleScrollLockKeydown, { capture: true });
 
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' && !drawer.hidden) {

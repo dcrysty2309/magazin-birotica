@@ -6,7 +6,6 @@ $asset_base = get_stylesheet_directory_uri() . '/assets/images';
 $showcase_categories = papetarie_storefront_get_mega_menu_categories();
 $showcase_active_slug = papetarie_storefront_active_mega_menu_slug($showcase_categories);
 $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
-$add_to_cart_nonce = wp_create_nonce('pap_home_add_to_cart');
 
 $showcase_slides = [
     [
@@ -585,7 +584,6 @@ get_header();
     var offersSlider = document.querySelector('[data-offers-slider]');
     var offersPrev = document.querySelector('[data-offers-prev]');
     var offersNext = document.querySelector('[data-offers-next]');
-    var addToCartButtons = Array.prototype.slice.call(document.querySelectorAll('.pap-home-add-to-cart'));
     var cartModal = document.querySelector('[data-cart-modal]');
     var cartModalImage = cartModal ? cartModal.querySelector('[data-cart-modal-image]') : null;
     var cartModalName = cartModal ? cartModal.querySelector('[data-cart-modal-name]') : null;
@@ -824,47 +822,6 @@ get_header();
 
     cartModalClosers.forEach(function (closer) {
       closer.addEventListener('click', closeCartModal);
-    });
-
-    addToCartButtons.forEach(function (button) {
-      button.addEventListener('click', function () {
-        var productId = button.getAttribute('data-product-id');
-        if (!productId) {
-          return;
-        }
-
-        button.disabled = true;
-        button.classList.add('is-loading');
-
-        fetch('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-          },
-          body: new URLSearchParams({
-            action: 'pap_home_add_to_cart',
-            nonce: '<?php echo esc_js($add_to_cart_nonce); ?>',
-            product_id: productId,
-            quantity: '1'
-          })
-        })
-          .then(function (response) { return response.json(); })
-          .then(function (response) {
-            if (!response || !response.success) {
-              throw new Error(response && response.data && response.data.message ? response.data.message : 'Add to cart failed');
-            }
-
-            openCartModal(response.data || {});
-          })
-          .catch(function () {
-            window.location.href = button.getAttribute('data-product-url') || '<?php echo esc_url($shop_url); ?>';
-          })
-          .finally(function () {
-            button.disabled = false;
-            button.classList.remove('is-loading');
-          });
-      });
     });
 
     showSlide(0);

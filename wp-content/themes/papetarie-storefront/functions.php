@@ -98,10 +98,6 @@ add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_archive_scripts')
 
 function papetarie_storefront_enqueue_archive_add_to_cart_script(): void
 {
-    if (!(is_shop() || is_product_category() || is_product_taxonomy())) {
-        return;
-    }
-
     wp_enqueue_script(
         'papetarie-storefront-archive-add-to-cart',
         get_stylesheet_directory_uri() . '/assets/js/archive-add-to-cart.js',
@@ -112,12 +108,21 @@ function papetarie_storefront_enqueue_archive_add_to_cart_script(): void
 
     wp_localize_script(
         'papetarie-storefront-archive-add-to-cart',
-        'papArchiveAddToCart',
+        'papStorefrontAddToCart',
         [
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('pap_home_add_to_cart'),
+            'action' => 'pap_home_add_to_cart',
+            'drawerNonce' => wp_create_nonce('pap_cart_drawer'),
             'cartUrl' => function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/'),
+            'shopUrl' => function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/shop/'),
         ]
+    );
+
+    wp_add_inline_script(
+        'papetarie-storefront-archive-add-to-cart',
+        "(function () {\n  window.papSetActionBusy = function () {};\n  window.papClearActionBusy = function () {};\n  var status = document.querySelector('[data-pap-action-status]');\n  if (status && status.parentNode) {\n    status.parentNode.removeChild(status);\n  }\n})();",
+        'after'
     );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_archive_add_to_cart_script');
@@ -161,6 +166,17 @@ function papetarie_storefront_enqueue_cart_drawer_script(): void
     );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_cart_drawer_script');
+
+function papetarie_storefront_dequeue_cart_fragments(): void
+{
+    if (is_admin()) {
+        return;
+    }
+
+    wp_dequeue_script('wc-cart-fragments');
+    wp_deregister_script('wc-cart-fragments');
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_cart_fragments', 100);
 
 function papetarie_storefront_cart_fragments(array $fragments): array
 {
@@ -259,6 +275,29 @@ function papetarie_storefront_enqueue_wishlist_script(): void
     );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_wishlist_script');
+
+function papetarie_storefront_send_json_success_fast(array $data, int $status_code = 200): void
+{
+    if (!headers_sent()) {
+        nocache_headers();
+        status_header($status_code);
+        header('Content-Type: application/json; charset=' . get_option('blog_charset'));
+    }
+
+    echo wp_json_encode([
+        'success' => true,
+        'data' => $data,
+    ]);
+
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } elseif (function_exists('flush')) {
+        @ob_flush();
+        flush();
+    }
+
+    exit;
+}
 
 function papetarie_storefront_body_class(array $classes): array
 {
@@ -907,8 +946,6 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
     }
 
     $variation_html = wc_get_formatted_cart_item_data($cart_item, true);
-    $line_subtotal = WC()->cart ? WC()->cart->get_product_subtotal($product, $quantity) : '';
-    $remove_label = sprintf(__('Elimină %s', 'papetarie-storefront'), $product_name);
     ?>
     <article class="pap-cart-drawer-item" data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>" data-cart-item-id="<?php echo esc_attr($product_id); ?>">
       <a class="pap-cart-drawer-thumb" href="<?php echo esc_url($product_permalink ? $product_permalink : '#'); ?>" <?php echo $product_permalink ? '' : 'aria-hidden="true" tabindex="-1"'; ?>>
@@ -917,33 +954,26 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
       <div class="pap-cart-drawer-copy">
         <div class="pap-cart-drawer-copy-head">
           <a class="pap-cart-drawer-name" href="<?php echo esc_url($product_permalink ? $product_permalink : '#'); ?>" <?php echo $product_permalink ? '' : 'aria-hidden="true" tabindex="-1"'; ?>><?php echo esc_html($product_name); ?></a>
-          <button type="button" class="pap-cart-drawer-remove" data-cart-remove-item data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>" aria-label="<?php echo esc_attr($remove_label); ?>">
-            <?php echo papetarie_storefront_icon('trash'); ?>
-          </button>
+          <div class="pap-cart-drawer-head-actions">
+            <div class="pap-cart-drawer-head-actions-top">
+              <span class="pap-cart-drawer-quantity">x<?php echo esc_html((string) $quantity); ?></span>
+              <span class="pap-cart-drawer-line-total"><?php echo wp_kses_post($product->get_price_html()); ?></span>
+            </div>
+            <button
+              type="button"
+              class="pap-cart-drawer-remove"
+              data-cart-remove-item
+              data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>"
+              aria-label="Remove product from cart"
+            >
+              &times;
+            </button>
+          </div>
         </div>
 
         <?php if ($variation_html) : ?>
           <div class="pap-cart-drawer-meta"><?php echo wp_kses_post($variation_html); ?></div>
         <?php endif; ?>
-
-        <div class="pap-cart-drawer-bottom">
-          <div class="pap-cart-drawer-qty" aria-label="<?php esc_attr_e('Cantitate', 'papetarie-storefront'); ?>">
-            <button type="button" class="pap-cart-drawer-qty-btn" data-cart-qty-step="-1" aria-label="<?php esc_attr_e('Scade cantitatea', 'papetarie-storefront'); ?>">−</button>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              class="pap-cart-drawer-qty-input"
-              value="<?php echo esc_attr($quantity); ?>"
-              inputmode="numeric"
-              data-cart-qty-input
-            >
-            <button type="button" class="pap-cart-drawer-qty-btn" data-cart-qty-step="1" aria-label="<?php esc_attr_e('Crește cantitatea', 'papetarie-storefront'); ?>">+</button>
-          </div>
-          <div class="pap-cart-drawer-price">
-            <span class="pap-cart-drawer-line-total"><?php echo wp_kses_post($line_subtotal); ?></span>
-          </div>
-        </div>
       </div>
     </article>
     <?php
@@ -974,7 +1004,6 @@ function papetarie_storefront_render_cart_drawer_items(): void
 function papetarie_storefront_render_cart_drawer(): void
 {
     $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/');
-    $checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : home_url('/checkout/');
     ?>
     <div class="pap-cart-drawer" id="pap-cart-drawer" data-cart-drawer hidden aria-hidden="true">
       <aside class="pap-cart-drawer-panel" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('Coșul meu', 'papetarie-storefront'); ?>">
@@ -990,10 +1019,6 @@ function papetarie_storefront_render_cart_drawer(): void
 
         <footer class="pap-cart-drawer-footer">
           <div class="pap-cart-drawer-summary">
-            <div class="pap-cart-drawer-summary-row">
-              <span><?php esc_html_e('Subtotal', 'papetarie-storefront'); ?></span>
-              <strong data-cart-drawer-subtotal><?php echo function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_cart_subtotal()) : '—'; ?></strong>
-            </div>
             <div class="pap-cart-drawer-summary-row pap-cart-drawer-summary-row--total">
               <span><?php esc_html_e('Total', 'papetarie-storefront'); ?></span>
               <strong data-cart-drawer-total><?php echo function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_total()) : '—'; ?></strong>
@@ -1001,8 +1026,7 @@ function papetarie_storefront_render_cart_drawer(): void
           </div>
 
           <div class="pap-cart-drawer-actions">
-            <a class="button pap-cart-drawer-button pap-cart-drawer-button--secondary" href="<?php echo esc_url($cart_url); ?>"><?php esc_html_e('Vezi coșul', 'papetarie-storefront'); ?></a>
-            <a class="button pap-cart-drawer-button pap-cart-drawer-button--primary" href="<?php echo esc_url($checkout_url); ?>"><?php esc_html_e('Finalizează comanda', 'papetarie-storefront'); ?></a>
+            <a class="button pap-cart-drawer-button pap-cart-drawer-button--primary" href="<?php echo esc_url($cart_url); ?>"><?php esc_html_e('Vezi detalii coș', 'papetarie-storefront'); ?></a>
           </div>
         </footer>
       </aside>
@@ -1015,7 +1039,6 @@ function papetarie_storefront_get_cart_drawer_payload(): array
 {
     $count = (int) papetarie_storefront_cart_count();
     $count_label = papetarie_storefront_cart_count_label();
-    $subtotal = function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_cart_subtotal()) : '';
     $total = function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_total()) : '';
 
     ob_start();
@@ -1025,7 +1048,6 @@ function papetarie_storefront_get_cart_drawer_payload(): array
     return [
         'count' => $count,
         'count_label' => $count_label,
-        'subtotal_html' => $subtotal,
         'total_html' => $total,
         'items_html' => $items_html,
     ];
@@ -1913,6 +1935,7 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
 
 function papetarie_storefront_ajax_add_to_cart(): void
 {
+    $timing_start = microtime(true);
     if (!function_exists('WC') || !WC()->cart) {
         wp_send_json_error(['message' => __('Coșul nu este disponibil momentan.', 'papetarie-storefront')], 400);
     }
@@ -1934,7 +1957,9 @@ function papetarie_storefront_ajax_add_to_cart(): void
         wp_send_json_error(['message' => __('Produsul nu poate fi adăugat în coș.', 'papetarie-storefront')], 400);
     }
 
+    $timing_before_add = microtime(true);
     $added = WC()->cart->add_to_cart($product_id, $quantity);
+    $timing_after_add = microtime(true);
 
     if (!$added) {
         wp_send_json_error(['message' => __('Nu am putut adăuga produsul în coș.', 'papetarie-storefront')], 400);
@@ -1949,13 +1974,24 @@ function papetarie_storefront_ajax_add_to_cart(): void
         }
     }
 
-    wp_send_json_success([
+    $timing_before_response = microtime(true);
+
+    papetarie_storefront_send_json_success_fast([
         'message' => __('Produsul a fost adăugat în coș', 'papetarie-storefront'),
         'name' => $product->get_name(),
         'price_html' => $product->get_price_html(),
         'cart_url' => wc_get_cart_url(),
         'image_url' => $image_url,
         'cart_count' => WC()->cart->get_cart_contents_count(),
+        'cart_count_label' => papetarie_storefront_cart_count_label(),
+        'cart_total_html' => function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_total()) : '',
+        'cart_item_key' => $added,
+        'cart_item_quantity' => isset(WC()->cart->get_cart()[$added]['quantity']) ? (int) WC()->cart->get_cart()[$added]['quantity'] : $quantity,
+        'debug_timings' => [
+            'before_add_ms' => (int) round(($timing_before_add - $timing_start) * 1000),
+            'after_add_ms' => (int) round(($timing_after_add - $timing_start) * 1000),
+            'before_response_ms' => (int) round(($timing_before_response - $timing_start) * 1000),
+        ],
     ]);
 }
 add_action('wp_ajax_pap_home_add_to_cart', 'papetarie_storefront_ajax_add_to_cart');
@@ -2468,3 +2504,4 @@ function papetarie_storefront_orders_actions(array $actions, WC_Order $order): a
     return $actions;
 }
 add_filter('woocommerce_my_account_my_orders_actions', 'papetarie_storefront_orders_actions', 10, 2);
+
