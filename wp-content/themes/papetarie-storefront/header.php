@@ -58,9 +58,9 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
             <span><?php echo esc_html(is_user_logged_in() ? __('Contul meu', 'papetarie-storefront') : __('Autentificare', 'papetarie-storefront')); ?></span>
           </span>
         </a>
-        <a
+        <button
           class="pap-tool-card pap-tool-card-cart"
-          href="<?php echo esc_url(function_exists('wc_get_cart_url') ? wc_get_cart_url() : '#'); ?>"
+          type="button"
           data-cart-drawer-trigger
           aria-controls="pap-cart-drawer"
           aria-expanded="false"
@@ -70,7 +70,7 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
             <strong><?php esc_html_e('Coș', 'papetarie-storefront'); ?></strong>
             <span data-pap-cart-count><?php echo esc_html(papetarie_storefront_cart_count_label()); ?></span>
           </span>
-        </a>
+        </button>
       </div>
     </div>
 

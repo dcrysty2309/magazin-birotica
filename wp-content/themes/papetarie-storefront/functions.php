@@ -955,10 +955,8 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
         <div class="pap-cart-drawer-copy-head">
           <a class="pap-cart-drawer-name" href="<?php echo esc_url($product_permalink ? $product_permalink : '#'); ?>" <?php echo $product_permalink ? '' : 'aria-hidden="true" tabindex="-1"'; ?>><?php echo esc_html($product_name); ?></a>
           <div class="pap-cart-drawer-head-actions">
-            <div class="pap-cart-drawer-head-actions-top">
-              <span class="pap-cart-drawer-quantity">x<?php echo esc_html((string) $quantity); ?></span>
-              <span class="pap-cart-drawer-line-total"><?php echo wp_kses_post($product->get_price_html()); ?></span>
-            </div>
+            <span class="pap-cart-drawer-quantity">x<?php echo esc_html((string) $quantity); ?></span>
+            <span class="pap-cart-drawer-line-total"><?php echo wp_kses_post($product->get_price_html()); ?></span>
             <button
               type="button"
               class="pap-cart-drawer-remove"
@@ -1006,6 +1004,7 @@ function papetarie_storefront_render_cart_drawer(): void
     $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/');
     ?>
     <div class="pap-cart-drawer" id="pap-cart-drawer" data-cart-drawer hidden aria-hidden="true">
+      <div class="pap-cart-drawer-backdrop" data-cart-drawer-close aria-hidden="true"></div>
       <aside class="pap-cart-drawer-panel" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('Coșul meu', 'papetarie-storefront'); ?>">
         <header class="pap-cart-drawer-head">
           <div class="pap-cart-drawer-head-copy">
@@ -2504,4 +2503,3 @@ function papetarie_storefront_orders_actions(array $actions, WC_Order $order): a
     return $actions;
 }
 add_filter('woocommerce_my_account_my_orders_actions', 'papetarie_storefront_orders_actions', 10, 2);
-

@@ -220,9 +220,6 @@
     var headActions = document.createElement('div');
     headActions.className = 'pap-cart-drawer-head-actions';
 
-    var headActionsTop = document.createElement('div');
-    headActionsTop.className = 'pap-cart-drawer-head-actions-top';
-
     var qty = document.createElement('span');
     qty.className = 'pap-cart-drawer-quantity';
     qty.textContent = 'x' + String(Math.max(1, parseInt(data.quantity, 10) || 1));
@@ -231,9 +228,8 @@
     lineTotal.className = 'pap-cart-drawer-line-total';
     lineTotal.innerHTML = data.price_html || '';
 
-    headActionsTop.appendChild(qty);
-    headActionsTop.appendChild(lineTotal);
-    headActions.appendChild(headActionsTop);
+    headActions.appendChild(qty);
+    headActions.appendChild(lineTotal);
 
     article.appendChild(thumb);
     article.appendChild(copy);
