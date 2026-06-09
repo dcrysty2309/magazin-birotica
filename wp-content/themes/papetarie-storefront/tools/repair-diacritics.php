@@ -2,19 +2,19 @@
 
 $targets = [
     '/var/www/html/wp-content/themes/papetarie-storefront/functions.php' => [
-        'Articole hÃ¢rtie' => 'Articole hârtie',
-        'È˜colare' => 'Școlare',
-        'CoÈ™ul nu este disponibil momentan.' => 'Coșul nu este disponibil momentan.',
-        'Sesiunea a expirat. ReÃ®ncarcÄƒ pagina.' => 'Sesiunea a expirat. Reîncarcă pagina.',
-        'Produsul nu a fost gÄƒsit.' => 'Produsul nu a fost găsit.',
-        'Produsul nu poate fi adÄƒugat Ã®n coÈ™.' => 'Produsul nu poate fi adăugat în coș.',
-        'Nu am putut adÄƒuga produsul Ã®n coÈ™.' => 'Nu am putut adăuga produsul în coș.',
-        'Produsul a fost adÄƒugat Ã®n coÈ™' => 'Produsul a fost adăugat în coș',
+        'Articole hârtie' => 'Articole hârtie',
+        'Școlare' => 'Școlare',
+        'Coșul nu este disponibil momentan.' => 'Coșul nu este disponibil momentan.',
+        'Sesiunea a expirat. Reîncarcă pagina.' => 'Sesiunea a expirat. Reîncarcă pagina.',
+        'Produsul nu a fost găsit.' => 'Produsul nu a fost găsit.',
+        'Produsul nu poate fi adăugat în coș.' => 'Produsul nu poate fi adăugat în coș.',
+        'Nu am putut adăuga produsul în coș.' => 'Nu am putut adăuga produsul în coș.',
+        'Produsul a fost adăugat în coș' => 'Produsul a fost adăugat în coș',
     ],
     '/var/www/html/wp-content/themes/papetarie-storefront/style.css' => [
-        'content: "Ã¢â€ â€™";' => 'content: "→";',
-        'content: "Â·";' => 'content: "·";',
-        'content: "Â·" !important;' => 'content: "·" !important;',
+        'content: "→";' => 'content: "→";',
+        'content: "·";' => 'content: "·";',
+        'content: "·" !important;' => 'content: "·" !important;',
     ],
 ];
 

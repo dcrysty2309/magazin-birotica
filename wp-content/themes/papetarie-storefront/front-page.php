@@ -439,24 +439,6 @@ get_header();
   </section>
   <?php endif; ?>
 
-  <div class="pap-cart-modal" data-cart-modal hidden>
-    <div class="pap-cart-modal-backdrop" data-cart-modal-close></div>
-    <div class="pap-cart-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pap-cart-modal-title">
-      <button class="pap-cart-modal-dismiss" type="button" aria-label="<?php esc_attr_e('Închide', 'papetarie-storefront'); ?>" data-cart-modal-close>×</button>
-      <h3 id="pap-cart-modal-title"><?php esc_html_e('Produsul a fost adăugat în coș', 'papetarie-storefront'); ?></h3>
-      <div class="pap-cart-modal-product">
-        <div class="pap-cart-modal-thumb">
-          <img src="" alt="" data-cart-modal-image>
-        </div>
-        <div class="pap-cart-modal-copy">
-          <strong data-cart-modal-name></strong>
-          <span data-cart-modal-price></span>
-        </div>
-        <a class="pap-cart-modal-link" href="<?php echo esc_url(function_exists('wc_get_cart_url') ? wc_get_cart_url() : $shop_url); ?>" data-cart-modal-link><?php esc_html_e('Vezi detalii coș', 'papetarie-storefront'); ?></a>
-      </div>
-    </div>
-  </div>
-
   <section class="pap-shell pap-packages" id="recommended-packages">
     <div class="pap-packages-head">
       <div class="pap-section-head pap-section-head-packages">
@@ -584,12 +566,6 @@ get_header();
     var offersSlider = document.querySelector('[data-offers-slider]');
     var offersPrev = document.querySelector('[data-offers-prev]');
     var offersNext = document.querySelector('[data-offers-next]');
-    var cartModal = document.querySelector('[data-cart-modal]');
-    var cartModalImage = cartModal ? cartModal.querySelector('[data-cart-modal-image]') : null;
-    var cartModalName = cartModal ? cartModal.querySelector('[data-cart-modal-name]') : null;
-    var cartModalPrice = cartModal ? cartModal.querySelector('[data-cart-modal-price]') : null;
-    var cartModalLink = cartModal ? cartModal.querySelector('[data-cart-modal-link]') : null;
-    var cartModalClosers = cartModal ? Array.prototype.slice.call(cartModal.querySelectorAll('[data-cart-modal-close]')) : [];
     var currentSlide = 0;
     var sliderTimer = null;
     var debugOpen = false;
@@ -777,52 +753,6 @@ get_header();
         scrollHorizontalSlider(offersSlider, 1);
       });
     }
-
-    function openCartModal(payload) {
-      if (!cartModal) {
-        return;
-      }
-
-      if (cartModalImage) {
-        if (payload.image_url) {
-          cartModalImage.src = payload.image_url;
-          cartModalImage.alt = payload.name || '';
-          cartModalImage.parentElement.hidden = false;
-        } else {
-          cartModalImage.src = '';
-          cartModalImage.alt = '';
-          cartModalImage.parentElement.hidden = true;
-        }
-      }
-
-      if (cartModalName) {
-        cartModalName.textContent = payload.name || '';
-      }
-
-      if (cartModalPrice) {
-        cartModalPrice.innerHTML = payload.price_html || '';
-      }
-
-      if (cartModalLink && payload.cart_url) {
-        cartModalLink.href = payload.cart_url;
-      }
-
-      cartModal.hidden = false;
-      document.body.classList.add('pap-modal-open');
-    }
-
-    function closeCartModal() {
-      if (!cartModal) {
-        return;
-      }
-
-      cartModal.hidden = true;
-      document.body.classList.remove('pap-modal-open');
-    }
-
-    cartModalClosers.forEach(function (closer) {
-      closer.addEventListener('click', closeCartModal);
-    });
 
     showSlide(0);
     if (debugOpen) {
