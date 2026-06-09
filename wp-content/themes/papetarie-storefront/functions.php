@@ -80,6 +80,18 @@ function papetarie_storefront_enqueue_styles(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_styles');
 
+function papetarie_storefront_enqueue_modal_manager_script(): void
+{
+    wp_enqueue_script(
+        'papetarie-storefront-modal-manager',
+        get_stylesheet_directory_uri() . '/assets/js/modal-manager.js',
+        [],
+        wp_get_theme()->get('Version'),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_modal_manager_script');
+
 function papetarie_storefront_enqueue_archive_scripts(): void
 {
     if (!(is_shop() || is_product_category() || is_product_taxonomy())) {
@@ -101,7 +113,7 @@ function papetarie_storefront_enqueue_archive_add_to_cart_script(): void
     wp_enqueue_script(
         'papetarie-storefront-archive-add-to-cart',
         get_stylesheet_directory_uri() . '/assets/js/archive-add-to-cart.js',
-        [],
+        ['papetarie-storefront-modal-manager'],
         wp_get_theme()->get('Version'),
         true
     );
@@ -144,7 +156,7 @@ function papetarie_storefront_enqueue_cart_drawer_script(): void
     wp_enqueue_script(
         'papetarie-storefront-cart-drawer',
         get_stylesheet_directory_uri() . '/assets/js/cart-drawer.js',
-        [],
+        ['papetarie-storefront-modal-manager'],
         wp_get_theme()->get('Version'),
         true
     );
@@ -959,27 +971,32 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
         <?php echo wp_kses_post($thumbnail); ?>
       </a>
       <div class="pap-cart-drawer-copy">
-        <div class="pap-cart-drawer-copy-head">
-          <a class="pap-cart-drawer-name" href="<?php echo esc_url($product_permalink ? $product_permalink : '#'); ?>" <?php echo $product_permalink ? '' : 'aria-hidden="true" tabindex="-1"'; ?>><?php echo esc_html($product_name); ?></a>
-          <div class="pap-cart-drawer-head-actions">
-            <span class="pap-cart-drawer-quantity">x<?php echo esc_html((string) $quantity); ?></span>
-            <span class="pap-cart-drawer-line-total"><?php echo wp_kses_post($product->get_price_html()); ?></span>
-            <button
-              type="button"
-              class="pap-cart-drawer-remove"
-              data-cart-remove-item
-              data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>"
-              data-cart-item-name="<?php echo esc_attr($product_name); ?>"
-              aria-label="<?php esc_attr_e('Elimină produsul din coș', 'papetarie-storefront'); ?>"
-            >
-              &times;
-            </button>
+        <div class="pap-cart-drawer-main">
+          <div class="pap-cart-drawer-row">
+            <a class="pap-cart-drawer-name" href="<?php echo esc_url($product_permalink ? $product_permalink : '#'); ?>" <?php echo $product_permalink ? '' : 'aria-hidden="true" tabindex="-1"'; ?>><?php echo esc_html($product_name); ?></a>
+            <span class="pap-cart-drawer-quantity">×<?php echo esc_html((string) $quantity); ?></span>
           </div>
+
+          <span class="pap-cart-drawer-unit-price"><?php echo wp_kses_post($product->get_price_html()); ?> / buc.</span>
+
+          <?php if ($variation_html) : ?>
+            <div class="pap-cart-drawer-variation"><?php echo wp_kses_post($variation_html); ?></div>
+          <?php endif; ?>
         </div>
 
-        <?php if ($variation_html) : ?>
-          <div class="pap-cart-drawer-meta"><?php echo wp_kses_post($variation_html); ?></div>
-        <?php endif; ?>
+        <div class="pap-cart-drawer-side">
+          <span class="pap-cart-drawer-line-total"><?php echo function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_product_subtotal($product, $quantity)) : wp_kses_post($product->get_price_html()); ?></span>
+          <button
+            type="button"
+            class="pap-cart-drawer-remove"
+            data-cart-remove-item
+            data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>"
+            data-cart-item-name="<?php echo esc_attr($product_name); ?>"
+            aria-label="<?php esc_attr_e('Elimină produsul din coș', 'papetarie-storefront'); ?>"
+          >
+            <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
     </article>
     <?php
@@ -1069,32 +1086,27 @@ function papetarie_storefront_render_cart_success_modal(): void
       <div class="pap-cart-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="pap-cart-modal-title">
         <header class="pap-cart-modal-head">
           <div class="pap-cart-modal-head-copy">
-            <h3 id="pap-cart-modal-title"><?php esc_html_e('Produsul a fost adăugat în coș', 'papetarie-storefront'); ?></h3>
+            <h3 id="pap-cart-modal-title"><?php esc_html_e('Adăugat în coș', 'papetarie-storefront'); ?></h3>
           </div>
           <button class="pap-cart-modal-dismiss" type="button" aria-label="<?php esc_attr_e('Închide', 'papetarie-storefront'); ?>" data-cart-modal-close>×</button>
         </header>
         <div class="pap-cart-modal-body">
-          <div class="pap-cart-modal-status" aria-hidden="true">
-            <span class="pap-cart-modal-status-icon">
-              <i class="fa-solid fa-check"></i>
-            </span>
-          </div>
-
+          <p class="pap-cart-modal-note"><?php esc_html_e('Poți continua cumpărăturile sau poți merge la coș.', 'papetarie-storefront'); ?></p>
           <div class="pap-cart-modal-product">
             <div class="pap-cart-modal-thumb" data-cart-modal-thumb hidden>
               <img src="" alt="" data-cart-modal-image>
             </div>
             <div class="pap-cart-modal-copy">
               <strong data-cart-modal-name></strong>
-              <span class="pap-cart-modal-quantity" data-cart-modal-quantity></span>
+              <span class="pap-cart-modal-quantity" data-cart-modal-quantity hidden></span>
               <span class="pap-cart-modal-price" data-cart-modal-price></span>
             </div>
           </div>
         </div>
 
         <footer class="pap-cart-modal-actions">
-          <button type="button" class="button pap-cart-modal-button pap-cart-modal-button--secondary" data-cart-modal-close><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></button>
-          <a class="button pap-cart-modal-button pap-cart-modal-button--primary" href="<?php echo esc_url(function_exists('wc_get_cart_url') ? $cart_url : $shop_url); ?>" data-cart-modal-link><?php esc_html_e('Vezi detalii coș', 'papetarie-storefront'); ?></a>
+          <button type="button" class="button pap-cart-delete-modal-button pap-cart-delete-modal-button--secondary" data-cart-modal-close><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></button>
+          <a class="button pap-cart-delete-modal-button pap-cart-delete-modal-button--primary" href="<?php echo esc_url(function_exists('wc_get_cart_url') ? $cart_url : $shop_url); ?>" data-cart-modal-link><?php esc_html_e('Vezi coșul', 'papetarie-storefront'); ?></a>
         </footer>
       </div>
     </div>
@@ -2088,19 +2100,22 @@ function papetarie_storefront_ajax_add_to_cart(): void
 
     $timing_before_response = microtime(true);
 
+    $cart_item_quantity = isset(WC()->cart->get_cart()[$added]['quantity']) ? (int) WC()->cart->get_cart()[$added]['quantity'] : $quantity;
     $cart_drawer = papetarie_storefront_get_cart_drawer_payload();
 
     papetarie_storefront_send_json_success_fast([
         'message' => __('Produsul a fost adăugat în coș', 'papetarie-storefront'),
         'name' => $product->get_name(),
         'price_html' => $product->get_price_html(),
+        'cart_item_unit_price_text' => html_entity_decode(wp_strip_all_tags($product->get_price_html()), ENT_QUOTES, 'UTF-8'),
+        'cart_item_total_html' => function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_product_subtotal($product, $cart_item_quantity)) : '',
         'cart_url' => wc_get_cart_url(),
         'image_url' => $image_url,
         'cart_count' => WC()->cart->get_cart_contents_count(),
         'cart_count_label' => papetarie_storefront_cart_count_label(),
         'cart_total_html' => function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_total()) : '',
         'cart_item_key' => $added,
-        'cart_item_quantity' => isset(WC()->cart->get_cart()[$added]['quantity']) ? (int) WC()->cart->get_cart()[$added]['quantity'] : $quantity,
+        'cart_item_quantity' => $cart_item_quantity,
         'cart_drawer' => $cart_drawer,
         'debug_timings' => [
             'before_add_ms' => (int) round(($timing_before_add - $timing_start) * 1000),

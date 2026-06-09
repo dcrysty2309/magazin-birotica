@@ -4,6 +4,7 @@
       return;
     }
 
+    var modalManager = window.papModalManager || null;
     var drawer = document.querySelector('[data-cart-drawer]');
     var trigger = document.querySelector('[data-cart-drawer-trigger]');
 
@@ -188,6 +189,9 @@
       drawer.setAttribute('aria-hidden', 'false');
       setBodyLocked(true);
       setTriggerState(true);
+      if (modalManager) {
+        modalManager.open(drawer, closeDrawer, { focusTarget: lastFocus });
+      }
 
       window.requestAnimationFrame(function () {
         drawer.classList.add('is-open');
@@ -203,6 +207,9 @@
       drawer.setAttribute('aria-hidden', 'true');
       setBodyLocked(false);
       setTriggerState(false);
+      if (modalManager) {
+        modalManager.close(drawer);
+      }
 
       clearTimeout(closeTimer);
       closeTimer = window.setTimeout(function () {
@@ -233,6 +240,7 @@
       }
 
       pendingDeleteItem = item || null;
+      lastFocus = document.activeElement;
 
       if (deleteModalName) {
         deleteModalName.textContent = item && item.name ? item.name : 'acest produs';
@@ -240,7 +248,9 @@
 
       deleteModal.hidden = false;
       deleteModal.setAttribute('aria-hidden', 'false');
-      document.body.classList.add('pap-modal-open');
+      if (modalManager) {
+        modalManager.open(deleteModal, closeDeleteModal, { focusTarget: lastFocus });
+      }
 
       window.requestAnimationFrame(function () {
         deleteModal.classList.add('is-open');
@@ -264,7 +274,9 @@
 
       deleteModal.classList.remove('is-open');
       deleteModal.setAttribute('aria-hidden', 'true');
-      document.body.classList.remove('pap-modal-open');
+      if (modalManager) {
+        modalManager.close(deleteModal);
+      }
       deleteModal.hidden = true;
 
       pendingDeleteItem = null;
@@ -443,21 +455,6 @@
       }
 
       changeQuantity(row, value);
-    });
-
-    document.addEventListener('keydown', function (event) {
-      if (event.key !== 'Escape') {
-        return;
-      }
-
-      if (deleteModal && !deleteModal.hidden) {
-        closeDeleteModal();
-        return;
-      }
-
-      if (!drawer.hidden) {
-        closeDrawer();
-      }
     });
 
     window.addEventListener('resize', function () {
