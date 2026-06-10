@@ -9,7 +9,7 @@ do_action('woocommerce_before_cart');
 ?>
 
 <div class="pap-cart-page" data-cart-page>
-  <div class="pap-cart-page-shell" data-cart-page-shell>
+  <div class="pap-shell pap-cart-page-shell" data-cart-page-shell>
     <div class="pap-cart-layout">
       <section class="pap-cart-main" aria-label="<?php esc_attr_e('Produse din coș', 'papetarie-storefront'); ?>">
         <h1 class="pap-cart-title"><?php esc_html_e('Coșul tău', 'papetarie-storefront'); ?></h1>
@@ -34,10 +34,15 @@ do_action('woocommerce_before_cart');
           <?php do_action('woocommerce_after_cart_contents'); ?>
         </form>
 
-        <a class="pap-cart-continue" href="<?php echo esc_url($shop_url); ?>">
-          <span class="pap-cart-continue-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-          <span><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></span>
-        </a>
+        <div class="pap-cart-actions-row">
+          <a class="pap-cart-continue" href="<?php echo esc_url($shop_url); ?>">
+            <span class="pap-cart-continue-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+            <span><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></span>
+          </a>
+          <button type="submit" class="pap-cart-update-submit" data-cart-update-submit form="pap-cart-form" name="update_cart" value="1">
+            <?php esc_html_e('Actualizează coșul', 'papetarie-storefront'); ?>
+          </button>
+        </div>
       </section>
 
       <aside class="pap-cart-summary" aria-label="<?php esc_attr_e('Sumar comandă', 'papetarie-storefront'); ?>">

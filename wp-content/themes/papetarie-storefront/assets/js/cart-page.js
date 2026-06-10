@@ -100,6 +100,10 @@
     });
   }
 
+  function hasUnavailableItems() {
+    return Boolean(document.querySelector('[data-cart-item-stock-status="outofstock"], .pap-cart-item.is-out-of-stock'));
+  }
+
   function setUpdateButtonState(isDirty) {
     if (!updateButton) {
       return;
@@ -110,27 +114,50 @@
     updateButton.classList.toggle('is-dirty', isDirty);
   }
 
-  function setCheckoutState(isDirty) {
+  function setCheckoutState(state) {
     if (!checkoutButton) {
       return;
     }
 
-    checkoutButton.classList.toggle('is-disabled', Boolean(isDirty));
-    checkoutButton.setAttribute('aria-disabled', isDirty ? 'true' : 'false');
-    checkoutButton.setAttribute('tabindex', isDirty ? '-1' : '0');
+    var isDirty = Boolean(state && state.dirty);
+    var isUnavailable = Boolean(state && state.unavailable);
+    var isBlocked = isDirty || isUnavailable;
+
+    checkoutButton.classList.toggle('is-disabled', isBlocked);
+    checkoutButton.setAttribute('aria-disabled', isBlocked ? 'true' : 'false');
+    checkoutButton.setAttribute('tabindex', isBlocked ? '-1' : '0');
 
     if (checkoutHint) {
-      checkoutHint.hidden = !isDirty;
+      if (isUnavailable) {
+        checkoutHint.textContent = 'Elimină produsele indisponibile pentru a continua.';
+        checkoutHint.classList.add('is-unavailable');
+        checkoutHint.classList.remove('is-dirty');
+        checkoutHint.hidden = false;
+      } else if (isDirty) {
+        checkoutHint.textContent = 'Actualizează coșul pentru a continua.';
+        checkoutHint.classList.add('is-dirty');
+        checkoutHint.classList.remove('is-unavailable');
+        checkoutHint.hidden = false;
+      } else {
+        checkoutHint.textContent = '';
+        checkoutHint.classList.remove('is-dirty', 'is-unavailable');
+        checkoutHint.hidden = true;
+      }
     }
   }
 
   function syncDirtyState() {
     var dirty = isCartDirty();
+    var unavailable = hasUnavailableItems();
     setUpdateButtonState(dirty);
-    setCheckoutState(dirty);
+    setCheckoutState({
+      dirty: dirty,
+      unavailable: unavailable
+    });
 
     if (cartForm) {
       cartForm.classList.toggle('is-dirty', dirty);
+      cartForm.classList.toggle('has-unavailable-items', unavailable);
     }
   }
 
