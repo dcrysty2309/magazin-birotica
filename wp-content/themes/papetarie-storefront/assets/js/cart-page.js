@@ -94,6 +94,36 @@
     }
   }
 
+  function updateQuantityButtonState(input) {
+    var row = getQuantityRow(input);
+    if (!row || !input) {
+      return;
+    }
+
+    var bounds = getQuantityBounds(row, input);
+    var currentValue = clampQuantity(input.value, bounds);
+    var minusButton = row.querySelector('[data-cart-qty-step="-1"]');
+    var plusButton = row.querySelector('[data-cart-qty-step="1"]');
+    var isAtMin = currentValue <= bounds.min;
+    var isAtMax = bounds.max > 0 && currentValue >= bounds.max;
+
+    if (minusButton) {
+      minusButton.disabled = Boolean(isAtMin || row.classList.contains('is-out-of-stock'));
+      minusButton.setAttribute('aria-disabled', minusButton.disabled ? 'true' : 'false');
+    }
+
+    if (plusButton) {
+      plusButton.disabled = Boolean(isAtMax || row.classList.contains('is-out-of-stock'));
+      plusButton.setAttribute('aria-disabled', plusButton.disabled ? 'true' : 'false');
+    }
+  }
+
+  function updateAllQuantityButtonStates() {
+    qtyInputs.forEach(function (input) {
+      updateQuantityButtonState(input);
+    });
+  }
+
   function isCartDirty() {
     return qtyInputs.some(function (input) {
       return String(input.value) !== getCommittedValue(input);
@@ -192,6 +222,7 @@
     qtyInputs.forEach(function (input) {
       setCommittedValue(input, input.value);
     });
+    updateAllQuantityButtonStates();
     syncDirtyState();
   }
 
@@ -222,6 +253,7 @@
     var currentValue = clampQuantity(input.value, bounds);
     var nextValue = clampQuantity(currentValue + step, bounds);
     input.value = String(nextValue);
+    updateQuantityButtonState(input);
     input.dispatchEvent(new Event('change', { bubbles: true }));
     input.focus({ preventScroll: true });
   }
@@ -233,6 +265,7 @@
     }
 
     normalizeQuantityInput(input);
+    updateQuantityButtonState(input);
     syncDirtyState();
   }
 
@@ -243,6 +276,7 @@
     }
 
     normalizeQuantityInput(input);
+    updateQuantityButtonState(input);
     syncDirtyState();
   }
 

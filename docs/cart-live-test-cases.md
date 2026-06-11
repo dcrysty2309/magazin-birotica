@@ -413,3 +413,139 @@ Reguli de folosire:
 - nu există erori în console;
 - nu există erori PHP.
 
+---
+## Expected Results
+
+Implementation is considered complete only if all the following conditions are met.
+
+Quantity controls
+Scenario
+Initial qty = 1
+
++ ? 2
+- ? 1
++ ? 2
++ ? 3
+- ? 2
+- ? 1
+Expected Result
+quantity changes instantly;
+minus button becomes disabled only when quantity reaches minimum;
+plus and minus work correctly before pressing Update Cart;
+state is based on current input value, not on previous WooCommerce values;
+no refresh required;
+no JavaScript errors;
+no console errors.
+Update Cart flow
+Expected Result
+
+After changing quantity:
+
+"Actualizeaza co?ul" becomes enabled;
+"Continua catre finalizare" becomes disabled;
+helper text is displayed:
+Actualizeaza co?ul pentru a continua.
+
+After updating:
+
+cart totals are recalculated;
+mini cart count updates;
+checkout button becomes enabled again;
+helper text disappears.
+Empty cart page
+Expected Result
+
+Page should visually look like a premium empty state.
+
+The content:
+
+
+
+Co?ul tau este gol
+
+Adauga produse pentru a �ncepe comanda.
+
+? Continua cumparaturile
+
+must:
+
+start from the left side;
+use the same container width as the products table;
+have white background;
+have no rounded corners;
+preserve generous spacing;
+not look like a tiny centered card.
+Footer
+Expected Result
+
+With an empty cart:
+
+Header
+
+Content
+
+(empty space)
+
+Footer
+
+Footer always stays at the bottom of the viewport.
+
+Requirements:
+
+no fixed footer;
+no absolute positioning;
+normal document flow;
+flexbox layout.
+Responsive behavior
+
+Must be tested on:
+
+1920 px
+1440 px
+1280 px
+tablet
+mobile
+
+Expected:
+
+no overflow;
+no broken spacing;
+no horizontal scroll;
+typography remains consistent.
+Visual consistency
+
+Expected:
+
+no random borders;
+no inconsistent paddings;
+no unexpected rounded corners;
+spacing system remains consistent with the rest of the site;
+margins and paddings should be visually balanced and measured against existing components;
+buttons should align properly;
+typography should match the design system used across the site.
+Browser console
+
+Expected:
+
+0 JavaScript errors
+0 failed requests
+PHP logs
+
+Expected:
+
+0 warnings
+0 notices
+0 deprecated messages
+0 fatal errors
+Final acceptance criteria
+
+Implementation is complete only when:
+
+quantity controls behave correctly without page refresh;
+empty cart state has the new design;
+footer stays at the bottom;
+responsive layouts are correct;
+no regressions are introduced;
+WooCommerce native functionality remains intact;
+code is clean and follows WordPress/WooCommerce conventions;
+all scenarios above pass successfully.

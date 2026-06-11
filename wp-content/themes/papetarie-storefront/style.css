@@ -48,6 +48,9 @@ body.theme-papetarie {
   background: #f6f8fc;
   color: var(--pap-text);
   font-family: "Open Sans", Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 body.theme-papetarie .hentry {
@@ -221,6 +224,10 @@ a:focus-visible {
 .col-full,
 .site-content {
   max-width: 100%;
+}
+
+body.theme-papetarie .site-content {
+  flex: 1 0 auto;
 }
 
 .site-header,
@@ -6992,9 +6999,6 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) {
   background-position: center right;
   background-size: cover;
   background-attachment: scroll;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 body.theme-papetarie.woocommerce-account:not(.logged-in) .site-content {
@@ -7164,6 +7168,14 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page-shell {
   margin: 0 auto;
   padding: 48px 24px 80px;
   box-sizing: border-box;
+}
+
+body.theme-papetarie.woocommerce-cart .pap-cart-layout--empty {
+  display: block;
+}
+
+body.theme-papetarie.woocommerce-cart .pap-cart-main--empty {
+  width: 100%;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-layout {
@@ -7929,29 +7941,76 @@ body.theme-papetarie.woocommerce-cart .pap-cart-info-copy span {
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-empty {
-  max-width: 760px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-empty-card {
-  padding: 32px;
+  padding: 56px;
   border-radius: 0;
   background: #fff;
-  box-shadow: 0 10px 24px rgba(18, 39, 74, 0.05);
+  box-shadow: none;
+  border: 1px solid #eef2f7;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  justify-items: start;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+body.theme-papetarie.woocommerce-cart .pap-cart-empty-icon {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.theme-papetarie.woocommerce-cart .pap-cart-empty-icon svg {
+  width: 64px;
+  height: 64px;
+  display: block;
+}
+
+body.theme-papetarie.woocommerce-cart .pap-cart-empty-copy-wrap {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-empty-title {
-  margin: 0 0 8px;
-  color: #0f1f4a;
-  font-size: 20px;
+  margin: 0;
+  color: #082567;
+  font-size: 42px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-empty-copy {
-  margin: 0 0 24px;
+  margin: 0;
   color: #6b7280;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-cart .pap-cart-empty-continue {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #082567;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body.theme-papetarie.woocommerce-cart .pap-cart-empty-continue:hover,
+body.theme-papetarie.woocommerce-cart .pap-cart-empty-continue:focus-visible {
+  color: #173764;
+  text-decoration: underline;
 }
 
 @media (min-width: 768px) and (max-width: 1279px) {
@@ -8020,6 +8079,31 @@ body.theme-papetarie.woocommerce-cart .pap-cart-empty-copy {
 @media (max-width: 767px) {
   body.theme-papetarie.woocommerce-cart .pap-cart-page-shell {
     padding: 24px 20px 64px;
+  }
+
+  body.theme-papetarie.woocommerce-cart .pap-cart-empty-card {
+    padding: 32px 24px;
+    gap: 16px;
+  }
+
+  body.theme-papetarie.woocommerce-cart .pap-cart-empty-icon {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+  }
+
+  body.theme-papetarie.woocommerce-cart .pap-cart-empty-icon svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  body.theme-papetarie.woocommerce-cart .pap-cart-empty-title {
+    font-size: 32px;
+  }
+
+  body.theme-papetarie.woocommerce-cart .pap-cart-empty-copy,
+  body.theme-papetarie.woocommerce-cart .pap-cart-empty-continue {
+    font-size: 16px;
   }
 
   body.theme-papetarie.woocommerce-cart .pap-cart-layout {
