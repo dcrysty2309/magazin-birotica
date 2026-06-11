@@ -549,3 +549,58 @@ no regressions are introduced;
 WooCommerce native functionality remains intact;
 code is clean and follows WordPress/WooCommerce conventions;
 all scenarios above pass successfully.
+
+---
+
+## 15. Notificari WooCommerce
+
+**Status:** PASS / FAIL
+
+### Setup
+1. Adu in cos un produs care declanseaza mesajul de minim comanda.
+2. Mergi pe pagina de autentificare / Contul meu.
+3. Repeti testul si pe homepage, pe pagina de produs si pe o pagina de categorie.
+4. Repeti si cu un mesaj de login invalid.
+
+### Rezultat asteptat
+- mesajele de cos apar doar pe cart si checkout;
+- mesajele de autentificare apar doar pe login / register / lost password;
+- mesajele de checkout nu apar pe homepage, categorii, produs sau contul meu;
+- mesajele de login nu apar pe homepage;
+- nu exista scurgeri de notificari intre pagini;
+- dupa refresh, fiecare mesaj ramane doar in contextul lui.
+
+
+## 16. Notificari din My Account / retururi
+
+**Status:** PASS / FAIL
+
+### Setup
+1. Intra in Contul meu -> Retururi.
+2. Trimite o cerere valida de retur.
+3. Incearca si un caz invalid: sesiune expirata sau utilizator delogat.
+4. Navigheaza apoi spre homepage, cart si login.
+
+### Rezultat asteptat
+- mesajele de retur apar doar in contul meu, pe endpoint-ul Retururi;
+- mesajul de succes nu apare pe homepage, cart sau login;
+- mesajele de eroare apar doar in pagina de retur;
+- nu exista scurgeri de notificari intre pagini;
+- dupa refresh, mesajul nu ramane in pagini fara legatura cu returul.
+
+
+## 17. Scara tipografica
+
+**Status:** PASS / FAIL
+
+### Setup
+1. Deschide homepage, cart, checkout, login, lost password si o pagina de produs.
+2. Compara titlurile principale, titlurile de sectiune, titlurile din carduri si textele secundare.
+
+### Rezultat asteptat
+- titlurile de pagina au dimensiunea standard a sistemului;
+- titlurile de sectiune au aceeasi dimensiune peste tot;
+- titlurile produselor au aceeasi dimensiune pe homepage, cart, archive si cross-sell;
+- label-urile si placeholder-ele au aceeasi scara pe formulare;
+- nu exista dimensiuni arbitrare sau diferite intre pagini fara motiv;
+- textul secundar ramane mai discret decat titlurile si textul important.

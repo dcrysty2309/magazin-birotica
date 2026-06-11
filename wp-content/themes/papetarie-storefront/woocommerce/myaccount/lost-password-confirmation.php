@@ -9,9 +9,7 @@ defined('ABSPATH') || exit;
 
 do_action('woocommerce_before_lost_password_confirmation_message');
 
-if (!function_exists('wc_has_notice') || !wc_has_notice(__('Un email a fost trimis cu succes. Verifică inboxul.', 'papetarie-storefront'), 'success')) {
-    papetarie_storefront_store_auth_notice(__('Un email a fost trimis cu succes. Verifică inboxul.', 'papetarie-storefront'), 'success');
-}
+papetarie_storefront_store_auth_notice(__('Un email a fost trimis cu succes. Verifică inboxul.', 'papetarie-storefront'), 'success');
 ?>
 
 <div class="pap-auth-shell pap-auth-shell--lost-password pap-auth-shell--lost-password-confirmation">

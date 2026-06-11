@@ -68,9 +68,10 @@ do_action('woocommerce_before_cart');
         </aside>
       </div>
 
-      <?php echo papetarie_storefront_render_cart_recommendations_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     </div>
   </div>
+
+  <?php echo papetarie_storefront_render_cart_recommendations_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
   <div class="pap-cart-loading-overlay" data-cart-loading-overlay hidden aria-hidden="true">
     <div class="pap-cart-loading-overlay__panel" role="status" aria-live="polite">

@@ -42,6 +42,20 @@ Text Domain: papetarie-storefront
   --pap-header-tool-title-size: 15px;
   --pap-header-tool-meta-size: 12px;
   --pap-input-height: 47px;
+  --pap-page-title-spacing: 64px;
+  --pap-page-content-spacing: 48px;
+  --pap-section-title-gap: 16px;
+  --pap-section-content-gap: 32px;
+  --pap-section-separation: 96px;
+  --pap-page-title-size: 32px;
+  --pap-section-title-size: 26px;
+  --pap-subsection-title-size: 22px;
+  --pap-product-title-size: 20px;
+  --pap-important-text-size: 18px;
+  --pap-body-text-size: 16px;
+  --pap-secondary-text-size: 14px;
+  --pap-label-text-size: 14px;
+  --pap-placeholder-text-size: 16px;
 }
 
 body.theme-papetarie {
@@ -65,7 +79,7 @@ body.theme-papetarie p,
 body.theme-papetarie .entry-content p,
 body.theme-papetarie .wp-block-paragraph {
   margin: 0 0 1em;
-  font-size: 14px;
+  font-size: var(--pap-body-text-size);
   line-height: 1.6;
   font-weight: 400;
   color: #17324d;
@@ -83,19 +97,19 @@ body.theme-papetarie .entry-content h1,
 body.theme-papetarie .wp-block-heading h1 {
   margin: 0 0 0.5em;
   color: var(--pap-ink);
-  font-size: clamp(42px, 5vw, 68px);
-  line-height: 1.02;
-  font-weight: 900;
-  letter-spacing: -0.03em;
+  font-size: var(--pap-page-title-size);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 body.theme-papetarie .entry-content h2,
 body.theme-papetarie .wp-block-heading h2 {
   margin: 0 0 0.6em;
   color: var(--pap-ink);
-  font-size: clamp(28px, 3vw, 42px);
-  line-height: 1.08;
-  font-weight: 800;
+  font-size: var(--pap-section-title-size);
+  line-height: 1.15;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -103,9 +117,78 @@ body.theme-papetarie .entry-content h3,
 body.theme-papetarie .wp-block-heading h3 {
   margin: 0 0 0.6em;
   color: var(--pap-ink);
-  font-size: 24px;
+  font-size: var(--pap-subsection-title-size);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+body.theme-papetarie .entry-content .pap-featured .pap-section-head h2,
+body.theme-papetarie .pap-featured .pap-section-head h2 {
+  margin: 0;
+  color: var(--pap-ink);
+  font-family: "Open Sans", Arial, sans-serif;
+  font-size: var(--pap-section-title-size);
   line-height: 1.15;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+body.theme-papetarie .entry-content .pap-featured .pap-section-head-soft h2,
+body.theme-papetarie .pap-featured .pap-section-head-soft h2 {
+  font-size: var(--pap-section-title-size);
+  line-height: 1.15;
+}
+
+body.theme-papetarie .entry-content .pap-featured .pap-section-head-soft p,
+body.theme-papetarie .pap-featured .pap-section-head-soft p {
+  margin: 0;
+  max-width: 720px;
+  color: #637694;
+  font-size: var(--pap-secondary-text-size);
+  line-height: 1.55;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+body.theme-papetarie .entry-content .pap-featured .pap-section-head-featured {
+  gap: 8px;
+}
+
+body.theme-papetarie .entry-content .pap-featured .pap-section-head-featured h2,
+body.theme-papetarie .pap-featured .pap-section-head-featured h2 {
+  font-size: var(--pap-section-title-size);
+  line-height: 1.15;
+}
+
+body.theme-papetarie .entry-content .pap-featured .pap-section-head-featured p,
+body.theme-papetarie .pap-featured .pap-section-head-featured p {
+  max-width: 620px;
+}
+
+body.theme-papetarie .entry-content .pap-featured .pap-product-card h3,
+body.theme-papetarie .pap-featured .pap-product-card h3 {
+  margin: 16px 0 6px;
+  color: var(--pap-ink);
+  font-size: var(--pap-product-title-size);
+  line-height: 1.25;
+  font-weight: 700;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+body.theme-papetarie .entry-content .pap-featured .pap-product-card p,
+body.theme-papetarie .pap-featured .pap-product-card p {
+  margin: 0;
+  color: #68809f;
+  font-size: var(--pap-secondary-text-size);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 body.theme-papetarie .entry-content h4,
@@ -1554,7 +1637,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
 
 .pap-section-head h2 {
   font-family: "Open Sans", Arial, sans-serif;
-  font-size: 27px;
+  font-size: var(--pap-section-title-size);
   font-weight: 700;
   text-transform: none;
   letter-spacing: -0.01em;
@@ -1564,7 +1647,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   color: #24406f;
   text-decoration: none;
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--pap-secondary-text-size);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1582,7 +1665,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
 }
 
 .pap-section-head-soft h2 {
-  font-size: 30px;
+  font-size: var(--pap-section-title-size);
   text-transform: none;
 }
 
@@ -1590,7 +1673,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   margin: 0;
   max-width: 720px;
   color: #637694;
-  font-size: 16px;
+  font-size: var(--pap-secondary-text-size);
   line-height: 1.55;
   text-transform: none;
   letter-spacing: 0;
@@ -1602,7 +1685,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
 }
 
 .pap-section-head-featured h2 {
-  font-size: 29px;
+  font-size: var(--pap-section-title-size);
 }
 
 .pap-section-head-featured p {
@@ -1629,7 +1712,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
 
 .pap-section-head-packages h2 {
   font-family: "Open Sans", Arial, sans-serif;
-  font-size: 28px;
+  font-size: var(--pap-section-title-size);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -1638,7 +1721,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   margin: 0;
   max-width: 620px;
   color: #637694;
-  font-size: 16px;
+  font-size: var(--pap-secondary-text-size);
   line-height: 1.55;
 }
 
@@ -1672,8 +1755,8 @@ body.tax-product_cat .pap-header-catmenu-panel {
   margin: 2px 0 10px;
   color: var(--pap-ink);
   font-family: "Open Sans", Arial, sans-serif;
-  font-size: 18px;
-  line-height: 1.08;
+  font-size: var(--pap-product-title-size);
+  line-height: 1.25;
   font-weight: 700;
   letter-spacing: -0.01em;
   min-height: 1.2em;
@@ -1693,8 +1776,8 @@ body.tax-product_cat .pap-header-catmenu-panel {
 
 .pap-package-list li {
   color: #6c7f9b;
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: var(--pap-secondary-text-size);
+  line-height: 1.6;
 }
 
 .pap-package-pricing {
@@ -1707,14 +1790,14 @@ body.tax-product_cat .pap-header-catmenu-panel {
 
 .pap-package-price {
   color: #132f62;
-  font-size: 17px;
+  font-size: var(--pap-important-text-size);
   font-weight: 800;
   line-height: 1;
 }
 
 .pap-package-old-price {
   color: #9aa8ba;
-  font-size: 12px;
+  font-size: var(--pap-secondary-text-size);
   font-weight: 600;
   text-decoration: line-through;
   line-height: 1;
@@ -1891,8 +1974,8 @@ body.tax-product_cat .pap-header-catmenu-panel {
   margin: 0;
   color: #173764;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 35px;
-  line-height: 1;
+  font-size: var(--pap-page-title-size);
+  line-height: 1.1;
   letter-spacing: -0.03em;
   text-shadow: 0 2px 14px rgba(255, 255, 255, 0.32);
   white-space: nowrap;
@@ -1904,7 +1987,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   margin: 16px 0 0;
   max-width: 72ch;
   color: rgba(9, 34, 74, 0.88);
-  font-size: 15px;
+  font-size: var(--pap-body-text-size);
   line-height: 1.65;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2305,13 +2388,17 @@ body.tax-product_cat .pap-header-catmenu-panel {
 .pap-product-copy h2 {
   margin: 0;
   color: var(--pap-ink);
-  font-size: 15px;
-  line-height: 1.35;
-  font-weight: 800;
+  font-size: var(--pap-product-title-size);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .pap-product-copy p {
   margin: 6px 0 0;
+  color: #68809f;
+  font-size: var(--pap-secondary-text-size);
+  line-height: 1.6;
 }
 
 .pap-product-meta--archive {
@@ -2504,7 +2591,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   }
 
   .pap-archive-empty h2 {
-    font-size: 24px;
+    font-size: var(--pap-section-title-size);
   }
 
   .pap-archive-empty p {
@@ -2516,11 +2603,11 @@ body.tax-product_cat .pap-header-catmenu-panel {
   }
 
   .pap-product-copy h2 {
-    font-size: 14px;
+    font-size: var(--pap-product-title-size);
   }
 
   .pap-product-copy p {
-    font-size: 12px;
+    font-size: var(--pap-secondary-text-size);
   }
 
   .pap-product-meta--archive .pap-home-add-to-cart {
@@ -2754,29 +2841,6 @@ body.tax-product_cat .pap-header-catmenu-panel {
   height: 100%;
   object-fit: contain;
   display: block;
-}
-
-.pap-product-card h3 {
-  margin: 16px 0 6px;
-  color: var(--pap-ink);
-  font-size: 14px;
-  line-height: 1.35;
-  font-weight: 700;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.pap-product-card p {
-  margin: 0;
-  color: #68809f;
-  font-size: 12px;
-  line-height: 1.45;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .pap-product-meta {
@@ -3151,7 +3215,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   margin: 0;
   max-width: 340px;
   color: #6e7d95;
-  font-size: 15px;
+  font-size: var(--pap-body-text-size);
   line-height: 1.8;
 }
 
@@ -6889,6 +6953,9 @@ body.theme-papetarie .woocommerce form .form-row select {
   height: var(--pap-input-height);
   padding-top: 11px;
   padding-bottom: 11px;
+  font-size: var(--pap-body-text-size);
+  line-height: 1.5;
+  color: var(--pap-ink);
 }
 
 body.theme-papetarie .woocommerce-message,
@@ -7166,7 +7233,7 @@ body.theme-papetarie.woocommerce-cart .woocommerce-error {
 body.theme-papetarie.woocommerce-cart .pap-cart-page-shell {
   width: 100%;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: var(--pap-page-title-spacing) 24px 80px;
   box-sizing: border-box;
 }
 
@@ -7216,8 +7283,8 @@ body.theme-papetarie.woocommerce-cart .pap-cart-summary {
 body.theme-papetarie.woocommerce-cart .pap-cart-title {
   margin: 0;
   color: #001b5d;
-  font-size: 40px;
-  line-height: 1.2;
+  font-size: var(--pap-page-title-size);
+  line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -7267,7 +7334,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-headings {
   padding: 0 24px 0 0;
   margin: 0 0 12px;
   color: #6b7280;
-  font-size: 13px;
+  font-size: var(--pap-secondary-text-size);
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -7346,9 +7413,9 @@ body.theme-papetarie.woocommerce-cart .pap-cart-item-name {
   display: -webkit-box;
   margin: 0 0 6px;
   color: #0f1f4a;
-  font-size: 18px;
+  font-size: var(--pap-product-title-size);
   line-height: 1.15;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   overflow: hidden;
   -webkit-line-clamp: 2;
@@ -7358,15 +7425,15 @@ body.theme-papetarie.woocommerce-cart .pap-cart-item-name {
 body.theme-papetarie.woocommerce-cart .pap-cart-item-price {
   margin: 0 0 4px;
   color: #0f1f4a;
-  font-size: 18px;
+  font-size: var(--pap-important-text-size);
   line-height: 1.25;
   font-weight: 600;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-item-description {
   color: #6b7280;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: var(--pap-secondary-text-size);
+  line-height: 1.6;
   display: -webkit-box;
   overflow: hidden;
   -webkit-line-clamp: 2;
@@ -7691,7 +7758,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-item-total {
   align-items: center;
   justify-content: flex-end;
   color: #0f1f4a;
-  font-size: 20px;
+  font-size: var(--pap-important-text-size);
   line-height: 1.2;
   font-weight: 600;
   text-align: right;
@@ -7760,7 +7827,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-continue {
   align-items: center;
   gap: 10px;
   color: #001b5d;
-  font-size: 16px;
+  font-size: var(--pap-body-text-size);
   line-height: 1.2;
   font-weight: 600;
   text-decoration: none;
@@ -7775,7 +7842,6 @@ body.theme-papetarie.woocommerce-cart .pap-cart-continue-icon {
 body.theme-papetarie.woocommerce-cart .pap-cart-actions-row {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7795,8 +7861,8 @@ body.theme-papetarie.woocommerce-cart .pap-cart-summary-card {
 body.theme-papetarie.woocommerce-cart .pap-cart-summary-title {
   margin: 0 0 40px;
   color: #001b5d;
-  font-size: 20px;
-  line-height: 1.2;
+  font-size: var(--pap-section-title-size);
+  line-height: 1.15;
   font-weight: 700;
 }
 
@@ -7822,7 +7888,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-coupon-header {
   gap: 16px;
   margin: 0;
   color: #001b5d;
-  font-size: 16px;
+  font-size: var(--pap-section-title-size);
   line-height: 1.4;
   font-weight: 600;
 }
@@ -7843,7 +7909,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-coupon-input {
   border-radius: 0;
   background: #fff;
   color: #0f1f4a;
-  font-size: 14px;
+  font-size: var(--pap-body-text-size);
   outline: none;
   box-sizing: border-box;
 }
@@ -7860,7 +7926,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-coupon-button {
   border-radius: 0;
   background: transparent;
   color: #ff6600;
-  font-size: 14px;
+  font-size: var(--pap-secondary-text-size);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
@@ -7896,7 +7962,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-coupon-chip {
   border-radius: 0;
   background: #f7f8fb;
   color: #0f1f4a;
-  font-size: 13px;
+  font-size: var(--pap-secondary-text-size);
   font-weight: 600;
 }
 
@@ -7931,13 +7997,13 @@ body.theme-papetarie.woocommerce-cart .pap-cart-totals-row {
   justify-content: space-between;
   gap: 16px;
   color: #6b7280;
-  font-size: 15px;
+  font-size: var(--pap-body-text-size);
   line-height: 1.4;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-totals-row strong {
   color: #0f1f4a;
-  font-size: 16px;
+  font-size: var(--pap-important-text-size);
   font-weight: 600;
 }
 
@@ -7957,7 +8023,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-totals-row--shipping {
 
 body.theme-papetarie.woocommerce-cart .pap-cart-totals-row--shipping strong {
   color: #0f1f4a;
-  font-size: 16px;
+  font-size: var(--pap-important-text-size);
   font-weight: 600;
 }
 
@@ -7986,7 +8052,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-totals-row--total strong {
 
 body.theme-papetarie.woocommerce-cart .pap-cart-totals-row__note {
   color: #64748b;
-  font-size: 15px;
+  font-size: var(--pap-secondary-text-size);
   line-height: 1.4;
   font-weight: 600;
 }
@@ -8003,7 +8069,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-checkout {
   justify-content: center;
   gap: 10px;
   text-decoration: none;
-  font-size: 18px;
+  font-size: var(--pap-important-text-size);
   line-height: 1;
   font-weight: 600;
   box-shadow: 0 6px 18px rgba(255, 102, 0, 0.12);
@@ -8167,7 +8233,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-empty-copy-wrap {
 body.theme-papetarie.woocommerce-cart .pap-cart-empty-title {
   margin: 0;
   color: #082567;
-  font-size: 42px;
+  font-size: var(--pap-page-title-size);
   font-weight: 700;
   line-height: 1.2;
 }
@@ -8175,7 +8241,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-empty-title {
 body.theme-papetarie.woocommerce-cart .pap-cart-empty-copy {
   margin: 0;
   color: #6b7280;
-  font-size: 18px;
+  font-size: var(--pap-body-text-size);
   line-height: 1.5;
 }
 
@@ -8184,7 +8250,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-empty-continue {
   align-items: center;
   gap: 8px;
   color: #082567;
-  font-size: 18px;
+  font-size: var(--pap-body-text-size);
   font-weight: 600;
   text-decoration: none;
 }
@@ -8244,11 +8310,11 @@ body.theme-papetarie.woocommerce-cart .pap-cart-empty-continue:focus-visible {
   }
 
   body.theme-papetarie.woocommerce-cart .pap-cart-item-name {
-    font-size: 18px;
+    font-size: var(--pap-product-title-size);
   }
 
   body.theme-papetarie.woocommerce-cart .pap-cart-item-price {
-    font-size: 18px;
+    font-size: var(--pap-important-text-size);
   }
 }
 
@@ -8310,7 +8376,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-empty-continue:focus-visible {
 
   body.theme-papetarie.woocommerce-cart .pap-cart-title {
     margin-bottom: 0;
-    font-size: 28px;
+    font-size: var(--pap-page-title-size);
   }
 
   body.theme-papetarie.woocommerce-cart .pap-cart-headings {
@@ -8409,6 +8475,10 @@ body.theme-papetarie.woocommerce-checkout form.checkout {
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 28px;
   align-items: start;
+}
+
+body.theme-papetarie.woocommerce-checkout .woocommerce {
+  padding-top: var(--pap-page-title-spacing);
 }
 
 body.theme-papetarie.woocommerce-checkout #customer_details,
@@ -8576,7 +8646,11 @@ body.theme-papetarie .pap-wishlist.is-loading {
 }
 
 .pap-auth-shell {
-  padding: 100px 0 100px;
+  padding: var(--pap-page-title-spacing) 0 64px;
+}
+
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell {
+  padding-bottom: 64px;
 }
 
 body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-footer {
@@ -8630,8 +8704,8 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-footer {
 }
 
 .pap-auth-visual h2 {
-  font-size: clamp(52px, 5vw, 60px);
-  line-height: 0.98;
+  font-size: var(--pap-page-title-size);
+  line-height: 1.15;
   max-width: none;
   font-weight: 700;
   color: #17324d;
@@ -8669,7 +8743,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
 
 .pap-auth-intro {
   max-width: 620px;
-  font-size: 18px;
+  font-size: var(--pap-body-text-size);
   line-height: 1.7;
   color: #5f7290;
 }
@@ -8747,7 +8821,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-benefits {
 }
 
 .pap-auth-benefit-copy strong {
-  font-size: 17px;
+  font-size: var(--pap-important-text-size);
   font-weight: 600;
   line-height: 1.4;
   color: #17324d;
@@ -8755,7 +8829,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-benefits {
 }
 
 .pap-auth-benefit-copy span {
-  font-size: 14px;
+  font-size: var(--pap-secondary-text-size);
   font-weight: 400;
   line-height: 1.6;
   color: #5f7290;
@@ -8812,17 +8886,17 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
 }
 
 .pap-auth-panel-head h1 {
-  font-size: 12px;
+  font-size: var(--pap-label-text-size);
   font-weight: 700;
   line-height: 1.4;
-  letter-spacing: 2px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #64748b;
 }
 
 .pap-auth-card h2 {
-  font-size: 30px;
-  font-weight: 600;
+  font-size: var(--pap-page-title-size);
+  font-weight: 700;
   line-height: 1.2;
   color: #17324d;
 }
@@ -8831,6 +8905,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
   margin: 0;
   color: #5f7290;
   line-height: 1.65;
+  font-size: var(--pap-body-text-size);
 }
 
 .pap-auth-tabs {
@@ -8879,7 +8954,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
 }
 
 .pap-auth-card h2 {
-  font-size: 30px;
+  font-size: var(--pap-page-title-size);
   font-weight: 700;
   line-height: 1.2;
   color: #17324d;
@@ -8888,7 +8963,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
 
 body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-panel .pap-auth-card--single > h2,
 body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-panel .pap-auth-card--single > h2 {
-  font-size: 24px;
+  font-size: var(--pap-page-title-size);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0;
@@ -8898,9 +8973,9 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
 }
 
 body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-card--login > h2 {
-  font-size: 24px;
+  font-size: var(--pap-page-title-size);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
   letter-spacing: 0;
 }
 
@@ -8909,6 +8984,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login 
   margin: 0 0 16px;
   color: #5f7290;
   line-height: 1.65;
+  font-size: var(--pap-secondary-text-size);
 }
 
 .pap-auth-notices {
@@ -9000,7 +9076,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login 
   display: flex;
   align-items: center;
   color: #17324d;
-  font-size: 14px;
+  font-size: var(--pap-secondary-text-size);
   line-height: 1.2;
   font-weight: 400;
   min-width: 0;
@@ -9039,7 +9115,7 @@ fieldset.pap-form-row {
 .pap-form-row label {
   display: inline-block;
   margin: 0 0 6px;
-  font-size: 14px;
+  font-size: var(--pap-label-text-size);
   font-weight: 600;
   color: #17324d;
 }
@@ -9576,13 +9652,14 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) input[type='password'] 
 }
 
 .pap-account-nav-copy strong {
-  font-size: 1rem;
+  font-size: var(--pap-important-text-size);
+  font-weight: 600;
   color: #17324d;
 }
 
 .pap-account-nav-copy span {
   color: #516173;
-  font-size: 0.92rem;
+  font-size: var(--pap-secondary-text-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -9751,14 +9828,17 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) input[type='password'] 
 
 .pap-account-support-card h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--pap-subsection-title-size);
+  line-height: 1.2;
+  font-weight: 700;
   color: #17324d;
 }
 
 .pap-account-support-card p {
   margin: 0;
   color: #516173;
-  line-height: 1.55;
+  line-height: 1.6;
+  font-size: var(--pap-secondary-text-size);
 }
 
 .pap-account-product-grid .pap-product-card {

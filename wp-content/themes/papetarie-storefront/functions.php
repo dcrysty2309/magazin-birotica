@@ -2102,11 +2102,6 @@ function papetarie_storefront_store_auth_notice(string $message, string $type = 
 
 function papetarie_storefront_render_auth_notices(): void
 {
-    if (!function_exists('wc_get_notices')) {
-        return;
-    }
-
-    $notices = wc_get_notices();
     $session_notices = [];
     if (function_exists('WC') && WC() && WC()->session) {
         $session_notices = WC()->session->get('pap_auth_notices', []);
@@ -2120,22 +2115,12 @@ function papetarie_storefront_render_auth_notices(): void
         $fallback_notice = (string) WC()->session->get('pap_auth_last_error', '');
     }
 
-    $type_map = [
-        'error' => 'error',
-        'success' => 'success',
-        'notice' => 'info',
-        'info' => 'info',
-        'warning' => 'warning',
-    ];
-
     echo '<div class="pap-auth-notices" role="status" aria-live="polite">';
 
-    if (empty($notices) && empty($session_notices) && '' === trim($fallback_notice)) {
+    if (empty($session_notices) && '' === trim($fallback_notice)) {
         echo '</div>';
         return;
     }
-
-    $rendered = false;
 
     if (!empty($session_notices) || '' !== trim($fallback_notice)) {
         foreach ($session_notices as $notice) {
@@ -2151,38 +2136,18 @@ function papetarie_storefront_render_auth_notices(): void
             echo '<span class="pap-auth-notice-icon wc-block-components-notice-banner__icon" aria-hidden="true">' . papetarie_storefront_notice_icon($mapped_type) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             echo '<div class="pap-auth-notice-copy wc-block-components-notice-banner__content">' . wp_kses_post($message) . '</div>';
             echo '</div>';
-            $rendered = true;
         }
 
-        if (!$rendered && '' !== trim($fallback_notice)) {
+        if ('' !== trim($fallback_notice) && empty($session_notices)) {
             echo '<div class="pap-auth-notice wc-block-components-notice-banner is-error pap-auth-notice--error" role="alert">';
             echo '<span class="pap-auth-notice-icon wc-block-components-notice-banner__icon" aria-hidden="true">' . papetarie_storefront_notice_icon('error') . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
             echo '<div class="pap-auth-notice-copy wc-block-components-notice-banner__content">' . esc_html($fallback_notice) . '</div>';
             echo '</div>';
-            $rendered = true;
-        }
-    } else {
-        foreach ($notices as $type => $messages) {
-            $mapped_type = $type_map[$type] ?? 'info';
-
-            foreach ((array) $messages as $notice) {
-                $message = is_array($notice) && isset($notice['notice']) ? (string) $notice['notice'] : (string) $notice;
-
-                if ('' === trim($message)) {
-                    continue;
-                }
-
-                echo '<div class="pap-auth-notice wc-block-components-notice-banner is-' . esc_attr($mapped_type) . ' pap-auth-notice--' . esc_attr($mapped_type) . '">';
-                echo '<span class="pap-auth-notice-icon wc-block-components-notice-banner__icon" aria-hidden="true">' . papetarie_storefront_notice_icon($mapped_type) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-                echo '<div class="pap-auth-notice-copy wc-block-components-notice-banner__content">' . wp_kses_post($message) . '</div>';
-                echo '</div>';
-            }
         }
     }
 
     echo '</div>';
 
-    wc_clear_notices();
     if (function_exists('WC') && WC() && WC()->session) {
         WC()->session->set('pap_auth_notices', []);
         WC()->session->set('pap_auth_last_error', '');
@@ -2191,13 +2156,12 @@ function papetarie_storefront_render_auth_notices(): void
 
 function papetarie_storefront_capture_login_errors($errors, $username, $password)
 {
-    if (!function_exists('wc_add_notice') || !is_wp_error($errors)) {
+    if (!is_wp_error($errors)) {
         return $errors;
     }
 
     $messages = $errors->get_error_messages();
     foreach ($messages as $message) {
-        wc_add_notice(wp_strip_all_tags((string) $message), 'error');
         papetarie_storefront_store_auth_notice((string) $message, 'error');
     }
 
@@ -2216,10 +2180,6 @@ function papetarie_storefront_capture_login_failure(): void
         if ('' !== trim($stored_error)) {
             return;
         }
-    }
-
-    if (function_exists('wc_has_notice') && wc_has_notice('Autentificarea a eșuat. Verifică emailul și parola.', 'error')) {
-        return;
     }
 
     papetarie_storefront_store_auth_notice(__('Autentificarea a eșuat. Verifică emailul și parola.', 'papetarie-storefront'), 'error');
@@ -2635,7 +2595,7 @@ function papetarie_storefront_render_cart_recommendations_html(): string
 
     ob_start();
     ?>
-    <section class="pap-featured">
+    <section class="pap-shell pap-featured">
       <div class="pap-section-head pap-section-head-soft pap-section-head-featured">
         <h2><?php esc_html_e('S-ar putea să-ți placă și', 'papetarie-storefront'); ?></h2>
         <p><?php esc_html_e('Produse complementare pentru coșul tău.', 'papetarie-storefront'); ?></p>
@@ -3520,6 +3480,63 @@ function papetarie_storefront_account_support_endpoint(): void
 }
 add_action('woocommerce_account_suport_endpoint', 'papetarie_storefront_account_support_endpoint');
 
+function papetarie_storefront_store_return_notice(string $message, string $type = 'info'): void
+{
+    if (!function_exists('WC') || !WC() || !WC()->session) {
+        return;
+    }
+
+    $notice_type = in_array($type, ['success', 'error', 'info', 'warning'], true) ? $type : 'info';
+    $message = trim(wp_strip_all_tags($message));
+
+    if ('' === $message) {
+        return;
+    }
+
+    $notices = WC()->session->get('pap_return_notices', []);
+    if (!is_array($notices)) {
+        $notices = [];
+    }
+
+    $notices[] = [
+        'type' => $notice_type,
+        'message' => $message,
+    ];
+
+    WC()->session->set('pap_return_notices', $notices);
+}
+
+function papetarie_storefront_render_return_notices(): void
+{
+    if (!function_exists('WC') || !WC() || !WC()->session) {
+        return;
+    }
+
+    $notices = WC()->session->get('pap_return_notices', []);
+    if (!is_array($notices) || empty($notices)) {
+        return;
+    }
+
+    echo '<div class="pap-auth-notices pap-return-notices" role="status" aria-live="polite">';
+    foreach ($notices as $notice) {
+        $mapped_type = isset($notice['type']) ? (string) $notice['type'] : 'info';
+        $mapped_type = in_array($mapped_type, ['error', 'success', 'info', 'warning'], true) ? $mapped_type : 'info';
+        $message = isset($notice['message']) ? (string) $notice['message'] : '';
+
+        if ('' === trim($message)) {
+            continue;
+        }
+
+        echo '<div class="pap-auth-notice wc-block-components-notice-banner is-' . esc_attr($mapped_type) . ' pap-auth-notice--' . esc_attr($mapped_type) . '">';
+        echo '<span class="pap-auth-notice-icon wc-block-components-notice-banner__icon" aria-hidden="true">' . papetarie_storefront_notice_icon($mapped_type) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo '<div class="pap-auth-notice-copy wc-block-components-notice-banner__content">' . wp_kses_post($message) . '</div>';
+        echo '</div>';
+    }
+    echo '</div>';
+
+    WC()->session->set('pap_return_notices', []);
+}
+
 function papetarie_storefront_handle_return_request(): void
 {
     if (!function_exists('is_account_page') || !is_account_page() || !is_wc_endpoint_url('retururi')) {
@@ -3531,13 +3548,13 @@ function papetarie_storefront_handle_return_request(): void
     }
 
     if (!is_user_logged_in()) {
-        wc_add_notice(__('Trebuie să fii autentificat pentru a trimite o cerere de retur.', 'papetarie-storefront'), 'error');
+        papetarie_storefront_store_return_notice(__('Trebuie să fii autentificat pentru a trimite o cerere de retur.', 'papetarie-storefront'), 'error');
         return;
     }
 
     $nonce = isset($_POST['pap_return_nonce']) ? sanitize_text_field(wp_unslash($_POST['pap_return_nonce'])) : '';
     if (!wp_verify_nonce($nonce, 'pap_return_request')) {
-        wc_add_notice(__('Sesiunea a expirat. Reîncarcă pagina și încearcă din nou.', 'papetarie-storefront'), 'error');
+        papetarie_storefront_store_return_notice(__('Sesiunea a expirat. Reîncarcă pagina și încearcă din nou.', 'papetarie-storefront'), 'error');
         return;
     }
 
@@ -3557,7 +3574,7 @@ function papetarie_storefront_handle_return_request(): void
     ]);
 
     wp_mail(get_option('admin_email'), $subject, $message);
-    wc_add_notice(__('Cererea de retur a fost trimisă. Revenim cu un răspuns.', 'papetarie-storefront'), 'success');
+    papetarie_storefront_store_return_notice(__('Cererea de retur a fost trimisă. Revenim cu un răspuns.', 'papetarie-storefront'), 'success');
 
     $redirect_url = add_query_arg([], wc_get_account_endpoint_url('retururi'));
     wp_safe_redirect($redirect_url);
@@ -3584,6 +3601,7 @@ function papetarie_storefront_returns_endpoint_content(): void
     <div class="pap-account-return">
       <h2><?php esc_html_e('Cerere retur', 'papetarie-storefront'); ?></h2>
       <p><?php esc_html_e('Completează formularul de mai jos pentru a trimite o solicitare de retur. Cererea ajunge la echipa noastră de suport.', 'papetarie-storefront'); ?></p>
+      <?php papetarie_storefront_render_return_notices(); ?>
 
       <form method="post" class="pap-return-form">
         <?php wp_nonce_field('pap_return_request', 'pap_return_nonce'); ?>

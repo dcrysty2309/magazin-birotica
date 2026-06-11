@@ -52,10 +52,12 @@ Raport de comparație după alinierea cartului la aceeași componentă ca homepa
 
 ## Section Container
 - homepage:
+  - wrapper = `<section class="pap-shell pap-featured">`
   - max-width = same `.pap-shell`
   - padding-left/right = `24px`
   - margin-top = `0`
 - cart:
+  - wrapper = `<section class="pap-shell pap-featured">`
   - max-width = same `.pap-shell`
   - padding-left/right = `24px`
   - margin-top = `0`
