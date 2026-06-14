@@ -33,6 +33,10 @@ services:
       WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
       WORDPRESS_TABLE_PREFIX: ${WORDPRESS_TABLE_PREFIX}
       WORDPRESS_DEBUG: ${WORDPRESS_DEBUG}
+      PAP_MAIL_HOST: mailpit
+      PAP_MAIL_PORT: 1025
+      PAP_MAIL_FROM: no-reply@papetarie.local
+      PAP_MAIL_FROM_NAME: Papetarie Storefront
     volumes:
       - ./wordpress:/var/www/html
       - ./wp-content/themes/papetarie-store:/var/www/html/wp-content/themes/papetarie-store
@@ -52,3 +56,11 @@ services:
       PMA_HOST: db
       PMA_USER: root
       PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: magazin-papetarie-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"

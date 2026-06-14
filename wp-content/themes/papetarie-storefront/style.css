@@ -2930,6 +2930,165 @@ body.tax-product_cat .pap-header-catmenu-panel {
   overflow: hidden;
 }
 
+.pap-auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.pap-auth-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pap-auth-modal[hidden] {
+  display: none;
+}
+
+.pap-auth-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.pap-auth-modal__dialog {
+  position: relative;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+.pap-auth-modal[data-auth-panel='register'] .pap-auth-modal__dialog,
+.pap-auth-modal[data-auth-view='register'] .pap-auth-modal__dialog {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.pap-auth-modal__content {
+  display: block;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
+.pap-auth-modal .pap-auth-shell {
+  padding: 0;
+}
+
+.pap-auth-modal .pap-auth-shell-inner {
+  display: block;
+}
+
+.pap-auth-modal .pap-auth-visual {
+  display: none;
+}
+
+.pap-auth-modal .pap-auth-panel {
+  max-width: none;
+  width: 100%;
+  flex: none;
+  margin-left: 0;
+}
+
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-panel {
+  padding: 32px 24px 24px;
+}
+
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-form {
+  margin-bottom: 14px;
+}
+
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-social {
+  gap: 14px;
+}
+
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-social-footer {
+  margin-top: 10px;
+  gap: 4px;
+  justify-content: center;
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-social-prefix,
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-social-switch {
+  font-size: 13px;
+}
+
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-form-links {
+  justify-content: center;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.pap-auth-input-field {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.pap-auth-input-field .pap-auth-input-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  flex: 0 0 20px;
+  width: 22px;
+  height: 22px;
+  color: #9fb0c8;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.pap-auth-input-field .pap-auth-input-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.pap-auth-input-field .input-text,
+.pap-auth-input-field .woocommerce-Input {
+  width: 100%;
+  min-width: 0;
+  padding-left: 56px;
+}
+
+.pap-auth-input-field--password .input-text,
+.pap-auth-input-field--password .woocommerce-Input {
+  padding-right: 60px;
+}
+
+.pap-auth-input-field--password .pap-password-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .pap-auth-modal {
+    padding: 0;
+  }
+
+  .pap-auth-modal__dialog {
+    width: 100vw;
+    max-width: none;
+    max-height: none;
+    height: 100vh;
+  }
+}
+
 .pap-cart-modal,
 .pap-cart-delete-modal {
   position: fixed;
@@ -9487,6 +9646,14 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
   margin-bottom: 12px;
 }
 
+.pap-auth-card h4 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #17324d;
+  margin: 0 0 16px;
+}
+
 body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-panel .pap-auth-card--single > h2,
 body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-panel .pap-auth-card--single > h2 {
   font-size: var(--pap-page-title-size);
@@ -9511,6 +9678,11 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login 
   color: #5f7290;
   line-height: 1.65;
   font-size: var(--pap-secondary-text-size);
+}
+
+.pap-auth-card-intro--compact {
+  max-width: 460px;
+  white-space: nowrap;
 }
 
 .pap-auth-notices {
@@ -9632,10 +9804,67 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login 
   margin: 0;
 }
 
+.pap-form-row--split {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.pap-form-row--stack {
+  display: grid;
+  gap: 12px;
+}
+
 fieldset.pap-form-row {
   border: 0;
   padding: 0;
   min-width: 0;
+}
+
+.pap-auth-terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  width: 100%;
+  color: #5f7290;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pap-auth-terms input[type='checkbox'] {
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+.pap-auth-terms.pap-is-invalid {
+  color: #ef4444;
+}
+
+.pap-auth-terms.pap-is-invalid input[type='checkbox'] {
+  box-shadow: 0 0 0 1px #ef4444 inset;
+  accent-color: #ef4444;
+}
+
+.pap-auth-terms.pap-is-invalid a {
+  color: #ef4444;
+}
+
+.pap-auth-terms a {
+  color: #1e4f99;
+  text-decoration: none;
+}
+
+.pap-auth-terms a:hover,
+.pap-auth-terms a:focus-visible {
+  text-decoration: none;
+}
+
+.pap-auth-terms + .pap-field-error {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  margin-left: 0;
 }
 
 .pap-form-row label {
@@ -9658,6 +9887,25 @@ fieldset.pap-form-row {
   background: #fff;
   color: #17324d;
   font-size: 15px;
+}
+
+body.theme-papetarie .pap-auth-modal .pap-auth-input-field .input-text,
+body.theme-papetarie .pap-auth-modal .pap-auth-input-field .woocommerce-Input {
+  padding: 11px 16px 11px 50px !important;
+  box-sizing: border-box;
+}
+
+body.theme-papetarie .pap-auth-modal .pap-auth-input-field--password .input-text,
+body.theme-papetarie .pap-auth-modal .pap-auth-input-field--password .woocommerce-Input {
+  padding: 11px 50px 11px 50px !important;
+  box-sizing: border-box;
+}
+
+body.theme-papetarie .pap-auth-modal fieldset,
+body.theme-papetarie .pap-auth-modal fieldset legend,
+body.theme-papetarie .pap-auth-modal table:not(.has-background) tbody tr:nth-child(2n) td {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .pap-form-row input.input-text:focus,
@@ -9687,7 +9935,7 @@ fieldset.pap-form-row {
   color: #ef4444;
   font-size: 13px;
   line-height: 1.4;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .pap-password-field {
@@ -9724,7 +9972,7 @@ fieldset.pap-form-row {
   height: 48px;
   border: 0;
   background: transparent;
-  color: #516173;
+  color: #9fb0c8;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -9734,6 +9982,19 @@ fieldset.pap-form-row {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.pap-auth-input-field--password.is-password-active .pap-password-toggle,
+.pap-auth-input-field--password .pap-password-toggle.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pap-auth-input-field--password .pap-password-toggle.is-visible {
+  opacity: 1;
 }
 
 .pap-password-toggle .pap-password-toggle-icon {
@@ -9760,9 +10021,11 @@ fieldset.pap-form-row {
   display: inline-flex;
 }
 
-.pap-password-toggle:hover,
-.pap-password-toggle:focus-visible {
-  color: #516173;
+.pap-auth-input-field--password.is-password-active .pap-password-toggle:hover,
+.pap-auth-input-field--password.is-password-active .pap-password-toggle:focus-visible,
+.pap-password-toggle.is-visible:hover,
+.pap-password-toggle.is-visible:focus-visible {
+  color: #9fb0c8;
   border: 0;
   background: transparent;
 }
@@ -9836,11 +10099,15 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .show-password-input:fo
 
 .pap-auth-form-links a,
 .pap-auth-form-links .pap-auth-inline-switch {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #1E4F99;
   text-decoration: none;
   white-space: nowrap;
+}
+
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-form-links {
+  margin-top: 10px;
 }
 
 .pap-auth-tab,
@@ -9891,11 +10158,36 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-link-action {
   flex-wrap: nowrap;
   margin-top: 0;
   color: #64748b;
+  min-height: 0;
+  height: auto;
+  line-height: 1.2;
+}
+
+.pap-auth-form-meta .pap-auth-inline-switch {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  padding: 0;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pap-auth-form-meta--login .pap-auth-inline-switch,
+.pap-auth-social-footer .pap-auth-social-switch,
+.pap-auth-form-links .pap-auth-inline-switch {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  padding: 0;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
 }
 
 .pap-auth-form-meta a,
 .pap-auth-form-meta .woocommerce-form-login__rememberme {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -9915,10 +10207,19 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-link-action {
   align-items: center;
   gap: 8px;
   margin: 0;
+  line-height: 1.2;
+  min-height: 0;
+}
+
+.pap-auth-form-meta .woocommerce-form-login__rememberme input[type='checkbox'] {
+  margin: 0;
+  flex: 0 0 auto;
+  align-self: center;
 }
 
 .pap-auth-form-meta .woocommerce-form-login__rememberme span {
   margin: 0;
+  line-height: 1.2;
 }
 
 .pap-auth-form-meta--login {
@@ -9936,8 +10237,15 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-link-action {
   color: #1E4F99;
 }
 
-.pap-auth-form {
+.pap-auth-card--login .pap-auth-form {
   margin-bottom: 20px;
+}
+
+.pap-auth-card--register .pap-auth-form,
+.pap-auth-card--register-confirmation .pap-auth-form,
+.pap-auth-shell--lost-password .pap-auth-form,
+.pap-auth-shell--lost-password-confirmation .pap-auth-form {
+  margin-bottom: 0;
 }
 
 body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-form-links > a:hover,
@@ -10029,34 +10337,38 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-form-meta > a
 }
 
 .pap-auth-social-footer {
-  margin-top: 10px;
+  margin-top: 20px;
   display: flex;
   align-items: center;
   gap: 6px;
   justify-content: center;
   flex-wrap: wrap;
+  line-height: 1.2;
+  min-height: 0;
+  height: auto;
+}
+
+.pap-auth-social-footer--center {
+  margin-top: 20px;
+  justify-content: center;
 }
 
 .pap-auth-social-prefix {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  color: #1E4F99;
+  color: #5f7290;
   white-space: nowrap;
 }
 
 .pap-auth-social-switch {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #1E4F99;
   text-decoration: none;
   background: transparent;
   border: 0;
-  padding: 0;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  line-height: 1.4;
 }
 
 .pap-auth-social-switch:hover,

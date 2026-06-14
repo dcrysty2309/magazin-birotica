@@ -51,13 +51,7 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
       </form>
 
       <div class="pap-header-tools">
-        <a class="pap-tool-card pap-tool-card-account" href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : wp_login_url()); ?>">
-          <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('account'); ?></i>
-          <span class="pap-tool-copy">
-            <strong><?php esc_html_e('Cont', 'papetarie-storefront'); ?></strong>
-            <span><?php echo esc_html(is_user_logged_in() ? __('Contul meu', 'papetarie-storefront') : __('Autentificare', 'papetarie-storefront')); ?></span>
-          </span>
-        </a>
+        <?php echo papetarie_storefront_render_account_tool_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         <button
           class="pap-tool-card pap-tool-card-cart"
           type="button"

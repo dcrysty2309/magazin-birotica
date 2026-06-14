@@ -50,6 +50,8 @@ if (is_admin()) {
 
 function papetarie_storefront_enqueue_styles(): void
 {
+    $stylesheet_path = get_stylesheet_directory() . '/style.css';
+
     wp_enqueue_style(
         'storefront-parent-style',
         get_template_directory_uri() . '/style.css',
@@ -61,7 +63,7 @@ function papetarie_storefront_enqueue_styles(): void
         'papetarie-storefront-style',
         get_stylesheet_uri(),
         ['storefront-parent-style'],
-        wp_get_theme()->get('Version')
+        file_exists($stylesheet_path) ? (string) filemtime($stylesheet_path) : wp_get_theme()->get('Version')
     );
 
     wp_enqueue_style(
@@ -79,6 +81,44 @@ function papetarie_storefront_enqueue_styles(): void
     );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_styles');
+
+function papetarie_storefront_configure_local_mailer($phpmailer): void
+{
+    $mail_host = (string) getenv('PAP_MAIL_HOST');
+    if ('' === $mail_host) {
+        return;
+    }
+
+    $mail_port = (int) getenv('PAP_MAIL_PORT');
+    if ($mail_port <= 0) {
+        $mail_port = 1025;
+    }
+
+    if (is_object($phpmailer) && method_exists($phpmailer, 'isSMTP')) {
+        $phpmailer->isSMTP();
+        $phpmailer->Host = $mail_host;
+        $phpmailer->Port = $mail_port;
+        $phpmailer->SMTPAuth = false;
+        $phpmailer->SMTPSecure = '';
+        $phpmailer->SMTPAutoTLS = false;
+        $phpmailer->Timeout = 10;
+    }
+}
+add_action('phpmailer_init', 'papetarie_storefront_configure_local_mailer');
+
+function papetarie_storefront_local_mail_from(string $from): string
+{
+    $override = (string) getenv('PAP_MAIL_FROM');
+    return '' !== $override ? $override : $from;
+}
+add_filter('wp_mail_from', 'papetarie_storefront_local_mail_from');
+
+function papetarie_storefront_local_mail_from_name(string $name): string
+{
+    $override = (string) getenv('PAP_MAIL_FROM_NAME');
+    return '' !== $override ? $override : $name;
+}
+add_filter('wp_mail_from_name', 'papetarie_storefront_local_mail_from_name');
 
 function papetarie_storefront_general_settings(array $settings): array
 {
@@ -286,11 +326,14 @@ add_action('template_redirect', 'papetarie_storefront_redirect_checkout_for_mini
 
 function papetarie_storefront_enqueue_modal_manager_script(): void
 {
+    $modal_manager_script = get_stylesheet_directory() . '/assets/js/modal-manager.js';
+    $modal_manager_version = file_exists($modal_manager_script) ? (string) filemtime($modal_manager_script) : wp_get_theme()->get('Version');
+
     wp_enqueue_script(
         'papetarie-storefront-modal-manager',
         get_stylesheet_directory_uri() . '/assets/js/modal-manager.js',
         [],
-        wp_get_theme()->get('Version'),
+        $modal_manager_version,
         true
     );
 }
@@ -490,17 +533,18 @@ add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_checkout_scripts'
 
 function papetarie_storefront_enqueue_account_scripts(): void
 {
-    $should_enqueue = (function_exists('is_account_page') && is_account_page()) || (function_exists('is_checkout') && is_checkout());
-
-    if (!$should_enqueue) {
+    if (is_user_logged_in()) {
         return;
     }
+
+    $account_script = get_stylesheet_directory() . '/assets/js/account.js';
+    $account_script_version = file_exists($account_script) ? (string) filemtime($account_script) : wp_get_theme()->get('Version');
 
     wp_enqueue_script(
         'papetarie-storefront-account-ui',
         get_stylesheet_directory_uri() . '/assets/js/account.js',
-        ['jquery', 'wc-password-strength-meter'],
-        wp_get_theme()->get('Version'),
+        ['jquery'],
+        $account_script_version,
         true
     );
 
@@ -511,6 +555,15 @@ function papetarie_storefront_enqueue_account_scripts(): void
             'loginUrl' => function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : wp_login_url(),
             'socialShortcode' => shortcode_exists('nextend_social_login') ? 'nextend_social_login' : '',
             'googleLoginUrl' => (string) apply_filters('papetarie_storefront_google_login_url', ''),
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'ajaxAction' => 'pap_auth_login',
+            'lostPasswordAction' => 'pap_auth_lost_password',
+            'ajaxNonce' => wp_create_nonce('pap_auth_login'),
+            'registerAction' => 'pap_auth_register',
+            'registerNonce' => wp_create_nonce('pap_auth_register'),
+            'lostPasswordNonce' => wp_create_nonce('pap_auth_lost_password'),
+            'modalSelector' => '#pap-auth-modal',
+            'accountSelector' => '[data-pap-auth-account]',
         ]
     );
 }
@@ -664,6 +717,9 @@ function papetarie_storefront_translate_frontend_strings(string $translated, str
         'Reset password' => 'Resetare parolă',
         'New password' => 'Parolă nouă',
         'Re-enter new password' => 'Confirmă parola',
+        '<strong>Error:</strong> The password you entered for the email address %s is incorrect.' => '<strong>Eroare:</strong> Parola pentru acest email este incorectă.',
+        '<strong>Error:</strong> The password you entered for the username %s is incorrect.' => '<strong>Eroare:</strong> Parola pentru acest utilizator este incorectă.',
+        '<strong>Error:</strong> Invalid username, email address or incorrect password.' => '<strong>Eroare:</strong> Datele de autentificare sunt incorecte.',
         'Password reset email has been sent.' => 'Un email a fost trimis cu succes. Verifică inboxul.',
         'A password reset email has been sent to the email address on file for your account, but may take several minutes to show up in your inbox. Please wait at least 10 minutes before attempting another reset.' => 'Un email a fost trimis cu succes. Verifică inboxul.',
         'Your password reset link appears to be invalid. Please request a new link below.' => 'Linkul de resetare pare invalid. Cere un link nou.',
@@ -701,13 +757,21 @@ function papetarie_storefront_translate_frontend_strings(string $translated, str
         'Please enter a valid account username.' => 'Introdu un nume de utilizator valid.',
         'Please enter a password.' => 'Introdu parola.',
         'Passwords do not match.' => 'Parolele nu se potrivesc.',
-        'An account is already registered with your email address. Please log in.' => 'Există deja un cont cu această adresă de email. Te rugăm să te autentifici.',
-        'Please enter a valid account username and/or password.' => 'Introdu un nume de utilizator și/sau o parolă validă.',
+        'An account is already registered with your email address. Please log in.' => 'Cont existent. Autentifică-te sau folosește alt email.',
+        'An account is already registered with your email address. Please log in or use a different email address.' => 'Cont existent. Autentifică-te sau folosește alt email.',
+        'An account is already registered with your email address.' => 'Cont existent. Folosește alt email.',
+        'Please enter a valid account username and/or password.' => 'Datele de autentificare sunt incorecte.',
     ];
 
     return $map[$text] ?? $translated;
 }
 add_filter('gettext', 'papetarie_storefront_translate_frontend_strings', 20, 3);
+
+function papetarie_storefront_translate_registration_email_exists(string $message, string $email): string
+{
+    return __('Contul există deja. Folosește alt email.', 'papetarie-storefront');
+}
+add_filter('woocommerce_registration_error_email_exists', 'papetarie_storefront_translate_registration_email_exists', 10, 2);
 
 function papetarie_storefront_unhook_auth_notices(): void
 {
@@ -2169,6 +2233,18 @@ function papetarie_storefront_icon(string $name): string
     return $icons[$name] ?? '';
 }
 
+function papetarie_storefront_auth_input_icon(string $name): string
+{
+    $icons = [
+        'user' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4.5 4.5 0 100-9 4.5 4.5 0 000 9zm0 2c-4.14 0-7.5 2.69-7.5 6v1h15v-1c0-3.31-3.36-6-7.5-6z" fill="currentColor"/></svg>',
+        'mail' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4V6Zm2 2v.4l6 4.5 6-4.5V8H6Zm12 8V10.9l-5.3 4a1 1 0 0 1-1.2 0L6 10.9V16h12Z" fill="currentColor"/></svg>',
+        'phone' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.8c.5-.5 1.2-.7 1.8-.4l2.6 1.1c.6.2 1 .8 1 1.4v2.1c0 .6-.4 1.2-.9 1.5l-1.2.7a13 13 0 0 0 3.6 3.6l.7-1.2c.3-.6.9-.9 1.5-.9h2.1c.6 0 1.2.4 1.4 1l1.1 2.6c.3.7.1 1.4-.4 1.9l-1.1 1.1c-1.1 1.1-2.9 1.4-4.4.8-2.9-1.2-5.7-3.2-8.1-5.6-2.4-2.4-4.4-5.2-5.6-8.1-.6-1.5-.3-3.3.8-4.4l1.1-1.1Z" fill="currentColor"/></svg>',
+        'lock' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11V8.8a4.5 4.5 0 1 1 9 0V11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="5.5" y="11" width="13" height="10" rx="1.8" ry="1.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 15.2v2.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    ];
+
+    return $icons[$name] ?? '';
+}
+
 function papetarie_storefront_password_toggle_icon(): string
 {
     return '
@@ -2408,12 +2484,19 @@ function papetarie_storefront_render_auth_hero(string $context = 'login'): void
     <?php
 }
 
-function papetarie_storefront_render_social_login_area(): void
+function papetarie_storefront_render_social_login_area(array $args = []): void
 {
+    $args = wp_parse_args(
+        is_array($args) ? $args : [],
+        [
+            'show_register_switch' => false,
+        ]
+    );
+
+    $show_register_switch = !empty($args['show_register_switch']);
     $google_url = (string) apply_filters('papetarie_storefront_google_login_url', '');
     $social_shortcode = shortcode_exists('nextend_social_login') ? 'nextend_social_login' : '';
     $button_disabled = ($google_url === '' && $social_shortcode === '');
-    $show_register_switch = function_exists('is_account_page') && is_account_page() && !is_user_logged_in();
     ?>
     <div class="pap-auth-social">
       <div class="pap-auth-divider"><span><?php esc_html_e('sau', 'papetarie-storefront'); ?></span></div>
@@ -2430,17 +2513,523 @@ function papetarie_storefront_render_social_login_area(): void
       <?php if ($show_register_switch) : ?>
         <div class="pap-auth-social-footer">
           <span class="pap-auth-social-prefix"><?php esc_html_e('Nu ai cont?', 'papetarie-storefront'); ?></span>
-          <a class="pap-auth-inline-switch pap-auth-social-switch" href="#register" data-auth-switch="register"><?php esc_html_e('Creează unul nou', 'papetarie-storefront'); ?></a>
+          <a class="pap-auth-inline-switch pap-auth-social-switch" href="#" data-auth-switch="register"><?php esc_html_e('Creează unul nou', 'papetarie-storefront'); ?></a>
         </div>
       <?php endif; ?>
       <?php if ($social_shortcode !== '') : ?>
         <div class="pap-auth-social-shortcode">
           <?php echo do_shortcode('[' . $social_shortcode . ']'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
-      <?php endif; ?>
+    <?php endif; ?>
     </div>
     <?php
 }
+
+function papetarie_storefront_render_auth_login_shell(array $args = []): void
+{
+    if (!function_exists('get_template_part')) {
+        return;
+    }
+
+    get_template_part('template-parts/auth/login-shell', null, $args);
+}
+
+function papetarie_storefront_render_auth_lost_password_shell(array $args = []): void
+{
+    if (!function_exists('get_template_part')) {
+        return;
+    }
+
+    get_template_part('template-parts/auth/lost-password-shell', null, $args);
+}
+
+function papetarie_storefront_render_auth_lost_password_confirmation_shell(array $args = []): void
+{
+    if (!function_exists('get_template_part')) {
+        return;
+    }
+
+    get_template_part('template-parts/auth/lost-password-confirmation-shell', null, $args);
+}
+
+function papetarie_storefront_auth_confirmation_meta_key(): string
+{
+    return 'pap_email_confirmed';
+}
+
+function papetarie_storefront_auth_activation_token_key(): string
+{
+    return 'pap_email_confirmation_token';
+}
+
+function papetarie_storefront_auth_activation_sent_key(): string
+{
+    return 'pap_email_confirmation_sent_at';
+}
+
+function papetarie_storefront_auth_is_confirmed(int $user_id): bool
+{
+    if ($user_id <= 0) {
+        return true;
+    }
+
+    $confirmed = get_user_meta($user_id, papetarie_storefront_auth_confirmation_meta_key(), true);
+
+    if ('' === $confirmed) {
+        return true;
+    }
+
+    return in_array((string) $confirmed, ['1', 1, true, 'yes'], true);
+}
+
+function papetarie_storefront_auth_generate_activation_token(int $user_id): string
+{
+    $token = wp_generate_password(32, false, false);
+
+    update_user_meta($user_id, papetarie_storefront_auth_activation_token_key(), wp_hash_password($token));
+    update_user_meta($user_id, papetarie_storefront_auth_activation_sent_key(), time());
+
+    return $token;
+}
+
+function papetarie_storefront_auth_get_activation_url(int $user_id, string $token): string
+{
+    $myaccount_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : home_url('/');
+
+    return add_query_arg(
+        [
+            'pap_confirm_email' => 1,
+            'uid' => $user_id,
+            'token' => rawurlencode($token),
+        ],
+        $myaccount_url
+    );
+}
+
+function papetarie_storefront_auth_send_activation_email(int $user_id, string $token): bool
+{
+    $user = get_user_by('id', $user_id);
+    if (!$user instanceof WP_User) {
+        return false;
+    }
+
+    $activation_url = papetarie_storefront_auth_get_activation_url($user_id, $token);
+    $subject = __('Confirmă-ți contul SupplyHub', 'papetarie-storefront');
+    $message = sprintf(
+        '<p>%1$s</p><p><a href="%2$s">%3$s</a></p><p>%4$s</p>',
+        esc_html__('Mulțumim pentru înregistrare. Pentru a activa contul, confirmă adresa de email accesând butonul de mai jos.', 'papetarie-storefront'),
+        esc_url($activation_url),
+        esc_html__('Confirmă contul', 'papetarie-storefront'),
+        esc_html__('Dacă nu ai cerut acest cont, poți ignora acest mesaj.', 'papetarie-storefront')
+    );
+
+    return (bool) wp_mail(
+        $user->user_email,
+        $subject,
+        $message,
+        ['Content-Type: text/html; charset=UTF-8']
+    );
+}
+
+function papetarie_storefront_handle_auth_activation_request(): void
+{
+    if (is_user_logged_in()) {
+        return;
+    }
+
+    $should_process = !empty($_GET['pap_confirm_email']) && !empty($_GET['uid']) && !empty($_GET['token']);
+    if (!$should_process) {
+        return;
+    }
+
+    $user_id = absint($_GET['uid']);
+    $token = sanitize_text_field(wp_unslash((string) $_GET['token']));
+
+    if ($user_id <= 0 || '' === $token) {
+        papetarie_storefront_store_auth_notice(__('Linkul de confirmare este invalid.', 'papetarie-storefront'), 'error');
+        return;
+    }
+
+    $user = get_user_by('id', $user_id);
+    if (!$user instanceof WP_User) {
+        papetarie_storefront_store_auth_notice(__('Contul nu a putut fi confirmat.', 'papetarie-storefront'), 'error');
+        return;
+    }
+
+    if (papetarie_storefront_auth_is_confirmed($user_id)) {
+        papetarie_storefront_store_auth_notice(__('Contul este deja confirmat. Te poți autentifica.', 'papetarie-storefront'), 'success');
+        $redirect_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : home_url('/');
+        wp_safe_redirect($redirect_url);
+        exit;
+    }
+
+    $stored_hash = (string) get_user_meta($user_id, papetarie_storefront_auth_activation_token_key(), true);
+    $sent_at = absint(get_user_meta($user_id, papetarie_storefront_auth_activation_sent_key(), true));
+    $expired = $sent_at > 0 && (time() - $sent_at) > DAY_IN_SECONDS * 2;
+
+    if ($expired) {
+        papetarie_storefront_store_auth_notice(__('Linkul de confirmare a expirat. Solicită unul nou.', 'papetarie-storefront'), 'error');
+        return;
+    }
+
+    if ('' === $stored_hash || !wp_check_password($token, $stored_hash, $user_id)) {
+        papetarie_storefront_store_auth_notice(__('Linkul de confirmare este invalid sau a expirat.', 'papetarie-storefront'), 'error');
+        return;
+    }
+
+    update_user_meta($user_id, papetarie_storefront_auth_confirmation_meta_key(), 1);
+    delete_user_meta($user_id, papetarie_storefront_auth_activation_token_key());
+    delete_user_meta($user_id, papetarie_storefront_auth_activation_sent_key());
+    papetarie_storefront_store_auth_notice(__('Contul a fost confirmat. Te poți autentifica acum.', 'papetarie-storefront'), 'success');
+
+    $redirect_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : home_url('/');
+    wp_safe_redirect($redirect_url);
+    exit;
+}
+add_action('template_redirect', 'papetarie_storefront_handle_auth_activation_request', 5);
+
+function papetarie_storefront_block_unconfirmed_authentication($user, $username = '', $password = '')
+{
+    if (is_wp_error($user) || !$user instanceof WP_User) {
+        return $user;
+    }
+
+    if (!papetarie_storefront_auth_is_confirmed((int) $user->ID)) {
+        return new WP_Error(
+            'pap_email_not_confirmed',
+            __('Cont neconfirmat. Verifică emailul.', 'papetarie-storefront')
+        );
+    }
+
+    return $user;
+}
+add_filter('authenticate', 'papetarie_storefront_block_unconfirmed_authentication', 30, 3);
+
+function papetarie_storefront_render_account_tool_html(): string
+{
+    $account_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : wp_login_url();
+    $is_logged_in = is_user_logged_in();
+
+    ob_start();
+    if ($is_logged_in) :
+        ?>
+        <a class="pap-tool-card pap-tool-card-account" href="<?php echo esc_url($account_url); ?>" data-pap-auth-account>
+          <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('account'); ?></i>
+          <span class="pap-tool-copy">
+            <strong><?php esc_html_e('Cont', 'papetarie-storefront'); ?></strong>
+            <span><?php esc_html_e('Contul meu', 'papetarie-storefront'); ?></span>
+          </span>
+        </a>
+        <?php
+    else :
+        ?>
+        <button
+          class="pap-tool-card pap-tool-card-account"
+          type="button"
+          data-pap-auth-account
+          data-auth-modal-open
+          onclick="return window.papOpenAuthModal ? window.papOpenAuthModal(this) : false;"
+          aria-haspopup="dialog"
+          aria-controls="pap-auth-modal"
+        >
+          <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('account'); ?></i>
+          <span class="pap-tool-copy">
+            <strong><?php esc_html_e('Cont', 'papetarie-storefront'); ?></strong>
+            <span><?php esc_html_e('Autentificare', 'papetarie-storefront'); ?></span>
+          </span>
+        </button>
+        <?php
+    endif;
+
+    return (string) ob_get_clean();
+}
+
+function papetarie_storefront_render_auth_modal(): void
+{
+    if (is_user_logged_in()) {
+        return;
+    }
+    ?>
+    <div class="pap-auth-modal" id="pap-auth-modal" data-auth-modal hidden aria-hidden="true">
+      <div class="pap-auth-modal__backdrop" data-auth-modal-close aria-hidden="true"></div>
+      <div class="pap-auth-modal__dialog" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('Autentificare', 'papetarie-storefront'); ?>">
+        <div class="pap-auth-modal__content">
+          <?php
+          papetarie_storefront_render_auth_login_shell([
+              'context' => 'modal',
+              'show_visual' => false,
+              'show_register' => true,
+              'id_prefix' => 'pap-auth-modal-',
+          ]);
+          papetarie_storefront_render_auth_lost_password_shell([
+              'context' => 'modal',
+              'show_visual' => false,
+              'id_prefix' => 'pap-auth-modal-lost-',
+              'hidden' => true,
+          ]);
+          papetarie_storefront_render_auth_lost_password_confirmation_shell([
+              'context' => 'modal',
+              'show_visual' => false,
+              'hidden' => true,
+          ]);
+          ?>
+        </div>
+      </div>
+    </div>
+    <?php
+}
+add_action('wp_footer', 'papetarie_storefront_render_auth_modal', 8);
+
+function papetarie_storefront_render_auth_notice_html_from_session(): string
+{
+    ob_start();
+    papetarie_storefront_render_auth_notices();
+    return (string) ob_get_clean();
+}
+
+function papetarie_storefront_send_auth_error_response(string $message, int $status_code = 400): void
+{
+    papetarie_storefront_store_auth_notice($message, 'error');
+
+    wp_send_json_error([
+        'message' => $message,
+        'notice_html' => papetarie_storefront_render_auth_notice_html_from_session(),
+    ], $status_code);
+}
+
+function papetarie_storefront_handle_auth_lost_password_ajax(): void
+{
+    check_ajax_referer('pap_auth_lost_password', 'nonce');
+
+    $user_login = isset($_POST['user_login']) ? sanitize_text_field(wp_unslash((string) $_POST['user_login'])) : '';
+
+    if ('' === $user_login) {
+        papetarie_storefront_send_auth_error_response(__('Introdu emailul.', 'papetarie-storefront'));
+    }
+
+    if (!is_email($user_login)) {
+        papetarie_storefront_send_auth_error_response(__('Introdu un email valid.', 'papetarie-storefront'));
+    }
+
+    if (!function_exists('retrieve_password')) {
+        papetarie_storefront_send_auth_error_response(__('Nu am putut procesa cererea. Încearcă din nou.', 'papetarie-storefront'), 500);
+    }
+
+    $result = retrieve_password($user_login);
+
+    if (is_wp_error($result)) {
+        $message = $result->get_error_message();
+        if ('' === trim($message)) {
+            $message = __('Nu am putut procesa cererea. Încearcă din nou.', 'papetarie-storefront');
+        }
+
+        papetarie_storefront_send_auth_error_response($message);
+    }
+
+    papetarie_storefront_store_auth_notice(__('Un email a fost trimis cu succes. Verifică inboxul.', 'papetarie-storefront'), 'success');
+
+    ob_start();
+    papetarie_storefront_render_auth_lost_password_confirmation_shell([
+        'context' => 'modal',
+        'show_visual' => false,
+    ]);
+    $confirmation_html = (string) ob_get_clean();
+
+    wp_send_json_success([
+        'message' => __('Un email a fost trimis cu succes. Verifică inboxul.', 'papetarie-storefront'),
+        'view' => 'lost-password-confirmation',
+        'view_html' => $confirmation_html,
+    ]);
+}
+add_action('wp_ajax_nopriv_pap_auth_lost_password', 'papetarie_storefront_handle_auth_lost_password_ajax');
+add_action('wp_ajax_pap_auth_lost_password', 'papetarie_storefront_handle_auth_lost_password_ajax');
+
+function papetarie_storefront_handle_auth_register_ajax(): void
+{
+    check_ajax_referer('pap_auth_register', 'nonce');
+
+    $first_name = isset($_POST['first_name']) ? sanitize_text_field(wp_unslash((string) $_POST['first_name'])) : '';
+    $last_name = isset($_POST['last_name']) ? sanitize_text_field(wp_unslash((string) $_POST['last_name'])) : '';
+    $email = isset($_POST['email']) ? sanitize_email((string) wp_unslash($_POST['email'])) : '';
+    $password = isset($_POST['password']) ? (string) wp_unslash($_POST['password']) : '';
+    $password_confirm = isset($_POST['password_confirm']) ? (string) wp_unslash($_POST['password_confirm']) : '';
+    $agree_terms = !empty($_POST['agree_terms']);
+
+    $validation_messages = [];
+
+    if ('' === $first_name) {
+        $validation_messages[] = __('Completează prenumele.', 'papetarie-storefront');
+    }
+
+    if ('' === $last_name) {
+        $validation_messages[] = __('Completează numele.', 'papetarie-storefront');
+    }
+
+    if ('' === $email) {
+        $validation_messages[] = __('Introdu emailul.', 'papetarie-storefront');
+    } elseif (!is_email($email)) {
+        $validation_messages[] = __('Introdu un email valid.', 'papetarie-storefront');
+    }
+
+    if ('' === $password) {
+        $validation_messages[] = __('Introdu parola.', 'papetarie-storefront');
+    }
+
+    if ('' === $password_confirm) {
+        $validation_messages[] = __('Confirmă parola.', 'papetarie-storefront');
+    }
+
+    if ('' !== $password && '' !== $password_confirm && $password !== $password_confirm) {
+        $validation_messages[] = __('Parolele nu se potrivesc.', 'papetarie-storefront');
+    }
+
+    if (!$agree_terms) {
+        $validation_messages[] = __('Trebuie să accepți politica de confidențialitate.', 'papetarie-storefront');
+    }
+
+    if (!empty($validation_messages)) {
+        foreach ($validation_messages as $message) {
+            papetarie_storefront_store_auth_notice((string) $message, 'error');
+        }
+
+        wp_send_json_error([
+            'message' => $validation_messages[0] ?? __('Verifică datele introduse.', 'papetarie-storefront'),
+            'notice_html' => papetarie_storefront_render_auth_notice_html_from_session(),
+        ], 400);
+    }
+
+    if (!isset($_POST['email'])) {
+        papetarie_storefront_send_auth_error_response(__('Completează datele necesare pentru creare cont.', 'papetarie-storefront'));
+    }
+
+    $username = function_exists('wc_create_new_customer_username')
+        ? wc_create_new_customer_username($email, [
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+        ])
+        : sanitize_user(current(explode('@', $email)), true);
+
+    if ('' === $username) {
+        $username = sanitize_user(current(explode('@', $email)), true);
+    }
+
+    $new_customer = wc_create_new_customer($email, $username, $password, [
+        'first_name' => $first_name,
+        'last_name' => $last_name,
+    ]);
+
+    if (is_wp_error($new_customer)) {
+        if ($new_customer->get_error_code() === 'registration-error-email-exists') {
+            papetarie_storefront_send_auth_error_response(
+                papetarie_storefront_translate_registration_email_exists('', $email)
+            );
+            return;
+        }
+
+        papetarie_storefront_send_auth_error_response($new_customer->get_error_message());
+    }
+
+    $new_customer_id = (int) $new_customer;
+
+    update_user_meta($new_customer_id, 'first_name', $first_name);
+    update_user_meta($new_customer_id, 'last_name', $last_name);
+    update_user_meta($new_customer_id, 'billing_first_name', $first_name);
+    update_user_meta($new_customer_id, 'billing_last_name', $last_name);
+    update_user_meta($new_customer_id, papetarie_storefront_auth_confirmation_meta_key(), 0);
+
+    $token = papetarie_storefront_auth_generate_activation_token($new_customer_id);
+    $mail_sent = papetarie_storefront_auth_send_activation_email($new_customer_id, $token);
+
+    if (!$mail_sent) {
+        papetarie_storefront_store_auth_notice(__('Cont creat, dar emailul de confirmare nu a fost trimis. Încearcă din nou.', 'papetarie-storefront'), 'error');
+        wp_send_json_error([
+            'message' => __('Cont creat, dar emailul de confirmare nu a fost trimis. Încearcă din nou.', 'papetarie-storefront'),
+            'notice_html' => papetarie_storefront_render_auth_notice_html_from_session(),
+        ], 500);
+    }
+
+    papetarie_storefront_store_auth_notice(__('Ți-am trimis un email de confirmare. Verifică inboxul și activează contul înainte de autentificare.', 'papetarie-storefront'), 'success');
+
+    wp_send_json_success([
+        'message' => __('Ți-am trimis un email de confirmare. Verifică inboxul și activează contul înainte de autentificare.', 'papetarie-storefront'),
+        'view' => 'register-confirmation',
+    ]);
+}
+add_action('wp_ajax_nopriv_pap_auth_register', 'papetarie_storefront_handle_auth_register_ajax');
+add_action('wp_ajax_pap_auth_register', 'papetarie_storefront_handle_auth_register_ajax');
+
+function papetarie_storefront_handle_auth_login_ajax(): void
+{
+    if (!function_exists('WC') || !WC()) {
+        wp_send_json_error([
+            'message' => __('Autentificarea nu este disponibilă momentan.', 'papetarie-storefront'),
+        ], 400);
+    }
+
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, 'pap_auth_login')) {
+        wp_send_json_error([
+            'message' => __('Sesiunea a expirat. Reîncarcă pagina și încearcă din nou.', 'papetarie-storefront'),
+        ], 403);
+    }
+
+    $username = isset($_POST['username']) ? trim((string) sanitize_text_field(wp_unslash($_POST['username']))) : '';
+    $password = isset($_POST['password']) ? (string) wp_unslash($_POST['password']) : '';
+    $remember = !empty($_POST['rememberme']);
+
+    if ('' === $username) {
+        papetarie_storefront_send_auth_error_response(__('Introdu emailul.', 'papetarie-storefront'));
+    }
+
+    if ('' === $password) {
+        papetarie_storefront_send_auth_error_response(__('Introdu parola.', 'papetarie-storefront'));
+    }
+
+    $validation_error = new WP_Error();
+    $validation_error = apply_filters('woocommerce_process_login_errors', $validation_error, $username, $password);
+    if ($validation_error instanceof WP_Error && $validation_error->get_error_code()) {
+        papetarie_storefront_send_auth_error_response(wp_strip_all_tags((string) $validation_error->get_error_message()));
+    }
+
+    if (is_multisite()) {
+        $user_data = get_user_by(is_email($username) ? 'email' : 'login', $username);
+        if ($user_data && !is_user_member_of_blog($user_data->ID, get_current_blog_id())) {
+            add_user_to_blog(get_current_blog_id(), $user_data->ID, 'customer');
+        }
+    }
+
+    $creds = apply_filters(
+        'woocommerce_login_credentials',
+        [
+            'user_login' => $username,
+            'user_password' => $password,
+            'remember' => $remember,
+        ]
+    );
+
+    $user = wp_signon($creds, is_ssl());
+    if (is_wp_error($user)) {
+        papetarie_storefront_store_auth_notice(wp_strip_all_tags((string) $user->get_error_message()), 'error');
+        do_action('woocommerce_login_failed');
+        wp_send_json_error([
+            'message' => wp_strip_all_tags((string) $user->get_error_message()),
+            'notice_html' => papetarie_storefront_render_auth_notice_html_from_session(),
+        ], 401);
+    }
+
+    if (function_exists('WC') && WC()->cart) {
+        WC()->cart->calculate_totals();
+        WC()->cart->set_session();
+    }
+
+    wp_send_json_success([
+        'message' => __('Autentificare reușită.', 'papetarie-storefront'),
+        'account_html' => papetarie_storefront_render_account_tool_html(),
+        'refresh_cart' => true,
+    ]);
+}
+add_action('wp_ajax_nopriv_pap_auth_login', 'papetarie_storefront_handle_auth_login_ajax');
+add_action('wp_ajax_pap_auth_login', 'papetarie_storefront_handle_auth_login_ajax');
 
 function papetarie_storefront_get_wishlist_ids(int $user_id = 0): array
 {
