@@ -271,18 +271,26 @@ get_header();
               <div class="pap-product-meta pap-product-meta--archive">
                 <strong class="pap-price"><?php echo wp_kses_post($product->get_price_html()); ?></strong>
                 <div class="pap-product-actions">
-                  <a
-                    class="pap-home-add-to-cart <?php echo esc_attr($action_class); ?>"
-                    href="<?php echo esc_url($action_url); ?>"
-                    aria-label="<?php echo esc_attr($action_text); ?>"
-                    <?php if ($can_add_to_cart && $product->is_type('simple')) : ?>
-                      data-product_id="<?php echo esc_attr($product->get_id()); ?>"
+                  <?php if ($can_add_to_cart && $product->is_type('simple')) : ?>
+                    <button
+                      type="button"
+                      class="pap-home-add-to-cart <?php echo esc_attr($action_class); ?>"
+                      aria-label="<?php echo esc_attr($action_text); ?>"
+                      data-product-id="<?php echo esc_attr($product->get_id()); ?>"
+                      data-product-url="<?php echo esc_url($product_url); ?>"
                       data-product_sku="<?php echo esc_attr($product->get_sku()); ?>"
-                      rel="nofollow"
-                    <?php endif; ?>
-                  >
-                    <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('cart'); ?></span>
-                  </a>
+                    >
+                      <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('cart'); ?></span>
+                    </button>
+                  <?php else : ?>
+                    <a
+                      class="pap-home-add-to-cart"
+                      href="<?php echo esc_url($action_url); ?>"
+                      aria-label="<?php echo esc_attr($action_text); ?>"
+                    >
+                      <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('cart'); ?></span>
+                    </a>
+                  <?php endif; ?>
                 </div>
               </div>
             </article>

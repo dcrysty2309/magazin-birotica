@@ -51,10 +51,6 @@ do_action('woocommerce_before_cart');
           </form>
 
           <div class="pap-cart-actions-row">
-            <a class="pap-cart-continue" href="<?php echo esc_url($shop_url); ?>">
-              <span class="pap-cart-continue-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-              <span><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></span>
-            </a>
             <button type="submit" class="pap-cart-update-submit" data-cart-update-submit form="pap-cart-form" name="update_cart" value="1">
               <?php esc_html_e('Actualizează coșul', 'papetarie-storefront'); ?>
             </button>

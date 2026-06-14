@@ -4,7 +4,6 @@
   var config = window.papCartPage || {};
   var updateOverlayText = (config.messages && config.messages.updateOverlay) || 'Coșul se actualizează...';
   var removeOverlayText = (config.messages && config.messages.removeOverlay) || 'Se elimină produsul...';
-  var couponOverlayText = (config.messages && config.messages.couponOverlay) || 'Se aplică cuponul...';
   var page = document.querySelector('[data-cart-page]');
   var shell = document.querySelector('[data-cart-page-shell]');
   var overlay = document.querySelector('[data-cart-loading-overlay]');
@@ -18,6 +17,14 @@
   var qtyInputs = Array.prototype.slice.call(document.querySelectorAll('input.qty'));
   var stockTooltipTimers = new WeakMap();
   var isProgrammaticCartSubmit = false;
+
+  function refreshCartPageRefs() {
+    cartForm = document.querySelector('.woocommerce-cart-form');
+    updateButton = document.querySelector('[data-cart-update-submit]');
+    checkoutButton = document.querySelector('[data-cart-checkout]');
+    cartAlert = document.querySelector('[data-cart-alert]');
+    cartAlertText = cartAlert ? cartAlert.querySelector('[data-cart-alert-text]') : null;
+  }
 
   function getAjaxUrl(action) {
     var endpoint = action || '';
@@ -352,7 +359,7 @@
 
     if (isDirty) {
       cartAlert.setAttribute('data-cart-alert-state', 'dirty');
-      cartAlertText.innerHTML = 'Actualizează coșul pentru a continua.';
+      cartAlertText.innerHTML = 'Modificările din coș trebuie actualizate înainte de a continua.';
       cartAlert.hidden = false;
       cartAlert.setAttribute('aria-hidden', 'false');
       return;
@@ -408,6 +415,89 @@
       cartForm.classList.toggle('has-stock-issues', stockIssue);
     }
   }
+
+  function replaceCartItemsHtml(html) {
+    if (typeof html !== 'string' || !html) {
+      return;
+    }
+
+    var existingItems = document.querySelector('.pap-cart-items');
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    var nextItems = wrapper.firstElementChild;
+
+    if (existingItems && nextItems) {
+      if (nextItems.classList && nextItems.classList.contains('pap-cart-items')) {
+        existingItems.outerHTML = nextItems.outerHTML;
+        return;
+      }
+
+      existingItems.innerHTML = html;
+      return;
+    }
+
+    if (cartForm && nextItems) {
+      cartForm.insertAdjacentElement('afterbegin', nextItems);
+    }
+  }
+
+  function replaceCartSummaryHtml(html) {
+    if (typeof html !== 'string' || !html) {
+      return;
+    }
+
+    var summary = document.querySelector('[data-cart-summary-card]');
+    if (!summary) {
+      return;
+    }
+
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    var nextSummary = wrapper.firstElementChild;
+    if (!nextSummary) {
+      return;
+    }
+
+    summary.parentNode.replaceChild(nextSummary, summary);
+    refreshCartPageRefs();
+  }
+
+  function applyCartPagePayload(payload) {
+    if (!payload) {
+      return;
+    }
+
+    var normalizedPayload = payload && payload.cart_page && !payload.items_html && !payload.summary_html
+      ? payload.cart_page
+      : payload;
+
+    if (typeof normalizedPayload.items_html === 'string') {
+      replaceCartItemsHtml(normalizedPayload.items_html);
+    }
+
+    if (typeof normalizedPayload.summary_html === 'string') {
+      replaceCartSummaryHtml(normalizedPayload.summary_html);
+    }
+
+    if (typeof normalizedPayload.count_label === 'string') {
+      Array.prototype.slice.call(document.querySelectorAll('[data-pap-cart-count]')).forEach(function (target) {
+        target.textContent = normalizedPayload.count_label;
+      });
+    } else if (typeof normalizedPayload.count !== 'undefined') {
+      var safeCount = Math.max(0, parseInt(normalizedPayload.count, 10) || 0);
+      var countLabel = safeCount === 1 ? '1 produs' : safeCount + ' produse';
+      Array.prototype.slice.call(document.querySelectorAll('[data-pap-cart-count]')).forEach(function (target) {
+        target.textContent = countLabel;
+      });
+    }
+
+    refreshCartPageRefs();
+    qtyInputs = Array.prototype.slice.call(document.querySelectorAll('input.qty'));
+    setAllCommittedValuesFromDom();
+    syncDirtyState();
+  }
+
+  window.papApplyCartPagePayload = window.papApplyCartPagePayload || applyCartPagePayload;
 
   function setOverlayVisible(isVisible, text) {
     if (!overlay) {
@@ -491,6 +581,19 @@
     syncDirtyState();
   }
 
+  function clearCouponErrorState() {
+    var couponInput = document.querySelector('[data-cart-coupon-input]');
+    var couponError = document.querySelector('[data-cart-coupon-error]');
+
+    if (couponInput) {
+      couponInput.removeAttribute('aria-invalid');
+    }
+
+    if (couponError) {
+      couponError.parentNode && couponError.parentNode.removeChild(couponError);
+    }
+  }
+
   function handleQuantityChange(event) {
     var input = event.target.closest('input.qty');
     if (!input) {
@@ -547,14 +650,47 @@
       return;
     }
 
-    event.preventDefault();
-    showOverlay(couponOverlayText);
+    clearCouponErrorState();
+  }
 
-    window.requestAnimationFrame(function () {
-      if (typeof form.submit === 'function') {
-        form.submit();
-      }
-    });
+  function handleCouponInput(event) {
+    var input = event.target.closest('[data-cart-coupon-input]');
+    if (!input) {
+      return;
+    }
+
+    clearCouponErrorState();
+  }
+
+  function handleCouponAccordionToggle(event) {
+    var button = event.target.closest('[data-cart-coupon-toggle]');
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+
+    var accordion = button.closest('[data-cart-coupon-accordion]');
+    if (!accordion) {
+      return;
+    }
+
+    var panel = accordion.querySelector('[data-cart-coupon-panel]');
+    if (!panel) {
+      return;
+    }
+
+    var isOpen = button.getAttribute('aria-expanded') === 'true';
+    var nextOpen = !isOpen;
+
+    button.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+    accordion.classList.toggle('is-open', nextOpen);
+
+    if (nextOpen) {
+      panel.removeAttribute('hidden');
+    } else {
+      panel.setAttribute('hidden', '');
+    }
   }
 
   function handleRemoveClick(event) {
@@ -630,61 +766,6 @@
     Array.prototype.slice.call(document.querySelectorAll('.pap-featured-slider-shell')).forEach(initHorizontalSliderShell);
   }
 
-  function handleCouponRemoveClick(event) {
-    var button = event.target.closest('[data-cart-remove-coupon]');
-    if (!button) {
-      return;
-    }
-
-    event.preventDefault();
-
-    var couponCode = button.getAttribute('data-coupon-code') || '';
-    if (!couponCode) {
-      return;
-    }
-
-    var ajaxAction = (config.actions && config.actions.removeCoupon) || 'pap_cart_remove_coupon';
-    var ajaxUrl = getAjaxUrl(ajaxAction);
-    if (!ajaxUrl) {
-      showOverlay(removeOverlayText);
-      window.requestAnimationFrame(function () {
-        window.location.reload();
-      });
-      return;
-    }
-
-    showOverlay(removeOverlayText);
-
-    var formData = new FormData();
-    formData.append('action', ajaxAction);
-    formData.append('nonce', config.nonce || '');
-    formData.append('coupon_code', couponCode);
-
-    fetch(ajaxUrl, {
-      method: 'POST',
-      credentials: 'same-origin',
-      body: formData
-    })
-      .then(function (response) {
-        return response.json().then(function (data) {
-          return {
-            ok: response.ok,
-            data: data
-          };
-        });
-      })
-      .then(function (result) {
-        if (!result.ok || !result.data || result.data.success !== true) {
-          throw result.data || new Error('Request failed');
-        }
-
-        window.location.reload();
-      })
-      .catch(function () {
-        setOverlayVisible(false, updateOverlayText);
-      });
-  }
-
   function init() {
     if (!page || !cartForm) {
       return;
@@ -699,12 +780,13 @@
     document.addEventListener('click', function (event) {
       handleQtyStepClick(event);
       handleRemoveClick(event);
-      handleCouponRemoveClick(event);
       handleCheckoutClick(event);
       handleStockTooltipClick(event);
+      handleCouponAccordionToggle(event);
     });
 
     document.addEventListener('input', handleQuantityInput);
+    document.addEventListener('input', handleCouponInput);
     document.addEventListener('change', handleQuantityChange);
     document.addEventListener('mouseover', handleStockTooltipOver);
     document.addEventListener('mouseout', handleStockTooltipOut);

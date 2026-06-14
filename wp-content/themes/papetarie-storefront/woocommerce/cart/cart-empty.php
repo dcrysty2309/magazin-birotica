@@ -2,7 +2,7 @@
 
 defined('ABSPATH') || exit;
 
-$shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
+$shop_url = home_url('/');
 
 do_action('woocommerce_before_cart');
 ?>
@@ -19,10 +19,10 @@ do_action('woocommerce_before_cart');
               <img class="pap-cart-empty-hero-image" src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/cart-empty-hero.png'); ?>" alt="" />
             </div>
             <div class="pap-cart-empty-hero-copy">
-              <h2 class="pap-cart-empty-hero-title"><?php esc_html_e('Coșul tău este gol', 'papetarie-storefront'); ?></h2>
+              <h3 class="pap-cart-empty-hero-title"><?php esc_html_e('Nu ai încă produse în coș', 'papetarie-storefront'); ?></h3>
               <p class="pap-cart-empty-hero-text"><?php esc_html_e('Se pare că nu ai adăugat încă niciun produs în coș. Descoperă gama noastră variată de produse de papetărie și birotică.', 'papetarie-storefront'); ?></p>
               <a class="button pap-cart-empty-continue" href="<?php echo esc_url($shop_url); ?>">
-                <span><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></span>
+                <span><?php esc_html_e('Înapoi la magazin', 'papetarie-storefront'); ?></span>
               </a>
             </div>
           </div>

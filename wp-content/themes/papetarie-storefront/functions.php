@@ -258,6 +258,16 @@ function papetarie_storefront_enforce_minimum_order_amount(): void
 }
 add_action('woocommerce_check_cart_items', 'papetarie_storefront_enforce_minimum_order_amount', 20);
 
+function papetarie_storefront_unhook_cart_notices(): void
+{
+    if (!function_exists('is_cart') || !is_cart()) {
+        return;
+    }
+
+    remove_action('woocommerce_before_cart', 'woocommerce_output_all_notices', 10);
+}
+add_action('wp', 'papetarie_storefront_unhook_cart_notices', 20);
+
 function papetarie_storefront_redirect_checkout_for_minimum_order(): void
 {
     if (!function_exists('is_checkout') || !is_checkout() || is_order_received_page() || is_wc_endpoint_url('order-pay')) {
@@ -401,14 +411,9 @@ function papetarie_storefront_enqueue_cart_page_script(): void
         'papCartPage',
         [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('pap_cart_ajax'),
-            'actions' => [
-                'removeCoupon' => 'pap_cart_remove_coupon',
-            ],
             'messages' => [
                 'updateOverlay' => __('Coșul se actualizează...', 'papetarie-storefront'),
                 'removeOverlay' => __('Se elimină produsul...', 'papetarie-storefront'),
-                'couponOverlay' => __('Se aplică cuponul...', 'papetarie-storefront'),
             ],
         ]
     );
@@ -1471,23 +1476,22 @@ function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, a
             <?php endif; ?>
           </div>
 
-          <?php
-          $remove_link = sprintf(
-              '<a href="%s" class="pap-cart-remove" aria-label="%s" data-cart-remove-item data-cart-item-key="%s" data-cart-item-name="%s">%s</a>',
-              esc_url(wc_get_cart_remove_url($cart_item_key)),
-              esc_attr(sprintf(__('Șterge %s din coș', 'papetarie-storefront'), $product_name)),
-              esc_attr($cart_item_key),
-              esc_attr($product_name),
-              papetarie_storefront_icon('trash-2')
-          );
-          echo apply_filters('woocommerce_cart_item_remove_link', $remove_link, $cart_item_key); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-          ?>
-
           <div class="pap-cart-item-feedback" data-cart-item-feedback aria-live="polite"></div>
         </div>
 
         <div class="pap-cart-item-total">
           <?php echo wp_kses_post($cart_item_total); ?>
+          <?php
+          $remove_link = sprintf(
+              '<a href="%s" class="pap-cart-remove" aria-label="%s" data-cart-remove-item data-cart-item-key="%s" data-cart-item-name="%s"><span class="pap-cart-remove__text">%s</span></a>',
+              esc_url(wc_get_cart_remove_url($cart_item_key)),
+              esc_attr(sprintf(__('Șterge %s din coș', 'papetarie-storefront'), $product_name)),
+              esc_attr($cart_item_key),
+              esc_attr($product_name),
+              esc_html__('Elimină', 'papetarie-storefront')
+          );
+          echo apply_filters('woocommerce_cart_item_remove_link', $remove_link, $cart_item_key); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+          ?>
         </div>
       </div>
     </article>
@@ -1515,6 +1519,7 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
     $cart = function_exists('WC') && WC()->cart ? WC()->cart : null;
     $checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : home_url('/checkout/');
     $coupon_codes = $cart ? $cart->get_applied_coupons() : [];
+    $coupon_inline_error = papetarie_storefront_get_coupon_inline_error();
     $discount_total = $cart ? (float) $cart->get_discount_total() : 0.0;
     $has_discount = $discount_total > 0.0001;
     $needs_shipping = false;
@@ -1597,7 +1602,7 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
         <strong data-cart-summary-total><?php echo $cart ? wp_kses_post($cart->get_total()) : '—'; ?></strong>
       </div>
 
-      <?php $coupon_accordion_open = !empty($coupon_codes); ?>
+      <?php $coupon_accordion_open = !empty($coupon_codes) || !empty($coupon_inline_error['message']); ?>
       <section class="pap-cart-coupon<?php echo $coupon_accordion_open ? ' is-open' : ''; ?>" data-cart-coupon-accordion>
         <h3 class="pap-cart-coupon-header">
           <button
@@ -1620,8 +1625,26 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
         >
           <form class="pap-cart-coupon-form" action="<?php echo esc_url(wc_get_cart_url()); ?>" method="post" data-cart-coupon-form>
             <?php wp_nonce_field('woocommerce-cart', 'woocommerce-cart-nonce'); ?>
-            <input type="text" name="coupon_code" class="pap-cart-coupon-input" placeholder="<?php esc_attr_e('Cod promoțional', 'papetarie-storefront'); ?>" aria-label="<?php esc_attr_e('Cod promoțional', 'papetarie-storefront'); ?>">
-            <button type="submit" class="pap-cart-coupon-button" name="apply_coupon" value="1"><?php esc_html_e('Aplică', 'papetarie-storefront'); ?></button>
+            <div class="pap-cart-coupon-row">
+              <div class="pap-cart-coupon-input-wrap">
+                <input
+                  type="text"
+                  name="coupon_code"
+                  class="pap-cart-coupon-input"
+                  data-cart-coupon-input
+                  value=""
+                  placeholder="<?php esc_attr_e('Cod promoțional', 'papetarie-storefront'); ?>"
+                  aria-label="<?php esc_attr_e('Cod promoțional', 'papetarie-storefront'); ?>"
+                  <?php echo !empty($coupon_inline_error['message']) ? 'aria-invalid="true"' : ''; ?>
+                >
+              </div>
+              <button type="submit" class="pap-cart-coupon-button" name="apply_coupon" value="1"><?php esc_html_e('Aplică', 'papetarie-storefront'); ?></button>
+            </div>
+            <?php if (!empty($coupon_inline_error['message'])) : ?>
+              <div class="pap-cart-coupon-error is-visible" data-cart-coupon-error role="alert" aria-hidden="false">
+                <span class="pap-cart-coupon-error__text"><?php echo esc_html($coupon_inline_error['message']); ?></span>
+              </div>
+            <?php endif; ?>
           </form>
 
           <?php if (!empty($coupon_codes)) : ?>
@@ -1629,15 +1652,15 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
               <?php foreach ($coupon_codes as $coupon_code) : ?>
                 <div class="pap-cart-coupon-chip">
                   <span class="pap-cart-coupon-chip__code"><?php echo esc_html(wc_format_coupon_code((string) $coupon_code)); ?></span>
-                  <button
-                    type="button"
+                  <a
                     class="pap-cart-coupon-chip__remove"
                     data-cart-remove-coupon
-                    data-coupon-code="<?php echo esc_attr((string) $coupon_code); ?>"
+                    data-cart-coupon-code="<?php echo esc_attr((string) $coupon_code); ?>"
+                    href="<?php echo esc_url(add_query_arg('remove_coupon', rawurlencode((string) $coupon_code), wc_get_cart_url())); ?>"
                     aria-label="<?php echo esc_attr(sprintf(__('Elimină cuponul %s', 'papetarie-storefront'), wc_format_coupon_code((string) $coupon_code))); ?>"
                   >
                     ×
-                  </button>
+                  </a>
                 </div>
               <?php endforeach; ?>
             </div>
@@ -1915,6 +1938,7 @@ function papetarie_storefront_get_cart_drawer_payload(): array
 {
     $count = (int) papetarie_storefront_cart_count();
     $count_label = papetarie_storefront_cart_count_label();
+    $subtotal = function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_cart_subtotal()) : '';
     $total = function_exists('WC') && WC()->cart ? wp_kses_post(WC()->cart->get_total()) : '';
     $cart = function_exists('WC') && WC()->cart ? WC()->cart->get_cart() : [];
 
@@ -1925,6 +1949,7 @@ function papetarie_storefront_get_cart_drawer_payload(): array
     return [
         'count' => $count,
         'count_label' => $count_label,
+        'subtotal_html' => $subtotal,
         'total_html' => $total,
         'items_html' => $items_html,
         'has_items' => !empty($cart),
@@ -1976,88 +2001,135 @@ function papetarie_storefront_ajax_cart_drawer_sync(): void
 add_action('wp_ajax_pap_cart_drawer_sync', 'papetarie_storefront_ajax_cart_drawer_sync');
 add_action('wp_ajax_nopriv_pap_cart_drawer_sync', 'papetarie_storefront_ajax_cart_drawer_sync');
 
-function papetarie_storefront_cart_ajax_verify_nonce(): void
+function papetarie_storefront_coupon_notice_to_inline_message(string $notice): string
 {
-    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
-    if (!wp_verify_nonce($nonce, 'pap_cart_ajax')) {
-        papetarie_storefront_send_json_error_fast([
-            'message' => __('Sesiunea a expirat. Reîncarcă pagina și încearcă din nou.', 'papetarie-storefront'),
-        ], 403);
+    $notice = trim(wp_strip_all_tags($notice));
+
+    if ($notice === '') {
+        return '';
     }
+
+    if (stripos($notice, 'Invalid coupon code') !== false) {
+        return __('Codul promoțional introdus nu este valid.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'already applied and cannot be used in conjunction with other coupons') !== false) {
+        return __('Acest cod promoțional este deja aplicat.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'Coupon code') !== false && stripos($notice, 'already applied') !== false) {
+        return __('Acest cod promoțional este deja aplicat.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'already been applied') !== false) {
+        return __('Acest cod promoțional este deja aplicat.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'already applied!') !== false) {
+        return __('Acest cod promoțional este deja aplicat.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'has expired') !== false) {
+        return __('Codul promoțional a expirat.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'minimum spend for coupon') !== false) {
+        if (preg_match('/\bis\s+([0-9]+(?:[.,][0-9]+)?)/i', $notice, $matches)) {
+            $minimum_amount = (float) str_replace(',', '.', $matches[1]);
+            $minimum_amount = rtrim(rtrim(number_format($minimum_amount, 2, '.', ''), '0'), '.');
+            return sprintf(
+                /* translators: %s: minimum order amount */
+                __('Acest cod poate fi utilizat doar pentru comenzi de minimum %s lei.', 'papetarie-storefront'),
+                $minimum_amount
+            );
+        }
+
+        return __('Acest cod poate fi utilizat doar pentru comenzi de minimum 100 lei.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'Usage limit for coupon') !== false) {
+        return __('Acest cod promoțional nu mai poate fi folosit.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'not applicable to your cart contents') !== false) {
+        return __('Acest cod promoțional nu se aplică pentru produsele din coș.', 'papetarie-storefront');
+    }
+
+    if (stripos($notice, 'not valid for sale items') !== false) {
+        return __('Acest cod promoțional nu se aplică pentru produsele reduse.', 'papetarie-storefront');
+    }
+
+    return __('Codul promoțional introdus nu este valid.', 'papetarie-storefront');
 }
 
-function papetarie_storefront_cart_ajax_bootstrap(): void
+function papetarie_storefront_clear_coupon_error_notices_from_session(): void
 {
-    if (!function_exists('WC') || !WC()->cart) {
-        papetarie_storefront_send_json_error_fast([
-            'message' => __('Coșul nu este disponibil momentan.', 'papetarie-storefront'),
-        ], 400);
+    if (!function_exists('WC') || !WC() || !WC()->session) {
+        return;
     }
 
-    papetarie_storefront_cart_ajax_verify_nonce();
+    $all_notices = WC()->session->get('wc_notices', []);
+    if (!is_array($all_notices) || empty($all_notices['error']) || !is_array($all_notices['error'])) {
+        return;
+    }
+
+    $filtered_error_notices = [];
+
+    foreach ($all_notices['error'] as $notice) {
+        if (!is_array($notice) || empty($notice['notice'])) {
+            $filtered_error_notices[] = $notice;
+            continue;
+        }
+
+        $message = papetarie_storefront_coupon_notice_to_inline_message((string) $notice['notice']);
+        if ($message !== '') {
+            continue;
+        }
+
+        $filtered_error_notices[] = $notice;
+    }
+
+    if (empty($filtered_error_notices)) {
+        unset($all_notices['error']);
+    } else {
+        $all_notices['error'] = array_values($filtered_error_notices);
+    }
+
+    WC()->session->set('wc_notices', empty($all_notices) ? null : $all_notices);
 }
 
-function papetarie_storefront_cart_ajax_response(array $extra = []): void
+function papetarie_storefront_get_coupon_inline_error(): array
 {
-    $cart = function_exists('WC') && WC()->cart ? WC()->cart : null;
-    $fragments = papetarie_storefront_get_cart_page_fragments();
-    $payload = array_merge(
-        [
-            'fragments' => $fragments,
-            'cart_hash' => $cart ? $cart->get_cart_hash() : '',
-            'cart_count' => (int) papetarie_storefront_cart_count(),
-            'cart_count_label' => papetarie_storefront_cart_count_label(),
-            'cart_subtotal_html' => $cart ? wp_kses_post($cart->get_cart_subtotal()) : '',
-            'cart_discount_html' => $cart ? wp_kses_post('-' . wc_price((float) $cart->get_discount_total())) : '',
-            'cart_total_html' => $cart ? wp_kses_post($cart->get_total()) : '',
-            'cart_drawer' => papetarie_storefront_get_cart_drawer_payload(),
-            'cart_page' => papetarie_storefront_get_cart_page_payload(),
-            'is_empty' => $cart ? $cart->is_empty() : true,
-        ],
-        $extra
-    );
+    $inline_error = [
+        'message' => '',
+    ];
 
-    if ($cart && $cart->is_empty()) {
-        $payload['empty_html'] = papetarie_storefront_render_cart_empty_html();
+    if (!function_exists('WC') || !WC()) {
+        return $inline_error;
     }
 
-    if (function_exists('remove_all_actions')) {
-        remove_all_actions('shutdown');
+    $notices = function_exists('wc_get_notices') ? wc_get_notices('error') : [];
+    if (!is_array($notices) || empty($notices)) {
+        return $inline_error;
     }
 
-    papetarie_storefront_send_json_success_fast($payload);
+    foreach ($notices as $notice) {
+        if (!is_array($notice) || empty($notice['notice'])) {
+            continue;
+        }
+
+        $message = papetarie_storefront_coupon_notice_to_inline_message((string) $notice['notice']);
+        if ($message === '') {
+            continue;
+        }
+
+        $inline_error['message'] = $message;
+        papetarie_storefront_clear_coupon_error_notices_from_session();
+        return $inline_error;
+    }
+
+    return $inline_error;
 }
-
-function papetarie_storefront_ajax_cart_remove_coupon(): void
-{
-    papetarie_storefront_cart_ajax_bootstrap();
-
-    $coupon_code = isset($_POST['coupon_code']) ? sanitize_text_field(wp_unslash($_POST['coupon_code'])) : '';
-    wc_clear_notices();
-
-    if ($coupon_code === '' || !WC()->cart->remove_coupon($coupon_code)) {
-        papetarie_storefront_send_json_error_fast([
-            'message' => __('Nu am putut elimina cuponul.', 'papetarie-storefront'),
-        ], 400);
-    }
-
-    WC()->cart->calculate_totals();
-    wc_add_notice(sprintf(__('Cuponul %s a fost eliminat.', 'papetarie-storefront'), wc_format_coupon_code($coupon_code)), 'success');
-    $notice_html = function_exists('wc_print_notices') ? wc_print_notices(true) : '';
-    WC()->cart->set_session();
-    if (function_exists('WC') && WC()->session && method_exists(WC()->session, 'save_data')) {
-        WC()->session->save_data();
-    }
-
-    papetarie_storefront_cart_ajax_response([
-        'notice_html' => $notice_html,
-    ]);
-}
-
-add_action('wp_ajax_pap_cart_remove_coupon', 'papetarie_storefront_ajax_cart_remove_coupon');
-add_action('wp_ajax_nopriv_pap_cart_remove_coupon', 'papetarie_storefront_ajax_cart_remove_coupon');
-add_action('wc_ajax_pap_cart_remove_coupon', 'papetarie_storefront_ajax_cart_remove_coupon');
-add_action('wc_ajax_nopriv_pap_cart_remove_coupon', 'papetarie_storefront_ajax_cart_remove_coupon');
 
 function papetarie_storefront_icon(string $name): string
 {
@@ -2659,7 +2731,7 @@ function papetarie_storefront_render_cart_recommendations_html(?string $title = 
 
     ob_start();
     ?>
-    <section class="pap-shell pap-featured pap-cart-recommendations<?php echo $is_empty_cart ? ' pap-cart-recommendations--empty' : ''; ?>">
+    <section class="<?php echo esc_attr($is_empty_cart ? 'pap-featured pap-cart-recommendations pap-cart-recommendations--empty' : 'pap-shell pap-featured pap-cart-recommendations'); ?>">
       <div class="pap-section-head pap-section-head-soft pap-section-head-featured">
         <h2><?php echo esc_html($title); ?></h2>
         <p><?php echo esc_html($subtitle); ?></p>
