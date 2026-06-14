@@ -13,20 +13,21 @@ do_action('woocommerce_before_cart');
       <section class="pap-cart-main pap-cart-main--empty" aria-label="<?php esc_attr_e('Coș gol', 'papetarie-storefront'); ?>">
         <h1 class="pap-cart-title"><?php esc_html_e('Coșul tău', 'papetarie-storefront'); ?></h1>
 
-        <div class="pap-cart-empty">
-          <div class="pap-cart-empty-card">
-            <div class="pap-cart-empty-icon" aria-hidden="true">
-              <?php echo papetarie_storefront_icon('cart'); ?>
+        <div class="pap-cart-empty-stack">
+          <div class="pap-cart-empty-hero">
+            <div class="pap-cart-empty-hero-visual" aria-hidden="true">
+              <img class="pap-cart-empty-hero-image" src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/cart-empty-hero.png'); ?>" alt="" />
             </div>
-            <div class="pap-cart-empty-copy-wrap">
-              <p class="pap-cart-empty-title"><?php esc_html_e('Coșul tău este gol', 'papetarie-storefront'); ?></p>
-              <p class="pap-cart-empty-copy"><?php esc_html_e('Adaugă produse pentru a începe comanda.', 'papetarie-storefront'); ?></p>
-              <a class="pap-cart-empty-continue" href="<?php echo esc_url($shop_url); ?>">
-                <span aria-hidden="true">←</span>
+            <div class="pap-cart-empty-hero-copy">
+              <h2 class="pap-cart-empty-hero-title"><?php esc_html_e('Coșul tău este gol', 'papetarie-storefront'); ?></h2>
+              <p class="pap-cart-empty-hero-text"><?php esc_html_e('Se pare că nu ai adăugat încă niciun produs în coș. Descoperă gama noastră variată de produse de papetărie și birotică.', 'papetarie-storefront'); ?></p>
+              <a class="button pap-cart-empty-continue" href="<?php echo esc_url($shop_url); ?>">
                 <span><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></span>
               </a>
             </div>
           </div>
+
+          <?php echo papetarie_storefront_render_cart_recommendations_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
       </section>
     </div>
