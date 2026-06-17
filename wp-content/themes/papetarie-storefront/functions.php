@@ -557,6 +557,7 @@ function papetarie_storefront_enqueue_account_scripts(): void
             'googleLoginUrl' => (string) apply_filters('papetarie_storefront_google_login_url', ''),
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'ajaxAction' => 'pap_auth_login',
+            'currentUserAction' => 'pap_auth_current_user',
             'lostPasswordAction' => 'pap_auth_lost_password',
             'ajaxNonce' => wp_create_nonce('pap_auth_login'),
             'registerAction' => 'pap_auth_register',
@@ -564,6 +565,7 @@ function papetarie_storefront_enqueue_account_scripts(): void
             'lostPasswordNonce' => wp_create_nonce('pap_auth_lost_password'),
             'modalSelector' => '#pap-auth-modal',
             'accountSelector' => '[data-pap-auth-account]',
+            'authState' => papetarie_storefront_get_current_user_auth_state(),
         ]
     );
 }
@@ -1757,11 +1759,14 @@ function papetarie_storefront_get_cart_page_payload(): array
     return [
         'count' => $count,
         'count_label' => $count_label,
+        'form_action' => function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/'),
+        'nonce' => wp_create_nonce('woocommerce-cart'),
         'items_html' => papetarie_storefront_render_cart_items_html(),
         'summary_html' => papetarie_storefront_render_cart_summary_html(),
         'total_html' => $cart ? wp_kses_post($cart->get_total()) : '',
         'has_items' => $cart ? !empty($cart->get_cart()) : false,
         'is_empty' => $cart ? empty($cart->get_cart()) : true,
+        'page_html' => papetarie_storefront_render_cart_page_html(),
     ];
 }
 
@@ -1773,6 +1778,23 @@ function papetarie_storefront_render_cart_empty_html(): string
 
     ob_start();
     wc_get_template('cart/cart-empty.php');
+    return (string) ob_get_clean();
+}
+
+function papetarie_storefront_render_cart_page_html(): string
+{
+    if (!function_exists('wc_get_template')) {
+        return '';
+    }
+
+    ob_start();
+
+    if (function_exists('WC') && WC() && WC()->cart && WC()->cart->is_empty()) {
+        wc_get_template('cart/cart-empty.php');
+    } else {
+        wc_get_template('cart/cart.php');
+    }
+
     return (string) ob_get_clean();
 }
 
@@ -2018,6 +2040,7 @@ function papetarie_storefront_get_cart_drawer_payload(): array
         'items_html' => $items_html,
         'has_items' => !empty($cart),
         'is_empty' => empty($cart),
+        'cart_page' => papetarie_storefront_get_cart_page_payload(),
     ];
 }
 
@@ -2705,18 +2728,93 @@ function papetarie_storefront_block_unconfirmed_authentication($user, $username 
 }
 add_filter('authenticate', 'papetarie_storefront_block_unconfirmed_authentication', 30, 3);
 
+function papetarie_storefront_get_current_user_first_name(): string
+{
+    $user = wp_get_current_user();
+    if (!$user instanceof WP_User || !$user->exists()) {
+        return '';
+    }
+
+    $first_name = trim((string) $user->first_name);
+    if ($first_name !== '') {
+        return $first_name;
+    }
+
+    $display_name = trim((string) $user->display_name);
+    if ($display_name === '') {
+      return '';
+    }
+
+    $parts = preg_split('/\s+/', $display_name);
+    return $parts && !empty($parts[0]) ? (string) $parts[0] : $display_name;
+}
+
+function papetarie_storefront_get_current_user_initials(): string
+{
+    $user = wp_get_current_user();
+    if (!$user instanceof WP_User || !$user->exists()) {
+        return 'C';
+    }
+
+    $first_name = trim((string) $user->first_name);
+    $last_name = trim((string) $user->last_name);
+    $substr = function_exists('mb_substr') ? 'mb_substr' : 'substr';
+
+    $initials = '';
+    if ($first_name !== '') {
+        $initials .= $substr($first_name, 0, 1);
+    }
+
+    if ($last_name !== '') {
+        $initials .= $substr($last_name, 0, 1);
+    }
+
+    if ($initials === '') {
+        $display_name = trim((string) $user->display_name);
+        if ($display_name !== '') {
+            $parts = preg_split('/\s+/', $display_name);
+            if ($parts && !empty($parts[0])) {
+                $initials .= $substr((string) $parts[0], 0, 1);
+            }
+        }
+    }
+
+    $initials = strtoupper($initials);
+    return $initials !== '' ? $initials : 'C';
+}
+
+function papetarie_storefront_get_current_user_auth_state(): array
+{
+    $user = wp_get_current_user();
+    if (!$user instanceof WP_User || !$user->exists()) {
+        return [
+            'is_logged_in' => false,
+        ];
+    }
+
+    return [
+        'is_logged_in' => true,
+        'user_id' => (int) $user->ID,
+        'display_name' => (string) $user->display_name,
+        'first_name' => (string) $user->first_name,
+        'last_name' => (string) $user->last_name,
+        'initials' => papetarie_storefront_get_current_user_initials(),
+    ];
+}
+
 function papetarie_storefront_render_account_tool_html(): string
 {
     $account_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : wp_login_url();
     $is_logged_in = is_user_logged_in();
+    $initials = papetarie_storefront_get_current_user_initials();
 
     ob_start();
     if ($is_logged_in) :
         ?>
         <a class="pap-tool-card pap-tool-card-account" href="<?php echo esc_url($account_url); ?>" data-pap-auth-account>
-          <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('account'); ?></i>
+          <span class="pap-tool-avatar" aria-hidden="true"><?php echo esc_html($initials); ?></span>
           <span class="pap-tool-copy">
-            <strong><?php esc_html_e('Cont', 'papetarie-storefront'); ?></strong>
+            <strong><?php esc_html_e('Bun venit', 'papetarie-storefront'); ?></strong>
             <span><?php esc_html_e('Contul meu', 'papetarie-storefront'); ?></span>
           </span>
         </a>
@@ -2732,7 +2830,9 @@ function papetarie_storefront_render_account_tool_html(): string
           aria-haspopup="dialog"
           aria-controls="pap-auth-modal"
         >
-          <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('account'); ?></i>
+          <span class="pap-tool-icon-badge" aria-hidden="true">
+            <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('account'); ?></i>
+          </span>
           <span class="pap-tool-copy">
             <strong><?php esc_html_e('Cont', 'papetarie-storefront'); ?></strong>
             <span><?php esc_html_e('Autentificare', 'papetarie-storefront'); ?></span>
@@ -2742,6 +2842,16 @@ function papetarie_storefront_render_account_tool_html(): string
     endif;
 
     return (string) ob_get_clean();
+}
+
+function papetarie_storefront_get_current_user_account_payload(): array
+{
+    return [
+        'account_html' => papetarie_storefront_render_account_tool_html(),
+        'auth_state' => papetarie_storefront_get_current_user_auth_state(),
+        'cart_drawer' => papetarie_storefront_get_cart_drawer_payload(),
+        'cart_page' => papetarie_storefront_get_cart_page_payload(),
+    ];
 }
 
 function papetarie_storefront_render_auth_modal(): void
@@ -2976,6 +3086,7 @@ function papetarie_storefront_handle_auth_login_ajax(): void
     $username = isset($_POST['username']) ? trim((string) sanitize_text_field(wp_unslash($_POST['username']))) : '';
     $password = isset($_POST['password']) ? (string) wp_unslash($_POST['password']) : '';
     $remember = !empty($_POST['rememberme']);
+    $redirect_to = isset($_POST['redirect_to']) ? esc_url_raw(wp_unslash((string) $_POST['redirect_to'])) : '';
 
     if ('' === $username) {
         papetarie_storefront_send_auth_error_response(__('Introdu emailul.', 'papetarie-storefront'));
@@ -3023,13 +3134,23 @@ function papetarie_storefront_handle_auth_login_ajax(): void
     }
 
     wp_send_json_success([
-        'message' => __('Autentificare reușită.', 'papetarie-storefront'),
+        'message' => __('Te-ai autentificat cu succes.', 'papetarie-storefront'),
         'account_html' => papetarie_storefront_render_account_tool_html(),
+        'auth_state' => papetarie_storefront_get_current_user_auth_state(),
+        'cart_drawer' => papetarie_storefront_get_cart_drawer_payload(),
+        'cart_page' => papetarie_storefront_get_cart_page_payload(),
         'refresh_cart' => true,
     ]);
 }
 add_action('wp_ajax_nopriv_pap_auth_login', 'papetarie_storefront_handle_auth_login_ajax');
 add_action('wp_ajax_pap_auth_login', 'papetarie_storefront_handle_auth_login_ajax');
+
+function papetarie_storefront_handle_current_user_ajax(): void
+{
+    wp_send_json_success(papetarie_storefront_get_current_user_account_payload());
+}
+add_action('wp_ajax_nopriv_pap_auth_current_user', 'papetarie_storefront_handle_current_user_ajax');
+add_action('wp_ajax_pap_auth_current_user', 'papetarie_storefront_handle_current_user_ajax');
 
 function papetarie_storefront_get_wishlist_ids(int $user_id = 0): array
 {

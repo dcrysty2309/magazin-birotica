@@ -1,6 +1,10 @@
 (function () {
   var activeAuthRequest = null;
 
+  if (window.papAccountUi && window.papAccountUi.authState) {
+    window.papAuthState = window.papAccountUi.authState;
+  }
+
   function toArray(nodeList) {
     return Array.prototype.slice.call(nodeList || []);
   }
@@ -491,6 +495,138 @@
     }
   }
 
+  function flashAccountTool() {
+    var accountTool = document.querySelector(window.papAccountUi.accountSelector || '[data-pap-auth-account]');
+    if (!accountTool) {
+      return;
+    }
+
+    accountTool.classList.remove('is-auth-flash');
+    void accountTool.offsetWidth;
+    accountTool.classList.add('is-auth-flash');
+
+    window.setTimeout(function () {
+      accountTool.classList.remove('is-auth-flash');
+    }, 1800);
+  }
+
+  function setAuthSuccessNotice(root, message) {
+    if (!root) {
+      return;
+    }
+
+    clearAuthNotices(root);
+
+    root.insertAdjacentHTML(
+      'afterbegin',
+      [
+        '<div class="pap-auth-notices" role="status" aria-live="polite">',
+        '<div class="pap-auth-notice wc-block-components-notice-banner pap-auth-notice--success" role="status">',
+        '<span class="pap-auth-notice-icon" aria-hidden="true">',
+        '<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M9.6 16.2L5.8 12.4l-1.4 1.4 5.2 5.2L19.8 8.8l-1.4-1.4z" fill="currentColor"></path></svg>',
+        '</span>',
+        '<div class="pap-auth-notice-copy wc-block-components-notice-banner__content">', escapeHtml(message), '</div>',
+        '</div>',
+        '</div>'
+      ].join('')
+    );
+  }
+
+  function escapeAttribute(value) {
+    return escapeHtml(value).replace(/`/g, '&#096;');
+  }
+
+  function getAuthInitials(state) {
+    var initials = '';
+    if (state && typeof state.initials === 'string') {
+      initials = state.initials.trim();
+    }
+
+    if (initials) {
+      return initials;
+    }
+
+    var firstName = state && typeof state.first_name === 'string' ? state.first_name.trim() : '';
+    if (firstName) {
+      return firstName.slice(0, 1).toUpperCase();
+    }
+
+    var displayName = state && typeof state.display_name === 'string' ? state.display_name.trim() : '';
+    if (displayName) {
+      return displayName.split(/\s+/)[0].slice(0, 1).toUpperCase();
+    }
+
+    return 'C';
+  }
+
+  function buildLoggedInAccountToolHtml(state) {
+    var accountUrl = (window.papAccountUi && window.papAccountUi.loginUrl) || '/my-account/';
+    var initials = getAuthInitials(state);
+
+    return [
+      '<a class="pap-tool-card pap-tool-card-account" href="', escapeAttribute(accountUrl), '" data-pap-auth-account>',
+      '<span class="pap-tool-avatar" aria-hidden="true">', escapeHtml(initials), '</span>',
+      '<span class="pap-tool-copy">',
+      '<strong>Bun venit</strong>',
+      '<span>Contul meu</span>',
+      '</span>',
+      '</a>'
+    ].join('');
+  }
+
+  function updateAuthState(data) {
+    var nextState = data && data.auth_state ? data.auth_state : null;
+    if (!nextState) {
+      return;
+    }
+
+    window.papAuthState = nextState;
+    if (window.papAccountUi) {
+      window.papAccountUi.authState = nextState;
+    }
+
+    if (window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent('pap:auth-state-changed', { detail: nextState }));
+    }
+  }
+
+  function applyCurrentUserPayload(data) {
+    if (!data) {
+      return;
+    }
+
+    updateAuthState(data);
+    replaceAccountTool(data.account_html || buildLoggedInAccountToolHtml(data && data.auth_state ? data.auth_state : null));
+  }
+
+  function fetchCurrentUserState() {
+    if (!window.papAccountUi || !window.papAccountUi.ajaxUrl || !window.papAccountUi.currentUserAction) {
+      return Promise.reject(new Error('Missing auth refresh configuration'));
+    }
+
+    var params = new URLSearchParams();
+    params.set('action', window.papAccountUi.currentUserAction);
+
+    return fetch(window.papAccountUi.ajaxUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+      },
+      body: params.toString()
+    })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (response) {
+        if (!response || !response.success) {
+          throw new Error('Unable to refresh auth state');
+        }
+
+        return response.data || {};
+      });
+  }
+
   function submitModalLogin(form) {
     if (!window.papAccountUi || !window.papAccountUi.ajaxUrl || !window.papAccountUi.ajaxAction || !window.papAccountUi.ajaxNonce) {
       return;
@@ -509,7 +645,6 @@
 
     params.set('action', window.papAccountUi.ajaxAction);
     params.set('nonce', window.papAccountUi.ajaxNonce);
-    params.set('redirect', window.location.href);
 
     setAuthSubmitButtonsDisabled(form, true);
     clearAuthNotices(root);
@@ -528,6 +663,7 @@
       })
       .then(function (response) {
         var data = response && response.data ? response.data : {};
+        var successMessage = data.message || 'Te-ai autentificat cu succes.';
 
         if (!response || !response.success) {
           if (data.notice_html) {
@@ -549,19 +685,32 @@
           return;
         }
 
-        replaceAccountTool(data.account_html || '');
+        var currentUserPayloadPromise = Promise.resolve(data);
+        currentUserPayloadPromise = fetchCurrentUserState().catch(function () {
+          return data;
+        });
 
-        var refreshPromise = Promise.resolve();
-        if (data.refresh_cart && typeof window.papRefreshCartDrawer === 'function') {
-          refreshPromise = Promise.resolve(window.papRefreshCartDrawer('refresh'));
-        }
+        currentUserPayloadPromise.then(function (currentUserData) {
+          var payload = currentUserData || data;
 
-        refreshPromise.finally(function () {
-          closeAuthModal(modal, modal && modal.__papAuthTrigger ? modal.__papAuthTrigger : null);
-          setAuthSubmitButtonsDisabled(form, false);
-          if (window.dispatchEvent) {
-            window.dispatchEvent(new CustomEvent('pap:auth-login-success', { detail: data }));
+          applyCurrentUserPayload(payload);
+          replaceAccountTool(payload.account_html || buildLoggedInAccountToolHtml(payload && payload.auth_state ? payload.auth_state : null));
+          if (payload.cart_drawer || payload.cart_page) {
+            window.dispatchEvent(new CustomEvent('pap:cart-state-changed', {
+              detail: payload.cart_drawer || payload.cart_page
+            }));
           }
+          flashAccountTool();
+          setAuthSuccessNotice(root, successMessage);
+          setAuthSubmitButtonsDisabled(form, false);
+
+          if (window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('pap:auth-login-success', { detail: payload }));
+          }
+
+          window.setTimeout(function () {
+            closeAuthModal(modal, modal && modal.__papAuthTrigger ? modal.__papAuthTrigger : null);
+          }, 350);
         });
       })
       .catch(function (error) {
@@ -679,7 +828,6 @@
 
     params.set('action', window.papAccountUi.registerAction);
     params.set('nonce', window.papAccountUi.registerNonce);
-    params.set('redirect', window.location.href);
 
     setAuthSubmitButtonsDisabled(form, true);
     clearAuthNotices(root);
@@ -728,20 +876,27 @@
           return;
         }
 
-        replaceAccountTool(data.account_html || '');
+        updateAuthState(data);
+        replaceAccountTool(data.account_html || buildLoggedInAccountToolHtml(data && data.auth_state ? data.auth_state : null));
 
-        var refreshPromise = Promise.resolve();
-        if (data.refresh_cart && typeof window.papRefreshCartDrawer === 'function') {
-          refreshPromise = Promise.resolve(window.papRefreshCartDrawer('refresh'));
+        closeAuthModal(modal, modal && modal.__papAuthTrigger ? modal.__papAuthTrigger : null);
+        setAuthSubmitButtonsDisabled(form, false);
+
+        if (window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('pap:auth-register-success', { detail: data }));
         }
 
-        refreshPromise.finally(function () {
-          closeAuthModal(modal, modal && modal.__papAuthTrigger ? modal.__papAuthTrigger : null);
-          setAuthSubmitButtonsDisabled(form, false);
-          if (window.dispatchEvent) {
-            window.dispatchEvent(new CustomEvent('pap:auth-register-success', { detail: data }));
-          }
-        });
+        if (data.refresh_cart && typeof window.papRefreshCartDrawer === 'function') {
+          Promise.resolve(window.papRefreshCartDrawer('refresh')).catch(function (error) {
+            if (error && error.name === 'AbortError') {
+              return;
+            }
+
+            if (window.console && typeof window.console.error === 'function') {
+              window.console.error(error);
+            }
+          });
+        }
       })
       .catch(function (error) {
         if (error && error.name === 'AbortError') {

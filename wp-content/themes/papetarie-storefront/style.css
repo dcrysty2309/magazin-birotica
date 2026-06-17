@@ -681,7 +681,7 @@ body.theme-papetarie .site-content {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: var(--pap-header-tools-gap);
+  gap: 36px;
   align-self: center;
   flex: 0 1 var(--pap-header-tools-basis);
   min-width: 0;
@@ -689,8 +689,7 @@ body.theme-papetarie .site-content {
 
 .pap-tool-card {
   min-width: 0;
-  justify-content: flex-end;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   position: relative;
 }
 
@@ -698,9 +697,9 @@ body.theme-papetarie .site-content {
 .pap-header-tools button {
   color: var(--pap-ink);
   text-decoration: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--pap-header-tool-card-gap);
+  gap: 14px;
   min-width: 0;
   padding: var(--pap-header-tool-card-padding-y) 0 var(--pap-header-tool-card-padding-y) var(--pap-header-tool-card-padding-left);
   border-radius: 8px;
@@ -714,6 +713,27 @@ body.theme-papetarie .site-content {
 
 .pap-tool-card-account {
   z-index: 1;
+  min-width: 0;
+}
+
+.pap-tool-card-account.is-auth-flash .pap-tool-avatar {
+  animation: papAuthAvatarPulse 1.8s ease-out 1;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35);
+}
+
+@keyframes papAuthAvatarPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3);
+    transform: scale(1);
+  }
+  30% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.18);
+    transform: scale(1.04);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    transform: scale(1);
+  }
 }
 
 .pap-tool-card-cart {
@@ -734,6 +754,47 @@ body.theme-papetarie .site-content {
   justify-content: center;
   min-width: 0;
   text-align: left;
+}
+
+.pap-tool-avatar {
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  background: #eef0ff;
+  color: #1e3a8a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 33px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pap-tool-icon-badge {
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  background: #eef0ff;
+  color: #1e3a8a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 33px;
+}
+
+.pap-tool-icon-badge .pap-tool-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: inherit;
+}
+
+.pap-tool-icon-badge .pap-tool-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .pap-tool-icon {
@@ -762,6 +823,10 @@ body.theme-papetarie .site-content {
   font-size: var(--pap-header-tool-meta-size);
   color: #667085;
   line-height: 1.15;
+  white-space: nowrap;
+}
+
+.pap-tool-copy strong {
   white-space: nowrap;
 }
 

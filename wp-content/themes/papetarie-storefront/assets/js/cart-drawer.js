@@ -188,6 +188,7 @@
 
           var data = response.data || {};
           applyCartDrawerPayload(data);
+          window.dispatchEvent(new CustomEvent('pap:cart-state-changed', { detail: data }));
           return data;
         })
         .catch(function (error) {

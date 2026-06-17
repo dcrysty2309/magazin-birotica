@@ -343,6 +343,7 @@
   function dispatchCartEvents(data, button) {
     var fragments = data && data.fragments ? data.fragments : {};
     var cartHash = data && data.cart_hash ? data.cart_hash : '';
+    var detail = data || {};
 
     document.body.dispatchEvent(new CustomEvent('pap:added-to-cart', {
       detail: {
@@ -350,6 +351,10 @@
         cartHash: cartHash,
         button: button || null
       }
+    }));
+
+    window.dispatchEvent(new CustomEvent('pap:cart-state-changed', {
+      detail: detail
     }));
   }
 
@@ -577,11 +582,7 @@
           }
 
           applyDrawerPayload(drawerPayload);
-
-        if (data.cart_page && window.papApplyCartPagePayload) {
-          window.papApplyCartPagePayload(data.cart_page);
-        }
-      } catch (uiError) {
+        } catch (uiError) {
         if (window.console && typeof window.console.error === 'function') {
             window.console.error(uiError);
           }

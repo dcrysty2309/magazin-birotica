@@ -17,14 +17,31 @@
   var qtyInputs = Array.prototype.slice.call(document.querySelectorAll('input.qty'));
   var stockTooltipTimers = new WeakMap();
   var isProgrammaticCartSubmit = false;
+  var initializedSliderShells = typeof WeakSet === 'function' ? new WeakSet() : null;
 
   function refreshCartPageRefs() {
+    page = document.querySelector('[data-cart-page]');
+    shell = document.querySelector('[data-cart-page-shell]');
+    overlay = document.querySelector('[data-cart-loading-overlay]');
     cartForm = document.querySelector('.woocommerce-cart-form');
     updateButton = document.querySelector('[data-cart-update-submit]');
     checkoutButton = document.querySelector('[data-cart-checkout]');
     cartAlert = document.querySelector('[data-cart-alert]');
     cartAlertText = cartAlert ? cartAlert.querySelector('[data-cart-alert-text]') : null;
+    cartAlertBaseState = cartAlert ? (cartAlert.getAttribute('data-cart-alert-state') || 'none') : 'none';
+    cartAlertBaseMessage = cartAlertText ? cartAlertText.innerHTML.trim() : '';
+    cartMain = document.querySelector('[data-cart-page] .pap-cart-main');
+    cartLayout = document.querySelector('[data-cart-page] .pap-cart-layout');
+    cartLeftColumn = document.querySelector('[data-cart-left-column]');
+    cartRightColumn = document.querySelector('[data-cart-right-column]');
+    cartEmptyStack = document.querySelector('[data-cart-empty-stack]');
   }
+
+  var cartMain = document.querySelector('[data-cart-page] .pap-cart-main');
+  var cartLayout = document.querySelector('[data-cart-page] .pap-cart-layout');
+  var cartLeftColumn = document.querySelector('[data-cart-left-column]');
+  var cartRightColumn = document.querySelector('[data-cart-right-column]');
+  var cartEmptyStack = document.querySelector('[data-cart-empty-stack]');
 
   function getAjaxUrl(action) {
     var endpoint = action || '';
@@ -116,6 +133,15 @@
     if (String(value) !== String(input.value)) {
       input.value = String(value);
     }
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function updateQuantityButtonState(input) {
@@ -441,6 +467,74 @@
     }
   }
 
+  function buildCartColumnsHtml(payload) {
+    var formAction = payload && typeof payload.form_action === 'string' && payload.form_action
+      ? payload.form_action
+      : window.location.href;
+    var nonceValue = payload && typeof payload.nonce === 'string' ? payload.nonce : '';
+    var itemsHtml = typeof payload.items_html === 'string' ? payload.items_html : '';
+    var summaryHtml = typeof payload.summary_html === 'string' ? payload.summary_html : '';
+    var alertHtml = '';
+
+    if (cartAlertBaseMessage) {
+      alertHtml = [
+        '<div class="pap-cart-alert-area">',
+        '<div class="pap-cart-alert" data-cart-alert data-cart-alert-state="',
+        escapeHtml(cartAlertBaseState || 'none'),
+        '" role="status" aria-live="polite">',
+        '<svg class="pap-cart-alert__icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">',
+        '<path d="M10 1.66699L18.3337 17.5003H1.66699L10 1.66699Z" fill="#F59E0B"/>',
+        '<path d="M10 6.66699V11.667" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>',
+        '<path d="M10 14.167H10.0083" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>',
+        '</svg>',
+        '<span class="pap-cart-alert__text" data-cart-alert-text>',
+        cartAlertBaseMessage,
+        '</span>',
+        '</div>',
+        '</div>'
+      ].join('');
+    }
+
+    return [
+      '<h1 class="pap-cart-title">Coșul tău</h1>',
+      alertHtml,
+      '<div class="pap-cart-columns">',
+      '<div class="pap-cart-left" data-cart-left-column>',
+      '<div class="pap-cart-headings" aria-hidden="true"><span>PRODUS</span><span>TOTAL</span></div>',
+      '<form id="pap-cart-form" class="woocommerce-cart-form pap-cart-form" action="', escapeHtml(formAction), '" method="post">',
+      itemsHtml,
+      '<input type="hidden" name="woocommerce-cart-nonce" value="', escapeHtml(nonceValue), '">',
+      '<input type="hidden" name="update_cart" value="1">',
+      '</form>',
+      '<div class="pap-cart-actions-row">',
+      '<button type="submit" class="pap-cart-update-submit" data-cart-update-submit form="pap-cart-form" name="update_cart" value="1">Actualizează coșul</button>',
+      '</div>',
+      '</div>',
+      '<aside class="pap-cart-right" aria-label="Sumar comandă" data-cart-right-column>',
+      '<div class="pap-cart-summary">',
+      summaryHtml,
+      '</div>',
+      '</aside>',
+      '</div>'
+    ].join('');
+  }
+
+  function replaceEmptyCartLayout(payload) {
+    if (!cartMain || !payload || !payload.has_items) {
+      return false;
+    }
+
+    cartMain.classList.remove('pap-cart-main--empty');
+    cartMain.innerHTML = buildCartColumnsHtml(payload);
+    cartLayout = document.querySelector('[data-cart-page] .pap-cart-layout');
+    if (cartLayout) {
+      cartLayout.classList.remove('pap-cart-layout--empty');
+    }
+
+    refreshCartPageRefs();
+    return true;
+  }
+
   function replaceCartSummaryHtml(html) {
     if (typeof html !== 'string' || !html) {
       return;
@@ -462,6 +556,25 @@
     refreshCartPageRefs();
   }
 
+  function replaceCartPageHtml(html) {
+    if (typeof html !== 'string' || !html || !page) {
+      return false;
+    }
+
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    var nextPage = wrapper.querySelector('[data-cart-page]');
+
+    if (!nextPage) {
+      return false;
+    }
+
+    page.outerHTML = nextPage.outerHTML;
+    refreshCartPageRefs();
+    initHorizontalSliders();
+    return true;
+  }
+
   function applyCartPagePayload(payload) {
     if (!payload) {
       return;
@@ -471,8 +584,26 @@
       ? payload.cart_page
       : payload;
 
+    var isEmptyState = typeof normalizedPayload.is_empty === 'boolean'
+      ? normalizedPayload.is_empty
+      : !normalizedPayload.has_items;
+    var currentIsEmpty = !!(page && page.classList.contains('pap-cart-page--empty'));
+
+    if (typeof normalizedPayload.page_html === 'string' && normalizedPayload.page_html && isEmptyState !== currentIsEmpty) {
+      if (replaceCartPageHtml(normalizedPayload.page_html)) {
+        qtyInputs = Array.prototype.slice.call(document.querySelectorAll('input.qty'));
+        setAllCommittedValuesFromDom();
+        syncDirtyState();
+        return;
+      }
+    }
+
     if (typeof normalizedPayload.items_html === 'string') {
-      replaceCartItemsHtml(normalizedPayload.items_html);
+      if (!cartForm && normalizedPayload.has_items) {
+        replaceEmptyCartLayout(normalizedPayload);
+      } else {
+        replaceCartItemsHtml(normalizedPayload.items_html);
+      }
     }
 
     if (typeof normalizedPayload.summary_html === 'string') {
@@ -498,6 +629,15 @@
   }
 
   window.papApplyCartPagePayload = window.papApplyCartPagePayload || applyCartPagePayload;
+
+  window.addEventListener('pap:cart-state-changed', function (event) {
+    var detail = event && event.detail ? event.detail : null;
+    if (!detail) {
+      return;
+    }
+
+    applyCartPagePayload(detail.cart_page || detail);
+  });
 
   function setOverlayVisible(isVisible, text) {
     if (!overlay) {
@@ -763,7 +903,17 @@
   }
 
   function initHorizontalSliders() {
-    Array.prototype.slice.call(document.querySelectorAll('.pap-featured-slider-shell')).forEach(initHorizontalSliderShell);
+    Array.prototype.slice.call(document.querySelectorAll('.pap-featured-slider-shell')).forEach(function (shell) {
+      if (initializedSliderShells && initializedSliderShells.has(shell)) {
+        return;
+      }
+
+      initHorizontalSliderShell(shell);
+
+      if (initializedSliderShells) {
+        initializedSliderShells.add(shell);
+      }
+    });
   }
 
   function init() {
