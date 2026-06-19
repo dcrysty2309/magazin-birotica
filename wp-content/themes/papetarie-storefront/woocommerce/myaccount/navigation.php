@@ -9,6 +9,17 @@ defined('ABSPATH') || exit;
 
 do_action('woocommerce_before_account_navigation');
 
+$current_user = wp_get_current_user();
+$display_name = trim((string) $current_user->display_name);
+if ('' === $display_name) {
+    $display_name = trim((string) $current_user->first_name . ' ' . (string) $current_user->last_name);
+}
+if ('' === $display_name) {
+    $display_name = (string) $current_user->user_login;
+}
+
+$display_email = trim((string) $current_user->user_email);
+
 $account_menu_icons = function_exists('papetarie_storefront_account_menu_icon_map')
     ? papetarie_storefront_account_menu_icon_map()
     : [
@@ -23,6 +34,16 @@ $show_help_card = function_exists('is_wc_endpoint_url') && is_wc_endpoint_url();
 ?>
 
 <nav class="woocommerce-MyAccount-navigation pap-account-nav" aria-label="<?php esc_attr_e('Account pages', 'woocommerce'); ?>">
+  <div class="pap-account-nav-profile">
+    <div class="pap-account-avatar" aria-hidden="true">
+      <?php echo get_avatar($current_user->ID, 64, '', $display_name, ['class' => 'pap-account-avatar__img']); ?>
+    </div>
+    <div class="pap-account-nav-copy">
+      <strong><?php echo esc_html($display_name); ?></strong>
+      <span><?php echo esc_html($display_email !== '' ? $display_email : __('Cont autenticat', 'papetarie-storefront')); ?></span>
+    </div>
+  </div>
+
   <ul class="pap-account-nav-list">
     <?php foreach (wc_get_account_menu_items() as $endpoint => $label) : ?>
       <li class="<?php echo esc_attr(wc_get_account_menu_item_classes($endpoint)); ?>">

@@ -13,8 +13,8 @@ if (!wc_ship_to_billing_address_only() && wc_shipping_enabled()) {
     $get_addresses = apply_filters(
         'woocommerce_my_account_get_addresses',
         [
-            'billing' => __('Billing address', 'woocommerce'),
-            'shipping' => __('Shipping address', 'woocommerce'),
+            'billing' => __('Adresă de facturare', 'papetarie-storefront'),
+            'shipping' => __('Adresă de livrare', 'papetarie-storefront'),
         ],
         $customer_id
     );
@@ -22,7 +22,7 @@ if (!wc_ship_to_billing_address_only() && wc_shipping_enabled()) {
     $get_addresses = apply_filters(
         'woocommerce_my_account_get_addresses',
         [
-            'billing' => __('Billing address', 'woocommerce'),
+            'billing' => __('Adresă de facturare', 'papetarie-storefront'),
         ],
         $customer_id
     );
@@ -42,9 +42,9 @@ if (!wc_ship_to_billing_address_only() && wc_shipping_enabled()) {
         <?php $address = wc_get_account_formatted_address($name); ?>
         <article class="pap-account-address-card">
           <div class="pap-account-address-card__head">
-            <h2><?php echo esc_html($address_title); ?></h2>
+            <h3><?php echo esc_html($address_title); ?></h3>
             <a href="<?php echo esc_url(wc_get_endpoint_url('edit-address', $name)); ?>" class="pap-account-row-action">
-              <?php echo esc_html($address ? sprintf(__('Edit %s', 'woocommerce'), $address_title) : sprintf(__('Add %s', 'woocommerce'), $address_title)); ?>
+              <?php echo esc_html($address ? sprintf(__('Editează %s', 'papetarie-storefront'), $address_title) : sprintf(__('Adaugă %s', 'papetarie-storefront'), $address_title)); ?>
             </a>
           </div>
           <div class="pap-account-address-card__content">

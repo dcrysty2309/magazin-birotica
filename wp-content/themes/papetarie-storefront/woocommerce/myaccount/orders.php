@@ -41,7 +41,7 @@ $period_options = [
   <section class="pap-account-panel pap-account-panel--orders">
     <form class="pap-account-orders-toolbar" method="get">
       <label class="pap-account-filter">
-        <span><?php esc_html_e('Toate comenzile', 'papetarie-storefront'); ?></span>
+        <span><?php esc_html_e('Stare comandă', 'papetarie-storefront'); ?></span>
         <select name="order_status">
           <?php foreach ($status_options as $value => $label) : ?>
             <option value="<?php echo esc_attr($value); ?>"<?php selected($status_filter, $value); ?>><?php echo esc_html($label); ?></option>
@@ -50,7 +50,7 @@ $period_options = [
       </label>
 
       <label class="pap-account-filter">
-        <span><?php esc_html_e('Selectează perioada', 'papetarie-storefront'); ?></span>
+        <span><?php esc_html_e('Perioadă', 'papetarie-storefront'); ?></span>
         <select name="order_period">
           <?php foreach ($period_options as $value => $label) : ?>
             <option value="<?php echo esc_attr($value); ?>"<?php selected($period_filter, $value); ?>><?php echo esc_html($label); ?></option>
@@ -97,25 +97,25 @@ $period_options = [
             $items_count = function_exists('papetarie_storefront_account_order_items_count') ? papetarie_storefront_account_order_items_count($order) : max(1, (int) $order->get_item_count());
             ?>
             <article class="pap-account-order-row">
-              <div class="pap-account-order-row__cell pap-account-order-row__cell--order">
+              <div class="pap-account-order-row__cell pap-account-order-row__cell--order" data-label="<?php esc_attr_e('Comandă', 'papetarie-storefront'); ?>">
                 <strong><?php echo esc_html(function_exists('papetarie_storefront_account_order_display_number') ? papetarie_storefront_account_order_display_number($order) : ('#' . $order->get_order_number())); ?></strong>
                 <span><?php echo esc_html($order->get_date_created() ? wp_date('j F Y', $order->get_date_created()->getTimestamp()) : __('Nespecificat', 'papetarie-storefront')); ?></span>
               </div>
-              <div class="pap-account-order-row__cell pap-account-order-row__cell--date">
+              <div class="pap-account-order-row__cell pap-account-order-row__cell--date" data-label="<?php esc_attr_e('Data', 'papetarie-storefront'); ?>">
                 <span><?php echo esc_html($order->get_date_created() ? wp_date('j F Y, H:i', $order->get_date_created()->getTimestamp()) : __('Nespecificat', 'papetarie-storefront')); ?></span>
               </div>
-              <div class="pap-account-order-row__cell pap-account-order-row__cell--status">
+              <div class="pap-account-order-row__cell pap-account-order-row__cell--status" data-label="<?php esc_attr_e('Status', 'papetarie-storefront'); ?>">
                 <?php echo function_exists('papetarie_storefront_account_order_badge_html') ? papetarie_storefront_account_order_badge_html($order) : esc_html(wc_get_order_status_name($order->get_status())); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               </div>
-              <div class="pap-account-order-row__cell pap-account-order-row__cell--products">
+              <div class="pap-account-order-row__cell pap-account-order-row__cell--products" data-label="<?php esc_attr_e('Produse', 'papetarie-storefront'); ?>">
                 <strong><?php echo esc_html(sprintf(_n('%d produs', '%d produse', $items_count, 'papetarie-storefront'), $items_count)); ?></strong>
               </div>
-              <div class="pap-account-order-row__cell pap-account-order-row__cell--total">
+              <div class="pap-account-order-row__cell pap-account-order-row__cell--total" data-label="<?php esc_attr_e('Total', 'papetarie-storefront'); ?>">
                 <strong><?php echo wp_kses_post(function_exists('papetarie_storefront_format_plain_currency_amount') ? papetarie_storefront_format_plain_currency_amount((float) $order->get_total()) : $order->get_formatted_order_total()); ?></strong>
               </div>
-              <div class="pap-account-order-row__cell pap-account-order-row__cell--actions">
+              <div class="pap-account-order-row__cell pap-account-order-row__cell--actions" data-label="<?php esc_attr_e('Acțiuni', 'papetarie-storefront'); ?>">
                 <a class="pap-account-row-action" href="<?php echo esc_url($order->get_view_order_url()); ?>">
-                  <?php esc_html_e('Vezi detalii', 'papetarie-storefront'); ?> <span aria-hidden="true">→</span>
+                  <?php esc_html_e('Detalii', 'papetarie-storefront'); ?> <span aria-hidden="true">→</span>
                 </a>
               </div>
             </article>

@@ -4497,25 +4497,29 @@ function papetarie_storefront_account_favorite_endpoint(): void
 
     $ids = papetarie_storefront_account_wishlist_ids();
     ?>
-    <div class="pap-account-section">
-      <div class="pap-account-section-head">
-        <h2><?php esc_html_e('Favorite', 'papetarie-storefront'); ?></h2>
+    <div class="pap-account-page pap-account-page--favorites">
+      <header class="pap-account-page-head">
+        <p class="pap-account-page-eyebrow"><?php esc_html_e('Cont', 'papetarie-storefront'); ?></p>
+        <h1><?php esc_html_e('Favorite', 'papetarie-storefront'); ?></h1>
         <p><?php esc_html_e('Produsele salvate pentru revenire rapidă și adăugare instant în coș.', 'papetarie-storefront'); ?></p>
-      </div>
-      <?php if (!$ids) : ?>
-        <div class="pap-account-empty">
-          <p><?php esc_html_e('Nu ai produse salvate momentan.', 'papetarie-storefront'); ?></p>
-          <a class="button" href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/')); ?>"><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></a>
-        </div>
-      <?php else : ?>
-        <div class="pap-account-product-grid">
-          <?php foreach ($ids as $product_id) : ?>
-            <?php $product = wc_get_product($product_id); ?>
-            <?php if (!$product instanceof WC_Product) { continue; } ?>
-            <?php papetarie_storefront_render_product_card($product, 'account'); ?>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
+      </header>
+
+      <section class="pap-account-panel pap-account-panel--favorites">
+        <?php if (!$ids) : ?>
+          <div class="pap-account-empty-state">
+            <p><?php esc_html_e('Nu ai produse salvate momentan.', 'papetarie-storefront'); ?></p>
+            <a class="pap-account-row-action" href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/')); ?>"><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?> <span aria-hidden="true">→</span></a>
+          </div>
+        <?php else : ?>
+          <div class="pap-account-product-grid">
+            <?php foreach ($ids as $product_id) : ?>
+              <?php $product = wc_get_product($product_id); ?>
+              <?php if (!$product instanceof WC_Product) { continue; } ?>
+              <?php papetarie_storefront_render_product_card($product, 'account'); ?>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </section>
     </div>
     <?php
 }

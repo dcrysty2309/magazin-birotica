@@ -46,7 +46,7 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
     <article class="pap-account-order-meta-card">
       <div class="pap-account-order-meta-card__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('truck-outline'); ?></div>
       <div class="pap-account-order-meta-card__copy">
-        <h2><?php esc_html_e('Livrare', 'papetarie-storefront'); ?></h2>
+        <h3><?php esc_html_e('Livrare', 'papetarie-storefront'); ?></h3>
         <strong><?php echo esc_html($shipping_method); ?></strong>
         <span><?php echo esc_html($shipping_company); ?></span>
       </div>
@@ -55,7 +55,7 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
     <article class="pap-account-order-meta-card">
       <div class="pap-account-order-meta-card__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('paper'); ?></div>
       <div class="pap-account-order-meta-card__copy">
-        <h2><?php esc_html_e('Metodă de plată', 'papetarie-storefront'); ?></h2>
+        <h3><?php esc_html_e('Metodă de plată', 'papetarie-storefront'); ?></h3>
         <strong><?php echo esc_html($payment_label ?: __('Plată online', 'papetarie-storefront')); ?></strong>
         <span><?php echo esc_html($order->get_payment_method_title() ?: __('Online cu cardul', 'papetarie-storefront')); ?></span>
       </div>
@@ -80,7 +80,7 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
       <div class="pap-account-order-items-table__body">
         <?php foreach ($items as $item) : ?>
           <article class="pap-account-order-item">
-            <div class="pap-account-order-item__product">
+            <div class="pap-account-order-item__product" data-label="<?php esc_attr_e('Produs', 'papetarie-storefront'); ?>">
               <?php if (!empty($item['image'])) : ?>
                 <?php echo wp_get_attachment_image((int) $item['image'], 'thumbnail', false, ['class' => 'pap-account-order-item__thumb', 'loading' => 'lazy']); ?>
               <?php else : ?>
@@ -93,9 +93,9 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
                 <?php endif; ?>
               </div>
             </div>
-            <div class="pap-account-order-item__cell"><?php echo esc_html($item['unit_price'] ?? ''); ?></div>
-            <div class="pap-account-order-item__cell"><?php echo esc_html($item['quantity'] ?? '1'); ?></div>
-            <div class="pap-account-order-item__cell pap-account-order-item__cell--total"><?php echo esc_html($item['total'] ?? ''); ?></div>
+            <div class="pap-account-order-item__cell" data-label="<?php esc_attr_e('Preț unitar', 'papetarie-storefront'); ?>"><?php echo esc_html($item['unit_price'] ?? ''); ?></div>
+            <div class="pap-account-order-item__cell" data-label="<?php esc_attr_e('Cantitate', 'papetarie-storefront'); ?>"><?php echo esc_html($item['quantity'] ?? '1'); ?></div>
+            <div class="pap-account-order-item__cell pap-account-order-item__cell--total" data-label="<?php esc_attr_e('Total', 'papetarie-storefront'); ?>"><?php echo esc_html($item['total'] ?? ''); ?></div>
           </article>
         <?php endforeach; ?>
       </div>

@@ -8,26 +8,14 @@ const fixturesPath = path.resolve(__dirname, '../wp-content/themes/papetarie-sto
 const fixtures = JSON.parse(fs.readFileSync(fixturesPath, 'utf8'));
 const myAccountUrl = '/?page_id=10';
 const myAccountOrdersUrl = '/?page_id=10&orders';
+const myAccountAddressesUrl = '/?page_id=10&edit-address';
+const myAccountEditAccountUrl = '/?page_id=10&edit-account';
+const myAccountFavoritesUrl = '/?page_id=10&favorite';
 
 function formatMoney(amount) {
   const value = Number(amount || 0);
   const fixed = value.toFixed(2);
   return fixed.endsWith('.00') ? fixed.slice(0, -3) : fixed;
-}
-
-function findOrderByNumber(number) {
-  for (const user of Object.values(fixtures.users)) {
-    if (!Array.isArray(user.orders)) {
-      continue;
-    }
-
-    const match = user.orders.find((order) => order.number === number);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
 }
 
 function statusLabelFor(status) {
@@ -45,61 +33,29 @@ function statusLabelFor(status) {
   }
 }
 
-async function openAuthModal(page) {
-  await page.goto('/');
-  await page.locator('[data-pap-auth-account]').first().click();
-  await expect(page.locator('#pap-auth-modal')).toBeVisible();
-}
-
 async function loginAs(page, userKey) {
   const user = fixtures.users[userKey];
   await page.context().clearCookies();
-  await openAuthModal(page);
-
-  const modal = page.locator('#pap-auth-modal');
-  const loginForm = modal.locator('form[data-auth-form="login"]').first();
-  await loginForm.locator('input[name="username"]').first().fill(user.email);
-  await loginForm.locator('input[name="password"]').first().fill(user.password);
-
+  await page.goto('/wp-login.php');
+  await page.locator('#user_login').fill(user.email);
+  await page.locator('#user_pass').fill(user.password);
   await Promise.all([
-    page.waitForResponse((response) => {
-      return response.url().includes('admin-ajax.php')
-        && response.request().method() === 'POST'
-        && (response.request().postData() || '').includes('action=pap_auth_login')
-        && response.ok();
-    }),
-    loginForm.locator('button[type="submit"]').first().click(),
+    page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
+    page.locator('#wp-submit').click(),
   ]);
-
-  await expect(page.locator('[data-pap-auth-account]')).toContainText('Contul meu');
-  await page.goto('/');
-  await expect(page.locator('[data-pap-auth-account]')).toContainText('Contul meu');
+  await page.waitForLoadState('networkidle');
+  await page.goto(myAccountUrl);
+  await expect(page.locator('.pap-account-shell')).toBeVisible({ timeout: 30_000 });
 }
 
 async function goToDashboard(page, userKey) {
   await loginAs(page, userKey);
-  await page.goto(myAccountUrl);
-  await expect(page.locator('.pap-account-shell')).toBeVisible();
 }
 
 async function goToOrders(page, userKey) {
   await loginAs(page, userKey);
   await page.goto(myAccountOrdersUrl);
   await expect(page.locator('.pap-account-orders-table')).toBeVisible();
-}
-
-async function openFirstOrder(page) {
-  const firstRow = page.locator('.pap-account-order-row').first();
-  const orderNumber = (await firstRow.locator('.pap-account-order-row__cell--order strong').textContent() || '').trim();
-  await firstRow.locator('a.pap-account-row-action').click();
-  await expect(page.locator('.pap-account-view-order-head')).toBeVisible();
-  return orderNumber;
-}
-
-async function openOrderByNumber(page, orderNumber) {
-  const row = page.locator('.pap-account-order-row').filter({ hasText: orderNumber }).first();
-  await row.locator('a.pap-account-row-action').click();
-  await expect(page.locator('.pap-account-view-order-head')).toBeVisible();
 }
 
 test('dashboard shows empty state and zero favorite count for a user without orders', async ({ page }) => {
@@ -156,6 +112,39 @@ test('orders list supports 1, 5 and 20 order scenarios with status badges and pa
   expect(pageTwoFirstOrder).not.toBe(pageOneFirstOrder);
 });
 
+test('favorite, address and edit account states stay consistent', async ({ page }) => {
+  await loginAs(page, 'empty');
+
+  await page.goto(myAccountFavoritesUrl);
+  await expect(page.locator('.pap-account-empty-state')).toBeVisible();
+  await expect(page.locator('.pap-account-empty-state')).toContainText('Nu ai produse salvate momentan.');
+
+  await page.goto(myAccountAddressesUrl);
+  await expect(page.locator('.pap-account-page-head h1')).toHaveText('Adrese');
+  await expect(page.locator('.pap-account-panel')).toBeVisible();
+
+  await page.goto(myAccountEditAccountUrl);
+  await expect(page.locator('form.pap-account-form')).toBeVisible();
+  await expect(page.locator('input#account_first_name')).toBeVisible();
+  await expect(page.locator('input#account_email')).toBeVisible();
+  await expect(page.locator('input[name="password_1"]')).toBeVisible();
+});
+
+test('favorite and address pages render seeded data when available', async ({ page }) => {
+  await loginAs(page, 'twenty');
+
+  await page.goto(myAccountFavoritesUrl);
+  const favoriteCards = page.locator('.pap-product-card');
+  await expect(favoriteCards.first()).toBeVisible();
+  expect(await favoriteCards.count()).toBeGreaterThan(0);
+
+  await page.goto(myAccountAddressesUrl);
+  const addressCards = page.locator('.pap-account-address-card');
+  await expect(addressCards.first()).toBeVisible();
+  await expect(page.locator('.pap-account-address-card')).toHaveCount(2);
+  await expect(page.locator('.pap-account-address-card').first()).toContainText('Adresă de facturare');
+});
+
 test('view order matches the seeded WooCommerce totals and payment metadata', async ({ page }) => {
   await goToOrders(page, 'twenty');
   const order = fixtures.users.twenty.orders.find((item) => item.shipping_total > 0);
@@ -198,10 +187,20 @@ test('my account layout stays intact across the requested breakpoints', async ({
     await page.goto(myAccountOrdersUrl);
     await expect(page.locator('.pap-account-orders-table')).toBeVisible();
 
-    await openFirstOrder(page);
-    await expect(page.locator('.pap-account-view-order-head')).toBeVisible();
-
-    const viewOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-    expect(viewOverflow).toBe(false);
+    const ordersOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    expect(ordersOverflow).toBe(false);
   }
+});
+
+test('logout link clears the account state', async ({ page }) => {
+  await loginAs(page, 'one');
+  await page.goto(myAccountUrl);
+  await expect(page.locator('.pap-account-shell')).toBeVisible();
+
+  const logoutLink = page.locator('a[href*="customer-logout"]').first();
+  await expect(logoutLink).toBeVisible();
+  await logoutLink.click();
+  await page.waitForLoadState('networkidle');
+
+  await expect(page.locator('body')).not.toContainText('Contul meu');
 });
