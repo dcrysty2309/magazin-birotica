@@ -5,93 +5,263 @@ defined('ABSPATH') || exit;
 get_header();
 ?>
 <main id="primary" class="site-main pap-styleguide-page">
-  <section class="pap-styleguide-hero">
-    <div class="pap-shell">
-      <p class="pap-styleguide-kicker"><?php esc_html_e('Sistem de brand', 'papetarie-storefront'); ?></p>
-      <h1><?php esc_html_e('Ghid vizual SupplyHub', 'papetarie-storefront'); ?></h1>
-      <p><?php esc_html_e('Pagina asta definește direcția vizuală și de produs pentru storefront: logo, culori, tipografie, iconuri, componente și planul de implementare care ne mută de la prototype la magazin online real.', 'papetarie-storefront'); ?></p>
+  <section class="pap-shell pap-styleguide-tabs" aria-label="<?php esc_attr_e('Style guide sections', 'papetarie-storefront'); ?>" data-styleguide-tabs>
+    <div class="pap-styleguide-tabs-nav" role="tablist" aria-label="<?php esc_attr_e('Style guide tabs', 'papetarie-storefront'); ?>">
+      <button class="pap-styleguide-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="pap-styleguide-panel-typography" data-tab="typography">
+        <?php esc_html_e('Typography', 'papetarie-storefront'); ?>
+      </button>
+      <button class="pap-styleguide-tab" type="button" role="tab" aria-selected="false" aria-controls="pap-styleguide-panel-buttons" data-tab="buttons">
+        <?php esc_html_e('Buttons & Links', 'papetarie-storefront'); ?>
+      </button>
+      <button class="pap-styleguide-tab" type="button" role="tab" aria-selected="false" aria-controls="pap-styleguide-panel-inputs" data-tab="inputs">
+        <?php esc_html_e('Inputs', 'papetarie-storefront'); ?>
+      </button>
+      <button class="pap-styleguide-tab" type="button" role="tab" aria-selected="false" aria-controls="pap-styleguide-panel-cards" data-tab="cards">
+        <?php esc_html_e('Cards', 'papetarie-storefront'); ?>
+      </button>
+      <button class="pap-styleguide-tab" type="button" role="tab" aria-selected="false" aria-controls="pap-styleguide-panel-alerts" data-tab="alerts">
+        <?php esc_html_e('Alerts', 'papetarie-storefront'); ?>
+      </button>
+      <button class="pap-styleguide-tab" type="button" role="tab" aria-selected="false" aria-controls="pap-styleguide-panel-tables" data-tab="tables">
+        <?php esc_html_e('Tables', 'papetarie-storefront'); ?>
+      </button>
+      <button class="pap-styleguide-tab" type="button" role="tab" aria-selected="false" aria-controls="pap-styleguide-panel-components" data-tab="components">
+        <?php esc_html_e('Components', 'papetarie-storefront'); ?>
+      </button>
     </div>
-  </section>
 
-  <section class="pap-shell pap-styleguide-section">
-    <div class="pap-styleguide-grid pap-styleguide-grid-brand">
-      <article class="pap-styleguide-card">
-        <h2><?php esc_html_e('Logo principal', 'papetarie-storefront'); ?></h2>
-        <div class="pap-styleguide-logo-wrap">
-          <img src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/logo-supplyhub.svg'); ?>" alt="<?php esc_attr_e('Logo SupplyHub', 'papetarie-storefront'); ?>">
+    <div class="pap-styleguide-tab-panels">
+      <section class="pap-styleguide-tab-panel pap-styleguide-tab-panel--typography" id="pap-styleguide-panel-typography" role="tabpanel" aria-labelledby="pap-styleguide-tab-typography" data-panel="typography">
+        <div class="pap-styleguide-table-wrap">
+          <table class="pap-styleguide-table">
+            <colgroup>
+              <col class="pap-styleguide-col-type">
+              <col class="pap-styleguide-col-weight">
+              <col class="pap-styleguide-col-size">
+              <col class="pap-styleguide-col-size">
+              <col class="pap-styleguide-col-size">
+              <col class="pap-styleguide-col-family">
+              <col class="pap-styleguide-col-color">
+              <col class="pap-styleguide-col-line">
+              <col class="pap-styleguide-col-letter">
+              <col class="pap-styleguide-col-use">
+            </colgroup>
+            <thead>
+              <tr>
+                <th><?php esc_html_e('Type', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Weight', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Desktop', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Tablet', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Mobile', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Font family', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Color', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Line-height', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Letter-spacing', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Use', 'papetarie-storefront'); ?></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="pap-styleguide-type-sample">
+                    <span class="pap-styleguide-type-label"><?php esc_html_e('H1', 'papetarie-storefront'); ?></span>
+                    <h1 class="pap-styleguide-sample pap-styleguide-sample--h1"><?php esc_html_e('Heading 1', 'papetarie-storefront'); ?></h1>
+                  </div>
+                </td>
+                <td data-label="<?php esc_attr_e('Weight', 'papetarie-storefront'); ?>">700</td>
+                <td data-label="<?php esc_attr_e('Desktop', 'papetarie-storefront'); ?>">32px / 40px</td>
+                <td data-label="<?php esc_attr_e('Tablet', 'papetarie-storefront'); ?>">28px / 36px</td>
+                <td data-label="<?php esc_attr_e('Mobile', 'papetarie-storefront'); ?>">24px / 32px</td>
+                <td data-label="<?php esc_attr_e('Font family', 'papetarie-storefront'); ?>">Inter, sans-serif</td>
+                <td data-label="<?php esc_attr_e('Color', 'papetarie-storefront'); ?>">#17324D</td>
+                <td data-label="<?php esc_attr_e('Line-height', 'papetarie-storefront'); ?>">1.25</td>
+                <td data-label="<?php esc_attr_e('Letter-spacing', 'papetarie-storefront'); ?>">-0.02em</td>
+                <td data-label="<?php esc_attr_e('Use', 'papetarie-storefront'); ?>"><?php esc_html_e('Titlu principal', 'papetarie-storefront'); ?></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="pap-styleguide-type-sample">
+                    <span class="pap-styleguide-type-label"><?php esc_html_e('H2', 'papetarie-storefront'); ?></span>
+                    <h2 class="pap-styleguide-sample pap-styleguide-sample--h2"><?php esc_html_e('Heading 2', 'papetarie-storefront'); ?></h2>
+                  </div>
+                </td>
+                <td data-label="<?php esc_attr_e('Weight', 'papetarie-storefront'); ?>">700</td>
+                <td data-label="<?php esc_attr_e('Desktop', 'papetarie-storefront'); ?>">24px / 32px</td>
+                <td data-label="<?php esc_attr_e('Tablet', 'papetarie-storefront'); ?>">22px / 30px</td>
+                <td data-label="<?php esc_attr_e('Mobile', 'papetarie-storefront'); ?>">20px / 28px</td>
+                <td data-label="<?php esc_attr_e('Font family', 'papetarie-storefront'); ?>">Inter, sans-serif</td>
+                <td data-label="<?php esc_attr_e('Color', 'papetarie-storefront'); ?>">#17324D</td>
+                <td data-label="<?php esc_attr_e('Line-height', 'papetarie-storefront'); ?>">1.33</td>
+                <td data-label="<?php esc_attr_e('Letter-spacing', 'papetarie-storefront'); ?>">-0.02em</td>
+                <td data-label="<?php esc_attr_e('Use', 'papetarie-storefront'); ?>"><?php esc_html_e('Titluri secțiuni', 'papetarie-storefront'); ?></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="pap-styleguide-type-sample">
+                    <span class="pap-styleguide-type-label"><?php esc_html_e('H3', 'papetarie-storefront'); ?></span>
+                    <h3 class="pap-styleguide-sample pap-styleguide-sample--h3"><?php esc_html_e('Heading 3', 'papetarie-storefront'); ?></h3>
+                  </div>
+                </td>
+                <td data-label="<?php esc_attr_e('Weight', 'papetarie-storefront'); ?>">700</td>
+                <td data-label="<?php esc_attr_e('Desktop', 'papetarie-storefront'); ?>">20px / 28px</td>
+                <td data-label="<?php esc_attr_e('Tablet', 'papetarie-storefront'); ?>">18px / 26px</td>
+                <td data-label="<?php esc_attr_e('Mobile', 'papetarie-storefront'); ?>">18px / 24px</td>
+                <td data-label="<?php esc_attr_e('Font family', 'papetarie-storefront'); ?>">Inter, sans-serif</td>
+                <td data-label="<?php esc_attr_e('Color', 'papetarie-storefront'); ?>">#17324D</td>
+                <td data-label="<?php esc_attr_e('Line-height', 'papetarie-storefront'); ?>">1.3</td>
+                <td data-label="<?php esc_attr_e('Letter-spacing', 'papetarie-storefront'); ?>">-0.02em</td>
+                <td data-label="<?php esc_attr_e('Use', 'papetarie-storefront'); ?>"><?php esc_html_e('Widget-uri și blocuri', 'papetarie-storefront'); ?></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="pap-styleguide-type-sample">
+                    <span class="pap-styleguide-type-label"><?php esc_html_e('H4', 'papetarie-storefront'); ?></span>
+                    <h4 class="pap-styleguide-sample pap-styleguide-sample--h4"><?php esc_html_e('Heading 4', 'papetarie-storefront'); ?></h4>
+                  </div>
+                </td>
+                <td data-label="<?php esc_attr_e('Weight', 'papetarie-storefront'); ?>">600</td>
+                <td data-label="<?php esc_attr_e('Desktop', 'papetarie-storefront'); ?>">18px / 24px</td>
+                <td data-label="<?php esc_attr_e('Tablet', 'papetarie-storefront'); ?>">17px / 24px</td>
+                <td data-label="<?php esc_attr_e('Mobile', 'papetarie-storefront'); ?>">16px / 22px</td>
+                <td data-label="<?php esc_attr_e('Font family', 'papetarie-storefront'); ?>">Inter, sans-serif</td>
+                <td data-label="<?php esc_attr_e('Color', 'papetarie-storefront'); ?>">#17324D</td>
+                <td data-label="<?php esc_attr_e('Line-height', 'papetarie-storefront'); ?>">1.33</td>
+                <td data-label="<?php esc_attr_e('Letter-spacing', 'papetarie-storefront'); ?>">-0.01em</td>
+                <td data-label="<?php esc_attr_e('Use', 'papetarie-storefront'); ?>"><?php esc_html_e('Subtitluri și carduri', 'papetarie-storefront'); ?></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="pap-styleguide-type-sample">
+                    <span class="pap-styleguide-type-label"><?php esc_html_e('P', 'papetarie-storefront'); ?></span>
+                    <p class="pap-styleguide-sample pap-styleguide-sample--p"><?php esc_html_e('Paragraph', 'papetarie-storefront'); ?></p>
+                  </div>
+                </td>
+                <td data-label="<?php esc_attr_e('Weight', 'papetarie-storefront'); ?>">400</td>
+                <td data-label="<?php esc_attr_e('Desktop', 'papetarie-storefront'); ?>">14px / 22px</td>
+                <td data-label="<?php esc_attr_e('Tablet', 'papetarie-storefront'); ?>">14px / 22px</td>
+                <td data-label="<?php esc_attr_e('Mobile', 'papetarie-storefront'); ?>">14px / 20px</td>
+                <td data-label="<?php esc_attr_e('Font family', 'papetarie-storefront'); ?>">Inter, sans-serif</td>
+                <td data-label="<?php esc_attr_e('Color', 'papetarie-storefront'); ?>">#17324D</td>
+                <td data-label="<?php esc_attr_e('Line-height', 'papetarie-storefront'); ?>">1.6</td>
+                <td data-label="<?php esc_attr_e('Letter-spacing', 'papetarie-storefront'); ?>">0</td>
+                <td data-label="<?php esc_attr_e('Use', 'papetarie-storefront'); ?>"><?php esc_html_e('Text și descrieri', 'papetarie-storefront'); ?></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="pap-styleguide-type-sample">
+                    <span class="pap-styleguide-type-label"><?php esc_html_e('Small', 'papetarie-storefront'); ?></span>
+                    <small class="pap-styleguide-sample pap-styleguide-sample--small"><?php esc_html_e('Small text', 'papetarie-storefront'); ?></small>
+                  </div>
+                </td>
+                <td data-label="<?php esc_attr_e('Weight', 'papetarie-storefront'); ?>">400</td>
+                <td data-label="<?php esc_attr_e('Desktop', 'papetarie-storefront'); ?>">13px / 20px</td>
+                <td data-label="<?php esc_attr_e('Tablet', 'papetarie-storefront'); ?>">13px / 20px</td>
+                <td data-label="<?php esc_attr_e('Mobile', 'papetarie-storefront'); ?>">12px / 18px</td>
+                <td data-label="<?php esc_attr_e('Font family', 'papetarie-storefront'); ?>">Inter, sans-serif</td>
+                <td data-label="<?php esc_attr_e('Color', 'papetarie-storefront'); ?>">#5B6B80</td>
+                <td data-label="<?php esc_attr_e('Line-height', 'papetarie-storefront'); ?>">1.54</td>
+                <td data-label="<?php esc_attr_e('Letter-spacing', 'papetarie-storefront'); ?>">0</td>
+                <td data-label="<?php esc_attr_e('Use', 'papetarie-storefront'); ?>"><?php esc_html_e('Texte secundare', 'papetarie-storefront'); ?></td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="pap-styleguide-type-sample">
+                    <span class="pap-styleguide-type-label"><?php esc_html_e('Label', 'papetarie-storefront'); ?></span>
+                    <label class="pap-styleguide-sample pap-styleguide-sample--label"><?php esc_html_e('Label text', 'papetarie-storefront'); ?></label>
+                  </div>
+                </td>
+                <td data-label="<?php esc_attr_e('Weight', 'papetarie-storefront'); ?>">600</td>
+                <td data-label="<?php esc_attr_e('Desktop', 'papetarie-storefront'); ?>">12px / 16px</td>
+                <td data-label="<?php esc_attr_e('Tablet', 'papetarie-storefront'); ?>">12px / 16px</td>
+                <td data-label="<?php esc_attr_e('Mobile', 'papetarie-storefront'); ?>">12px / 16px</td>
+                <td data-label="<?php esc_attr_e('Font family', 'papetarie-storefront'); ?>">Inter, sans-serif</td>
+                <td data-label="<?php esc_attr_e('Color', 'papetarie-storefront'); ?>">#6D7788</td>
+                <td data-label="<?php esc_attr_e('Line-height', 'papetarie-storefront'); ?>">1.33</td>
+                <td data-label="<?php esc_attr_e('Letter-spacing', 'papetarie-storefront'); ?>">0.08em</td>
+                <td data-label="<?php esc_attr_e('Use', 'papetarie-storefront'); ?>"><?php esc_html_e('Tabele, SKU, categorii', 'papetarie-storefront'); ?></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </article>
-      <article class="pap-styleguide-card">
-        <h2><?php esc_html_e('Obiective de design', 'papetarie-storefront'); ?></h2>
-        <ul class="pap-styleguide-list">
-          <li><?php esc_html_e('poziționare clară pentru papetărie retail și B2B', 'papetarie-storefront'); ?></li>
-          <li><?php esc_html_e('cumpărare rapidă cu search mare și acces clar la categorii', 'papetarie-storefront'); ?></li>
-          <li><?php esc_html_e('layout comercial apropiat de referința SupplyHub', 'papetarie-storefront'); ?></li>
-          <li><?php esc_html_e('limbaj vizual cu încredere ridicată, nu doar boutique sau decorativ', 'papetarie-storefront'); ?></li>
-        </ul>
-      </article>
-    </div>
-  </section>
+      </section>
 
-  <section class="pap-shell pap-styleguide-section">
-    <h2><?php esc_html_e('Sistem de culori', 'papetarie-storefront'); ?></h2>
-    <div class="pap-color-grid">
-      <div class="pap-color-swatch"><span style="background:#ff5b1f"></span><strong>Orange</strong><small>#FF5B1F</small></div>
-      <div class="pap-color-swatch"><span style="background:#0d2e61"></span><strong>Navy</strong><small>#0D2E61</small></div>
-      <div class="pap-color-swatch"><span style="background:#1aa8e5"></span><strong>Blue</strong><small>#1AA8E5</small></div>
-      <div class="pap-color-swatch"><span style="background:#8a32b0"></span><strong>Purple</strong><small>#8A32B0</small></div>
-      <div class="pap-color-swatch"><span style="background:#f3373d"></span><strong>Red</strong><small>#F3373D</small></div>
-      <div class="pap-color-swatch"><span style="background:#0d5e4a"></span><strong>Green</strong><small>#0D5E4A</small></div>
-    </div>
-  </section>
-
-  <section class="pap-shell pap-styleguide-section">
-    <div class="pap-styleguide-grid">
-      <article class="pap-styleguide-card">
-        <h2><?php esc_html_e('Tipografie', 'papetarie-storefront'); ?></h2>
-        <div class="pap-styleguide-type">
-          <h3><?php esc_html_e('Tot ce ai nevoie.', 'papetarie-storefront'); ?></h3>
-          <p><?php esc_html_e('Headline comercial mare, contrast puternic și line-height compact. Acesta este tonul pentru hero și promoțiile cheie.', 'papetarie-storefront'); ?></p>
-          <small><?php esc_html_e('Textele de UI rămân directe, utilitare și orientate spre comerț.', 'papetarie-storefront'); ?></small>
+      <section class="pap-styleguide-tab-panel pap-styleguide-tab-panel--buttons" id="pap-styleguide-panel-buttons" role="tabpanel" aria-labelledby="pap-styleguide-tab-buttons" data-panel="buttons" hidden>
+        <div class="pap-styleguide-empty-card">
+          <p class="pap-styleguide-empty-card__eyebrow"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+          <h2><?php esc_html_e('Buttons & links', 'papetarie-storefront'); ?></h2>
+          <p class="pap-styleguide-empty-card__soon"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
         </div>
-      </article>
-      <article class="pap-styleguide-card">
-        <h2><?php esc_html_e('Butoane și inputuri', 'papetarie-storefront'); ?></h2>
-        <div class="pap-styleguide-actions">
-          <a class="pap-button pap-button-primary" href="#"><?php esc_html_e('Acțiune principală', 'papetarie-storefront'); ?></a>
-          <a class="pap-button pap-button-secondary" href="#"><?php esc_html_e('Acțiune secundară', 'papetarie-storefront'); ?></a>
+      </section>
+
+      <section class="pap-styleguide-tab-panel pap-styleguide-tab-panel--inputs" id="pap-styleguide-panel-inputs" role="tabpanel" aria-labelledby="pap-styleguide-tab-inputs" data-panel="inputs" hidden>
+        <div class="pap-styleguide-empty-card">
+          <p class="pap-styleguide-empty-card__eyebrow"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+          <h2><?php esc_html_e('Inputs', 'papetarie-storefront'); ?></h2>
+          <p class="pap-styleguide-empty-card__soon"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
         </div>
-        <form class="pap-search pap-styleguide-search" action="#">
-          <input type="search" value="<?php esc_attr_e('Caută după produs, SKU sau cuvânt cheie...', 'papetarie-storefront'); ?>">
-          <select><option><?php esc_html_e('Toate categoriile', 'papetarie-storefront'); ?></option></select>
-          <button type="submit"><?php echo papetarie_storefront_icon('search'); ?><span><?php esc_html_e('Caută', 'papetarie-storefront'); ?></span></button>
-        </form>
-      </article>
-    </div>
-  </section>
+      </section>
 
-  <section class="pap-shell pap-styleguide-section">
-    <h2><?php esc_html_e('Iconuri și limbaj de încredere', 'papetarie-storefront'); ?></h2>
-    <div class="pap-icon-grid">
-      <div class="pap-icon-card"><span><?php echo papetarie_storefront_icon('account'); ?></span><strong><?php esc_html_e('Cont', 'papetarie-storefront'); ?></strong></div>
-      <div class="pap-icon-card"><span><?php echo papetarie_storefront_icon('upload'); ?></span><strong><?php esc_html_e('Comandă rapidă', 'papetarie-storefront'); ?></strong></div>
-      <div class="pap-icon-card"><span><?php echo papetarie_storefront_icon('cart'); ?></span><strong><?php esc_html_e('Coș', 'papetarie-storefront'); ?></strong></div>
-      <div class="pap-icon-card"><span><?php echo papetarie_storefront_icon('shield'); ?></span><strong><?php esc_html_e('Calitate garantată', 'papetarie-storefront'); ?></strong></div>
-      <div class="pap-icon-card"><span><?php echo papetarie_storefront_icon('tag'); ?></span><strong><?php esc_html_e('Preț bun', 'papetarie-storefront'); ?></strong></div>
-      <div class="pap-icon-card"><span><?php echo papetarie_storefront_icon('truck'); ?></span><strong><?php esc_html_e('Livrare rapidă', 'papetarie-storefront'); ?></strong></div>
-    </div>
-  </section>
+      <section class="pap-styleguide-tab-panel pap-styleguide-tab-panel--cards" id="pap-styleguide-panel-cards" role="tabpanel" aria-labelledby="pap-styleguide-tab-cards" data-panel="cards" hidden>
+        <div class="pap-styleguide-empty-card">
+          <p class="pap-styleguide-empty-card__eyebrow"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+          <h2><?php esc_html_e('Cards', 'papetarie-storefront'); ?></h2>
+          <p class="pap-styleguide-empty-card__soon"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+        </div>
+      </section>
 
-  <section class="pap-shell pap-styleguide-section">
-    <h2><?php esc_html_e('Plan de execuție', 'papetarie-storefront'); ?></h2>
-    <div class="pap-roadmap">
-      <article class="pap-roadmap-step"><strong>Faza 1</strong><span><?php esc_html_e('Fundament de brand: logo, header, iconografie, comportament search, sistem de spacing.', 'papetarie-storefront'); ?></span></article>
-      <article class="pap-roadmap-step"><strong>Faza 2</strong><span><?php esc_html_e('Alinierea homepage-ului la referință: imagini reale, carduri de categorii, produse recomandate, bannere promo.', 'papetarie-storefront'); ?></span></article>
-      <article class="pap-roadmap-step"><strong>Faza 3</strong><span><?php esc_html_e('Date reale de comerț: categorii WooCommerce, produse, logică de preț, hook-uri B2B.', 'papetarie-storefront'); ?></span></article>
-      <article class="pap-roadmap-step"><strong>Faza 4</strong><span><?php esc_html_e('Template-uri de shop: arhivă, pagină produs, coș, checkout, cont, filtre de catalog.', 'papetarie-storefront'); ?></span></article>
-      <article class="pap-roadmap-step"><strong>Faza 5</strong><span><?php esc_html_e('Integrare furnizori: strategie de import, sincronizare stoc, mapare SKU, curățare catalog.', 'papetarie-storefront'); ?></span></article>
+      <section class="pap-styleguide-tab-panel pap-styleguide-tab-panel--alerts" id="pap-styleguide-panel-alerts" role="tabpanel" aria-labelledby="pap-styleguide-tab-alerts" data-panel="alerts" hidden>
+        <div class="pap-styleguide-empty-card">
+          <p class="pap-styleguide-empty-card__eyebrow"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+          <h2><?php esc_html_e('Alerts', 'papetarie-storefront'); ?></h2>
+          <p class="pap-styleguide-empty-card__soon"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+        </div>
+      </section>
+
+      <section class="pap-styleguide-tab-panel pap-styleguide-tab-panel--tables" id="pap-styleguide-panel-tables" role="tabpanel" aria-labelledby="pap-styleguide-tab-tables" data-panel="tables" hidden>
+        <div class="pap-styleguide-empty-card">
+          <p class="pap-styleguide-empty-card__eyebrow"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+          <h2><?php esc_html_e('Tables', 'papetarie-storefront'); ?></h2>
+          <p class="pap-styleguide-empty-card__soon"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+        </div>
+      </section>
+
+      <section class="pap-styleguide-tab-panel pap-styleguide-tab-panel--components" id="pap-styleguide-panel-components" role="tabpanel" aria-labelledby="pap-styleguide-tab-components" data-panel="components" hidden>
+        <div class="pap-styleguide-empty-card">
+          <p class="pap-styleguide-empty-card__eyebrow"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+          <h2><?php esc_html_e('Components', 'papetarie-storefront'); ?></h2>
+          <p class="pap-styleguide-empty-card__soon"><?php esc_html_e('Coming soon', 'papetarie-storefront'); ?></p>
+        </div>
+      </section>
     </div>
   </section>
 </main>
+<script>
+(function () {
+  const root = document.querySelector('[data-styleguide-tabs]');
+  if (!root) return;
+  const tabs = Array.from(root.querySelectorAll('[role="tab"]'));
+  const panels = Array.from(root.querySelectorAll('[role="tabpanel"]'));
+
+  const activate = (name) => {
+    tabs.forEach((tab) => {
+      const active = tab.dataset.tab === name;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      tab.tabIndex = active ? 0 : -1;
+    });
+
+    panels.forEach((panel) => {
+      const active = panel.dataset.panel === name;
+      panel.hidden = !active;
+    });
+  };
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => activate(tab.dataset.tab));
+  });
+
+  activate((tabs.find((tab) => tab.classList.contains('is-active')) || tabs[0]).dataset.tab);
+})();
+</script>
 <?php
 get_footer();

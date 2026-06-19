@@ -4135,38 +4135,298 @@ add_action('after_switch_theme', 'papetarie_storefront_flush_rewrite_on_theme_sw
 
 function papetarie_storefront_account_menu_items(array $items): array
 {
-    $new_items = [];
+    return [
+        'dashboard' => __('Panou cont', 'papetarie-storefront'),
+        'orders' => __('Comenzile mele', 'papetarie-storefront'),
+        'favorite' => __('Favorite', 'papetarie-storefront'),
+        'edit-address' => __('Adrese', 'papetarie-storefront'),
+        'edit-account' => __('Detalii cont', 'papetarie-storefront'),
+        'customer-logout' => __('Deconectare', 'papetarie-storefront'),
+    ];
+}
+add_filter('woocommerce_account_menu_items', 'papetarie_storefront_account_menu_items');
 
-    foreach ($items as $key => $label) {
-        $new_items[$key] = $label;
+function papetarie_storefront_account_menu_icon_map(): array
+{
+    return [
+        'dashboard' => 'account',
+        'orders' => 'cart',
+        'favorite' => 'heart',
+        'edit-address' => 'office',
+        'edit-account' => 'pen',
+        'customer-logout' => 'lock-outline',
+    ];
+}
 
-        if ($key === 'orders') {
-            $new_items['favorite'] = __('Favorite', 'papetarie-storefront');
-            $new_items['oferte'] = __('Oferte', 'papetarie-storefront');
-            $new_items['suport'] = __('Suport', 'papetarie-storefront');
-            $new_items['retururi'] = __('Retururi', 'papetarie-storefront');
+function papetarie_storefront_account_order_display_number(WC_Order $order): string
+{
+    $raw_number = (string) $order->get_order_number();
+    $normalized_number = preg_replace('/^SH-?/i', '', $raw_number);
+
+    if (!is_string($normalized_number) || $normalized_number === '') {
+        $normalized_number = $raw_number;
+    }
+
+    return '#SH-' . $normalized_number;
+}
+
+function papetarie_storefront_account_order_status_data(WC_Order $order): array
+{
+    $status = $order->get_status();
+
+    $map = [
+        'completed' => [
+            'label' => __('Livrată', 'papetarie-storefront'),
+            'class' => 'is-success',
+        ],
+        'processing' => [
+            'label' => __('Procesare', 'papetarie-storefront'),
+            'class' => 'is-processing',
+        ],
+        'pending' => [
+            'label' => __('În așteptare', 'papetarie-storefront'),
+            'class' => 'is-pending',
+        ],
+        'on-hold' => [
+            'label' => __('În așteptare', 'papetarie-storefront'),
+            'class' => 'is-pending',
+        ],
+        'cancelled' => [
+            'label' => __('Anulată', 'papetarie-storefront'),
+            'class' => 'is-cancelled',
+        ],
+        'refunded' => [
+            'label' => __('Anulată', 'papetarie-storefront'),
+            'class' => 'is-cancelled',
+        ],
+        'failed' => [
+            'label' => __('Anulată', 'papetarie-storefront'),
+            'class' => 'is-cancelled',
+        ],
+    ];
+
+    if (isset($map[$status])) {
+        return $map[$status];
+    }
+
+    return [
+        'label' => wc_get_order_status_name($status),
+        'class' => 'is-neutral',
+    ];
+}
+
+function papetarie_storefront_account_order_badge_html(WC_Order $order): string
+{
+    $status_data = papetarie_storefront_account_order_status_data($order);
+
+    return sprintf(
+        '<span class="pap-account-status-badge %1$s">%2$s</span>',
+        esc_attr($status_data['class']),
+        esc_html($status_data['label'])
+    );
+}
+
+function papetarie_storefront_account_order_payment_suffix(WC_Order $order): string
+{
+    $payment_method_title = trim((string) $order->get_payment_method_title());
+    $last4 = '';
+    $meta_keys = [
+        '_payment_method_last4',
+        '_stripe_card_last4',
+        '_stripe_source_last4',
+        '_card_last4',
+        'last4',
+    ];
+
+    foreach ($meta_keys as $meta_key) {
+        $meta_value = trim((string) $order->get_meta($meta_key));
+        if ($meta_value !== '') {
+            $last4 = preg_replace('/[^0-9]/', '', $meta_value) ?: $meta_value;
+            break;
         }
     }
 
-    if (!isset($new_items['favorite'])) {
-        $new_items['favorite'] = __('Favorite', 'papetarie-storefront');
+    if ($payment_method_title === '') {
+        $payment_method_title = __('Plată online', 'papetarie-storefront');
     }
 
-    if (!isset($new_items['oferte'])) {
-        $new_items['oferte'] = __('Oferte', 'papetarie-storefront');
+    if ($last4 !== '') {
+        return sprintf('%1$s • .... %2$s', $payment_method_title, $last4);
     }
 
-    if (!isset($new_items['suport'])) {
-        $new_items['suport'] = __('Suport', 'papetarie-storefront');
-    }
-
-    if (!isset($new_items['retururi'])) {
-        $new_items['retururi'] = __('Retururi', 'papetarie-storefront');
-    }
-
-    return $new_items;
+    return $payment_method_title;
 }
-add_filter('woocommerce_account_menu_items', 'papetarie_storefront_account_menu_items');
+
+function papetarie_storefront_account_shipping_method_label(WC_Order $order): string
+{
+    $shipping_methods = [];
+
+    foreach ($order->get_items('shipping') as $shipping_item) {
+        if ($shipping_item instanceof WC_Order_Item_Shipping) {
+            $label = trim((string) $shipping_item->get_name());
+            if ($label !== '') {
+                $shipping_methods[] = $label;
+            }
+        }
+    }
+
+    if (!$shipping_methods) {
+        $shipping_methods[] = __('Curier rapid', 'papetarie-storefront');
+    }
+
+    return implode(', ', array_unique($shipping_methods));
+}
+
+function papetarie_storefront_account_shipping_company_label(WC_Order $order): string
+{
+    $shipping_company = trim((string) $order->get_shipping_company());
+    $shipping_first_name = trim((string) $order->get_shipping_first_name());
+    $shipping_last_name = trim((string) $order->get_shipping_last_name());
+    $shipping_city = trim((string) $order->get_shipping_city());
+
+    if ($shipping_company !== '') {
+        return $shipping_company;
+    }
+
+    $name = trim($shipping_first_name . ' ' . $shipping_last_name);
+    $parts = array_filter([$name, $shipping_city]);
+
+    if ($parts) {
+        return implode(' · ', $parts);
+    }
+
+    $billing_company = trim((string) $order->get_billing_company());
+    if ($billing_company !== '') {
+        return $billing_company;
+    }
+
+    return __('Fan Courier', 'papetarie-storefront');
+}
+
+function papetarie_storefront_account_order_totals_rows(WC_Order $order): array
+{
+    $subtotal = (float) $order->get_subtotal();
+    $shipping_total = (float) $order->get_shipping_total();
+    $shipping_tax = (float) $order->get_shipping_tax();
+    $tax_total = (float) $order->get_total_tax();
+    $items_total = $subtotal + $shipping_total + $tax_total;
+
+    return [
+        [
+            'label' => __('Subtotal', 'papetarie-storefront'),
+            'value' => papetarie_storefront_format_plain_currency_amount($subtotal),
+        ],
+        [
+            'label' => __('Transport', 'papetarie-storefront'),
+            'value' => papetarie_storefront_format_plain_currency_amount($shipping_total),
+        ],
+        [
+            'label' => __('TVA', 'papetarie-storefront'),
+            'value' => papetarie_storefront_format_plain_currency_amount($tax_total),
+        ],
+        [
+            'label' => __('Total comandă', 'papetarie-storefront'),
+            'value' => papetarie_storefront_format_plain_currency_amount((float) $order->get_total()),
+        ],
+    ];
+}
+
+function papetarie_storefront_account_order_item_rows(WC_Order $order): array
+{
+    $rows = [];
+
+    foreach ($order->get_items('line_item') as $item_id => $item) {
+        if (!$item instanceof WC_Order_Item_Product) {
+            continue;
+        }
+
+        $product = $item->get_product();
+        $quantity = max(1, (int) $item->get_quantity());
+        $subtotal = (float) $order->get_line_subtotal($item, true, true);
+        $total = (float) $item->get_total() + (float) $item->get_total_tax();
+
+        $rows[] = [
+            'name' => $item->get_name(),
+            'sku' => $product instanceof WC_Product ? $product->get_sku() : '',
+            'image' => $product instanceof WC_Product ? $product->get_image_id() : 0,
+            'unit_price' => papetarie_storefront_format_plain_currency_amount($quantity > 0 ? $subtotal / $quantity : $subtotal),
+            'quantity' => (string) $quantity,
+            'total' => papetarie_storefront_format_plain_currency_amount($total),
+        ];
+    }
+
+    return $rows;
+}
+
+function papetarie_storefront_account_order_items_count(WC_Order $order): int
+{
+    $count = 0;
+
+    foreach ($order->get_items('line_item') as $item) {
+        if ($item instanceof WC_Order_Item_Product) {
+            $count += max(1, (int) $item->get_quantity());
+        }
+    }
+
+    return $count;
+}
+
+function papetarie_storefront_account_dashboard_stats(int $user_id): array
+{
+    $recent_orders = function_exists('wc_get_orders') ? wc_get_orders([
+        'customer_id' => $user_id,
+        'limit' => 100,
+        'orderby' => 'date',
+        'order' => 'DESC',
+    ]) : [];
+
+    $order_count = function_exists('wc_get_customer_order_count') ? (int) wc_get_customer_order_count($user_id) : count($recent_orders);
+    $total_spent = function_exists('wc_get_customer_total_spent') ? (float) wc_get_customer_total_spent($user_id) : 0.0;
+    $wishlist_ids = papetarie_storefront_account_wishlist_ids();
+    $last_order = null;
+
+    foreach ($recent_orders as $recent_order) {
+        if ($recent_order instanceof WC_Order) {
+            $last_order = $recent_order;
+            break;
+        }
+    }
+
+    return [
+        [
+            'label' => __('Comenzi', 'papetarie-storefront'),
+            'value' => (string) $order_count,
+            'icon' => 'cart',
+            'tone' => 'blue',
+            'link' => wc_get_account_endpoint_url('orders'),
+            'link_label' => __('Vezi toate comenzile', 'papetarie-storefront'),
+        ],
+        [
+            'label' => __('Valoare totală', 'papetarie-storefront'),
+            'value' => papetarie_storefront_format_plain_currency_amount($total_spent),
+            'icon' => 'paper',
+            'tone' => 'green',
+            'link' => wc_get_account_endpoint_url('orders'),
+            'link_label' => __('Vezi detalii', 'papetarie-storefront'),
+        ],
+        [
+            'label' => __('Favorite', 'papetarie-storefront'),
+            'value' => (string) count($wishlist_ids),
+            'icon' => 'heart',
+            'tone' => 'orange',
+            'link' => wc_get_account_endpoint_url('favorite'),
+            'link_label' => __('Vezi favoritele', 'papetarie-storefront'),
+        ],
+        [
+            'label' => __('Ultima comandă', 'papetarie-storefront'),
+            'value' => $last_order instanceof WC_Order ? wp_date('j F Y', $last_order->get_date_created()->getTimestamp()) : __('Nicio comandă', 'papetarie-storefront'),
+            'icon' => 'account',
+            'tone' => 'violet',
+            'link' => $last_order instanceof WC_Order ? $last_order->get_view_order_url() : wc_get_account_endpoint_url('orders'),
+            'link_label' => __('Vezi detalii', 'papetarie-storefront'),
+        ],
+    ];
+}
 
 function papetarie_storefront_render_product_card(WC_Product $product, string $context = 'account', array $args = []): void
 {
@@ -4520,3 +4780,63 @@ function papetarie_storefront_orders_actions(array $actions, WC_Order $order): a
     return $actions;
 }
 add_filter('woocommerce_my_account_my_orders_actions', 'papetarie_storefront_orders_actions', 10, 2);
+
+function papetarie_storefront_account_orders_query(array $args): array
+{
+    if (!function_exists('is_account_page') || !is_account_page()) {
+        return $args;
+    }
+
+    $args['limit'] = 5;
+    $args['paginate'] = true;
+    $args['orderby'] = 'date';
+    $args['order'] = 'DESC';
+
+    $status = isset($_GET['order_status']) ? sanitize_key(wp_unslash($_GET['order_status'])) : 'all';
+    if ($status !== 'all' && in_array($status, ['completed', 'processing', 'pending', 'on-hold', 'cancelled', 'refunded', 'failed'], true)) {
+        $args['status'] = [$status];
+    }
+
+    $period = isset($_GET['order_period']) ? sanitize_key(wp_unslash($_GET['order_period'])) : 'all';
+    $period_map = [
+        '30d' => '-30 days',
+        '90d' => '-90 days',
+        '180d' => '-180 days',
+        '365d' => '-365 days',
+    ];
+
+    if (isset($period_map[$period])) {
+        $args['date_created'] = '>' . gmdate('Y-m-d H:i:s', strtotime($period_map[$period]));
+    }
+
+    $search = isset($_GET['order_search']) ? trim((string) wp_unslash($_GET['order_search'])) : '';
+    if ($search !== '') {
+        $matching_order_ids = [];
+        $candidate_ids = wc_get_orders([
+            'customer' => get_current_user_id(),
+            'limit' => -1,
+            'return' => 'ids',
+            'orderby' => 'date',
+            'order' => 'DESC',
+        ]);
+
+        foreach ($candidate_ids as $order_id) {
+            $order = wc_get_order((int) $order_id);
+            if (!$order instanceof WC_Order) {
+                continue;
+            }
+
+            $display_number = papetarie_storefront_account_order_display_number($order);
+            $raw_number = (string) $order->get_order_number();
+
+            if (stripos($display_number, $search) !== false || stripos($raw_number, $search) !== false) {
+                $matching_order_ids[] = (int) $order_id;
+            }
+        }
+
+        $args['include'] = $matching_order_ids ?: [0];
+    }
+
+    return $args;
+}
+add_filter('woocommerce_my_account_my_orders_query', 'papetarie_storefront_account_orders_query');

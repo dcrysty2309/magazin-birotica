@@ -1,45 +1,94 @@
 # Layout Typography Rules
 
-This document defines the shared typography scale for the Papetarie Storefront theme.
+This document defines the semantic typography hierarchy for the Papetarie Storefront theme.
 
-## Design Tokens
+## Global Color Tokens
 
-Use these tokens instead of hardcoded component-specific values whenever possible:
+Use these shared text colors everywhere:
 
 ```css
---pap-page-title-size: 32px;
---pap-section-title-size: 26px;
---pap-subsection-title-size: 22px;
---pap-product-title-size: 20px;
---pap-important-text-size: 18px;
---pap-body-text-size: 16px;
---pap-secondary-text-size: 14px;
---pap-label-text-size: 14px;
---pap-placeholder-text-size: 16px;
+--text-primary: #17324D;
+--text-secondary: #66758A;
+--text-label: #7C8899;
 ```
 
-## Scale
+## Semantic Hierarchy
 
-- H1 / page title: `32px`, `700`
-- H2 / section title: `26px`, `700`
-- H3 / subsection title: `22px`, `700`
-- Product card title: `20px`, `700`
-- Important text: `18px`, `600`
-- Body text: `16px`, `400`
-- Secondary text: `14px`, `400`
-- Form labels: `14px`, `600`
-- Placeholders: `16px`
+- `H1` is the page title. Use one per page.
+- `H2` is for main page sections.
+- `H3` is for subsections inside an `H2`.
+- `H4` is for small widget or card titles.
+- Tables, labels, SKU, categories and meta text are not headings.
+- Product names and monetary values are text styles, not headings.
+
+## Text Roles
+
+### H1
+
+- `32px / 40px`
+- `font-weight: 700`
+- `color: var(--text-primary)`
+- `letter-spacing: -0.02em`
+
+### H2
+
+- `24px / 32px`
+- `font-weight: 700`
+- `color: var(--text-primary)`
+- `letter-spacing: -0.02em`
+
+### H3
+
+- `20px / 28px`
+- `font-weight: 700`
+- `color: var(--text-primary)`
+- `letter-spacing: -0.02em`
+
+### H4
+
+- `18px / 24px`
+- `font-weight: 600`
+- `color: var(--text-primary)`
+- `letter-spacing: -0.01em`
+
+### Paragraph
+
+- `14px / 22px`
+- `font-weight: 400`
+- `color: var(--text-primary)`
+
+### Secondary text
+
+- `14px / 22px`
+- `font-weight: 400`
+- `color: var(--text-secondary)`
+
+### Small
+
+- `13px / 20px`
+- `font-weight: 400`
+- `color: var(--text-secondary)`
+
+### Label
+
+- `12px / 16px`
+- `font-weight: 600`
+- `color: var(--text-label)`
+- `text-transform: uppercase`
+- `letter-spacing: 0.08em`
 
 ## Usage Guidelines
 
-- Use the page title token for the main page heading only.
-- Use the section title token for card and section headings.
-- Use the subsection title token for nested groups and internal blocks.
-- Use the product title token for all product cards, including homepage, archive, cart recommendations and cross-sells.
-- Keep labels and placeholder text consistent across forms.
+- Use headings based on semantic hierarchy, not size alone.
+- Keep page titles as `H1`.
+- Keep section titles as `H2`.
+- Keep subsection titles as `H3`.
+- Keep widget and card titles as `H4`.
+- Keep table labels and headings as label text, not headings.
+- Keep product names and price values as text styles.
 - Prefer shared tokens and shared classes instead of one-off font sizes.
 
 ## Notes
 
-- Homepage hero display headings and other special marketing blocks may use dedicated display styles, but page content titles must follow this scale.
-- Any new page or component should map into this scale before adding a new value.
+- Any new page or component should map into this hierarchy before adding a new value.
+- If a component needs a special text treatment, it should still map to one of the existing semantic roles above.
