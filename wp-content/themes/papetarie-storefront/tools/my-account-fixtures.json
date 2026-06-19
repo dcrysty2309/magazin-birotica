@@ -1,0 +1,261 @@
+{
+    "generated_at": "2026-06-18T16:11:56+00:00",
+    "users": {
+        "empty": {
+            "email": "qa.empty.account@example.com",
+            "password": "QaEmpty123!"
+        },
+        "one": {
+            "email": "qa.one.order@example.com",
+            "password": "QaOneOrder123!",
+            "orders": [
+                {
+                    "id": 695,
+                    "number": "#SH-695",
+                    "status": "completed",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                }
+            ]
+        },
+        "five": {
+            "email": "qa.five.orders@example.com",
+            "password": "QaFiveOrders123!",
+            "orders": [
+                {
+                    "id": 696,
+                    "number": "#SH-696",
+                    "status": "completed",
+                    "total": 64.5,
+                    "shipping_total": 15,
+                    "tax_total": 10.3,
+                    "item_count": 6
+                },
+                {
+                    "id": 697,
+                    "number": "#SH-697",
+                    "status": "processing",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 698,
+                    "number": "#SH-698",
+                    "status": "pending",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 699,
+                    "number": "#SH-699",
+                    "status": "cancelled",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 700,
+                    "number": "#SH-700",
+                    "status": "completed",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                }
+            ]
+        },
+        "twenty": {
+            "email": "qa.twenty.orders@example.com",
+            "password": "QaTwentyOrders123!",
+            "orders": [
+                {
+                    "id": 701,
+                    "number": "#SH-701",
+                    "status": "completed",
+                    "total": 64.5,
+                    "shipping_total": 15,
+                    "tax_total": 10.3,
+                    "item_count": 6
+                },
+                {
+                    "id": 702,
+                    "number": "#SH-702",
+                    "status": "processing",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 703,
+                    "number": "#SH-703",
+                    "status": "pending",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 704,
+                    "number": "#SH-704",
+                    "status": "cancelled",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 705,
+                    "number": "#SH-705",
+                    "status": "completed",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 706,
+                    "number": "#SH-706",
+                    "status": "processing",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 707,
+                    "number": "#SH-707",
+                    "status": "pending",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 708,
+                    "number": "#SH-708",
+                    "status": "cancelled",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 709,
+                    "number": "#SH-709",
+                    "status": "completed",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 710,
+                    "number": "#SH-710",
+                    "status": "processing",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 711,
+                    "number": "#SH-711",
+                    "status": "pending",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 712,
+                    "number": "#SH-712",
+                    "status": "cancelled",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 713,
+                    "number": "#SH-713",
+                    "status": "completed",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 714,
+                    "number": "#SH-714",
+                    "status": "processing",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 715,
+                    "number": "#SH-715",
+                    "status": "pending",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 716,
+                    "number": "#SH-716",
+                    "status": "cancelled",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 717,
+                    "number": "#SH-717",
+                    "status": "completed",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 718,
+                    "number": "#SH-718",
+                    "status": "processing",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 719,
+                    "number": "#SH-719",
+                    "status": "pending",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                },
+                {
+                    "id": 720,
+                    "number": "#SH-720",
+                    "status": "cancelled",
+                    "total": 17.3,
+                    "shipping_total": 0,
+                    "tax_total": 0,
+                    "item_count": 3
+                }
+            ]
+        }
+    }
+}

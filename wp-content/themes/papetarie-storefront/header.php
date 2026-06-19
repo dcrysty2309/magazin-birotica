@@ -59,7 +59,9 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
           aria-controls="pap-cart-drawer"
           aria-expanded="false"
         >
-          <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('cart'); ?></i>
+          <span class="pap-tool-icon-badge" aria-hidden="true">
+            <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('cart'); ?></i>
+          </span>
           <span class="pap-tool-copy">
             <strong><?php esc_html_e('Coș', 'papetarie-storefront'); ?></strong>
             <span data-pap-cart-count><?php echo esc_html(papetarie_storefront_cart_count_label()); ?></span>
