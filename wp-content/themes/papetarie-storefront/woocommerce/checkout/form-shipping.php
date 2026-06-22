@@ -18,17 +18,21 @@ $render_shipping_fields = static function (array $field_keys) use ($shipping_fie
         woocommerce_form_field($key, $shipping_fields[$key], $checkout->get_value($key));
     }
 };
-
 ?>
 
-<section class="pap-checkout-section pap-checkout-section--shipping">
-	<div class="pap-checkout-section__head">
-		<h2><?php esc_html_e('Date de livrare', 'papetarie-storefront'); ?></h2>
-		<p class="pap-checkout-card__intro"><?php esc_html_e('Livrarea standard folosește adresa introdusă mai jos.', 'papetarie-storefront'); ?></p>
+<section class="pap-checkout-card pap-checkout-card--shipping-address" data-pap-checkout-section="shipping-address">
+	<div class="pap-checkout-card__head">
+		<h2><?php esc_html_e('Adresă de livrare', 'papetarie-storefront'); ?></h2>
 	</div>
 
 	<div class="woocommerce-shipping-fields">
 		<?php if (true === WC()->cart->needs_shipping_address()) : ?>
+			<h3 id="ship-to-different-address">
+				<label class="woocommerce-form__label woocommerce-form__label-for-checkbox checkbox">
+					<input id="ship-to-different-address-checkbox" class="woocommerce-form__input woocommerce-form__input-checkbox input-checkbox" <?php checked(apply_filters('woocommerce_ship_to_different_address_checked', 'shipping' === get_option('woocommerce_ship_to_destination') ? 1 : 0), 1); ?> type="checkbox" name="ship_to_different_address" value="1" /> <span><?php esc_html_e('Livrare la o adresa diferita?', 'papetarie-storefront'); ?></span>
+				</label>
+			</h3>
+
 			<div class="shipping_address">
 				<?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
 
@@ -38,10 +42,6 @@ $render_shipping_fields = static function (array $field_keys) use ($shipping_fie
 
 				<?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>
 			</div>
-		<?php else : ?>
-			<p class="pap-checkout-card__intro">
-				<?php esc_html_e('Comanda nu necesită o adresă de livrare separată. Rezumatul rămâne actualizat în dreapta.', 'papetarie-storefront'); ?>
-			</p>
 		<?php endif; ?>
 	</div>
 </section>

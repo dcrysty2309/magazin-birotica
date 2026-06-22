@@ -463,10 +463,19 @@ function papetarie_storefront_redirect_checkout_for_minimum_order(): void
     }
 
     papetarie_storefront_enforce_minimum_order_amount();
-    wp_safe_redirect(wc_get_cart_url());
-    exit;
+    // Keep the checkout page visible; the notice is enough for now.
 }
 add_action('template_redirect', 'papetarie_storefront_redirect_checkout_for_minimum_order', 20);
+
+function papetarie_storefront_disable_empty_cart_checkout_redirect(bool $redirect): bool
+{
+    if (!function_exists('is_checkout') || !is_checkout() || is_order_received_page() || is_wc_endpoint_url('order-pay')) {
+        return $redirect;
+    }
+
+    return false;
+}
+add_filter('woocommerce_checkout_redirect_empty_cart', 'papetarie_storefront_disable_empty_cart_checkout_redirect', 20);
 
 function papetarie_storefront_enqueue_modal_manager_script(): void
 {
@@ -829,79 +838,115 @@ add_action('init', 'papetarie_storefront_cleanup_legacy_checkout_page', 20);
 
 function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
 {
-    if (!function_exists('WC') || !WC() || !WC()->cart || !WC()->shipping() || !WC()->cart->needs_shipping()) {
+    if (!function_exists('WC') || !WC() || !WC()->cart) {
         return '';
     }
 
-    $packages = WC()->shipping()->get_packages();
-    if (empty($packages)) {
-        return '';
-    }
+    $shipping_eta = (string) apply_filters('papetarie_storefront_checkout_shipping_eta_label', __('48-168 ore', 'papetarie-storefront'));
+    $fallback_shipping_cost = (float) apply_filters('papetarie_storefront_checkout_shipping_default_cost', 0.0);
+    $packages = function_exists('WC') && WC() && WC()->shipping() ? WC()->shipping()->get_packages() : [];
+    $has_shipping_method = !empty($packages) && WC()->cart->needs_shipping();
 
     ob_start();
     ?>
-    <div class="pap-checkout-shipping-methods-inline" data-pap-checkout-section="shipping-methods">
+    <section class="pap-checkout-card pap-checkout-card--shipping-methods pap-checkout-shipping-methods-inline" data-pap-checkout-section="shipping-methods">
       <div class="pap-checkout-shipping-methods-inline__head">
-        <h3><?php esc_html_e('Livrare standard', 'papetarie-storefront'); ?></h3>
+        <h2><?php esc_html_e('Tip de livrare', 'papetarie-storefront'); ?></h2>
       </div>
 
       <div class="pap-checkout-shipping-method-groups">
-        <?php foreach ($packages as $index => $package) : ?>
-          <?php
-          $available_methods = isset($package['rates']) && is_array($package['rates']) ? $package['rates'] : [];
-          $available_methods = array_filter(
-              $available_methods,
-              static function ($rate, $rate_key): bool {
-                  return str_starts_with((string) $rate_key, 'flat_rate');
-              },
-              ARRAY_FILTER_USE_BOTH
-          );
-          $chosen_method = function_exists('wc_get_chosen_shipping_method_for_package') ? (string) wc_get_chosen_shipping_method_for_package($index, $package) : '';
-          $package_name = isset($package['package_name']) && is_string($package['package_name']) ? $package['package_name'] : '';
-          ?>
-          <div class="pap-checkout-shipping-package">
-            <?php if ($package_name !== '' || count($packages) > 1) : ?>
-              <p class="pap-checkout-shipping-package__title">
-                <?php echo esc_html($package_name !== '' ? $package_name : sprintf(__('Pachet %d', 'papetarie-storefront'), $index + 1)); ?>
-              </p>
-            <?php endif; ?>
+        <div class="pap-checkout-shipping-package">
+          <?php if ($has_shipping_method) : ?>
+            <?php foreach ($packages as $index => $package) : ?>
+              <?php
+              $available_methods = isset($package['rates']) && is_array($package['rates']) ? $package['rates'] : [];
+              $available_methods = array_filter(
+                  $available_methods,
+                  static function ($rate, $rate_key): bool {
+                      return str_starts_with((string) $rate_key, 'flat_rate');
+                  },
+                  ARRAY_FILTER_USE_BOTH
+              );
+              $chosen_method = function_exists('wc_get_chosen_shipping_method_for_package') ? (string) wc_get_chosen_shipping_method_for_package($index, $package) : '';
+              $package_name = isset($package['package_name']) && is_string($package['package_name']) ? $package['package_name'] : '';
+              $selected_rate = null;
+              $selected_rate_key = '';
+              if (!empty($available_methods)) {
+                  foreach ($available_methods as $rate_key => $rate) {
+                      if ((string) $chosen_method === (string) $rate_key) {
+                          $selected_rate = $rate;
+                          $selected_rate_key = (string) $rate_key;
+                          break;
+                      }
+                  }
 
-            <?php if (!empty($available_methods)) : ?>
-              <ul class="pap-checkout-shipping-methods" aria-label="<?php esc_attr_e('Metode de livrare disponibile', 'papetarie-storefront'); ?>">
-                <?php foreach ($available_methods as $rate_key => $rate) : ?>
-                  <?php
-                  $input_id = sprintf('shipping_method_%d_%s', (int) $index, sanitize_title((string) $rate_key));
-                  $is_selected = (string) $chosen_method === (string) $rate_key;
+                  if (!$selected_rate) {
+                      $selected_rate_key = (string) array_key_first($available_methods);
+                      $selected_rate = $available_methods[$selected_rate_key] ?? reset($available_methods);
+                  }
+              }
+              ?>
+              <?php if ($package_name !== '' || count($packages) > 1) : ?>
+                <p class="pap-checkout-shipping-package__title">
+                  <?php echo esc_html($package_name !== '' ? $package_name : sprintf(__('Pachet %d', 'papetarie-storefront'), $index + 1)); ?>
+                </p>
+              <?php endif; ?>
+
+              <?php if ($selected_rate instanceof WC_Shipping_Rate && $selected_rate_key !== '') :
+                  $input_id = sprintf('shipping_method_%d_%s', (int) $index, sanitize_title($selected_rate_key));
+                  $shipping_title = strtoupper(trim((string) $selected_rate->get_label()));
+                  $shipping_cost = wc_price((float) $selected_rate->get_cost());
                   ?>
-                  <li class="pap-checkout-shipping-method<?php echo $is_selected ? ' is-selected' : ''; ?>">
+                  <div class="pap-checkout-shipping-method is-selected pap-checkout-shipping-summary">
                     <label for="<?php echo esc_attr($input_id); ?>">
                       <input
                         type="radio"
                         class="shipping_method input-radio"
                         name="<?php echo esc_attr(sprintf('shipping_method[%d]', (int) $index)); ?>"
                         id="<?php echo esc_attr($input_id); ?>"
-                        value="<?php echo esc_attr((string) $rate_key); ?>"
+                        value="<?php echo esc_attr($selected_rate_key); ?>"
                         data-index="<?php echo esc_attr((int) $index); ?>"
-                        <?php checked($is_selected); ?>
+                        checked
                       >
-                      <span class="pap-checkout-shipping-method__label">
-                        <?php echo wp_kses_post(wc_cart_totals_shipping_method_label($rate)); ?>
+                      <span class="pap-checkout-shipping-summary__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                          <path d="M3 7.5h10v8H3v-8Z" stroke="currentColor" stroke-width="1.8" />
+                          <path d="M13 10h3.8l2.2 2.6V15.5H13V10Z" stroke="currentColor" stroke-width="1.8" />
+                          <path d="M6.25 18.25a1.5 1.5 0 1 0 0-.01Z" stroke="currentColor" stroke-width="1.8" />
+                          <path d="M17.75 18.25a1.5 1.5 0 1 0 0-.01Z" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
                       </span>
+                      <span class="pap-checkout-shipping-summary__copy">
+                        <span class="pap-checkout-shipping-summary__title"><?php echo esc_html($shipping_title !== '' ? $shipping_title : __('STANDARD', 'papetarie-storefront')); ?></span>
+                        <span class="pap-checkout-shipping-summary__meta"><?php echo esc_html(sprintf(__('Livrare %s', 'papetarie-storefront'), $shipping_eta)); ?></span>
+                      </span>
+                      <span class="pap-checkout-shipping-summary__price"><?php echo wp_kses_post($shipping_cost); ?></span>
                     </label>
-                  </li>
-                <?php endforeach; ?>
-              </ul>
-            <?php else : ?>
-              <div class="pap-checkout-empty-state" role="status">
-                <?php esc_html_e('Nu există metode de livrare disponibile pentru adresa selectată. Verifică țara, județul și codul poștal.', 'papetarie-storefront'); ?>
+                  </div>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          <?php else : ?>
+            <div class="pap-checkout-shipping-summary is-static">
+              <div class="pap-checkout-shipping-summary__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                  <path d="M3 7.5h10v8H3v-8Z" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M13 10h3.8l2.2 2.6V15.5H13V10Z" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M6.25 18.25a1.5 1.5 0 1 0 0-.01Z" stroke="currentColor" stroke-width="1.8" />
+                  <path d="M17.75 18.25a1.5 1.5 0 1 0 0-.01Z" stroke="currentColor" stroke-width="1.8" />
+                </svg>
               </div>
-            <?php endif; ?>
-          </div>
-        <?php endforeach; ?>
+              <div class="pap-checkout-shipping-summary__copy">
+                <span class="pap-checkout-shipping-summary__title"><?php esc_html_e('STANDARD', 'papetarie-storefront'); ?></span>
+                <span class="pap-checkout-shipping-summary__meta"><?php echo esc_html(sprintf(__('Livrare %s', 'papetarie-storefront'), $shipping_eta)); ?></span>
+              </div>
+              <span class="pap-checkout-shipping-summary__price"><?php echo wp_kses_post(wc_price($fallback_shipping_cost)); ?></span>
+            </div>
+          <?php endif; ?>
+        </div>
       </div>
 
       <?php echo papetarie_storefront_get_checkout_products_inline_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-    </div>
+    </section>
     <?php
 
     return (string) ob_get_clean();
@@ -943,18 +988,6 @@ function papetarie_storefront_get_checkout_products_inline_html(): string
     ob_start();
     ?>
     <div class="pap-checkout-shipping-products" data-pap-checkout-section="checkout-products">
-      <div class="pap-checkout-shipping-products__head">
-        <h3><?php esc_html_e('Produsele selectate', 'papetarie-storefront'); ?></h3>
-        <p class="pap-checkout-summary-header__meta">
-          <?php
-          printf(
-              esc_html(_n('%d produs', '%d produse', $visible_item_count, 'papetarie-storefront')),
-              (int) $visible_item_count
-          );
-          ?>
-        </p>
-      </div>
-
       <div class="pap-checkout-product-list" role="list" aria-label="<?php esc_attr_e('Produse din comandă', 'papetarie-storefront'); ?>">
         <?php do_action('woocommerce_review_order_before_cart_contents'); ?>
 
@@ -967,6 +1000,7 @@ function papetarie_storefront_get_checkout_products_inline_html(): string
           }
 
           $visible_index++;
+          $is_faded = $has_more_products && $visible_index === $visible_limit;
           $is_hidden = $has_more_products && $visible_index > $visible_limit;
 
           $product_permalink = $_product->is_visible() ? $_product->get_permalink($cart_item) : '';
@@ -975,12 +1009,11 @@ function papetarie_storefront_get_checkout_products_inline_html(): string
               $product_thumbnail = '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($_product->get_name()) . '" loading="lazy">';
           }
           $product_name = wp_kses_post(apply_filters('woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key));
-          $product_subtotal = wp_kses_post(apply_filters('woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal($_product, $cart_item['quantity']), $cart_item, $cart_item_key));
           $formatted_meta = $capture_output(static function () use ($cart_item): void {
               echo wc_get_formatted_cart_item_data($cart_item); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
           });
           ?>
-          <article class="pap-checkout-summary-item<?php echo $is_hidden ? ' is-hidden' : ''; ?>" role="listitem" <?php echo $is_hidden ? 'hidden aria-hidden="true"' : ''; ?>>
+          <article class="pap-checkout-summary-item<?php echo $is_hidden ? ' is-hidden' : ''; ?><?php echo $is_faded ? ' is-faded' : ''; ?>" role="listitem" <?php echo $is_hidden ? 'hidden aria-hidden="true"' : ''; ?>>
             <div class="pap-checkout-summary-item__media">
               <?php if ($product_permalink !== '') : ?>
                 <a class="pap-checkout-summary-thumb" href="<?php echo esc_url($product_permalink); ?>">
@@ -1006,10 +1039,6 @@ function papetarie_storefront_get_checkout_products_inline_html(): string
                 </div>
               <?php endif; ?>
             </div>
-
-            <div class="pap-checkout-summary-item__price">
-              <?php echo $product_subtotal; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-            </div>
           </article>
         <?php endforeach; ?>
 
@@ -1017,17 +1046,20 @@ function papetarie_storefront_get_checkout_products_inline_html(): string
       </div>
 
       <?php if ($has_more_products) : ?>
-        <button
-          type="button"
-          class="pap-checkout-products-toggle"
-          data-checkout-products-toggle
-          aria-expanded="false"
-          data-label-more="<?php echo esc_attr__('Vezi mai multe produse', 'papetarie-storefront'); ?>"
-          data-label-less="<?php echo esc_attr__('Ascunde produsele', 'papetarie-storefront'); ?>"
-        >
-          <?php esc_html_e('Vezi mai multe produse', 'papetarie-storefront'); ?>
-        </button>
+        <div class="pap-checkout-products-toggle-wrap">
+          <button
+            type="button"
+            class="button pap-cart-delete-modal-button pap-cart-delete-modal-button--secondary pap-checkout-products-toggle"
+            data-checkout-products-toggle
+            aria-expanded="false"
+            data-label-more="Arata mai mult +"
+            data-label-less="Arata mai putin -"
+          >
+            Arata mai mult +
+          </button>
+        </div>
       <?php endif; ?>
+
     </div>
     <?php
 
@@ -1236,21 +1268,21 @@ function papetarie_storefront_get_checkout_address_summary_html(): string
         return '';
     }
 
-    $shipping_different = (bool) papetarie_storefront_checkout_field_value('ship_to_different_address');
     $has_billing_lines = papetarie_storefront_checkout_address_card_lines('billing') !== [];
     ob_start();
     ?>
-    <section class="pap-checkout-address-sections" data-pap-checkout-section="address-summary" aria-label="<?php esc_attr_e('Adrese checkout', 'papetarie-storefront'); ?>">
-      <?php echo papetarie_storefront_checkout_address_card_html('shipping', [
-          'shipping_different' => $shipping_different,
-          'button_label' => $shipping_different ? __('Editează livrarea', 'papetarie-storefront') : __('Adaugă adresă de livrare', 'papetarie-storefront'),
-          'empty_message' => __('Nu ai completat încă adresa de livrare.', 'papetarie-storefront'),
-      ]); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+    <section class="pap-checkout-card pap-checkout-card--address-summary" data-pap-checkout-section="address-summary" aria-label="<?php esc_attr_e('Facturare', 'papetarie-storefront'); ?>">
+      <div class="pap-checkout-card__head">
+        <h2><?php esc_html_e('Facturare', 'papetarie-storefront'); ?></h2>
+        <p class="pap-checkout-card__intro"><?php esc_html_e('Aici vezi datele de facturare. Le poți actualiza din modalul dedicat.', 'papetarie-storefront'); ?></p>
+      </div>
 
-      <?php echo papetarie_storefront_checkout_address_card_html('billing', [
-          'button_label' => $has_billing_lines ? __('Editează facturarea', 'papetarie-storefront') : __('Adaugă adresă de facturare', 'papetarie-storefront'),
-          'empty_message' => __('Nu ai completat încă adresa de facturare.', 'papetarie-storefront'),
-      ]); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      <div class="pap-checkout-address-sections">
+        <?php echo papetarie_storefront_checkout_address_card_html('billing', [
+            'button_label' => $has_billing_lines ? __('Editează facturarea', 'papetarie-storefront') : __('Adaugă adresă de facturare', 'papetarie-storefront'),
+            'empty_message' => __('Nu ai completat încă adresa de facturare.', 'papetarie-storefront'),
+        ]); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
     </section>
     <?php
 
@@ -1354,7 +1386,7 @@ function papetarie_storefront_filter_checkout_payment_gateways(array $gateways):
     }
 
     foreach ($gateways as $gateway_id => $gateway) {
-        if (in_array($gateway_id, ['bacs', 'cod'], true)) {
+        if (in_array($gateway_id, ['cod', 'paypal'], true)) {
             continue;
         }
 
@@ -1388,9 +1420,8 @@ function papetarie_storefront_filter_gateway_titles(string $title, string $gatew
     }
 
     return match ($gateway_id) {
-        'bacs' => __('Transfer bancar', 'papetarie-storefront'),
         'cod' => __('Plată la livrare', 'papetarie-storefront'),
-        'cheque' => __('Plată offline', 'papetarie-storefront'),
+        'paypal' => __('Plată cu cardul', 'papetarie-storefront'),
         default => $title,
     };
 }

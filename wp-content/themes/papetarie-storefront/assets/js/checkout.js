@@ -215,23 +215,61 @@
     }
   };
 
-  const toggleProductsList = (button) => {
+  const setProductsListState = (button, nextExpanded) => {
     const $button = $(button);
     const $card = $button.closest('.pap-checkout-card--shipping-methods, .pap-checkout-shipping-products');
-    const expanded = $button.attr('aria-expanded') === 'true';
-    const nextExpanded = !expanded;
-    const moreLabel = String($button.data('labelMore') || $button.attr('data-label-more') || 'Vezi mai multe produse');
-    const lessLabel = String($button.data('labelLess') || $button.attr('data-label-less') || 'Ascunde produsele');
+    const moreLabel = String($button.data('labelMore') || $button.attr('data-label-more') || 'Arata mai mult +');
+    const lessLabel = String($button.data('labelLess') || $button.attr('data-label-less') || 'Arata mai putin -');
+    const $list = $card.find('.pap-checkout-product-list').first();
 
-    $card.find('.pap-checkout-summary-item.is-hidden').each(function () {
+    $card.find('.pap-checkout-summary-item').each(function (index) {
       const $item = $(this);
-      $item.prop('hidden', !nextExpanded);
-      $item.attr('aria-hidden', nextExpanded ? 'false' : 'true');
+      const isHidden = !nextExpanded && index >= 3;
+      const isFaded = !nextExpanded && index === 2;
+      if (nextExpanded) {
+        $item.removeClass('is-faded');
+      } else {
+        $item.toggleClass('is-faded', isFaded);
+      }
+      $item.prop('hidden', isHidden);
+      $item.attr('aria-hidden', isHidden ? 'true' : 'false');
     });
+
+    if ($list.length) {
+      if (nextExpanded) {
+        $list.css('max-height', '');
+      } else {
+        const items = $list.find('.pap-checkout-summary-item').not('[hidden]');
+        if (items.length >= 2) {
+          const first = items.get(0);
+          const second = items.get(1);
+          const third = items.get(2);
+          const gap = parseFloat(window.getComputedStyle($list.get(0)).rowGap || window.getComputedStyle($list.get(0)).gap || '0') || 0;
+          let collapsedHeight = first.getBoundingClientRect().height + second.getBoundingClientRect().height + gap;
+          if (third) {
+            collapsedHeight += (third.getBoundingClientRect().height * 0.45) + gap;
+          }
+          $list.css('max-height', `${Math.ceil(collapsedHeight)}px`);
+        }
+      }
+    }
 
     $button.attr('aria-expanded', nextExpanded ? 'true' : 'false');
     $button.text(nextExpanded ? lessLabel : moreLabel);
     $card.toggleClass('is-products-expanded', nextExpanded);
+  };
+
+  const toggleProductsList = (button) => {
+    const $button = $(button);
+    const expanded = $button.attr('aria-expanded') === 'true';
+    setProductsListState(button, !expanded);
+  };
+
+  const syncProductsLists = () => {
+    $(selectors.productsToggle).each(function () {
+      const $button = $(this);
+      setProductsListState(this, $button.attr('aria-expanded') === 'true');
+    });
   };
 
   const getAddressModal = () => $(selectors.addressModal).first();
@@ -565,6 +603,7 @@
     toggleShippingState();
     syncDependentCitySelect('#billing_state');
     syncDependentCitySelect('#shipping_state');
+    syncProductsLists();
   };
 
   $(document.body).on('updated_checkout', syncCheckoutState);

@@ -73,8 +73,9 @@ $pap_checkout_user_name = $pap_checkout_user instanceof WP_User && !empty($pap_c
         <div class="pap-checkout-layout">
           <main id="customer_details" class="pap-checkout-main" aria-label="<?php esc_attr_e('Informații client', 'papetarie-storefront'); ?>">
             <?php echo papetarie_storefront_get_checkout_contact_card_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-            <?php echo papetarie_storefront_get_checkout_address_summary_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php echo papetarie_storefront_get_checkout_shipping_methods_card_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php wc_get_template('checkout/form-shipping.php', ['checkout' => $checkout]); ?>
+            <?php echo papetarie_storefront_get_checkout_address_summary_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             <?php echo papetarie_storefront_get_checkout_payment_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
           </main>
 
