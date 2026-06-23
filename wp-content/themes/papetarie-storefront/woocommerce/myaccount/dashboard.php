@@ -27,16 +27,16 @@ foreach ($recent_orders as $recent_order) {
 ?>
 
 <div class="pap-account-page pap-account-page--dashboard">
-  <header class="pap-account-page-head">
-    <h1><?php printf(esc_html__('Bun venit, %s!', 'papetarie-storefront'), esc_html($user->display_name ?: $user->user_email)); ?></h1>
-    <p><?php esc_html_e('De aici poți gestiona comenzile, adresele și produsele favorite.', 'papetarie-storefront'); ?></p>
-  </header>
+  <?php papetarie_storefront_render_account_page_head(
+      sprintf(__('Bun venit, %s!', 'papetarie-storefront'), wp_strip_all_tags($user->display_name ?: $user->user_email)),
+      __('De aici poți gestiona comenzile, adresele și produsele favorite.', 'papetarie-storefront')
+  ); ?>
 
   <section class="pap-account-stat-grid" aria-label="<?php esc_attr_e('Statistici cont', 'papetarie-storefront'); ?>">
     <?php foreach ($stats as $stat) : ?>
       <article class="pap-account-stat-card pap-account-stat-card--<?php echo esc_attr($stat['tone'] ?? 'blue'); ?>">
         <div class="pap-account-stat-card__icon" aria-hidden="true">
-          <?php echo papetarie_storefront_icon($stat['icon'] ?? 'bag'); ?>
+          <?php echo function_exists('papetarie_storefront_render_account_icon') ? papetarie_storefront_render_account_icon((string) ($stat['icon'] ?? 'cart')) : ''; ?>
         </div>
         <div class="pap-account-stat-card__copy">
           <span><?php echo esc_html($stat['label'] ?? ''); ?></span>

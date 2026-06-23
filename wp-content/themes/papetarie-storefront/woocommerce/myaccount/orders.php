@@ -32,10 +32,10 @@ $period_options = [
 ?>
 
 <div class="pap-account-page pap-account-page--orders">
-  <header class="pap-account-page-head">
-    <h1><?php esc_html_e('Comenzile mele', 'papetarie-storefront'); ?></h1>
-    <p><?php esc_html_e('Vezi istoricul comenzilor tale și intră rapid în detalii.', 'papetarie-storefront'); ?></p>
-  </header>
+  <?php papetarie_storefront_render_account_page_head(
+      __('Comenzile mele', 'papetarie-storefront'),
+      __('Vezi istoricul comenzilor tale și intră rapid în detalii.', 'papetarie-storefront')
+  ); ?>
 
   <section class="pap-account-panel pap-account-panel--orders">
     <form class="pap-account-orders-toolbar" method="get">

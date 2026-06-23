@@ -20,11 +20,6 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
 ?>
 
 <div class="pap-account-page pap-account-page--view-order">
-  <a class="pap-account-back-link" href="<?php echo esc_url(wc_get_account_endpoint_url('orders')); ?>">
-    <span aria-hidden="true">←</span>
-    <?php esc_html_e('Înapoi la comenzi', 'papetarie-storefront'); ?>
-  </a>
-
   <header class="pap-account-view-order-head">
     <div class="pap-account-view-order-head__copy">
       <h1><?php echo esc_html(sprintf(__('Comanda %s', 'papetarie-storefront'), $order_number)); ?></h1>
@@ -43,7 +38,7 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
 
   <section class="pap-account-order-meta-grid" aria-label="<?php esc_attr_e('Informații comandă', 'papetarie-storefront'); ?>">
     <article class="pap-account-order-meta-card">
-      <div class="pap-account-order-meta-card__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('truck-outline'); ?></div>
+      <div class="pap-account-order-meta-card__icon" aria-hidden="true"><?php echo function_exists('papetarie_storefront_render_account_icon') ? papetarie_storefront_render_account_icon('truck') : ''; ?></div>
       <div class="pap-account-order-meta-card__copy">
         <h3><?php esc_html_e('Livrare', 'papetarie-storefront'); ?></h3>
         <strong><?php echo esc_html($shipping_method); ?></strong>
@@ -52,7 +47,7 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
     </article>
 
     <article class="pap-account-order-meta-card">
-      <div class="pap-account-order-meta-card__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('paper'); ?></div>
+      <div class="pap-account-order-meta-card__icon" aria-hidden="true"><?php echo function_exists('papetarie_storefront_render_account_icon') ? papetarie_storefront_render_account_icon('paper') : ''; ?></div>
       <div class="pap-account-order-meta-card__copy">
         <h3><?php esc_html_e('Metodă de plată', 'papetarie-storefront'); ?></h3>
         <strong><?php echo esc_html($payment_label ?: __('Plată online', 'papetarie-storefront')); ?></strong>
@@ -83,7 +78,7 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
               <?php if (!empty($item['image'])) : ?>
                 <?php echo wp_get_attachment_image((int) $item['image'], 'thumbnail', false, ['class' => 'pap-account-order-item__thumb', 'loading' => 'lazy']); ?>
               <?php else : ?>
-                <span class="pap-account-order-item__thumb pap-account-order-item__thumb--placeholder" aria-hidden="true"><?php echo papetarie_storefront_icon('paper'); ?></span>
+                <span class="pap-account-order-item__thumb pap-account-order-item__thumb--placeholder" aria-hidden="true"><?php echo function_exists('papetarie_storefront_render_account_icon') ? papetarie_storefront_render_account_icon('paper') : ''; ?></span>
               <?php endif; ?>
               <div class="pap-account-order-item__copy">
                 <strong><?php echo esc_html($item['name']); ?></strong>

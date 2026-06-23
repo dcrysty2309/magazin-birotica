@@ -32,10 +32,41 @@
   let cityDataPromise = null;
   const cityPlaceholder = checkoutData.cityPlaceholder || 'Alege localitatea';
   const countyFirstPlaceholder = checkoutData.countyFirstPlaceholder || 'Alege județul întâi';
+  const savedAddressesById = checkoutData.savedAddresses && typeof checkoutData.savedAddresses === 'object'
+    ? checkoutData.savedAddresses
+    : {};
+  const selectedBillingAddressId = String(checkoutData.selectedBillingAddressId || '');
+  const selectedShippingAddressId = String(checkoutData.selectedShippingAddressId || '');
   const addressPairs = [
     { state: '#billing_state', city: '#billing_city' },
     { state: '#shipping_state', city: '#shipping_city' },
   ];
+  const addressFieldMap = {
+    billing: {
+      country: '#billing_country',
+      first_name: '#billing_first_name',
+      last_name: '#billing_last_name',
+      company: '#billing_company',
+      phone: '#billing_phone',
+      state: '#billing_state',
+      city: '#billing_city',
+      postcode: '#billing_postcode',
+      address_1: '#billing_address_1',
+      address_2: '#billing_address_2',
+    },
+    shipping: {
+      country: '#shipping_country',
+      first_name: '#shipping_first_name',
+      last_name: '#shipping_last_name',
+      company: '#shipping_company',
+      phone: '#shipping_phone',
+      state: '#shipping_state',
+      city: '#shipping_city',
+      postcode: '#shipping_postcode',
+      address_1: '#shipping_address_1',
+      address_2: '#shipping_address_2',
+    },
+  };
   let isProgrammaticFieldSync = false;
 
   const getCityDataUrl = () => {
@@ -118,6 +149,150 @@
 
   const getFieldBySelector = (selector) => {
     return getForm().find(selector).first();
+  };
+
+  const getAddressById = (addressId) => {
+    const key = String(addressId || '');
+    if (!key || !Object.prototype.hasOwnProperty.call(savedAddressesById, key)) {
+      return null;
+    }
+
+    const address = savedAddressesById[key];
+    return address && typeof address === 'object' ? address : null;
+  };
+
+  const getAddressSelector = (prefix) => getForm().find(`[data-checkout-address-selector][data-checkout-address-prefix="${prefix}"]`).first();
+
+  const getSelectedAddressId = (prefix) => {
+    const $selector = getAddressSelector(prefix);
+    if ($selector.length) {
+      return String($selector.val() || '');
+    }
+
+    if (prefix === 'shipping') {
+      return selectedShippingAddressId || selectedBillingAddressId;
+    }
+
+    return selectedBillingAddressId;
+  };
+
+  const getAddressFieldSelector = (prefix, fieldKey) => {
+    const fieldMap = addressFieldMap[prefix];
+    return fieldMap && fieldMap[fieldKey] ? fieldMap[fieldKey] : '';
+  };
+
+  const setCheckoutFieldValue = ($field, value) => {
+    if (!$field.length || $field.is(':disabled')) {
+      return;
+    }
+
+    const nextValue = value === null || typeof value === 'undefined' ? '' : String(value);
+    $field.val(nextValue);
+    clearFieldError($field);
+  };
+
+  const applySavedAddressToFields = (prefix, address) => {
+    if (!address) {
+      return;
+    }
+
+    const fields = addressFieldMap[prefix];
+    if (!fields) {
+      return;
+    }
+
+    const $countryField = getFieldBySelector(fields.country);
+    const $stateField = getFieldBySelector(fields.state);
+    const $cityField = getFieldBySelector(fields.city);
+
+    setCheckoutFieldValue($countryField, address.country || 'RO');
+    setCheckoutFieldValue($stateField, address.state || '');
+    setCheckoutFieldValue(getFieldBySelector(fields.first_name), address.first_name || '');
+    setCheckoutFieldValue(getFieldBySelector(fields.last_name), address.last_name || '');
+    setCheckoutFieldValue(getFieldBySelector(fields.company), address.company || '');
+    setCheckoutFieldValue(getFieldBySelector(fields.phone), address.phone || '');
+    setCheckoutFieldValue(getFieldBySelector(fields.postcode), address.postcode || '');
+    setCheckoutFieldValue(getFieldBySelector(fields.address_1), address.address_1 || '');
+    setCheckoutFieldValue(getFieldBySelector(fields.address_2), address.address_2 || '');
+
+    if ($stateField.length) {
+      syncDependentCitySelect(`#${$stateField.attr('id')}`, false);
+    }
+
+    if ($cityField.length) {
+      setCheckoutFieldValue($cityField, address.city || '');
+    }
+  };
+
+  const applySavedAddressSelection = (prefix, addressId, options = {}) => {
+    const address = getAddressById(addressId);
+    if (!address) {
+      return false;
+    }
+
+    const $selector = getAddressSelector(prefix);
+    if ($selector.length && String($selector.val() || '') !== String(address.id || addressId || '')) {
+      $selector.val(String(address.id || addressId || ''));
+    }
+
+    runProgrammaticFieldSync(() => {
+      applySavedAddressToFields(prefix, address);
+
+      const fields = addressFieldMap[prefix];
+      if (fields && fields.state) {
+        const $stateField = getFieldBySelector(fields.state);
+        if ($stateField.length) {
+          $stateField.trigger('change');
+        }
+      }
+
+      if (fields && fields.city) {
+        const $cityField = getFieldBySelector(fields.city);
+        if ($cityField.length) {
+          $cityField.trigger('change');
+        }
+      }
+    });
+
+    if (!options.silent) {
+      $(document.body).trigger('update_checkout');
+    }
+
+    return true;
+  };
+
+  const syncSavedAddressSelectorState = () => {
+    const $shipToggle = $(selectors.shipToggle);
+    const shippingDifferent = $shipToggle.length ? $shipToggle.is(':checked') : true;
+    const billingSelector = getAddressSelector('billing');
+    const shippingSelector = getAddressSelector('shipping');
+    const shippingShell = getForm().find('[data-checkout-address-selector-shell="shipping"]').first();
+
+    if (billingSelector.length && !billingSelector.val()) {
+      const billingFallback = selectedBillingAddressId || selectedShippingAddressId || '';
+      if (billingFallback) {
+        billingSelector.val(billingFallback);
+      }
+    }
+
+    if (shippingSelector.length) {
+      if (!shippingDifferent) {
+        shippingSelector.val(billingSelector.length ? String(billingSelector.val() || '') : String(selectedBillingAddressId || ''));
+        shippingSelector.prop('disabled', true).attr('aria-disabled', 'true');
+        if (shippingShell.length) {
+          shippingShell.attr('hidden', 'hidden');
+        }
+      } else {
+        shippingSelector.prop('disabled', false).attr('aria-disabled', 'false');
+        if (shippingShell.length) {
+          shippingShell.removeAttr('hidden');
+        }
+        const shippingAddressId = String(shippingSelector.val() || selectedShippingAddressId || selectedBillingAddressId || '');
+        if (shippingAddressId) {
+          applySavedAddressSelection('shipping', shippingAddressId, { silent: true });
+        }
+      }
+    }
   };
 
   const isAddressCityField = ($field) => $field.is('#billing_city, #shipping_city');
@@ -268,6 +443,8 @@
         $field.prop('disabled', true).attr('aria-disabled', 'true');
       });
     }
+
+    syncSavedAddressSelectorState();
   };
 
   const setProductsListState = (button, nextExpanded) => {
@@ -841,6 +1018,21 @@
 
     $form.on('change', selectors.shipToggle, function () {
       toggleShippingState();
+    });
+
+    $form.on('change', '[data-checkout-address-selector]', function () {
+      const $selector = $(this);
+      const prefix = String($selector.data('checkoutAddressPrefix') || $selector.attr('data-checkout-address-prefix') || '');
+      const addressId = String($selector.val() || '');
+
+      if (!prefix || !addressId || !applySavedAddressSelection(prefix, addressId)) {
+        return;
+      }
+
+      const $shipToggle = $(selectors.shipToggle);
+      if (prefix === 'billing' && (!$shipToggle.length || !$shipToggle.is(':checked'))) {
+        syncSavedAddressSelectorState();
+      }
     });
 
     $form.on('change', '#billing_state, #shipping_state', function () {

@@ -11,10 +11,10 @@ do_action('woocommerce_before_edit_account_form');
 ?>
 
 <div class="pap-account-page pap-account-page--edit-account">
-  <header class="pap-account-page-head">
-    <h1><?php esc_html_e('Detalii cont', 'papetarie-storefront'); ?></h1>
-    <p><?php esc_html_e('Actualizează datele de profil și parola asociată contului tău.', 'papetarie-storefront'); ?></p>
-  </header>
+  <?php papetarie_storefront_render_account_page_head(
+      __('Detalii cont', 'papetarie-storefront'),
+      __('Actualizează datele de profil și parola asociată contului tău.', 'papetarie-storefront')
+  ); ?>
 
   <section class="pap-account-panel pap-account-panel--form">
     <form class="woocommerce-EditAccountForm edit-account pap-account-form" action="" method="post" <?php do_action('woocommerce_edit_account_form_tag'); ?>>

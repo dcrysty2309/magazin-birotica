@@ -713,6 +713,15 @@ function papetarie_storefront_enqueue_checkout_scripts(): void
     }
 
     $cities_by_county = papetarie_storefront_romania_cities_by_county();
+    $saved_addresses = function_exists('papetarie_storefront_address_book_checkout_selection_data')
+        ? papetarie_storefront_address_book_checkout_selection_data()
+        : [];
+    $selected_billing_address_id = function_exists('papetarie_storefront_address_book_checkout_selected_address_id')
+        ? papetarie_storefront_address_book_checkout_selected_address_id('billing')
+        : '';
+    $selected_shipping_address_id = function_exists('papetarie_storefront_address_book_checkout_selected_address_id')
+        ? papetarie_storefront_address_book_checkout_selected_address_id('shipping')
+        : '';
 
     wp_enqueue_script(
         'papetarie-storefront-checkout',
@@ -730,6 +739,9 @@ function papetarie_storefront_enqueue_checkout_scripts(): void
             'cityPlaceholder' => __('Alege localitatea', 'papetarie-storefront'),
             'countyFirstPlaceholder' => __('Alege județul întâi', 'papetarie-storefront'),
             'isLoggedIn' => is_user_logged_in(),
+            'savedAddresses' => $saved_addresses,
+            'selectedBillingAddressId' => $selected_billing_address_id,
+            'selectedShippingAddressId' => $selected_shipping_address_id,
         ]
     );
 }
@@ -1331,6 +1343,9 @@ function papetarie_storefront_get_checkout_address_summary_html(): string
 
     $has_billing_lines = papetarie_storefront_checkout_address_card_lines('billing') !== [];
     $step_state = papetarie_storefront_checkout_step_state('address-summary');
+    $has_saved_addresses = function_exists('papetarie_storefront_address_book_checkout_selection_data')
+        ? !empty(papetarie_storefront_address_book_checkout_selection_data())
+        : false;
     ob_start();
     ?>
     <section class="pap-checkout-card pap-checkout-card--address-summary pap-checkout-step pap-checkout-step--address-summary is-step-<?php echo esc_attr($step_state); ?>" data-pap-checkout-section="address-summary" data-pap-checkout-step="address-summary" data-pap-step-state="<?php echo esc_attr($step_state); ?>" aria-label="<?php esc_attr_e('Facturare', 'papetarie-storefront'); ?>" aria-disabled="<?php echo esc_attr($step_state === 'disabled' ? 'true' : 'false'); ?>">
@@ -1347,12 +1362,26 @@ function papetarie_storefront_get_checkout_address_summary_html(): string
       </div>
 
       <div class="pap-checkout-step__body"<?php echo $step_state === 'disabled' ? ' hidden aria-hidden="true"' : ' aria-hidden="false"'; ?>>
-      <div class="pap-checkout-address-sections">
-        <?php echo papetarie_storefront_checkout_address_card_html('billing', [
-            'button_label' => $has_billing_lines ? __('Editează facturarea', 'papetarie-storefront') : __('Adaugă adresă de facturare', 'papetarie-storefront'),
-            'empty_message' => __('Nu ai completat încă adresa de facturare.', 'papetarie-storefront'),
-        ]); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-      </div>
+        <?php if ($has_saved_addresses && function_exists('papetarie_storefront_address_book_render_checkout_selector')) : ?>
+          <div class="pap-checkout-saved-addresses">
+            <div class="pap-checkout-saved-addresses__head">
+              <h3><?php esc_html_e('Adrese salvate', 'papetarie-storefront'); ?></h3>
+              <p><?php esc_html_e('Selectează rapid o adresă salvată pentru facturare și, dacă ai nevoie, alta pentru livrare.', 'papetarie-storefront'); ?></p>
+            </div>
+
+            <div class="pap-checkout-saved-addresses__grid">
+              <?php echo papetarie_storefront_address_book_render_checkout_selector('billing'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+              <?php echo papetarie_storefront_address_book_render_checkout_selector('shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
+          </div>
+        <?php endif; ?>
+
+        <div class="pap-checkout-address-sections">
+          <?php echo papetarie_storefront_checkout_address_card_html('billing', [
+              'button_label' => $has_billing_lines ? __('Editează facturarea', 'papetarie-storefront') : __('Adaugă adresă de facturare', 'papetarie-storefront'),
+              'empty_message' => __('Nu ai completat încă adresa de facturare.', 'papetarie-storefront'),
+          ]); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
       </div>
     </section>
     <?php
@@ -3627,7 +3656,7 @@ function papetarie_storefront_notice_icon(string $type): string
     $icons = [
         'success' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm4.3 7.8-5.1 6.3a1 1 0 01-1.55.08l-2.6-3a1 1 0 111.5-1.33l1.8 2.07 4.36-5.4a1 1 0 111.6 1.25Z" fill="currentColor"/></svg>',
         'error' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm1 5v7h-2V7h2Zm0 9v2h-2v-2h2Z" fill="currentColor"/></svg>',
-        'info' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm1 15h-2V10h2v7Zm0-9h-2V6h2v2Z" fill="currentColor"/></svg>',
+        'info' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 10.2v7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 6.6h.01" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
         'warning' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 1.6 20h20.8L12 2Zm0 6.2 1 5.3h-2l1-5.3Zm0 8.8a1.2 1.2 0 110-2.4 1.2 1.2 0 010 2.4Z" fill="currentColor"/></svg>',
     ];
 
@@ -5649,13 +5678,73 @@ add_filter('woocommerce_account_menu_items', 'papetarie_storefront_account_menu_
 function papetarie_storefront_account_menu_icon_map(): array
 {
     return [
-        'dashboard' => 'account',
-        'orders' => 'cart',
-        'favorite' => 'heart',
-        'edit-address' => 'office',
-        'edit-account' => 'pen',
-        'customer-logout' => 'lock-outline',
+        'dashboard' => 'sidebar-home',
+        'orders' => 'sidebar-orders',
+        'downloads' => 'sidebar-downloads',
+        'favorite' => 'sidebar-favorite',
+        'edit-address' => 'sidebar-address',
+        'edit-account' => 'sidebar-details',
+        'payment-methods' => 'sidebar-payment-methods',
+        'customer-logout' => 'sidebar-logout',
     ];
+}
+
+function papetarie_storefront_account_icon_class(string $name): string
+{
+    $icons = [
+        'account' => 'fa-solid fa-user',
+        'cart' => 'fa-solid fa-cart-shopping',
+        'chevron' => 'fa-solid fa-chevron-right',
+        'dashboard' => 'fa-solid fa-house',
+        'edit-account' => 'fa-solid fa-user-pen',
+        'edit-address' => 'fa-solid fa-location-dot',
+        'favorite' => 'fa-solid fa-heart',
+        'credit-card' => 'fa-solid fa-credit-card',
+        'download' => 'fa-solid fa-download',
+        'help' => 'fa-solid fa-headset',
+        'heart' => 'fa-solid fa-heart',
+        'home' => 'fa-solid fa-house',
+        'lock-outline' => 'fa-solid fa-lock',
+        'logout' => 'fa-solid fa-right-from-bracket',
+        'location' => 'fa-solid fa-location-dot',
+        'orders' => 'fa-solid fa-cart-shopping',
+        'payment-methods' => 'fa-solid fa-credit-card',
+        'paper' => 'fa-solid fa-file-lines',
+        'pen' => 'fa-solid fa-pen-to-square',
+        'shield' => 'fa-solid fa-shield-halved',
+        'truck' => 'fa-solid fa-truck-fast',
+        'truck-outline' => 'fa-solid fa-truck-fast',
+        'user' => 'fa-solid fa-user',
+    ];
+
+    return $icons[$name] ?? 'fa-solid fa-circle';
+}
+
+function papetarie_storefront_render_account_icon(string $name, string $extra_classes = ''): string
+{
+    if (str_starts_with($name, 'sidebar-')) {
+        $svg_map = [
+            'sidebar-home' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 11.2 12 4l9 7.2"></path><path d="M5 10.5V21h14V10.5"></path><path d="M9.5 21v-6h5v6"></path></svg>',
+            'sidebar-orders' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="3.5" width="14" height="17" rx="2"></rect><path d="M8 8h8"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg>',
+            'sidebar-downloads' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v10"></path><path d="M8 10.5 12 14.5l4-4"></path><path d="M5 20h14"></path></svg>',
+            'sidebar-favorite' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21s-7-4.8-9.2-9.2C1.1 8.9 2.7 5.8 5.9 4.8c1.9-.6 4 .1 5.3 1.7 1.3-1.6 3.4-2.3 5.3-1.7 3.2 1 4.8 4.1 3.1 7C19 16.2 12 21 12 21z"></path></svg>',
+            'sidebar-address' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21s6-5.2 6-11a6 6 0 0 0-12 0c0 5.8 6 11 6 11z"></path><circle cx="12" cy="10" r="2.25"></circle></svg>',
+            'sidebar-details' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="5" width="16" height="14" rx="2"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M13 9h4"></path><path d="M7.8 14.2c.8-1.3 2.1-2.1 3.5-2.1s2.7.8 3.5 2.1"></path></svg>',
+            'sidebar-payment-methods' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="14" rx="2"></rect><path d="M3.5 9h17"></path><path d="M7 15.5h3"></path><path d="M12 15.5h2.5"></path></svg>',
+            'sidebar-logout' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4a8 8 0 1 0 8 8"></path><path d="M12 4v7"></path></svg>',
+        ];
+
+        if (isset($svg_map[$name])) {
+            return $svg_map[$name];
+        }
+    }
+
+    $classes = trim(papetarie_storefront_account_icon_class($name) . ' ' . $extra_classes);
+
+    return sprintf(
+        '<i class="%s" aria-hidden="true"></i>',
+        esc_attr($classes)
+    );
 }
 
 function papetarie_storefront_account_order_display_number(WC_Order $order): string
@@ -6131,6 +6220,54 @@ function papetarie_storefront_account_wishlist_ids(): array
     return papetarie_storefront_get_wishlist_ids();
 }
 
+function papetarie_storefront_render_account_page_head(string $title, string $description, string $actions_html = ''): void
+{
+    $has_actions = trim($actions_html) !== '';
+    ?>
+    <div class="pap-account-page-head<?php echo $has_actions ? ' pap-account-page-head--has-action' : ''; ?>">
+      <h1><?php echo esc_html($title); ?></h1>
+      <p><?php echo esc_html($description); ?></p>
+      <?php if ($has_actions) : ?>
+        <div class="pap-account-page-head__actions">
+          <?php echo $actions_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
+      <?php endif; ?>
+    </div>
+    <?php
+}
+
+function papetarie_storefront_render_account_tabs(array $tabs, string $active_tab, string $aria_label = '', string $nav_class = 'pap-account-address-tabs', string $tab_class = 'pap-account-address-tabs__tab'): void
+{
+    $active_tab = sanitize_key($active_tab);
+    $nav_class = trim($nav_class) !== '' ? $nav_class : 'pap-account-address-tabs';
+    $tab_class = trim($tab_class) !== '' ? $tab_class : 'pap-account-address-tabs__tab';
+    ?>
+    <nav class="<?php echo esc_attr($nav_class); ?>"<?php echo $aria_label !== '' ? ' aria-label="' . esc_attr($aria_label) . '"' : ''; ?>>
+      <?php foreach ($tabs as $tab_key => $tab) : ?>
+        <?php
+        $tab_key = sanitize_key((string) $tab_key);
+        $label = (string) ($tab['label'] ?? '');
+        $url = (string) ($tab['url'] ?? '');
+        $is_active = $tab_key === $active_tab;
+        ?>
+        <a class="<?php echo esc_attr($tab_class . ($is_active ? ' is-active' : '')); ?>" href="<?php echo esc_url($url); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>>
+          <?php echo esc_html($label); ?>
+        </a>
+      <?php endforeach; ?>
+    </nav>
+    <?php
+}
+
+function papetarie_storefront_render_account_tab_section(string $section_class, callable $renderer): void
+{
+    $section_class = trim($section_class) !== '' ? $section_class : 'pap-account-section';
+    ?>
+    <section class="<?php echo esc_attr($section_class); ?>">
+      <?php $renderer(); ?>
+    </section>
+    <?php
+}
+
 function papetarie_storefront_account_favorite_endpoint(): void
 {
     if (!is_user_logged_in()) {
@@ -6141,10 +6278,10 @@ function papetarie_storefront_account_favorite_endpoint(): void
     $ids = papetarie_storefront_account_wishlist_ids();
     ?>
     <div class="pap-account-page pap-account-page--favorites">
-      <header class="pap-account-page-head">
-        <h1><?php esc_html_e('Favorite', 'papetarie-storefront'); ?></h1>
-        <p><?php esc_html_e('Produsele salvate pentru revenire rapidă și adăugare instant în coș.', 'papetarie-storefront'); ?></p>
-      </header>
+      <?php papetarie_storefront_render_account_page_head(
+          __('Favorite', 'papetarie-storefront'),
+          __('Produsele salvate pentru revenire rapidă și adăugare instant în coș.', 'papetarie-storefront')
+      ); ?>
 
       <section class="pap-account-panel pap-account-panel--favorites">
         <?php if (!$ids) : ?>
@@ -6243,7 +6380,7 @@ function papetarie_storefront_account_support_endpoint(): void
         foreach ($items as $item) :
             ?>
             <article class="pap-account-support-card">
-              <span class="pap-account-support-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($item['icon']); ?></span>
+              <span class="pap-account-support-icon" aria-hidden="true"><?php echo function_exists('papetarie_storefront_render_account_icon') ? papetarie_storefront_render_account_icon((string) $item['icon']) : ''; ?></span>
               <h3><?php echo esc_html($item['title']); ?></h3>
               <p><?php echo esc_html($item['text']); ?></p>
             </article>
