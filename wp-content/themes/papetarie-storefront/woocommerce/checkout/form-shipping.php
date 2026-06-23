@@ -8,6 +8,7 @@
 defined('ABSPATH') || exit;
 
 $shipping_fields = $checkout->get_checkout_fields('shipping');
+$billing_fields = $checkout->get_checkout_fields('billing');
 
 $render_shipping_fields = static function (array $field_keys) use ($shipping_fields, $checkout): void {
     foreach ($field_keys as $key) {
@@ -18,11 +19,24 @@ $render_shipping_fields = static function (array $field_keys) use ($shipping_fie
         woocommerce_form_field($key, $shipping_fields[$key], $checkout->get_value($key));
     }
 };
+
+$render_billing_fields = static function (array $field_keys) use ($billing_fields, $checkout): void {
+    foreach ($field_keys as $key) {
+        if (!isset($billing_fields[$key])) {
+            continue;
+        }
+
+        woocommerce_form_field($key, $billing_fields[$key], $checkout->get_value($key));
+    }
+};
 ?>
 
 <section class="pap-checkout-card pap-checkout-card--shipping-address" data-pap-checkout-section="shipping-address">
 	<div class="pap-checkout-card__head">
-		<h2><?php esc_html_e('Adresă de livrare', 'papetarie-storefront'); ?></h2>
+		<div class="pap-checkout-section-title-row">
+			<span class="pap-checkout-section-badge" aria-hidden="true">1</span>
+			<h2><?php esc_html_e('Adresă de livrare', 'papetarie-storefront'); ?></h2>
+		</div>
 	</div>
 
 	<div class="woocommerce-shipping-fields">
@@ -35,6 +49,10 @@ $render_shipping_fields = static function (array $field_keys) use ($shipping_fie
 
 			<div class="shipping_address">
 				<?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
+
+				<div class="pap-checkout-section__fields pap-checkout-section__fields--contact">
+					<?php $render_billing_fields(['billing_first_name', 'billing_last_name', 'billing_email', 'billing_phone']); ?>
+				</div>
 
 				<div class="pap-checkout-section__fields pap-checkout-section__fields--shipping">
 					<?php $render_shipping_fields(['shipping_first_name', 'shipping_last_name', 'shipping_company', 'shipping_country', 'shipping_state', 'shipping_city', 'shipping_postcode', 'shipping_address_1', 'shipping_address_2']); ?>

@@ -11,6 +11,10 @@ const myAccountOrdersUrl = '/?page_id=10&orders';
 const myAccountAddressesUrl = '/?page_id=10&edit-address';
 const myAccountEditAccountUrl = '/?page_id=10&edit-account';
 const myAccountFavoritesUrl = '/?page_id=10&favorite';
+const qaAddressBookUser = {
+  email: 'qa.empty.account@example.com',
+  password: 'Test1234!qa',
+};
 
 function formatMoney(amount) {
   const value = Number(amount || 0);
@@ -56,6 +60,20 @@ async function goToOrders(page, userKey) {
   await loginAs(page, userKey);
   await page.goto(myAccountOrdersUrl);
   await expect(page.locator('.pap-account-orders-table')).toBeVisible();
+}
+
+async function loginForAddressBook(page) {
+  await page.context().clearCookies();
+  await page.goto('/wp-login.php');
+  await page.locator('#user_login').fill(qaAddressBookUser.email);
+  await page.locator('#user_pass').fill(qaAddressBookUser.password);
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
+    page.locator('#wp-submit').click(),
+  ]);
+  await page.waitForLoadState('networkidle');
+  await page.goto('/my-account/edit-address/?pap_address_action=add');
+  await expect(page.locator('#pap-account-content h1').first()).toHaveText('Adrese', { timeout: 30_000 });
 }
 
 test('dashboard shows empty state and zero favorite count for a user without orders', async ({ page }) => {
@@ -203,4 +221,22 @@ test('logout link clears the account state', async ({ page }) => {
   await page.waitForLoadState('networkidle');
 
   await expect(page.locator('body')).not.toContainText('Contul meu');
+});
+
+test('address form enables city only after county selection and loads county localities', async ({ page }) => {
+  await loginForAddressBook(page);
+
+  const stateField = page.locator('[data-address-book-state]');
+  const cityField = page.locator('[data-address-book-city]');
+
+  await expect(stateField).toBeVisible();
+  await expect(cityField).toBeVisible();
+  await expect(cityField).toBeDisabled();
+  await expect(cityField).toContainText('Alege județul întâi');
+
+  await stateField.selectOption('CJ');
+  await expect(cityField).toBeEnabled();
+  await expect(cityField).toContainText('Alege localitatea');
+  await expect(cityField).toContainText('Cluj-Napoca');
+  await expect(cityField).toContainText('Turda');
 });

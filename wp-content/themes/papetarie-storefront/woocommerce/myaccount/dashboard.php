@@ -28,7 +28,6 @@ foreach ($recent_orders as $recent_order) {
 
 <div class="pap-account-page pap-account-page--dashboard">
   <header class="pap-account-page-head">
-    <p class="pap-account-page-eyebrow"><?php esc_html_e('Panou cont', 'papetarie-storefront'); ?></p>
     <h1><?php printf(esc_html__('Bun venit, %s!', 'papetarie-storefront'), esc_html($user->display_name ?: $user->user_email)); ?></h1>
     <p><?php esc_html_e('De aici poți gestiona comenzile, adresele și produsele favorite.', 'papetarie-storefront'); ?></p>
   </header>

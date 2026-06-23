@@ -12,7 +12,6 @@ do_action('woocommerce_before_edit_account_form');
 
 <div class="pap-account-page pap-account-page--edit-account">
   <header class="pap-account-page-head">
-    <p class="pap-account-page-eyebrow"><?php esc_html_e('Cont', 'papetarie-storefront'); ?></p>
     <h1><?php esc_html_e('Detalii cont', 'papetarie-storefront'); ?></h1>
     <p><?php esc_html_e('Actualizează datele de profil și parola asociată contului tău.', 'papetarie-storefront'); ?></p>
   </header>

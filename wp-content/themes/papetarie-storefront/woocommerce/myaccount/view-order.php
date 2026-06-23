@@ -27,7 +27,6 @@ $invoice_url = trim((string) $order->get_meta('_invoice_pdf_url'));
 
   <header class="pap-account-view-order-head">
     <div class="pap-account-view-order-head__copy">
-      <p class="pap-account-page-eyebrow"><?php esc_html_e('Comenzi', 'papetarie-storefront'); ?></p>
       <h1><?php echo esc_html(sprintf(__('Comanda %s', 'papetarie-storefront'), $order_number)); ?></h1>
       <p><?php echo esc_html(sprintf(__('Plasată pe %s', 'papetarie-storefront'), $created_label)); ?></p>
     </div>

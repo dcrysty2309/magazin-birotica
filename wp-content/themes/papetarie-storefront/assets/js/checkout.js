@@ -23,7 +23,8 @@
   const phonePattern = /^[0-9+\s().-]{6,}$/;
   const postcodePattern = /^[0-9]{6}$/;
   const checkoutData = window.papCheckoutData || {};
-  const cityOptionsByCounty = checkoutData.citiesByCounty || {};
+  let cityOptionsByCounty = checkoutData.citiesByCounty || {};
+  let cityDataPromise = null;
   const cityPlaceholder = checkoutData.cityPlaceholder || 'Alege localitatea';
   const countyFirstPlaceholder = checkoutData.countyFirstPlaceholder || 'Alege județul întâi';
   const addressPairs = [
@@ -31,6 +32,40 @@
     { state: '#shipping_state', city: '#shipping_city' },
   ];
   let isProgrammaticFieldSync = false;
+
+  const getCityDataUrl = () => {
+    const script = document.currentScript;
+    if (script && script.src) {
+      try {
+        return new URL('../../data/ro-localities-by-county.json', script.src).toString();
+      } catch (error) {
+        // Fall back below.
+      }
+    }
+
+    return '/wp-content/themes/papetarie-storefront/data/ro-localities-by-county.json';
+  };
+
+  const loadCityData = async () => {
+    if (Object.keys(cityOptionsByCounty).length > 0) {
+      return cityOptionsByCounty;
+    }
+
+    if (!cityDataPromise) {
+      cityDataPromise = fetch(getCityDataUrl(), { credentials: 'same-origin' })
+        .then((response) => (response.ok ? response.json() : {}))
+        .then((json) => {
+          if (json && typeof json === 'object' && !Array.isArray(json)) {
+            cityOptionsByCounty = json;
+          }
+
+          return cityOptionsByCounty;
+        })
+        .catch(() => cityOptionsByCounty);
+    }
+
+    return cityDataPromise;
+  };
 
   const getForm = () => $(selectors.form).first();
 
@@ -247,7 +282,7 @@
           const gap = parseFloat(window.getComputedStyle($list.get(0)).rowGap || window.getComputedStyle($list.get(0)).gap || '0') || 0;
           let collapsedHeight = first.getBoundingClientRect().height + second.getBoundingClientRect().height + gap;
           if (third) {
-            collapsedHeight += (third.getBoundingClientRect().height * 0.45) + gap;
+            collapsedHeight += (third.getBoundingClientRect().height * 0.65) + gap;
           }
           $list.css('max-height', `${Math.ceil(collapsedHeight)}px`);
         }
@@ -606,7 +641,18 @@
     syncProductsLists();
   };
 
-  $(document.body).on('updated_checkout', syncCheckoutState);
-  $(bindFieldValidation);
-  $(syncCheckoutState);
+  const bootstrap = async () => {
+    await loadCityData();
+    $(document.body).on('updated_checkout', syncCheckoutState);
+    $(bindFieldValidation);
+    $(syncCheckoutState);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      bootstrap();
+    });
+  } else {
+    bootstrap();
+  }
 })(jQuery);
