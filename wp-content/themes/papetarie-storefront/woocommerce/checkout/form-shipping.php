@@ -10,38 +10,42 @@ defined('ABSPATH') || exit;
 $shipping_fields = $checkout->get_checkout_fields('shipping');
 $billing_fields = $checkout->get_checkout_fields('billing');
 
-$render_shipping_fields = static function (array $field_keys) use ($shipping_fields, $checkout): void {
-    foreach ($field_keys as $key) {
-        if (!isset($shipping_fields[$key])) {
-            continue;
-        }
-
-        woocommerce_form_field($key, $shipping_fields[$key], $checkout->get_value($key));
+$render_shipping_field = static function (string $key) use ($shipping_fields, $checkout): string {
+    if (!isset($shipping_fields[$key]) || !function_exists('papetarie_storefront_render_checkout_form_field')) {
+        return '';
     }
+
+    return papetarie_storefront_render_checkout_form_field($key, $shipping_fields[$key], $checkout->get_value($key), false);
 };
 
-$render_billing_fields = static function (array $field_keys) use ($billing_fields, $checkout): void {
+$render_billing_field = static function (string $key) use ($billing_fields, $checkout): string {
+    if (!isset($billing_fields[$key]) || !function_exists('papetarie_storefront_render_checkout_form_field')) {
+        return '';
+    }
+
+    return papetarie_storefront_render_checkout_form_field($key, $billing_fields[$key], $checkout->get_value($key), false);
+};
+
+$render_fields = static function (array $field_keys, string $context) use ($shipping_fields, $billing_fields, $checkout): string {
+    $html = '';
+    $fields = 'shipping' === $context ? $shipping_fields : $billing_fields;
+
     foreach ($field_keys as $key) {
-        if (!isset($billing_fields[$key])) {
+        if (!isset($fields[$key]) || !function_exists('papetarie_storefront_render_checkout_form_field')) {
             continue;
         }
 
-        woocommerce_form_field($key, $billing_fields[$key], $checkout->get_value($key));
+        $html .= papetarie_storefront_render_checkout_form_field($key, $fields[$key], $checkout->get_value($key), false);
     }
+
+    return $html;
 };
 
 $is_guest_checkout = !is_user_logged_in();
 $shipping_address_mode = function_exists('papetarie_storefront_checkout_shipping_address_mode')
     ? papetarie_storefront_checkout_shipping_address_mode()
     : 'edit';
-$shipping_address_has_summary_data = function_exists('papetarie_storefront_checkout_address_card_lines')
-    ? papetarie_storefront_checkout_address_card_lines('shipping', [
-        'include_contact' => true,
-        'contact_prefix' => 'billing',
-        'include_country' => false,
-    ]) !== []
-    : false;
-$shipping_address_is_summary = $is_guest_checkout && $shipping_address_mode === 'summary' && $shipping_address_has_summary_data;
+$shipping_address_is_summary = 'summary' === $shipping_address_mode;
 ?>
 
 <section
@@ -60,45 +64,58 @@ $shipping_address_is_summary = $is_guest_checkout && $shipping_address_mode === 
 
 	<?php if ($is_guest_checkout) : ?>
 		<div class="pap-checkout-guest-shipping">
-			<div class="pap-checkout-guest-shipping__form" data-pap-guest-shipping-form<?php echo $shipping_address_is_summary ? ' hidden aria-hidden="true"' : ''; ?>>
+			<div class="pap-checkout-guest-shipping__form" data-pap-guest-shipping-form>
 				<?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
 
-				<div class="pap-checkout-section__fields pap-checkout-section__fields--contact">
-					<?php $render_billing_fields(['billing_last_name', 'billing_first_name', 'billing_phone', 'billing_email']); ?>
+				<div class="pap-auth-form pap-checkout-address-form">
+					<div class="pap-form-row pap-form-row--split">
+						<?php echo $render_billing_field('billing_first_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<?php echo $render_billing_field('billing_last_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					</div>
+
+					<div class="pap-form-row pap-form-row--split">
+						<?php echo $render_billing_field('billing_email'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<?php echo $render_billing_field('billing_phone'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					</div>
+
+					<div class="pap-form-row pap-form-row--split">
+						<?php echo $render_shipping_field('shipping_state'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<?php echo $render_shipping_field('shipping_city'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					</div>
+
+					<div class="pap-form-row pap-form-row--stack">
+						<?php echo $render_shipping_field('shipping_address_1'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					</div>
+
+					<div class="pap-form-row pap-form-row--stack">
+						<?php echo $render_shipping_field('shipping_address_2'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					</div>
+
+					<input type="hidden" name="pap_guest_shipping_snapshot" value="" data-pap-guest-shipping-snapshot>
+					<input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
+					<input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
 				</div>
 
-				<div class="pap-checkout-section__fields pap-checkout-section__fields--shipping">
-					<?php $render_shipping_fields(['shipping_state', 'shipping_city', 'shipping_address_1', 'shipping_address_2', 'shipping_postcode']); ?>
-					<?php if (isset($shipping_fields['shipping_country'])) : ?>
-						<input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
-					<?php endif; ?>
+				<div class="pap-checkout-guest-shipping__summary" data-pap-guest-shipping-summary hidden aria-hidden="true">
+					<?php echo function_exists('papetarie_storefront_get_checkout_guest_shipping_summary_html') ? papetarie_storefront_get_checkout_guest_shipping_summary_html() : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				</div>
 
-				<div class="pap-checkout-guest-shipping__options">
-					<label class="pap-checkout-guest-option">
-						<input type="checkbox" name="pap_billing_same_as_shipping" value="1" checked>
-						<span><?php esc_html_e('Datele de facturare sunt aceleași cu adresa de livrare', 'papetarie-storefront'); ?></span>
-					</label>
-
-					<?php if ($checkout->is_registration_enabled() && !is_user_logged_in()) : ?>
+				<?php if ($checkout->is_registration_enabled() && !is_user_logged_in()) : ?>
+					<div class="pap-checkout-guest-shipping__options">
 						<label class="pap-checkout-guest-option">
 							<input type="checkbox" name="createaccount" value="1" <?php checked($checkout->get_value('createaccount'), 1); ?>>
 							<span><?php esc_html_e('Creează cont după finalizarea comenzii', 'papetarie-storefront'); ?></span>
 						</label>
-					<?php endif; ?>
-				</div>
+					</div>
+				<?php endif; ?>
 
 				<div class="pap-checkout-guest-shipping__actions">
-					<button type="button" class="button alt pap-checkout-guest-shipping__continue" data-pap-guest-shipping-continue>
+					<button type="button" class="button alt pap-cart-checkout pap-checkout-guest-shipping__continue" data-pap-guest-shipping-continue>
 						<?php esc_html_e('Continuă către livrare', 'papetarie-storefront'); ?>
 					</button>
 				</div>
 
 				<?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>
-			</div>
-
-			<div class="pap-checkout-guest-shipping__summary" data-pap-guest-shipping-summary<?php echo $shipping_address_is_summary ? '' : ' hidden aria-hidden="true"'; ?>>
-				<?php echo function_exists('papetarie_storefront_get_checkout_guest_shipping_summary_html') ? papetarie_storefront_get_checkout_guest_shipping_summary_html() : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</div>
 		</div>
 	<?php else : ?>
@@ -113,12 +130,29 @@ $shipping_address_is_summary = $is_guest_checkout && $shipping_address_mode === 
 				<div class="shipping_address">
 					<?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
 
-					<div class="pap-checkout-section__fields pap-checkout-section__fields--contact">
-						<?php $render_billing_fields(['billing_first_name', 'billing_last_name', 'billing_email', 'billing_phone']); ?>
-					</div>
+					<div class="pap-auth-form pap-checkout-address-form">
+						<div class="pap-form-row pap-form-row--split">
+							<?php echo $render_fields(['billing_first_name', 'billing_last_name'], 'billing'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</div>
 
-					<div class="pap-checkout-section__fields pap-checkout-section__fields--shipping">
-						<?php $render_shipping_fields(['shipping_first_name', 'shipping_last_name', 'shipping_company', 'shipping_country', 'shipping_state', 'shipping_city', 'shipping_postcode', 'shipping_address_1', 'shipping_address_2']); ?>
+						<div class="pap-form-row pap-form-row--split">
+							<?php echo $render_fields(['billing_email', 'billing_phone'], 'billing'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</div>
+
+						<div class="pap-form-row pap-form-row--split">
+							<?php echo $render_fields(['shipping_state', 'shipping_city'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</div>
+
+						<div class="pap-form-row pap-form-row--stack">
+							<?php echo $render_fields(['shipping_address_1'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</div>
+
+						<div class="pap-form-row pap-form-row--stack">
+							<?php echo $render_fields(['shipping_address_2'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						</div>
+
+						<input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
+						<input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
 					</div>
 
 					<?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>

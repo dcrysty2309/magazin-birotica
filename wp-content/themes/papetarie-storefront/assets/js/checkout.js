@@ -118,16 +118,68 @@
     document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; max-age=2592000; samesite=lax`;
   };
 
+  const getSnapshotField = () => getForm().find('[data-pap-guest-shipping-snapshot]').first();
+
+  const setGuestShippingSnapshot = (snapshot) => {
+    const serialized = JSON.stringify(snapshot && typeof snapshot === 'object' ? snapshot : {});
+    const $snapshotField = getSnapshotField();
+
+    if ($snapshotField.length) {
+      $snapshotField.val(serialized);
+    }
+
+    setCookieValue('pap_checkout_shipping_snapshot', serialized);
+  };
+
+  const getGuestShippingSnapshot = () => {
+    const raw = String(getCookieValue('pap_checkout_shipping_snapshot') || '').trim();
+
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const decoded = JSON.parse(decodeURIComponent(raw));
+      return decoded && typeof decoded === 'object' ? decoded : null;
+    } catch (error) {
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+      } catch (nestedError) {
+        return null;
+      }
+    }
+  };
+
   const getForm = () => $(selectors.form).first();
 
   const getFieldRow = ($field) => $field.closest(selectors.formRow);
 
   const isFieldTouched = ($field) => $field.data('papTouched') === true;
+  let guestShippingSummaryCache = null;
+  const debugCheckout = (...args) => {
+    if (window.console && typeof window.console.log === 'function') {
+      window.console.log('[checkout]', ...args);
+    }
+  };
 
-  const shouldShowValidation = ($field) => isFieldTouched($field) || getForm().data('papSubmitted') === true;
+  const shouldShowValidation = () => getForm().data('papSubmitted') === true;
 
   const markFieldTouched = ($field) => {
     $field.data('papTouched', true);
+  };
+
+  const clearNativeInvalidState = ($field) => {
+    const $row = getFieldRow($field);
+
+    $field
+      .removeClass('pap-is-invalid woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated')
+      .removeAttr('aria-invalid aria-describedby');
+
+    $row
+      .removeClass('pap-is-invalid woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
+
+    $row.find('.pap-field-error').remove();
   };
 
   const getSelectPlaceholder = ($field, countyValue) => {
@@ -376,13 +428,26 @@
     return $panel.is('.is-active') && !$panel.is(':hidden');
   };
 
+  const focusField = ($field) => {
+    const element = $field && $field.length ? $field.get(0) : null;
+    if (element && typeof element.focus === 'function') {
+      element.focus({ preventScroll: true });
+      return;
+    }
+
+    if ($field && typeof $field.trigger === 'function') {
+      $field.trigger('focus');
+    }
+  };
+
   const clearFieldError = ($field) => {
     const $row = getFieldRow($field);
 
     $field.removeAttr('aria-invalid aria-describedby');
+    $field.removeClass('pap-is-invalid');
     $row
-      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
-    $row.find('.checkout-inline-error-message').remove();
+      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated pap-is-invalid');
+    $row.find('.pap-field-error').remove();
   };
 
   const setFieldError = ($field, message, errorClass, forceDisplay = false) => {
@@ -395,15 +460,16 @@
 
     clearFieldError($field);
     $field.attr('aria-invalid', 'true').attr('aria-describedby', descriptionId);
-    $row.addClass(`woocommerce-invalid ${errorClass}`);
+    $field.addClass('pap-is-invalid');
+    $row.addClass('pap-is-invalid');
 
     if (!message) {
       return;
     }
 
-    $('<p>', {
+    $('<small>', {
       id: descriptionId,
-      class: 'checkout-inline-error-message',
+      class: 'pap-field-error',
       role: 'alert',
       text: message,
     }).appendTo($row);
@@ -417,7 +483,6 @@
     }
 
     clearFieldError($field);
-    $row.addClass('woocommerce-validated');
   };
 
   const toggleShippingState = () => {
@@ -572,7 +637,14 @@
     return 'edit';
   };
 
-  const getGuestShippingFieldValue = (selector) => {
+  const getGuestShippingFieldValue = (selector, source = 'dom') => {
+    if (source === 'cache' && guestShippingSummaryCache) {
+      const cachedValue = guestShippingSummaryCache[selector];
+      if (cachedValue !== undefined) {
+        return String(cachedValue || '').trim();
+      }
+    }
+
     const $field = getFieldBySelector(selector);
     if (!$field.length) {
       return '';
@@ -584,6 +656,24 @@
     }
 
     return String($field.val() || '').trim();
+  };
+
+  const captureGuestShippingSummaryCache = () => ({
+    '#billing_first_name': getGuestShippingFieldValue('#billing_first_name'),
+    '#billing_last_name': getGuestShippingFieldValue('#billing_last_name'),
+    '#billing_phone': getGuestShippingFieldValue('#billing_phone'),
+    '#billing_email': getGuestShippingFieldValue('#billing_email'),
+    '#shipping_address_1': getGuestShippingFieldValue('#shipping_address_1'),
+    '#shipping_address_2': getGuestShippingFieldValue('#shipping_address_2'),
+    '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
+    '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
+    '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
+  });
+
+  const captureAndPersistGuestShippingSummaryCache = () => {
+    guestShippingSummaryCache = captureGuestShippingSummaryCache();
+    setGuestShippingSnapshot(guestShippingSummaryCache);
+    return guestShippingSummaryCache;
   };
 
   const hasGuestShippingSummaryData = () => {
@@ -600,15 +690,16 @@
   };
 
   const getGuestShippingSummaryLines = () => {
-    const firstName = getGuestShippingFieldValue('#billing_first_name');
-    const lastName = getGuestShippingFieldValue('#billing_last_name');
-    const phone = getGuestShippingFieldValue('#billing_phone');
-    const email = getGuestShippingFieldValue('#billing_email');
-    const address1 = getGuestShippingFieldValue('#shipping_address_1');
-    const address2 = getGuestShippingFieldValue('#shipping_address_2');
-    const city = getGuestShippingFieldValue('#shipping_city');
-    const state = getGuestShippingFieldValue('#shipping_state');
-    const postcode = getGuestShippingFieldValue('#shipping_postcode');
+    const useCache = guestShippingSummaryCache !== null;
+    const firstName = getGuestShippingFieldValue('#billing_first_name', useCache ? 'cache' : 'dom');
+    const lastName = getGuestShippingFieldValue('#billing_last_name', useCache ? 'cache' : 'dom');
+    const phone = getGuestShippingFieldValue('#billing_phone', useCache ? 'cache' : 'dom');
+    const email = getGuestShippingFieldValue('#billing_email', useCache ? 'cache' : 'dom');
+    const address1 = getGuestShippingFieldValue('#shipping_address_1', useCache ? 'cache' : 'dom');
+    const address2 = getGuestShippingFieldValue('#shipping_address_2', useCache ? 'cache' : 'dom');
+    const city = getGuestShippingFieldValue('#shipping_city', useCache ? 'cache' : 'dom');
+    const state = getGuestShippingFieldValue('#shipping_state', useCache ? 'cache' : 'dom');
+    const postcode = getGuestShippingFieldValue('#shipping_postcode', useCache ? 'cache' : 'dom');
 
     const lines = [];
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
@@ -644,6 +735,10 @@
       return;
     }
 
+    if (guestShippingSummaryCache === null) {
+      guestShippingSummaryCache = getGuestShippingSnapshot() || captureGuestShippingSummaryCache();
+    }
+
     const lines = getGuestShippingSummaryLines();
     const $body = $summary.find('.pap-checkout-address-card__body').first();
     const $empty = $summary.find('.pap-checkout-address-card__empty').first();
@@ -674,33 +769,37 @@
     });
   };
 
+  const setVisibilityState = ($element, visible, displayValue) => {
+    if (!$element.length) {
+      return;
+    }
+
+    $element.prop('hidden', !visible).attr('aria-hidden', visible ? 'false' : 'true');
+    $element.css('display', visible ? (displayValue || '') : 'none');
+  };
+
   const setGuestShippingMode = (mode, persist = true) => {
     if (isLoggedIn) {
       return;
     }
 
     const normalizedMode = mode === 'summary' ? 'summary' : 'edit';
+    debugCheckout('setGuestShippingMode', normalizedMode, { persist });
     const $section = getGuestShippingSection();
     const $form = $section.find(selectors.guestShippingForm).first();
     const $summary = $section.find(selectors.guestShippingSummary).first();
+    const $summaryWrap = $section.find('.pap-checkout-guest-shipping__summary').first();
+    const $options = $section.find('.pap-checkout-guest-shipping__options').first();
+    const $actions = $section.find('.pap-checkout-guest-shipping__actions').first();
+    const hasSummary = $summary.length > 0;
 
     $section.toggleClass('is-summary-mode', normalizedMode === 'summary');
 
-    if ($form.length) {
-      if (normalizedMode === 'summary') {
-        $form.attr('hidden', true).attr('aria-hidden', 'true');
-      } else {
-        $form.removeAttr('hidden').attr('aria-hidden', 'false');
-      }
-    }
-
-    if ($summary.length) {
-      if (normalizedMode === 'summary') {
-        $summary.removeAttr('hidden').attr('aria-hidden', 'false');
-      } else {
-        $summary.attr('hidden', true).attr('aria-hidden', 'true');
-      }
-    }
+    setVisibilityState($form, normalizedMode !== 'summary' || !hasSummary, 'grid');
+    setVisibilityState($summary, normalizedMode === 'summary' && hasSummary, 'grid');
+    setVisibilityState($summaryWrap, normalizedMode === 'summary' && hasSummary, 'grid');
+    setVisibilityState($options, normalizedMode !== 'summary' || !hasSummary, 'grid');
+    setVisibilityState($actions, normalizedMode !== 'summary' || !hasSummary, 'flex');
 
     syncGuestShippingSummary();
 
@@ -720,13 +819,10 @@
       '#shipping_state',
       '#shipping_city',
       '#shipping_address_1',
-      '#shipping_address_2',
-      '#shipping_postcode',
     ];
 
     let firstInvalid = null;
     let hasErrors = false;
-
     selectorsToValidate.forEach((selector) => {
       const $field = getFieldBySelector(selector);
       if (!$field.length || $field.is(':disabled')) {
@@ -746,7 +842,7 @@
       setGuestShippingMode('edit', false);
       const offset = Math.max(firstInvalid.closest(selectors.formRow).offset().top - 120, 0);
       $('html, body').animate({ scrollTop: offset }, 300);
-      firstInvalid.trigger('focus');
+      focusField(firstInvalid);
     }
 
     return !hasErrors;
@@ -827,7 +923,7 @@
     }, 180);
   };
 
-  const validateTextField = ($field, rule, forceDisplay = false) => {
+  const validateTextField = ($field, rule, forceDisplay = false, requiredMessage = messages.required) => {
     if (!forceDisplay && !isVisibleField($field)) {
       clearFieldError($field);
       return true;
@@ -837,7 +933,7 @@
     const required = $field.closest(selectors.formRow).is('.validate-required');
 
     if (required && value === '') {
-      setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
+      setFieldError($field, requiredMessage, 'woocommerce-invalid-required-field', forceDisplay);
       return false;
     }
 
@@ -847,28 +943,28 @@
     }
 
     if (rule === 'email' && !emailPattern.test(value)) {
-      setFieldError($field, messages.email, 'woocommerce-invalid-email');
+      setFieldError($field, messages.email, 'woocommerce-invalid-email', forceDisplay);
       return false;
     }
 
     if (rule === 'phone') {
       const digits = value.replace(/\D/g, '');
       if (!phonePattern.test(value) || digits.length < 8) {
-        setFieldError($field, messages.phone, 'woocommerce-invalid-phone');
+        setFieldError($field, messages.phone, 'woocommerce-invalid-phone', forceDisplay);
         return false;
       }
     }
 
     if (rule === 'postcode' && !postcodePattern.test(value.replace(/\s+/g, ''))) {
-      setFieldError($field, messages.postcode, 'woocommerce-invalid-postcode');
+      setFieldError($field, messages.postcode, 'woocommerce-invalid-postcode', forceDisplay);
       return false;
     }
 
-    setFieldValid($field);
+    setFieldValid($field, forceDisplay);
     return true;
   };
 
-  const validateSelectField = ($field, forceDisplay = false) => {
+  const validateSelectField = ($field, forceDisplay = false, requiredMessage = messages.required) => {
     if (!forceDisplay && !isVisibleField($field)) {
       clearFieldError($field);
       return true;
@@ -878,15 +974,15 @@
     const required = $field.closest(selectors.formRow).is('.validate-required');
 
     if (required && value === '') {
-      setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
+      setFieldError($field, requiredMessage, 'woocommerce-invalid-required-field', forceDisplay);
       return false;
     }
 
-    setFieldValid($field);
+    setFieldValid($field, forceDisplay);
     return true;
   };
 
-  const validateCheckboxField = ($field, forceDisplay = false) => {
+  const validateCheckboxField = ($field, forceDisplay = false, requiredMessage = messages.required) => {
     if (!forceDisplay && !isVisibleField($field)) {
       clearFieldError($field);
       return true;
@@ -899,7 +995,7 @@
       const checked = $group.is(':checked');
 
       if (required && !checked) {
-        setFieldError($field.first(), messages.required, 'woocommerce-invalid-required-field');
+        setFieldError($field.first(), requiredMessage, 'woocommerce-invalid-required-field', forceDisplay);
         return false;
       }
 
@@ -911,12 +1007,13 @@
     }
 
     const required = $field.closest(selectors.formRow).is('.validate-required');
+
     if (required && !$field.is(':checked')) {
-      setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
+      setFieldError($field, requiredMessage, 'woocommerce-invalid-required-field', forceDisplay);
       return false;
     }
 
-    setFieldValid($field);
+    setFieldValid($field, forceDisplay);
     return true;
   };
 
@@ -929,28 +1026,39 @@
     const type = String($field.attr('type') || '').toLowerCase();
     const name = String($field.attr('name') || '').toLowerCase();
     const id = String($field.attr('id') || '').toLowerCase();
+    const requiredMessageByField = {
+      billing_first_name: 'Completează prenumele.',
+      billing_last_name: 'Completează numele.',
+      billing_email: 'Introdu emailul.',
+      billing_phone: 'Introdu telefonul.',
+      shipping_state: 'Alege județul.',
+      shipping_city: 'Alege localitatea.',
+      shipping_address_1: 'Completează adresa.',
+    };
+    const fieldKey = name || id;
+    const requiredMessage = requiredMessageByField[fieldKey] || messages.required;
 
     if ($field.is('select')) {
-      return validateSelectField($field, forceDisplay);
+      return validateSelectField($field, forceDisplay, requiredMessage);
     }
 
     if (type === 'checkbox' || type === 'radio') {
-      return validateCheckboxField($field, forceDisplay);
+      return validateCheckboxField($field, forceDisplay, requiredMessage);
     }
 
     if (name.includes('email') || id.includes('email')) {
-      return validateTextField($field, 'email', forceDisplay);
+      return validateTextField($field, 'email', forceDisplay, requiredMessage);
     }
 
     if (name.includes('phone') || id.includes('phone')) {
-      return validateTextField($field, 'phone', forceDisplay);
+      return validateTextField($field, 'phone', forceDisplay, requiredMessage);
     }
 
     if (name.includes('postcode') || id.includes('postcode') || name.includes('zip')) {
-      return validateTextField($field, 'postcode', forceDisplay);
+      return validateTextField($field, 'postcode', forceDisplay, requiredMessage);
     }
 
-    return validateTextField($field, undefined, forceDisplay);
+    return validateTextField($field, undefined, forceDisplay, requiredMessage);
   };
 
   const validateVisibleFields = (forceDisplay = false) => {
@@ -981,14 +1089,12 @@
       if ($firstModal.length && $firstModal.is('[hidden]')) {
         openAddressModal(getForm().find(selectors.addressModalOpen).get(0));
         window.setTimeout(() => {
-          if (firstInvalid && typeof firstInvalid.trigger === 'function') {
-            firstInvalid.trigger('focus');
-          }
+          focusField(firstInvalid);
         }, 220);
       } else {
         const offset = Math.max(firstInvalid.closest(selectors.formRow).offset().top - 120, 0);
         $('html, body').animate({ scrollTop: offset }, 300);
-        firstInvalid.trigger('focus');
+        focusField(firstInvalid);
       }
     }
 
@@ -998,22 +1104,59 @@
   const bindFieldValidation = () => {
     const $form = getForm();
 
-    $form.on('change blur', selectors.field, function () {
+    $form.on('blur', selectors.field, function () {
       const $field = $(this);
 
       if (isProgrammaticFieldSync && isAddressCityField($field)) {
         return;
       }
 
-      markFieldTouched($field);
-      validateField($field);
+      if (getForm().data('papSubmitted') !== true) {
+        window.setTimeout(() => {
+          if (getForm().data('papSubmitted') !== true) {
+            clearNativeInvalidState($field);
+          }
+        }, 0);
+      }
+    });
+
+    $form.on('change', selectors.field, function () {
+      const $field = $(this);
+
+      if (isProgrammaticFieldSync && isAddressCityField($field)) {
+        return;
+      }
+
+      if (getForm().data('papSubmitted') === true) {
+        validateField($field);
+      }
+
+      captureAndPersistGuestShippingSummaryCache();
+      clearFieldError($field);
+      clearNativeInvalidState($field);
     });
 
     $form.on('input', selectors.field, function () {
       const $field = $(this);
-      if (isFieldTouched($field) || getForm().data('papSubmitted') === true) {
+
+      if (isProgrammaticFieldSync && isAddressCityField($field)) {
+        return;
+      }
+
+      if (getForm().data('papSubmitted') !== true) {
+        clearNativeInvalidState($field);
+        return;
+      }
+
+      if (String($field.val() || '').trim() === '') {
+        clearNativeInvalidState($field);
+        return;
+      }
+
+      if (getForm().data('papSubmitted') === true) {
         validateField($field);
       }
+      captureAndPersistGuestShippingSummaryCache();
     });
 
     $form.on('change', selectors.shipToggle, function () {
@@ -1038,17 +1181,22 @@
     $form.on('change', '#billing_state, #shipping_state', function () {
       const $field = $(this);
       syncDependentCitySelect(`#${$field.attr('id')}`);
-
-      const citySelector = $field.is('#billing_state') ? '#billing_city' : '#shipping_city';
-      const $cityField = getFieldBySelector(citySelector);
-      if ($cityField.length && (isFieldTouched($cityField) || getForm().data('papSubmitted') === true)) {
-        validateField($cityField);
-      }
     });
 
     $form.on('change', '#billing_city, #shipping_city', function () {
       const $field = $(this);
-      validateField($field);
+
+      if (isProgrammaticFieldSync) {
+        clearNativeInvalidState($field);
+        return;
+      }
+
+      if (getForm().data('papSubmitted') === true) {
+        validateField($field);
+        return;
+      }
+
+      clearNativeInvalidState($field);
     });
 
     $form.on('click', selectors.addressModalOpen, function (event) {
@@ -1067,13 +1215,18 @@
       toggleProductsList(this);
     });
 
-    $form.on('click', selectors.guestShippingContinue, function (event) {
+  $form.on('click', selectors.guestShippingContinue, function (event) {
       event.preventDefault();
+      debugCheckout('click continue');
       if (!validateGuestShippingFields(true)) {
+        debugCheckout('continue blocked by validation');
         return;
       }
 
+      captureAndPersistGuestShippingSummaryCache();
+      debugCheckout('continue valid', guestShippingSummaryCache);
       setGuestShippingMode('summary');
+      debugCheckout('trigger update_checkout');
       $(document.body).trigger('update_checkout');
       const $summary = getGuestShippingSection().find(selectors.guestShippingSummary).first();
       const target = $summary.length ? $summary.get(0) : null;
@@ -1084,12 +1237,11 @@
 
     $form.on('click', selectors.guestShippingEdit, function (event) {
       event.preventDefault();
+      debugCheckout('click modify');
       setGuestShippingMode('edit');
 
       const $firstField = getFieldBySelector('#billing_first_name');
-      if ($firstField.length && typeof $firstField.trigger === 'function') {
-        $firstField.trigger('focus');
-      }
+      focusField($firstField);
     });
 
     document.addEventListener(
@@ -1102,6 +1254,9 @@
 
         toggleShippingState();
         $form.data('papSubmitted', true);
+        debugCheckout('submit event', {
+          guestMode: !isLoggedIn ? getGuestShippingMode() : 'logged-in',
+        });
 
         if (!isLoggedIn && getGuestShippingMode() === 'summary' && !validateGuestShippingFields(true)) {
           event.preventDefault();
@@ -1129,6 +1284,7 @@
       return;
     }
 
+    debugCheckout('syncCheckoutState start');
     toggleShippingState();
     if (!isLoggedIn) {
       setGuestShippingMode(getGuestShippingMode(), false);
@@ -1137,6 +1293,8 @@
     syncDependentCitySelect('#billing_state');
     syncDependentCitySelect('#shipping_state');
     syncProductsLists();
+    debugCheckout('syncCheckoutState end');
+
   };
 
   const bootstrap = async () => {

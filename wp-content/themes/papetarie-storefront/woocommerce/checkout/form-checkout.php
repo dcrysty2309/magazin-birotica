@@ -38,7 +38,6 @@ if (!$checkout->is_registration_enabled() && $checkout->is_registration_required
             <div class="pap-checkout-steps<?php echo $is_guest_checkout ? ' pap-checkout-steps--guest' : ''; ?>">
               <?php wc_get_template('checkout/form-shipping.php', ['checkout' => $checkout]); ?>
               <?php echo papetarie_storefront_get_checkout_shipping_methods_card_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-              <?php echo papetarie_storefront_get_checkout_address_summary_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <?php echo papetarie_storefront_get_checkout_payment_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </div>
           </main>
@@ -55,9 +54,7 @@ if (!$checkout->is_registration_enabled() && $checkout->is_registration_required
         </div>
       <?php endif; ?>
     </form>
-  </div>
 </div>
-
-<?php echo papetarie_storefront_get_checkout_address_modal_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+</div>
 
 <?php do_action('woocommerce_after_checkout_form', $checkout); ?>
