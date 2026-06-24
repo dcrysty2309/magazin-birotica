@@ -95,28 +95,28 @@ $shipping_address_is_summary = 'summary' === $shipping_address_mode;
 					<input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
 					<input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
 				</div>
-
-				<div class="pap-checkout-guest-shipping__summary" data-pap-guest-shipping-summary hidden aria-hidden="true">
-					<?php echo function_exists('papetarie_storefront_get_checkout_guest_shipping_summary_html') ? papetarie_storefront_get_checkout_guest_shipping_summary_html() : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-				</div>
-
-				<?php if ($checkout->is_registration_enabled() && !is_user_logged_in()) : ?>
-					<div class="pap-checkout-guest-shipping__options">
-						<label class="pap-checkout-guest-option">
-							<input type="checkbox" name="createaccount" value="1" <?php checked($checkout->get_value('createaccount'), 1); ?>>
-							<span><?php esc_html_e('Creează cont după finalizarea comenzii', 'papetarie-storefront'); ?></span>
-						</label>
-					</div>
-				<?php endif; ?>
-
-				<div class="pap-checkout-guest-shipping__actions">
-					<button type="button" class="button alt pap-cart-checkout pap-checkout-guest-shipping__continue" data-pap-guest-shipping-continue>
-						<?php esc_html_e('Continuă către livrare', 'papetarie-storefront'); ?>
-					</button>
-				</div>
-
-				<?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>
 			</div>
+
+			<div class="pap-checkout-guest-shipping__summary" data-pap-guest-shipping-summary hidden aria-hidden="true">
+				<?php echo function_exists('papetarie_storefront_get_checkout_guest_shipping_summary_html') ? papetarie_storefront_get_checkout_guest_shipping_summary_html() : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			</div>
+
+			<?php if ($checkout->is_registration_enabled() && !is_user_logged_in()) : ?>
+				<div class="pap-checkout-guest-shipping__options">
+					<label class="pap-checkout-guest-option">
+						<input type="checkbox" name="createaccount" value="1" <?php checked($checkout->get_value('createaccount'), 1); ?>>
+						<span><?php esc_html_e('Creează cont după finalizarea comenzii', 'papetarie-storefront'); ?></span>
+					</label>
+				</div>
+			<?php endif; ?>
+
+			<div class="pap-checkout-guest-shipping__actions">
+				<button type="button" class="button alt pap-cart-checkout pap-checkout-guest-shipping__continue" data-pap-guest-shipping-continue>
+					<?php esc_html_e('Continuă către livrare', 'papetarie-storefront'); ?>
+				</button>
+			</div>
+
+			<?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>
 		</div>
 	<?php else : ?>
 		<div class="woocommerce-shipping-fields">

@@ -882,7 +882,7 @@ function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
     $packages = function_exists('WC') && WC() && WC()->shipping() ? WC()->shipping()->get_packages() : [];
     $has_shipping_method = !empty($packages) && WC()->cart->needs_shipping();
     $step_state = papetarie_storefront_checkout_step_state('shipping-methods');
-    $body_hidden_attr = $step_state === 'disabled' ? ' hidden aria-hidden="true"' : ' aria-hidden="false"';
+    $body_hidden_attr = ' aria-hidden="false"';
 
     ob_start();
     ?>

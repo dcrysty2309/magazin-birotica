@@ -10122,11 +10122,7 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-step {
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-step.is-step-disabled {
-  opacity: 0.58;
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-step.is-step-disabled .pap-checkout-step__body {
-  display: none;
+  opacity: 1;
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-step.is-step-complete {
