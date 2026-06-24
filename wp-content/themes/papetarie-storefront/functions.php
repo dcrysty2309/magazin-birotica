@@ -729,6 +729,7 @@ function papetarie_storefront_enqueue_checkout_scripts(): void
             'citiesByCounty' => $cities_by_county,
             'cityPlaceholder' => __('Alege localitatea', 'papetarie-storefront'),
             'countyFirstPlaceholder' => __('Alege județul întâi', 'papetarie-storefront'),
+            'isLoggedIn' => is_user_logged_in(),
         ]
     );
 }
@@ -868,17 +869,23 @@ function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
     $fallback_shipping_cost = (float) apply_filters('papetarie_storefront_checkout_shipping_default_cost', 0.0);
     $packages = function_exists('WC') && WC() && WC()->shipping() ? WC()->shipping()->get_packages() : [];
     $has_shipping_method = !empty($packages) && WC()->cart->needs_shipping();
+    $step_state = papetarie_storefront_checkout_step_state('shipping-methods');
+    $body_hidden_attr = $step_state === 'disabled' ? ' hidden aria-hidden="true"' : ' aria-hidden="false"';
 
     ob_start();
     ?>
-    <section class="pap-checkout-card pap-checkout-card--shipping-methods pap-checkout-shipping-methods-inline" data-pap-checkout-section="shipping-methods">
+    <section class="pap-checkout-card pap-checkout-card--shipping-methods pap-checkout-step pap-checkout-step--shipping-methods is-step-<?php echo esc_attr($step_state); ?>" data-pap-checkout-section="shipping-methods" data-pap-checkout-step="shipping-methods" data-pap-step-state="<?php echo esc_attr($step_state); ?>" aria-disabled="<?php echo esc_attr($step_state === 'disabled' ? 'true' : 'false'); ?>">
       <div class="pap-checkout-shipping-methods-inline__head">
         <div class="pap-checkout-section-title-row">
           <span class="pap-checkout-section-badge" aria-hidden="true">2</span>
           <h2><?php esc_html_e('Tip de livrare', 'papetarie-storefront'); ?></h2>
         </div>
+        <?php if ($step_state === 'disabled') : ?>
+          <p class="pap-checkout-card__intro"><?php esc_html_e('Completează adresa de livrare pentru a vedea metoda și costul transportului.', 'papetarie-storefront'); ?></p>
+        <?php endif; ?>
       </div>
 
+      <div class="pap-checkout-step__body"<?php echo $body_hidden_attr; ?>>
       <div class="pap-checkout-shipping-method-groups">
         <div class="pap-checkout-shipping-package">
           <?php if ($has_shipping_method) : ?>
@@ -961,6 +968,7 @@ function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
       </div>
 
       <?php echo papetarie_storefront_get_checkout_products_inline_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
     </section>
     <?php
 
@@ -1106,8 +1114,44 @@ function papetarie_storefront_checkout_field_value(string $field_key): string
     return '';
 }
 
-function papetarie_storefront_checkout_address_card_lines(string $prefix): array
+function papetarie_storefront_checkout_shipping_address_mode(): string
 {
+    $mode = isset($_COOKIE['pap_checkout_shipping_mode']) ? sanitize_key((string) wp_unslash($_COOKIE['pap_checkout_shipping_mode'])) : '';
+
+    if (in_array($mode, ['edit', 'summary'], true)) {
+        return $mode;
+    }
+
+    return 'edit';
+}
+
+function papetarie_storefront_checkout_step_state(string $step): string
+{
+    if (!function_exists('is_user_logged_in') || is_user_logged_in()) {
+        return 'active';
+    }
+
+    $shipping_mode = papetarie_storefront_checkout_shipping_address_mode();
+    $normalized_step = sanitize_key($step);
+
+    if ($normalized_step === 'shipping-address') {
+        return $shipping_mode === 'summary' ? 'complete' : 'active';
+    }
+
+    if ($normalized_step === 'shipping-methods') {
+        return $shipping_mode === 'summary' ? 'active' : 'disabled';
+    }
+
+    return 'disabled';
+}
+
+function papetarie_storefront_checkout_address_card_lines(string $prefix, array $options = []): array
+{
+    $include_contact = !empty($options['include_contact']);
+    $include_country = !array_key_exists('include_country', $options) || !empty($options['include_country']);
+    $contact_prefix = isset($options['contact_prefix']) && is_string($options['contact_prefix']) && $options['contact_prefix'] !== ''
+        ? $options['contact_prefix']
+        : $prefix;
     $country_code = papetarie_storefront_checkout_field_value($prefix . '_country');
     if ($country_code === '') {
         $country_code = 'RO';
@@ -1154,16 +1198,16 @@ function papetarie_storefront_checkout_address_card_lines(string $prefix): array
         $lines[] = implode(', ', $city_parts);
     }
 
-    if ($country_label !== '' && $country_label !== 'Romania') {
+    if ($include_country && $country_label !== '' && $country_label !== 'Romania') {
         $lines[] = $country_label;
-    } elseif ($country_label !== '') {
+    } elseif ($include_country && $country_label !== '') {
         $lines[] = $country_label;
     }
 
-    if ($prefix === 'billing') {
+    if ($prefix === 'billing' || $include_contact) {
         $contact_parts = array_filter([
-            papetarie_storefront_checkout_field_value('billing_phone'),
-            papetarie_storefront_checkout_field_value('billing_email'),
+            papetarie_storefront_checkout_field_value($contact_prefix . '_phone'),
+            papetarie_storefront_checkout_field_value($contact_prefix . '_email'),
         ]);
 
         if ($contact_parts) {
@@ -1186,9 +1230,10 @@ function papetarie_storefront_checkout_address_card_html(string $prefix, array $
     $empty_message = $options['empty_message'] ?? '';
     $button_label = $options['button_label'] ?? __('Editează', 'papetarie-storefront');
     $show_action = $options['show_action'] ?? true;
+    $action_mode = isset($options['action_mode']) && is_string($options['action_mode']) ? $options['action_mode'] : 'modal';
     $is_shipping = 'shipping' === $prefix;
     $is_shipping_different = !empty($options['shipping_different']);
-    $lines = papetarie_storefront_checkout_address_card_lines($prefix);
+    $lines = papetarie_storefront_checkout_address_card_lines($prefix, $options);
 
     ob_start();
     ?>
@@ -1198,9 +1243,15 @@ function papetarie_storefront_checkout_address_card_html(string $prefix, array $
           <h3 class="pap-checkout-address-card__title"><?php echo esc_html(papetarie_storefront_checkout_address_card_label($prefix)); ?></h3>
         </div>
         <?php if ($show_action) : ?>
-          <button type="button" class="pap-checkout-address-card__action" data-checkout-address-modal-open data-checkout-address-modal-context="<?php echo esc_attr($prefix); ?>">
-            <?php echo esc_html($button_label); ?>
-          </button>
+          <?php if ($action_mode === 'guest-summary') : ?>
+            <button type="button" class="pap-checkout-address-card__action" data-pap-guest-shipping-edit>
+              <?php echo esc_html($button_label); ?>
+            </button>
+          <?php else : ?>
+            <button type="button" class="pap-checkout-address-card__action" data-checkout-address-modal-open data-checkout-address-modal-context="<?php echo esc_attr($prefix); ?>">
+              <?php echo esc_html($button_label); ?>
+            </button>
+          <?php endif; ?>
         <?php endif; ?>
       </div>
 
@@ -1227,6 +1278,51 @@ function papetarie_storefront_checkout_address_card_html(string $prefix, array $
     return (string) ob_get_clean();
 }
 
+function papetarie_storefront_get_checkout_guest_shipping_summary_html(): string
+{
+    if (!function_exists('WC') || !WC() || !WC()->cart) {
+        return '';
+    }
+
+    ob_start();
+    ?>
+    <section class="pap-checkout-card pap-checkout-card--shipping-address pap-checkout-card--guest-summary" data-pap-checkout-section="shipping-address" data-pap-checkout-guest-shipping-summary>
+      <div class="pap-checkout-card__head">
+        <div class="pap-checkout-section-title-row">
+          <span class="pap-checkout-section-badge" aria-hidden="true">1</span>
+          <h2><?php esc_html_e('Adresă de livrare', 'papetarie-storefront'); ?></h2>
+        </div>
+      </div>
+
+      <div class="pap-checkout-address-sections">
+        <?php echo papetarie_storefront_checkout_address_card_html('shipping', [
+            'button_label' => __('Modifică', 'papetarie-storefront'),
+            'empty_message' => __('Nu ai completat încă adresa de livrare.', 'papetarie-storefront'),
+            'include_contact' => true,
+            'contact_prefix' => 'billing',
+            'include_country' => false,
+            'action_mode' => 'guest-summary',
+            'shipping_different' => true,
+        ]); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
+    </section>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
+function papetarie_storefront_get_checkout_shipping_address_html(): string
+{
+    if (!function_exists('WC') || !WC() || !WC()->cart) {
+        return '';
+    }
+
+    ob_start();
+    wc_get_template('checkout/form-shipping.php', ['checkout' => WC()->checkout()]);
+
+    return (string) ob_get_clean();
+}
+
 function papetarie_storefront_get_checkout_address_summary_html(): string
 {
     if (!function_exists('WC') || !WC() || !WC()->cart) {
@@ -1234,22 +1330,29 @@ function papetarie_storefront_get_checkout_address_summary_html(): string
     }
 
     $has_billing_lines = papetarie_storefront_checkout_address_card_lines('billing') !== [];
+    $step_state = papetarie_storefront_checkout_step_state('address-summary');
     ob_start();
     ?>
-    <section class="pap-checkout-card pap-checkout-card--address-summary" data-pap-checkout-section="address-summary" aria-label="<?php esc_attr_e('Facturare', 'papetarie-storefront'); ?>">
+    <section class="pap-checkout-card pap-checkout-card--address-summary pap-checkout-step pap-checkout-step--address-summary is-step-<?php echo esc_attr($step_state); ?>" data-pap-checkout-section="address-summary" data-pap-checkout-step="address-summary" data-pap-step-state="<?php echo esc_attr($step_state); ?>" aria-label="<?php esc_attr_e('Facturare', 'papetarie-storefront'); ?>" aria-disabled="<?php echo esc_attr($step_state === 'disabled' ? 'true' : 'false'); ?>">
       <div class="pap-checkout-card__head">
         <div class="pap-checkout-section-title-row">
           <span class="pap-checkout-section-badge" aria-hidden="true">3</span>
           <h2><?php esc_html_e('Facturare', 'papetarie-storefront'); ?></h2>
         </div>
-        <p class="pap-checkout-card__intro"><?php esc_html_e('Aici vezi datele de facturare. Le poți actualiza din modalul dedicat.', 'papetarie-storefront'); ?></p>
+        <?php if ($step_state === 'disabled') : ?>
+          <p class="pap-checkout-card__intro"><?php esc_html_e('Datele de facturare vor fi disponibile după pasul de livrare.', 'papetarie-storefront'); ?></p>
+        <?php else : ?>
+          <p class="pap-checkout-card__intro"><?php esc_html_e('Aici vezi datele de facturare. Le poți actualiza din modalul dedicat.', 'papetarie-storefront'); ?></p>
+        <?php endif; ?>
       </div>
 
+      <div class="pap-checkout-step__body"<?php echo $step_state === 'disabled' ? ' hidden aria-hidden="true"' : ' aria-hidden="false"'; ?>>
       <div class="pap-checkout-address-sections">
         <?php echo papetarie_storefront_checkout_address_card_html('billing', [
             'button_label' => $has_billing_lines ? __('Editează facturarea', 'papetarie-storefront') : __('Adaugă adresă de facturare', 'papetarie-storefront'),
             'empty_message' => __('Nu ai completat încă adresa de facturare.', 'papetarie-storefront'),
         ]); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
       </div>
     </section>
     <?php
@@ -1339,6 +1442,7 @@ function papetarie_storefront_checkout_update_review_fragments(array $fragments)
 
     $fragments['section[data-pap-checkout-section="order-summary"]'] = papetarie_storefront_get_checkout_order_review_html();
     $fragments['div.woocommerce-checkout-review-order-table'] = papetarie_storefront_get_checkout_order_review_html();
+    $fragments['section[data-pap-checkout-section="shipping-address"]'] = papetarie_storefront_get_checkout_shipping_address_html();
     $fragments['section[data-pap-checkout-section="address-summary"]'] = papetarie_storefront_get_checkout_address_summary_html();
     $fragments['section[data-pap-checkout-section="shipping-methods"]'] = papetarie_storefront_get_checkout_shipping_methods_card_html();
     $fragments['section[data-pap-checkout-section="payment"]'] = papetarie_storefront_get_checkout_payment_html();

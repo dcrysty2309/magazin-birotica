@@ -9,6 +9,8 @@ defined('ABSPATH') || exit;
 
 do_action('woocommerce_before_checkout_form', $checkout);
 
+$is_guest_checkout = !is_user_logged_in();
+
 if (!$checkout->is_registration_enabled() && $checkout->is_registration_required() && !is_user_logged_in()) {
     echo esc_html(apply_filters('woocommerce_checkout_must_be_logged_in_message', __('You must be logged in to checkout.', 'woocommerce')));
     return;
@@ -33,10 +35,12 @@ if (!$checkout->is_registration_enabled() && $checkout->is_registration_required
 
         <div class="pap-checkout-layout">
           <main id="customer_details" class="pap-checkout-main" aria-label="<?php esc_attr_e('Informații client', 'papetarie-storefront'); ?>">
-            <?php wc_get_template('checkout/form-shipping.php', ['checkout' => $checkout]); ?>
-            <?php echo papetarie_storefront_get_checkout_shipping_methods_card_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-            <?php echo papetarie_storefront_get_checkout_address_summary_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-            <?php echo papetarie_storefront_get_checkout_payment_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <div class="pap-checkout-steps<?php echo $is_guest_checkout ? ' pap-checkout-steps--guest' : ''; ?>">
+              <?php wc_get_template('checkout/form-shipping.php', ['checkout' => $checkout]); ?>
+              <?php echo papetarie_storefront_get_checkout_shipping_methods_card_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+              <?php echo papetarie_storefront_get_checkout_address_summary_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+              <?php echo papetarie_storefront_get_checkout_payment_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
           </main>
 
           <aside class="pap-checkout-sidebar" aria-label="<?php esc_attr_e('Rezumat comandă', 'papetarie-storefront'); ?>">

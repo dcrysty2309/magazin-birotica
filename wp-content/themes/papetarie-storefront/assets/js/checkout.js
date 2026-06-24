@@ -3,6 +3,10 @@
     form: 'form.checkout',
     shipToggle: '#ship-to-different-address-checkbox',
     shippingAddress: '.shipping_address',
+    guestShippingForm: '[data-pap-guest-shipping-form]',
+    guestShippingSummary: '[data-pap-guest-shipping-summary]',
+    guestShippingContinue: '[data-pap-guest-shipping-continue]',
+    guestShippingEdit: '[data-pap-guest-shipping-edit]',
     addressModal: '[data-checkout-address-modal]',
     addressModalPanel: '[data-checkout-address-modal-panel]',
     addressModalOpen: '[data-checkout-address-modal-open]',
@@ -23,6 +27,7 @@
   const phonePattern = /^[0-9+\s().-]{6,}$/;
   const postcodePattern = /^[0-9]{6}$/;
   const checkoutData = window.papCheckoutData || {};
+  const isLoggedIn = Boolean(checkoutData.isLoggedIn);
   let cityOptionsByCounty = checkoutData.citiesByCounty || {};
   let cityDataPromise = null;
   const cityPlaceholder = checkoutData.cityPlaceholder || 'Alege localitatea';
@@ -65,6 +70,21 @@
     }
 
     return cityDataPromise;
+  };
+
+  const getCookieValue = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${encodeURIComponent(name)}=`);
+
+    if (parts.length === 2) {
+      return parts.pop().split(';').shift() || '';
+    }
+
+    return '';
+  };
+
+  const setCookieValue = (name, value) => {
+    document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; max-age=2592000; samesite=lax`;
   };
 
   const getForm = () => $(selectors.form).first();
@@ -307,6 +327,254 @@
     });
   };
 
+  const getGuestShippingSection = () => getForm().find('[data-pap-checkout-section="shipping-address"]').first();
+
+  const getCheckoutStepSection = (step) => getForm().find(`[data-pap-checkout-step="${step}"]`).first();
+
+  const setCheckoutStepState = (step, state) => {
+    const normalizedState = ['active', 'complete', 'disabled'].includes(state) ? state : 'disabled';
+    const $section = getCheckoutStepSection(step);
+
+    if (!$section.length) {
+      return;
+    }
+
+    $section
+      .removeClass('is-step-active is-step-complete is-step-disabled')
+      .addClass(`is-step-${normalizedState}`)
+      .attr('data-pap-step-state', normalizedState)
+      .attr('aria-disabled', normalizedState === 'disabled' ? 'true' : 'false');
+
+    const $body = $section.find('.pap-checkout-step__body').first();
+    if ($body.length) {
+      $body.find('input, select, textarea, button').each(function () {
+        const $control = $(this);
+        if ($control.is('[type="hidden"]')) {
+          return;
+        }
+
+        $control.prop('disabled', normalizedState === 'disabled');
+        $control.attr('aria-disabled', normalizedState === 'disabled' ? 'true' : 'false');
+      });
+
+      if (normalizedState === 'disabled') {
+        $body.attr('hidden', true).attr('aria-hidden', 'true');
+      } else {
+        $body.removeAttr('hidden').attr('aria-hidden', 'false');
+      }
+    }
+  };
+
+  const syncCheckoutStepStates = () => {
+    if (!getForm().length) {
+      return;
+    }
+
+    const guestMode = isLoggedIn ? 'summary' : getGuestShippingMode();
+    const shippingAddressState = guestMode === 'summary' ? 'complete' : 'active';
+    const shippingMethodsState = guestMode === 'summary' || isLoggedIn ? 'active' : 'disabled';
+    const billingState = isLoggedIn ? 'active' : 'disabled';
+    const paymentState = isLoggedIn ? 'active' : 'disabled';
+
+    setCheckoutStepState('shipping-address', shippingAddressState);
+    setCheckoutStepState('shipping-methods', shippingMethodsState);
+    setCheckoutStepState('address-summary', billingState);
+    setCheckoutStepState('payment', paymentState);
+  };
+
+  const getGuestShippingMode = () => {
+    const $section = getGuestShippingSection();
+    const explicitMode = String($section.data('papGuestShippingMode') || $section.attr('data-pap-guest-shipping-mode') || '').trim();
+    const cookieMode = getCookieValue('pap_checkout_shipping_mode');
+    const mode = cookieMode || explicitMode;
+
+    if (mode === 'summary' && hasGuestShippingSummaryData()) {
+      return 'summary';
+    }
+
+    return 'edit';
+  };
+
+  const getGuestShippingFieldValue = (selector) => {
+    const $field = getFieldBySelector(selector);
+    if (!$field.length) {
+      return '';
+    }
+
+    if ($field.is('select')) {
+      const $selected = $field.find('option:selected').first();
+      return String($selected.length ? $selected.text() : $field.val() || '').trim();
+    }
+
+    return String($field.val() || '').trim();
+  };
+
+  const hasGuestShippingSummaryData = () => {
+    return Boolean(
+      getGuestShippingFieldValue('#billing_first_name')
+      || getGuestShippingFieldValue('#billing_last_name')
+      || getGuestShippingFieldValue('#billing_phone')
+      || getGuestShippingFieldValue('#billing_email')
+      || getGuestShippingFieldValue('#shipping_state')
+      || getGuestShippingFieldValue('#shipping_city')
+      || getGuestShippingFieldValue('#shipping_address_1')
+      || getGuestShippingFieldValue('#shipping_postcode')
+    );
+  };
+
+  const getGuestShippingSummaryLines = () => {
+    const firstName = getGuestShippingFieldValue('#billing_first_name');
+    const lastName = getGuestShippingFieldValue('#billing_last_name');
+    const phone = getGuestShippingFieldValue('#billing_phone');
+    const email = getGuestShippingFieldValue('#billing_email');
+    const address1 = getGuestShippingFieldValue('#shipping_address_1');
+    const address2 = getGuestShippingFieldValue('#shipping_address_2');
+    const city = getGuestShippingFieldValue('#shipping_city');
+    const state = getGuestShippingFieldValue('#shipping_state');
+    const postcode = getGuestShippingFieldValue('#shipping_postcode');
+
+    const lines = [];
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    const addressLine = [address1, address2].filter(Boolean).join(', ').trim();
+    const cityLine = [city, state, postcode].filter(Boolean).join(', ').trim();
+
+    if (fullName) {
+      lines.push(fullName);
+    }
+
+    if (addressLine) {
+      lines.push(addressLine);
+    }
+
+    if (cityLine) {
+      lines.push(cityLine);
+    }
+
+    if (phone) {
+      lines.push(phone);
+    }
+
+    if (email) {
+      lines.push(email);
+    }
+
+    return lines;
+  };
+
+  const syncGuestShippingSummary = () => {
+    const $summary = getForm().find(selectors.guestShippingSummary).first();
+    if (!$summary.length) {
+      return;
+    }
+
+    const lines = getGuestShippingSummaryLines();
+    const $body = $summary.find('.pap-checkout-address-card__body').first();
+    const $empty = $summary.find('.pap-checkout-address-card__empty').first();
+
+    if (!lines.length) {
+      if ($body.length) {
+        $body.remove();
+      }
+      if ($empty.length) {
+        $empty.find('strong').first().text('Nu ai completat încă această adresă.');
+        $empty.find('p').first().text('Deschide formularul ca să completezi datele necesare pentru comandă.');
+      }
+      return;
+    }
+
+    if ($empty.length) {
+      $empty.remove();
+    }
+
+    let $targetBody = $summary.find('.pap-checkout-address-card__body').first();
+    if (!$targetBody.length) {
+      $targetBody = $('<div class="pap-checkout-address-card__body"></div>').appendTo($summary.find('.pap-checkout-address-card').first());
+    }
+
+    $targetBody.empty();
+    lines.forEach((line) => {
+      $('<p>', { text: line }).appendTo($targetBody);
+    });
+  };
+
+  const setGuestShippingMode = (mode, persist = true) => {
+    if (isLoggedIn) {
+      return;
+    }
+
+    const normalizedMode = mode === 'summary' ? 'summary' : 'edit';
+    const $section = getGuestShippingSection();
+    const $form = $section.find(selectors.guestShippingForm).first();
+    const $summary = $section.find(selectors.guestShippingSummary).first();
+
+    $section.toggleClass('is-summary-mode', normalizedMode === 'summary');
+
+    if ($form.length) {
+      if (normalizedMode === 'summary') {
+        $form.attr('hidden', true).attr('aria-hidden', 'true');
+      } else {
+        $form.removeAttr('hidden').attr('aria-hidden', 'false');
+      }
+    }
+
+    if ($summary.length) {
+      if (normalizedMode === 'summary') {
+        $summary.removeAttr('hidden').attr('aria-hidden', 'false');
+      } else {
+        $summary.attr('hidden', true).attr('aria-hidden', 'true');
+      }
+    }
+
+    syncGuestShippingSummary();
+
+    if (persist) {
+      setCookieValue('pap_checkout_shipping_mode', normalizedMode);
+    }
+
+    syncCheckoutStepStates();
+  };
+
+  const validateGuestShippingFields = (forceDisplay = false) => {
+    const selectorsToValidate = [
+      '#billing_first_name',
+      '#billing_last_name',
+      '#billing_phone',
+      '#billing_email',
+      '#shipping_state',
+      '#shipping_city',
+      '#shipping_address_1',
+      '#shipping_address_2',
+      '#shipping_postcode',
+    ];
+
+    let firstInvalid = null;
+    let hasErrors = false;
+
+    selectorsToValidate.forEach((selector) => {
+      const $field = getFieldBySelector(selector);
+      if (!$field.length || $field.is(':disabled')) {
+        return;
+      }
+
+      const valid = validateField($field, forceDisplay);
+      if (!valid) {
+        hasErrors = true;
+        if (!firstInvalid) {
+          firstInvalid = $field;
+        }
+      }
+    });
+
+    if (hasErrors && forceDisplay && firstInvalid && firstInvalid.length) {
+      setGuestShippingMode('edit', false);
+      const offset = Math.max(firstInvalid.closest(selectors.formRow).offset().top - 120, 0);
+      $('html, body').animate({ scrollTop: offset }, 300);
+      firstInvalid.trigger('focus');
+    }
+
+    return !hasErrors;
+  };
+
   const getAddressModal = () => $(selectors.addressModal).first();
 
   const setAddressModalPanel = ($modal, context) => {
@@ -382,8 +650,8 @@
     }, 180);
   };
 
-  const validateTextField = ($field, rule) => {
-    if (!isVisibleField($field)) {
+  const validateTextField = ($field, rule, forceDisplay = false) => {
+    if (!forceDisplay && !isVisibleField($field)) {
       clearFieldError($field);
       return true;
     }
@@ -423,8 +691,8 @@
     return true;
   };
 
-  const validateSelectField = ($field) => {
-    if (!isVisibleField($field)) {
+  const validateSelectField = ($field, forceDisplay = false) => {
+    if (!forceDisplay && !isVisibleField($field)) {
       clearFieldError($field);
       return true;
     }
@@ -441,8 +709,8 @@
     return true;
   };
 
-  const validateCheckboxField = ($field) => {
-    if (!isVisibleField($field)) {
+  const validateCheckboxField = ($field, forceDisplay = false) => {
+    if (!forceDisplay && !isVisibleField($field)) {
       clearFieldError($field);
       return true;
     }
@@ -607,6 +875,31 @@
       toggleProductsList(this);
     });
 
+    $form.on('click', selectors.guestShippingContinue, function (event) {
+      event.preventDefault();
+      if (!validateGuestShippingFields(true)) {
+        return;
+      }
+
+      setGuestShippingMode('summary');
+      $(document.body).trigger('update_checkout');
+      const $summary = getGuestShippingSection().find(selectors.guestShippingSummary).first();
+      const target = $summary.length ? $summary.get(0) : null;
+      if (target && typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    $form.on('click', selectors.guestShippingEdit, function (event) {
+      event.preventDefault();
+      setGuestShippingMode('edit');
+
+      const $firstField = getFieldBySelector('#billing_first_name');
+      if ($firstField.length && typeof $firstField.trigger === 'function') {
+        $firstField.trigger('focus');
+      }
+    });
+
     document.addEventListener(
       'submit',
       function (event) {
@@ -617,6 +910,15 @@
 
         toggleShippingState();
         $form.data('papSubmitted', true);
+
+        if (!isLoggedIn && getGuestShippingMode() === 'summary' && !validateGuestShippingFields(true)) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === 'function') {
+            event.stopImmediatePropagation();
+          }
+          return;
+        }
 
         if (!validateVisibleFields(true)) {
           event.preventDefault();
@@ -636,6 +938,10 @@
     }
 
     toggleShippingState();
+    if (!isLoggedIn) {
+      setGuestShippingMode(getGuestShippingMode(), false);
+    }
+    syncCheckoutStepStates();
     syncDependentCitySelect('#billing_state');
     syncDependentCitySelect('#shipping_state');
     syncProductsLists();
