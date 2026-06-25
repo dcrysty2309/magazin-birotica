@@ -1247,9 +1247,6 @@ function papetarie_storefront_get_checkout_guest_shipping_summary_html(): string
             <div class="pap-checkout-address-card__title-copy">
                 <p class="pap-checkout-address-card__title"><?php esc_html_e('Adresa de livrare', 'papetarie-storefront'); ?></p>
             </div>
-            <button type="button" class="pap-checkout-address-card__action" data-pap-guest-shipping-edit>
-                <?php esc_html_e('Modifică', 'papetarie-storefront'); ?>
-            </button>
         </div>
         <?php if (!empty($lines)) : ?>
             <div class="pap-checkout-address-card__body">
@@ -1280,9 +1277,6 @@ function papetarie_storefront_get_checkout_auth_shipping_summary_html(): string
             <div class="pap-checkout-address-card__title-copy">
                 <p class="pap-checkout-address-card__title"><?php esc_html_e('Adresa de livrare', 'papetarie-storefront'); ?></p>
             </div>
-            <button type="button" class="pap-checkout-address-card__action" data-pap-auth-temporary-edit>
-                <?php esc_html_e('Modifică', 'papetarie-storefront'); ?>
-            </button>
         </div>
         <?php if (!empty($lines)) : ?>
             <div class="pap-checkout-address-card__body">

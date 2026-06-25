@@ -10806,6 +10806,15 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping [hidden] {
   display: none !important;
 }
 
+body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping[data-pap-auth-temporary-mode="list"] .pap-checkout-auth-shipping__summary,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping[data-pap-auth-temporary-mode="list"] .pap-checkout-auth-shipping__form,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping[data-pap-auth-temporary-mode="summary"] .pap-checkout-auth-shipping__addresses,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping[data-pap-auth-temporary-mode="summary"] .pap-checkout-auth-shipping__form,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping[data-pap-auth-temporary-mode="form"] .pap-checkout-auth-shipping__addresses,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping[data-pap-auth-temporary-mode="form"] .pap-checkout-auth-shipping__summary {
+  display: none !important;
+}
+
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-option {
   position: relative;
   display: block;

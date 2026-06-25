@@ -1219,6 +1219,7 @@
     setVisibilityState($list, showList, 'grid');
     setVisibilityState($summary, showSummary, 'grid');
     setVisibilityState($shipping.find(selectors.authAddressCancel).first(), visible && hasAddresses, 'inline-flex');
+    $shipping.attr('data-pap-auth-temporary-mode', showSummary ? 'summary' : (visible ? 'form' : 'list'));
 
     if (showSummary) {
       syncAuthShippingSummary();
