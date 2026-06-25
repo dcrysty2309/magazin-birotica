@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:romanian-encoding": "node tools/check-romanian-encoding.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0"

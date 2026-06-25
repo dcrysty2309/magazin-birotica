@@ -10,6 +10,23 @@ Scop:
 - validare email
 - pregătire pentru QA și regresii
 
+## Workflow oficial de QA
+
+- implementarea se face local;
+- testarea rapidă se face local;
+- validarea finală se face pe staging;
+- staging este mediul oficial de QA;
+- bug-urile observate pe staging se notează în pagina de testare Checkout, în câmpul Comentarii din Preview;
+- comentariile devin lista oficială de bug-uri pentru cazul respectiv;
+- după fiecare rundă de fix, se retestează scenariile afectate;
+- dacă datele de test sunt modificate, se rulează resetul de date înainte de următorul ciclu.
+
+## Reguli de lansare
+
+- nu se lansează un nou deploy pe staging până când scenariile relevante nu au trecut pe mediul curent;
+- nu se tratează staging ca mediu de producție;
+- staging trebuie să folosească aceleași conturi de test ca local.
+
 ## 1. Homepage
 
 - homepage se deschide fără erori PHP
@@ -88,6 +105,7 @@ Teste obligatorii:
 - user logat adăugare adresă nouă
 - user logat editare adresă
 - selecție altă adresă salvată
+- câmpul Observații pentru livrare / curier este păstrat și verificat dacă apare în comanda finală și emailuri
 
 Pentru fiecare:
 

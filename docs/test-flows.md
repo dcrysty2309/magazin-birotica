@@ -26,9 +26,12 @@
 - CUI / company fields validation
 - county selection
 - city validation
-- postcode validation
+- address and postcode validation
+- delivery notes / observations handling
 - COD payment
 - card payment
+- local is for quick iteration, staging is the final QA environment for checkout
+- checkout bugs found in staging become the official fix queue for the next iteration
 
 ## My Account
 - register account
@@ -53,4 +56,3 @@
 - tablet landscape
 - mobile portrait
 - mobile landscape
-

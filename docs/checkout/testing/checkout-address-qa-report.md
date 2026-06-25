@@ -4,6 +4,8 @@ Data executiei: 2026-06-25T09:07:28.288Z
 
 Scop: verificare si standardizare comportament Pasul 1 - Adresa de livrare pentru guest si user logat.
 
+Notă: acest raport surprinde rezultatele istorice ale suitei de testare. Standardul curent pentru formularul de adresă este cel definit în `checkout_test_cases_supplyhub.md`, unde câmpul separat pentru `Bloc / Scară / Etaj / Apartament` a fost eliminat din documentație, iar observațiile pentru livrare / curier sunt tratate ca un câmp opțional separat.
+
 ## TC-001 - Guest fara cont - formular gol
 
 - Status: PASS
@@ -29,7 +31,7 @@ Scop: verificare si standardizare comportament Pasul 1 - Adresa de livrare pentr
 - Persistenta dupa refresh: verificat in TC-003
 - WooCommerce session actualizata: DA
 - Console/PHP erori observate: nu
-- Pasi executati: Completare campuri guest, click pe Continua catre livrare.
+- Pasi executati: Completare campuri guest, click pe Continua.
 - Rezultat asteptat: Summary card afisat imediat, fara reload complet.
 - Rezultat obtinut: {"url":"http://localhost:8080/checkout/","loggedIn":false,"stepState":"complete","formVisible":false,"guestSummaryVisible":true,"authListVisible":false,"selectedName":"","selectedAddressId":"","inlineErrors":[],"authNotice":"","addressSummaryText":["Lacului 12, Huedin, Cluj","0736628325","guest.checkout@test.local"],"addressCards":[]}
 - Observatii: Flow de referinta pentru UX.
@@ -194,7 +196,7 @@ Scop: verificare si standardizare comportament Pasul 1 - Adresa de livrare pentr
 - Persistenta dupa refresh: N/A
 - WooCommerce session actualizata: N/A
 - Console/PHP erori observate: nu
-- Pasi executati: Click pe Continua catre livrare cu formularul gol.
+- Pasi executati: Click pe Continua cu formularul gol.
 - Rezultat asteptat: Erorile FE apar langa campuri obligatorii, fara submit.
 - Rezultat obtinut: {"url":"http://localhost:8080/checkout/","loggedIn":false,"stepState":"active","formVisible":true,"guestSummaryVisible":false,"authListVisible":false,"selectedName":"","selectedAddressId":"","inlineErrors":["Completează prenumele.","Completează numele.","Introdu emailul.","Introdu telefonul.","Alege județul.","Completează adresa."],"authNotice":"","addressSummaryText":[],"addressCards":[]}
 - Observatii: —

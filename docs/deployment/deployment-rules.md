@@ -7,6 +7,9 @@ Acest document stabilește procesul standard pentru deploy-urile viitoare pe sta
 - Local este mediul de dezvoltare.
 - Staging este mediul oficial de QA și validare.
 - Production primește doar cod validat în staging.
+- Deploy-ul merge într-o singură direcție: local → staging.
+- Nu se sincronizează automat staging înapoi în local.
+- Datele din staging sunt date de test, nu date reale.
 
 ## 2. Sursa de adevăr
 
@@ -27,6 +30,7 @@ Pentru iterații de temă și checkout:
 - Importul complet de DB se face doar la bootstrap sau când este necesară sincronizarea mediului.
 - Modificările de cod nu trebuie să depindă de dump-uri SQL lăsate în `public_html`.
 - Nu se publică fișiere SQL pe serverul public.
+- Dacă un test modifică adrese, comenzi sau alte date de checkout, trebuie să existe o procedură clară de reset pentru datele de test.
 
 ## 5. Secrete
 
@@ -42,11 +46,21 @@ Pentru iterații de temă și checkout:
 5. testezi flow-ul afectat în UI
 6. documentezi dacă s-a schimbat procesul
 
+## 6.1. Ciclul oficial de QA pentru checkout
+
+- rulăm verificările relevante înainte de fiecare deploy pe staging;
+- folosim indexul vizual `/checkout-test-cases/` pentru scenariile checkout;
+- scenariile testate pe staging devin sursa oficială de bug-uri prin comentariile salvate în Preview;
+- orice bug descoperit pe staging trebuie transformat în task concret înainte de următorul deploy;
+- după fix, se retestează scenariile afectate pe staging;
+- staging rămâne mediul oficial de validare finală până când scenariile relevante nu mai au observații.
+
 ## 7. Automatizare
 
 - Deploy-ul automat de temă rulează din GitHub Actions prin `.github/workflows/deploy-staging.yml`.
 - Workflow-ul pornește la `push` pe `main` doar când se schimbă tema `papetarie-storefront` sau scriptul de deploy.
 - Workflow-ul poate fi pornit și manual din tab-ul Actions.
+- Conturile de test trebuie să rămână aliniate între local și staging.
 - Secrete necesare în GitHub:
   - `STAGING_FTP_HOST`
   - `STAGING_FTP_USER`

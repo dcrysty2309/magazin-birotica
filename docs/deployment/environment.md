@@ -38,6 +38,17 @@ Nu se salvează în repository:
 - credențiale MySQL
 - chei private
 
+Reguli de lucru:
+
+- Local este development.
+- Staging este QA oficial.
+- Testarea finală se face pe staging, nu pe local.
+- Datele de staging sunt date de test.
+- Nu se sincronizează automat staging înapoi peste local.
+- Deploy-ul merge doar local → staging.
+- Conturile de test trebuie să fie aceleași pe ambele medii.
+- Dacă testele modifică adrese sau comenzi, trebuie să existe o procedură de reset pentru datele de test.
+
 ## Observații
 
 - acest fișier conține doar informații permanente și nesensibile

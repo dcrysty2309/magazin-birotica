@@ -28,10 +28,10 @@
   };
 
   const messages = {
-    required: 'CompleteazÃ„Æ’ acest cÃƒÂ¢mp.',
+    required: 'Completează acest câmp.',
     email: 'Introdu o adresă de email validă.',
-    phone: 'Introdu un numÃ„Æ’r de telefon valid.',
-    postcode: 'Introdu un cod poÃˆâ„¢tal valid.',
+    phone: 'Introdu un număr de telefon valid.',
+    postcode: 'Introdu un cod poștal valid.',
   };
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,12 +42,13 @@
   let cityOptionsByCounty = checkoutData.citiesByCounty || {};
   let cityDataPromise = null;
   const cityPlaceholder = checkoutData.cityPlaceholder || 'Alege localitatea';
-  const countyFirstPlaceholder = checkoutData.countyFirstPlaceholder || 'Alege judeÃˆâ€ºul ÃƒÂ®ntÃƒÂ¢i';
+  const countyFirstPlaceholder = checkoutData.countyFirstPlaceholder || 'Alege județul întâi';
   const savedAddressesById = checkoutData.savedAddresses && typeof checkoutData.savedAddresses === 'object'
     ? checkoutData.savedAddresses
     : {};
   const selectedBillingAddressId = String(checkoutData.selectedBillingAddressId || '');
   const selectedShippingAddressId = String(checkoutData.selectedShippingAddressId || '');
+  const checkoutAddressCount = Number(checkoutData.checkoutAddressCount || 0);
   const hasInitialTemporaryCheckoutAddress = Boolean(checkoutData.isTemporaryCheckoutAddress);
   let authAddressFormMode = '';
   let authTemporarySummaryVisible = hasInitialTemporaryCheckoutAddress;
@@ -67,7 +68,6 @@
       city: '#billing_city',
       postcode: '#billing_postcode',
       address_1: '#billing_address_1',
-      address_2: '#billing_address_2',
     },
     shipping: {
       country: '#shipping_country',
@@ -79,7 +79,6 @@
       city: '#shipping_city',
       postcode: '#shipping_postcode',
       address_1: '#shipping_address_1',
-      address_2: '#shipping_address_2',
     },
   };
   let isProgrammaticFieldSync = false;
@@ -286,7 +285,6 @@
     setCheckoutFieldValue(getFieldBySelector(fields.phone), address.phone || '');
     setCheckoutFieldValue(getFieldBySelector(fields.postcode), address.postcode || '');
     setCheckoutFieldValue(getFieldBySelector(fields.address_1), address.address_1 || '');
-    setCheckoutFieldValue(getFieldBySelector(fields.address_2), address.address_2 || '');
 
     if ($stateField.length) {
       syncDependentCitySelect(`#${$stateField.attr('id')}`, false);
@@ -698,10 +696,10 @@
     '#billing_phone': getGuestShippingFieldValue('#billing_phone'),
     '#billing_email': getGuestShippingFieldValue('#billing_email'),
     '#shipping_address_1': getGuestShippingFieldValue('#shipping_address_1'),
-    '#shipping_address_2': getGuestShippingFieldValue('#shipping_address_2'),
     '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
     '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
     '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
+    '#order_comments': getGuestShippingFieldValue('#order_comments'),
   });
 
   const hasGuestShippingSnapshotData = (snapshot) => {
@@ -761,19 +759,19 @@
     const phone = String(snapshot['#billing_phone'] || '').trim();
     const email = String(snapshot['#billing_email'] || '').trim();
     const address1 = String(snapshot['#shipping_address_1'] || '').trim();
-    const address2 = String(snapshot['#shipping_address_2'] || '').trim();
     const countyLabel = String(snapshot['#shipping_state'] || '').trim();
     const cityLabel = String(snapshot['#shipping_city'] || '').trim();
+    const orderComments = String(snapshot['#order_comments'] || '').trim();
 
     setCheckoutFieldValue(getFieldBySelector('#billing_first_name'), firstName);
     setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), lastName);
     setCheckoutFieldValue(getFieldBySelector('#billing_phone'), phone);
     setCheckoutFieldValue(getFieldBySelector('#billing_email'), email);
     setCheckoutFieldValue(getFieldBySelector('#shipping_address_1'), address1);
-    setCheckoutFieldValue(getFieldBySelector('#shipping_address_2'), address2);
     setSelectFieldByLabel(getFieldBySelector('#shipping_state'), countyLabel);
     syncDependentCitySelect('#shipping_state', false);
     setSelectFieldByLabel(getFieldBySelector('#shipping_city'), cityLabel);
+    setCheckoutFieldValue(getFieldBySelector('#order_comments'), orderComments);
     captureAndPersistGuestShippingSummaryCache();
   };
 
@@ -797,14 +795,13 @@
     const phone = getGuestShippingFieldValue('#billing_phone', useCache ? 'cache' : 'dom');
     const email = getGuestShippingFieldValue('#billing_email', useCache ? 'cache' : 'dom');
     const address1 = getGuestShippingFieldValue('#shipping_address_1', useCache ? 'cache' : 'dom');
-    const address2 = getGuestShippingFieldValue('#shipping_address_2', useCache ? 'cache' : 'dom');
     const city = getGuestShippingFieldValue('#shipping_city', useCache ? 'cache' : 'dom');
     const state = getGuestShippingFieldValue('#shipping_state', useCache ? 'cache' : 'dom');
     const postcode = getGuestShippingFieldValue('#shipping_postcode', useCache ? 'cache' : 'dom');
 
     const lines = [];
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-    const addressLine = [address1, address2, city, state, postcode].filter(Boolean).join(', ').trim();
+    const addressLine = [address1, city, state, postcode].filter(Boolean).join(', ').trim();
 
     if (fullName) {
       lines.push(fullName);
@@ -827,21 +824,27 @@
 
   const getAddressIconSvg = (kind) => {
     const icons = {
+      user: `
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true" focusable="false">
+          <path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"></circle>
+        </svg>
+      `,
       location: `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-          <path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path>
-          <circle cx="12" cy="10" r="2"></circle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <circle cx="12" cy="10" r="2" stroke="currentColor" stroke-width="1.8"></circle>
         </svg>
       `,
       phone: `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-          <path d="M6.6 3.6l2.1 4.2c.3.6.2 1.2-.3 1.7l-1 1c1.2 2.4 3.1 4.3 5.5 5.5l1-1c.5-.5 1.1-.6 1.7-.3l4.2 2.1c.6.3.9.9.8 1.5l-.4 2c-.1.6-.7 1.1-1.3 1.1C10 21.4 2.6 14 2.6 5.1c0-.6.5-1.2 1.1-1.3l2-.4c.4-.1.8 0 .9.2z"></path>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path d="M6.6 3.6l2.1 4.2c.3.6.2 1.2-.3 1.7l-1 1c1.2 2.4 3.1 4.3 5.5 5.5l1-1c.5-.5 1.1-.6 1.7-.3l4.2 2.1c.6.3.9.9.8 1.5l-.4 2c-.1.6-.7 1.1-1.3 1.1C10 21.4 2.6 14 2.6 5.1c0-.6.5-1.2 1.1-1.3l2-.4c.4-.1.8 0 .9.2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
         </svg>
       `,
       envelope: `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-          <rect x="4" y="6" width="16" height="12" rx="1.5"></rect>
-          <path d="M5.5 7.5 12 12.8l6.5-5.3"></path>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <rect x="4" y="6" width="16" height="12" rx="1.5" stroke="currentColor" stroke-width="1.8"></rect>
+          <path d="M5 8l7 5 7-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
         </svg>
       `,
     };
@@ -860,11 +863,11 @@
     }
 
     const lines = getGuestShippingSummaryLines();
+    const fullName = lines.shift() || '';
     const $body = $summary.find('.pap-checkout-address-card__body').first();
     const $empty = $summary.find('.pap-checkout-address-card__empty').first();
     const $head = $summary.find('.pap-checkout-address-card__head').first();
     const $titleCopy = $summary.find('.pap-checkout-address-card__title-copy').first();
-    const $title = $summary.find('.pap-checkout-address-card__title').first();
     const $name = $summary.find('.pap-checkout-address-card__name').first();
     const $action = $summary.find('.pap-checkout-address-card__action').first();
 
@@ -879,21 +882,23 @@
       return;
     }
 
-    const [name, ...restLines] = lines;
-    const addressLine = restLines.length > 0 ? restLines[0] : '';
-    const phoneLine = restLines.length > 1 ? restLines[1] : '';
-    const emailLine = restLines.length > 2 ? restLines[2] : '';
-    if ($title.length) {
-      $title.remove();
-    }
     if ($titleCopy.length && !$name.length) {
       $titleCopy.empty();
+      $('<span>', {
+        class: 'pap-checkout-address-card__user-icon',
+        html: getAddressIconSvg('user'),
+        'aria-hidden': 'true',
+      }).appendTo($titleCopy);
+      $('<p>', {
+        class: 'pap-checkout-address-card__title',
+        text: 'Adresa de livrare',
+      }).appendTo($titleCopy);
       $('<p>', {
         class: 'pap-checkout-address-card__name',
-        text: name || '',
+        text: fullName || '',
       }).appendTo($titleCopy);
     } else if ($name.length) {
-      $name.text(name || '');
+      $name.text(fullName || '');
     }
     if ($head.length) {
       $head.toggleClass('has-action', !!$action.length);
@@ -909,13 +914,7 @@
     }
 
     $targetBody.empty();
-    const lineSpecs = [
-      { icon: 'location', text: addressLine },
-      { icon: 'phone', text: phoneLine },
-      { icon: 'envelope', text: emailLine },
-    ];
-
-    lineSpecs.forEach(({ icon, text }) => {
+    lines.forEach((text, index) => {
       if (!text) {
         return;
       }
@@ -923,7 +922,7 @@
       const $row = $('<p>', { class: 'pap-checkout-address-card__line address-summary-row' });
       $('<span>', {
         class: 'pap-checkout-address-card__icon address-summary-icon',
-        html: getAddressIconSvg(icon),
+        html: getAddressIconSvg(index === 0 ? 'location' : index === 1 ? 'phone' : 'envelope'),
         'aria-hidden': 'true',
       }).appendTo($row);
       $('<span>', { class: 'pap-checkout-address-card__line-text', text }).appendTo($row);
@@ -986,6 +985,7 @@
       '#shipping_state',
       '#shipping_city',
       '#shipping_address_1',
+      '#shipping_postcode',
     ];
 
     let firstInvalid = null;
@@ -1096,7 +1096,6 @@
       '#shipping_state',
       '#shipping_city',
       '#shipping_address_1',
-      '#shipping_address_2',
       '#shipping_postcode',
     ].forEach((selector) => {
       setCheckoutFieldValue(getFieldBySelector(selector), '');
@@ -1118,11 +1117,11 @@
     }
 
     const lines = getGuestShippingSummaryLines('dom');
+    const fullName = lines.shift() || '';
     const $body = $summary.find('.pap-checkout-address-card__body').first();
     const $empty = $summary.find('.pap-checkout-address-card__empty').first();
     const $head = $summary.find('.pap-checkout-address-card__head').first();
     const $titleCopy = $summary.find('.pap-checkout-address-card__title-copy').first();
-    const $title = $summary.find('.pap-checkout-address-card__title').first();
     const $name = $summary.find('.pap-checkout-address-card__name').first();
     const $action = $summary.find('.pap-checkout-address-card__action').first();
 
@@ -1137,23 +1136,23 @@
       return;
     }
 
-    const [name, ...restLines] = lines;
-    const addressLine = restLines.length > 0 ? restLines[0] : '';
-    const phoneLine = restLines.length > 1 ? restLines[1] : '';
-    const emailLine = restLines.length > 2 ? restLines[2] : '';
-
-    if ($title.length) {
-      $title.remove();
-    }
-
     if ($titleCopy.length && !$name.length) {
       $titleCopy.empty();
+      $('<span>', {
+        class: 'pap-checkout-address-card__user-icon',
+        html: getAddressIconSvg('user'),
+        'aria-hidden': 'true',
+      }).appendTo($titleCopy);
+      $('<p>', {
+        class: 'pap-checkout-address-card__title',
+        text: 'Adresa de livrare',
+      }).appendTo($titleCopy);
       $('<p>', {
         class: 'pap-checkout-address-card__name',
-        text: name || '',
+        text: fullName || '',
       }).appendTo($titleCopy);
     } else if ($name.length) {
-      $name.text(name || '');
+      $name.text(fullName || '');
     }
 
     if ($head.length) {
@@ -1170,11 +1169,7 @@
     }
 
     $targetBody.empty();
-    [
-      { icon: 'location', text: addressLine },
-      { icon: 'phone', text: phoneLine },
-      { icon: 'envelope', text: emailLine },
-    ].forEach(({ icon, text }) => {
+    lines.forEach((text, index) => {
       if (!text) {
         return;
       }
@@ -1182,12 +1177,22 @@
       const $row = $('<p>', { class: 'pap-checkout-address-card__line address-summary-row' });
       $('<span>', {
         class: 'pap-checkout-address-card__icon address-summary-icon',
-        html: getAddressIconSvg(icon),
+        html: getAddressIconSvg(index === 0 ? 'location' : index === 1 ? 'phone' : 'envelope'),
         'aria-hidden': 'true',
       }).appendTo($row);
       $('<span>', { class: 'pap-checkout-address-card__line-text', text }).appendTo($row);
       $row.appendTo($targetBody);
     });
+  };
+
+  const getAuthAddressCount = () => {
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
+      return checkoutAddressCount;
+    }
+
+    const domCount = Number($shipping.attr('data-pap-auth-address-count') || 0);
+    return Number.isFinite(domCount) && domCount > 0 ? domCount : checkoutAddressCount;
   };
 
   const setAuthShippingFormVisible = (visible, options = {}) => {
@@ -1199,7 +1204,7 @@
     const $form = $shipping.find(selectors.authShippingForm).first();
     const $list = $shipping.find(selectors.authAddressList).first();
     const $summary = $shipping.find(selectors.authShippingSummary).first();
-    const hasAddresses = $shipping.find(selectors.authAddressOption).length > 0;
+    const hasAddresses = getAuthAddressCount() > 0;
     const shouldClear = options.clear === true;
     const showSummary = !visible && authTemporarySummaryVisible;
     const showList = !visible && !showSummary && hasAddresses;
@@ -1234,35 +1239,53 @@
       || '';
     const addressLine = [
       address.address_1,
-      address.address_2,
       address.city,
       stateLabel,
       address.postcode,
     ].filter(Boolean).join(', ');
+    const isDefault = Boolean(address.is_default);
+    const hasMultipleAddresses = getAuthAddressCount() > 1;
 
-    const $option = $('<div>', {
-      class: `pap-checkout-address-option${isSelected ? ' is-selected' : ''}`,
+    const $option = $('<button>', {
+      type: 'button',
+      class: `pap-checkout-address-option${isSelected && hasMultipleAddresses ? ' is-selected' : ''}${isDefault ? ' is-default' : ''}${hasMultipleAddresses ? ' is-selectable' : ' is-static'}`,
       'data-pap-auth-address-option': '',
-    });
-    $('<input>', {
-      type: 'radio',
-      name: 'papetarie_checkout_selected_address_shipping',
-      value: address.id,
-      checked: isSelected,
       'data-checkout-address-selector': '',
       'data-checkout-address-prefix': 'shipping',
-    }).appendTo($option);
+      'data-checkout-address-id': address.id,
+    });
+    if (hasMultipleAddresses) {
+      $option.attr('aria-pressed', isSelected ? 'true' : 'false');
+    }
 
     const $card = $('<div>', { class: 'pap-checkout-address-card' }).appendTo($option);
     const $head = $('<div>', { class: 'pap-checkout-address-card__head' }).appendTo($card);
-    const $copy = $('<div>', { class: 'pap-checkout-address-card__title-copy' }).appendTo($head);
+    const $copy = $('<div>', { class: 'pap-checkout-address-card__title-copy pap-checkout-address-card__title-copy--with-icon' }).appendTo($head);
+    $('<span>', {
+      class: 'pap-checkout-address-card__user-icon',
+      html: getAddressIconSvg('user'),
+      'aria-hidden': 'true',
+    }).appendTo($copy);
+    $('<p>', { class: 'pap-checkout-address-card__title', text: 'Adresa de livrare' }).appendTo($copy);
     $('<p>', { class: 'pap-checkout-address-card__name', text: fullName }).appendTo($copy);
+
+    if (hasMultipleAddresses) {
+      const $labels = $('<div>', { class: 'pap-checkout-address-card__labels', 'aria-hidden': 'true' }).appendTo($head);
+      $('<span>', {
+        class: 'pap-checkout-address-card__label pap-checkout-address-card__label--selected',
+        text: 'Selectată pentru livrare',
+      }).appendTo($labels);
+      $('<span>', {
+        class: 'pap-checkout-address-card__label pap-checkout-address-card__label--default',
+        text: 'Adresa implicită din cont',
+      }).appendTo($labels);
+    }
 
     const $body = $('<div>', { class: 'pap-checkout-address-card__body' }).appendTo($card);
     [
-      { icon: 'location', text: addressLine },
-      { icon: 'phone', text: address.phone },
-      { icon: 'envelope', text: email },
+      { text: addressLine, icon: 'location' },
+      { text: address.phone, icon: 'phone' },
+      { text: email, icon: 'envelope' },
     ].forEach(({ icon, text }) => {
       if (!text) {
         return;
@@ -1286,18 +1309,27 @@
       return;
     }
 
-    $shipping.find(selectors.authAddressOption).removeClass('is-selected');
-    $shipping.find('input[type="radio"][data-checkout-address-selector]').prop('checked', false);
+    if (getAuthAddressCount() <= 1) {
+      return;
+    }
 
-    const $input = $shipping.find(`[data-checkout-address-selector][value="${String(addressId).replace(/"/g, '\\"')}"]`).first();
-    if ($input.length) {
-      $input.prop('checked', true).closest(selectors.authAddressOption).addClass('is-selected');
+    const $options = $shipping.find(selectors.authAddressOption);
+    $options.removeClass('is-selected');
+    $options.attr('aria-pressed', 'false');
+
+    const $selected = $shipping.find(`[data-checkout-address-id="${String(addressId).replace(/"/g, '\\"')}"]`).first();
+    if ($selected.length) {
+      $selected.addClass('is-selected').attr('aria-pressed', 'true');
     }
   };
 
   const selectAuthAddress = (addressId, options = {}) => {
     const address = getAddressById(addressId);
     if (!address) {
+      return;
+    }
+
+    if (getAuthAddressCount() <= 1) {
       return;
     }
 
@@ -1354,7 +1386,7 @@
     }
 
     const selectedId = String(
-      $shipping.find('input[type="radio"][data-checkout-address-selector]:checked').val()
+      $shipping.find('[data-pap-auth-address-option].is-selected[data-checkout-address-id]').first().attr('data-checkout-address-id')
       || selectedShippingAddressId
       || ''
     );
@@ -1543,13 +1575,13 @@
     const name = String($field.attr('name') || '').toLowerCase();
     const id = String($field.attr('id') || '').toLowerCase();
     const requiredMessageByField = {
-      billing_first_name: 'CompleteazÃ„Æ’ prenumele.',
-      billing_last_name: 'CompleteazÃ„Æ’ numele.',
+      billing_first_name: 'Completează prenumele.',
+      billing_last_name: 'Completează numele.',
       billing_email: 'Introdu emailul.',
       billing_phone: 'Introdu telefonul.',
-      shipping_state: 'Alege judeÃˆâ€ºul.',
+      shipping_state: 'Alege județul.',
       shipping_city: 'Alege localitatea.',
-      shipping_address_1: 'CompleteazÃ„Æ’ adresa.',
+      shipping_address_1: 'Completează adresa.',
     };
     const fieldKey = name || id;
     const requiredMessage = requiredMessageByField[fieldKey] || messages.required;
@@ -1679,15 +1711,10 @@
       toggleShippingState();
     });
 
-    $form.on('change', '[data-checkout-address-selector]', function () {
+    $form.on('change', 'select[data-checkout-address-selector]', function () {
       const $selector = $(this);
       const prefix = String($selector.data('checkoutAddressPrefix') || $selector.attr('data-checkout-address-prefix') || '');
       const addressId = String($selector.val() || '');
-
-      if ($selector.is(':radio') && prefix === 'shipping') {
-        selectAuthAddress(addressId);
-        return;
-      }
 
       if (!prefix || !addressId || !applySavedAddressSelection(prefix, addressId)) {
         return;
@@ -1696,6 +1723,25 @@
       const $shipToggle = $(selectors.shipToggle);
       if (prefix === 'billing' && (!$shipToggle.length || !$shipToggle.is(':checked'))) {
         syncSavedAddressSelectorState();
+      }
+    });
+
+    $form.on('click', '[data-pap-auth-address-option][data-checkout-address-id]', function (event) {
+      const $option = $(this);
+      if ($option.is('button')) {
+        event.preventDefault();
+      }
+
+      const prefix = String($option.attr('data-checkout-address-prefix') || $option.data('checkoutAddressPrefix') || 'shipping');
+      const addressId = String($option.attr('data-checkout-address-id') || '');
+
+      if (prefix === 'shipping') {
+        selectAuthAddress(addressId);
+        return;
+      }
+
+      if (!prefix || !addressId || !applySavedAddressSelection(prefix, addressId)) {
+        return;
       }
     });
 
@@ -1763,13 +1809,6 @@
 
       const $firstField = getFieldBySelector('#billing_first_name');
       focusField($firstField);
-    });
-
-    $form.on('click', selectors.authAddressOption, function () {
-      const $radio = $(this).find('input[type="radio"][data-checkout-address-selector]').first();
-      if ($radio.length && !$radio.is(':checked')) {
-        $radio.prop('checked', true).trigger('change');
-      }
     });
 
     $form.on('click', selectors.authAddressAdd, function (event) {
@@ -1918,7 +1957,3 @@
     bootstrap();
   }
 })(jQuery);
-
-
-
-

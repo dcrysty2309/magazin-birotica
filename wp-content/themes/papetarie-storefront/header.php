@@ -8,7 +8,7 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
 <!doctype html>
 <html <?php language_attributes(); ?>>
 <head>
-  <meta charset="<?php bloginfo('charset'); ?>">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <?php wp_head(); ?>
 </head>

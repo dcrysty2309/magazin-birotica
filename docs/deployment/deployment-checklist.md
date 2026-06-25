@@ -18,6 +18,8 @@ Environment țintă:
 - confirmă că ai identificat tema activă și toate pluginurile active
 - confirmă că NU urci fișiere sensibile sau inutile
 - confirmă că staging-ul nu este tratat ca producție
+- confirmă că mediul local este development și staging este QA oficial
+- confirmă că datele de test și conturile de test sunt aceleași pe local și staging
 
 ## B. Ce urcăm
 
@@ -48,6 +50,7 @@ Environment țintă:
 - asociere user la DB cu toate privilegiile
 - import SQL în staging
 - search-replace URL local -> staging
+- dacă testarea a modificat adrese sau comenzi, rulează procedura de reset a datelor de test înainte de următorul ciclu de QA
 
 ## E. Configurare WordPress
 
@@ -80,3 +83,5 @@ Environment țintă:
 - facturare
 - metode de plată
 - email comandă
+- observații pentru livrare / curier, dacă sunt expuse în fluxul final
+- compară rezultatul final local cu staging; staging rămâne referința de QA final

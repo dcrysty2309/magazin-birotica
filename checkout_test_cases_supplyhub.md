@@ -1,7 +1,29 @@
 # SupplyHub Checkout - Cazuri de testare si cerinte UX
 
 ## Scop
-Definim pas cu pas comportamentul checkout-ului pentru utilizatori guest si utilizatori autentificati, astfel incat implementarea sa fie clara si usor de continuat.
+Definim comportamentul checkout-ului pentru utilizatori guest si utilizatori autentificati, astfel incat implementarea sa fie clara, stabila si usor de continuat.
+
+## Index vizual pentru testare
+
+Pentru navigare rapida intre scenarii foloseste pagina:
+
+- `http://localhost:8080/checkout-test-cases/`
+
+Workflow oficial:
+
+- dezvoltarea se face local;
+- validarea finală se face pe staging;
+- comentariile din Preview se folosesc ca backlog oficial de bug-uri;
+- după fix, scenariile afectate se retestează pe staging;
+- dacă un test schimbă date de adresă sau comandă, trebuie făcut resetul datelor de test înainte de următorul ciclu.
+
+Pe aceasta pagina gasesti:
+
+- un tabel simplu cu toate cazurile de testare;
+- preview pentru fiecare caz cu tip cont / user-parola / reproduce / expected;
+- comentarii de testare salvate local per caz și o listă compactă cu cazurile care au observații;
+- pagina este dedicată doar Pasului 1 - Adresa de livrare;
+- regulile pentru border, label-uri si numarul de adrese.
 
 ---
 
@@ -13,60 +35,59 @@ Definim pas cu pas comportamentul checkout-ului pentru utilizatori guest si util
 Userul intra in checkout fara sa fie autentificat si nu exista date salvate.
 
 ### Atunci
-Tabul „Adresa de livrare” trebuie sa fie deschis si sa afiseze formularul complet.
+Tabul "Adresa de livrare" trebuie sa fie deschis si sa afiseze formularul complet.
 Rezumatul nu trebuie sa fie vizibil in aceasta stare.
 Pasul 2 trebuie sa ramana dezactivat pana la salvarea adresei.
 
 ### Campuri afisate
-- Nume *
 - Prenume *
-- Telefon *
+- Nume *
 - Email *
+- Telefon *
 - Judet *
 - Localitate *
-- Strada *
-- Numar *
-- Bloc / scara / etaj / apartament
-- Cod postal
+- Adresa *
+- Cod postal *
+- Observatii pentru livrare / curier (optional)
 
 ### Optiuni
-- Checkbox: „Datele de facturare sunt aceleasi cu adresa de livrare”
-- Checkbox optional: „Creeaza cont dupa finalizarea comenzii”
+- Checkbox optional: "Creeaza cont dupa finalizarea comenzii"
 
 ### Buton
-- „Continua catre livrare”
+- "Continua"
 
 ---
 
 ## 1.2. Validare formular adresa de livrare
 
 ### Cand
-Userul apasa „Continua catre livrare” fara sa completeze campurile obligatorii.
+Userul apasa "Continua" fara sa completeze campurile obligatorii.
 
 ### Atunci
 Trebuie afisate erori clare langa campurile lipsa.
 
 ### Reguli
-- Numele este obligatoriu.
 - Prenumele este obligatoriu.
-- Telefonul este obligatoriu.
+- Numele este obligatoriu.
 - Emailul este obligatoriu si trebuie sa aiba format valid.
+- Telefonul este obligatoriu.
 - Judetul este obligatoriu.
 - Localitatea este obligatorie.
-- Strada este obligatorie.
-- Numarul este obligatoriu.
+- Adresa este obligatorie.
+- Codul postal este obligatoriu.
+- Observatiile pentru livrare / curier raman optionale.
 
 ---
 
 ## 1.3. Tab: Adresa de livrare - dupa completare
 
 ### Cand
-Userul completeaza corect formularul si apasa „Continua catre livrare”.
+Userul completeaza corect formularul si apasa "Continua".
 
 ### Atunci
-Tabul „Adresa de livrare” se inchide si devine un rezumat.
+Tabul "Adresa de livrare" se inchide si devine un rezumat.
 Formularul nu mai este vizibil.
-Butonul „Continua catre livrare” nu mai este vizibil.
+Butonul "Continua" nu mai este vizibil.
 Doar summary-ul adresei ramane afisat.
 Pasul 2 devine activ.
 In DOM trebuie sa existe o singura stare activa: fie formularul in edit mode, fie summary-ul in completed mode, niciodata ambele simultan.
@@ -74,15 +95,22 @@ In DOM trebuie sa existe o singura stare activa: fie formularul in edit mode, fi
 ### Rezumat afisat
 - Nume complet
 - Adresa completa
+- Judet + localitate
+- Cod postal
 - Telefon
 - Email
-- Link/buton: „Modifica”
+- Link/buton: "Modifica"
+
+### Observatie
+Observatiile pentru livrare / curier nu se afiseaza in summary card. Ele se salveaza pentru comanda curenta si, daca este cazul, ajung in checkout session, in comanda, in emailurile de comanda si in adminul WooCommerce.
 
 ### Exemplu UI
-Cristian Diaconescu  
-Str. Victoriei 45, Sector 1, Bucuresti  
-0740 123 456  
-d.crysty23@gmail.com  
+Cristian Diaconescu
+Str. Victoriei 45
+Bucuresti, Bucuresti
+010061
+0740 123 456
+d.crysty23@gmail.com
 Modifica
 
 ---
@@ -90,7 +118,7 @@ Modifica
 ## 1.4. Actiune: Modifica adresa de livrare
 
 ### Cand
-Userul apasa „Modifica” pe tabul „Adresa de livrare”.
+Userul apasa "Modifica" pe tabul "Adresa de livrare".
 
 ### Atunci
 Tabul se redeschide cu toate datele completate anterior.
@@ -104,35 +132,39 @@ Datele nu trebuie pierdute dupa inchidere/deschidere.
 
 # 2. User fara cont - Facturare persoana fizica
 
-## 2.1. Cand checkbox-ul „Datele de facturare sunt aceleasi cu adresa de livrare” este bifat
+## 2.1. Cand adresa de livrare este finalizata
 
 ### Atunci
-Tabul „Facturare” trebuie sa afiseze doar un rezumat simplu.
+Tabul "Facturare" trebuie sa respecte adresa de livrare salvata.
 
 ### Continut
-- Checkbox: „Doresc factura pe firma” - nebifat
+- Checkbox: "Datele de facturare sunt aceleasi cu adresa de livrare"
 - Card rezumat:
   - Nume complet
   - Adresa de livrare
-  - Text discret: „Factura va fi emisa pe persoana fizica”
-- Buton/link: „Modifica”
+  - Text discret: "Factura va fi emisa pe persoana fizica"
+- Buton/link: "Modifica"
+
+### Observatie
+Daca observatiile pentru livrare / curier exista, ele nu se dubleaza in summary-ul de facturare decat daca exista o regula explicita pentru asta.
 
 ---
 
-## 2.2. Cand userul debifeaza „Datele de facturare sunt aceleasi cu adresa de livrare”
+## 2.2. Cand userul debifeaza "Datele de facturare sunt aceleasi cu adresa de livrare"
 
 ### Atunci
-In tabul „Facturare” trebuie afisat formular separat pentru adresa de facturare PF.
+In tabul "Facturare" trebuie afisat formular separat pentru adresa de facturare PF.
 
 ### Campuri
-- Nume *
 - Prenume *
+- Nume *
+- Email *
+- Telefon *
 - Judet *
 - Localitate *
-- Strada *
-- Numar *
-- Bloc / scara / etaj / apartament
-- Cod postal
+- Adresa *
+- Cod postal *
+- Observatii pentru livrare / curier (optional, daca se reutilizeaza acelasi model de formular)
 
 ---
 
@@ -141,7 +173,7 @@ In tabul „Facturare” trebuie afisat formular separat pentru adresa de factur
 ## 3.1. Activare factura pe firma
 
 ### Cand
-Userul bifeaza „Doresc factura pe firma”.
+Userul bifeaza "Doresc factura pe firma".
 
 ### Atunci
 Trebuie afisat formularul pentru persoana juridica.
@@ -164,7 +196,7 @@ Campul CUI ar trebui sa fie primul. Ideal, dupa completarea CUI-ului, se poate p
 ## 3.2. Dezactivare factura pe firma
 
 ### Cand
-Userul debifeaza „Doresc factura pe firma”.
+Userul debifeaza "Doresc factura pe firma".
 
 ### Atunci
 Formularul de firma dispare si checkout-ul revine la facturare persoana fizica.
@@ -182,22 +214,27 @@ Datele completate la firma pot ramane temporar in state, dar nu trebuie trimise 
 Userul este logat si are cel putin o adresa salvata.
 
 ### Atunci
-Tabul „Adresa de livrare” trebuie sa afiseze adresa implicita ca rezumat.
+Tabul "Adresa de livrare" trebuie sa afiseze un singur card neutru daca exista o singura adresa sau o lista de carduri daca exista 2+ adrese.
 
 ### Continut
+- 1 adresă: card neutru, fara label de selectie.
+- 2+ adrese: lista de carduri cu o singura adresa selectata.
+- Label principal: "Selectata pentru livrare" doar la 2+ adrese.
+- Label secundar: "Adresa implicita din cont" pentru adresa implicita, doar la 2+ adrese.
 - Nume complet
 - Adresa completa
+- Judet + localitate
+- Cod postal
 - Telefon
 - Email
-- Buton: „Modifica”
-- Buton/link: „Adauga adresa noua”
+- Buton/link: "Adauga adresa noua" doar daca exista cel putin o adresa in checkout si utilizatorul este logat.
 
 ---
 
 ## 4.2. Selectare alta adresa
 
 ### Cand
-Userul apasa „Modifica”.
+Userul apasa "Modifica".
 
 ### Atunci
 Trebuie afisata lista de adrese salvate plus optiunea de a adauga una noua.
@@ -205,7 +242,8 @@ Trebuie afisata lista de adrese salvate plus optiunea de a adauga una noua.
 ### Comportament
 - Userul poate selecta o adresa existenta.
 - Userul poate edita o adresa existenta.
-- Userul poate adauga o adresa noua.
+- Userul poate adauga o adresa noua pentru comanda curenta.
+- Schimbarea selectiei actualizeaza sesiunea WooCommerce, shipping fields si recalcularea transportului.
 
 ---
 
@@ -220,10 +258,23 @@ Userul este logat, dar nu are adrese salvate.
 Se afiseaza acelasi formular ca la guest checkout.
 
 ### Diferenta
-Dupa salvare, adresa poate fi salvata in contul userului.
+Dupa salvare, adresa poate fi salvata in contul userului, daca exista functionalitatea aferenta.
 
 ### Optiune
-- Checkbox: „Salveaza aceasta adresa in contul meu”
+- Checkbox: "Salveaza aceasta adresa in contul meu"
+
+## 5.2. Verificare selectie adrese
+
+### Cand
+Userul logat are 2+ adrese salvate.
+
+### Atunci
+- cardul selectat are border discret;
+- label-ul "Selectata pentru livrare" apare doar pe cardul activ;
+- daca adresa activa este si adresa implicita din cont, apare si label-ul "Adresa implicita din cont";
+- celelalte carduri raman neutre;
+- click pe alt card muta imediat selectia;
+- selectionarea actualizeaza checkout session si summary-ul.
 
 ---
 
@@ -246,7 +297,7 @@ Un tab este completat corect.
 ### Atunci
 - Se inchide automat.
 - Afiseaza rezumat scurt.
-- Are buton „Modifica”.
+- Are buton "Modifica".
 - Urmatorul tab devine activ.
 
 ---
@@ -270,28 +321,46 @@ Datele completate de user nu trebuie pierdute la:
 - refresh, daca se poate salva temporar local/session;
 - intoarcerea din pagina de plata.
 
+Observatiile pentru livrare / curier se trateaza la fel ca restul datelor de adresă: se pastreaza la refresh si la redeschiderea pasului, dar nu se dubleaza in summary card.
+
 ---
 
 # 7. Cazuri de testare rapide
 
 ## Guest checkout
-- [ ] Guest vede formular complet la „Adresa de livrare”.
+- [ ] Guest vede formular complet la "Adresa de livrare".
 - [ ] Campurile obligatorii sunt validate.
 - [ ] Dupa completare, tabul devine rezumat.
-- [ ] Butonul „Modifica” redeschide formularul cu datele pastrate.
-- [ ] Checkbox-ul „Doresc factura pe firma” afiseaza formularul de firma.
+- [ ] Butonul "Modifica" redeschide formularul cu datele pastrate.
+- [ ] Checkbox-ul "Doresc factura pe firma" afiseaza formularul de firma.
 - [ ] Debifarea checkbox-ului ascunde formularul de firma.
 - [ ] Datele firmei nu se trimit daca checkbox-ul este debifat.
+- [ ] Observatiile pentru livrare / curier pot fi completate si se pastreaza la redeschidere.
 
 ## User logat
 - [ ] User logat cu adresa salvata vede rezumatul adresei.
 - [ ] User logat poate schimba adresa.
-- [ ] User logat poate adauga o adresa noua.
+- [ ] User logat poate adauga o adresa noua pentru comanda curenta.
 - [ ] User logat fara adresa salvata vede formularul complet.
-- [ ] User logat poate salva adresa noua in cont.
+- [ ] User logat poate salva adresa noua in cont, daca este permis.
+- [ ] User logat cu mai multe adrese vede lista de carduri si selectia corecta.
 
 ## Facturare
 - [ ] Facturare PF foloseste adresa de livrare cand checkbox-ul este bifat.
 - [ ] Facturare PF poate avea adresa separata.
 - [ ] Facturare firma cere CUI si denumire firma.
 - [ ] Facturare firma poate fi dezactivata fara sa afecteze adresa de livrare.
+- [ ] Observatiile pentru livrare / curier ajung in comanda si in email, daca aceasta este regula finala stabilita.
+
+---
+
+# 8. Mock data pentru userii de test
+
+- guest.checkout@test.local
+  - Observatii pentru livrare / curier: "Interfon 12. Curierul sa sune inainte."
+- checkout.noaddress@test.local
+  - Observatii pentru livrare / curier: "Acces prin spatele cladirii."
+- checkout.oneaddress@test.local
+  - Observatii pentru livrare / curier: "Livrare dupa ora 14:00."
+- checkout.multiaddress@test.local
+  - Observatii pentru livrare / curier: "Se livreaza doar in intervalul 12:00-16:00."

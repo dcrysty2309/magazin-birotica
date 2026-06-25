@@ -514,6 +514,33 @@ function papetarie_storefront_address_book_checkout_selected_address(int $user_i
     return papetarie_storefront_address_book_default_address($user_id);
 }
 
+function papetarie_storefront_address_book_checkout_address_count(): int
+{
+    if (papetarie_storefront_address_book_checkout_has_temporary_address()) {
+        return 1;
+    }
+
+    if (is_user_logged_in()) {
+        return count(papetarie_storefront_address_book_get_all(get_current_user_id()));
+    }
+
+    if (function_exists('papetarie_storefront_checkout_guest_shipping_snapshot')) {
+        $snapshot = papetarie_storefront_checkout_guest_shipping_snapshot();
+        $snapshot_has_value = false;
+
+        foreach ($snapshot as $value) {
+            if (trim((string) $value) !== '') {
+                $snapshot_has_value = true;
+                break;
+            }
+        }
+
+        return $snapshot_has_value ? 1 : 0;
+    }
+
+    return 0;
+}
+
 function papetarie_storefront_address_book_format_lines(array $address): array
 {
     $lines = [];

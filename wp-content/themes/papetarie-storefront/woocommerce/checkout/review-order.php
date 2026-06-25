@@ -157,7 +157,7 @@ if ($cart && function_exists('wc_tax_enabled') && wc_tax_enabled()) {
 
 		<?php do_action('woocommerce_review_order_before_submit'); ?>
 
-		<?php echo apply_filters('woocommerce_order_button_html', '<button type="submit" class="button alt' . esc_attr(wc_wp_theme_get_element_class_name('button') ? ' ' . wc_wp_theme_get_element_class_name('button') : '') . '" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr($checkout_order_button_text) . '" data-value="' . esc_attr($checkout_order_button_text) . '">' . esc_html($checkout_order_button_text) . '</button>'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		<?php echo apply_filters('woocommerce_order_button_html', '<button type="submit" class="button alt pap-cart-checkout pap-checkout-action pap-checkout-action--primary' . esc_attr(wc_wp_theme_get_element_class_name('button') ? ' ' . wc_wp_theme_get_element_class_name('button') : '') . '" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr($checkout_order_button_text) . '" data-value="' . esc_attr($checkout_order_button_text) . '">' . esc_html($checkout_order_button_text) . '</button>'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
 		<?php do_action('woocommerce_review_order_after_submit'); ?>
 
