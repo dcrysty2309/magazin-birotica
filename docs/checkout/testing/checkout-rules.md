@@ -1,5 +1,18 @@
 # Checkout Rules
 
+Actualizare:
+
+- Regula oficiala pentru checkout este acum impartita in documentele din `docs/checkout/`.
+- Acest fisier ramane util pentru testing, dar trebuie citit impreuna cu:
+  - `docs/checkout/checkout-rules.md`
+  - `docs/checkout/checkout-decisions.md`
+  - `docs/checkout/checkout-testing-rules.md`
+
+Regula noua pentru Pasul 1:
+
+- Checkout-ul nu editeaza adrese salvate in My Account.
+- Adresele din cont pot fi afisate si selectate in checkout.
+- Adresa noua introdusa din checkout este temporara si se aplica doar comenzii curente.
 Acest document reprezintă sursa oficială de reguli pentru dezvoltarea checkout-ului.
 
 Orice implementare nouă trebuie să respecte acest document.
@@ -144,3 +157,4 @@ Orice task de checkout trebuie să se încheie cu:
 - bug-uri găsite;
 - ce nu a putut fi testat;
 - recomandări pentru următorul pas.
+

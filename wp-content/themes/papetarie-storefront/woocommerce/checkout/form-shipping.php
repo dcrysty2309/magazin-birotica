@@ -49,11 +49,15 @@ $shipping_address_is_summary = 'summary' === $shipping_address_mode;
 $logged_in_addresses = [];
 $logged_in_selected_address_id = '';
 $logged_in_email = '';
+$logged_in_has_temporary_address = false;
 
 if (!$is_guest_checkout && function_exists('papetarie_storefront_address_book_get_all')) {
     $current_user_id = get_current_user_id();
     $logged_in_addresses = papetarie_storefront_address_book_get_all($current_user_id);
-    $selected_address = function_exists('papetarie_storefront_address_book_checkout_selected_address')
+    $logged_in_has_temporary_address = function_exists('papetarie_storefront_address_book_checkout_has_temporary_address')
+        ? papetarie_storefront_address_book_checkout_has_temporary_address()
+        : false;
+    $selected_address = !$logged_in_has_temporary_address && function_exists('papetarie_storefront_address_book_checkout_selected_address')
         ? papetarie_storefront_address_book_checkout_selected_address($current_user_id, 'shipping')
         : null;
     $logged_in_selected_address_id = (string) ($selected_address['id'] ?? '');
@@ -61,13 +65,17 @@ if (!$is_guest_checkout && function_exists('papetarie_storefront_address_book_ge
         ? papetarie_storefront_address_book_checkout_email($current_user_id)
         : '';
 
-    if ($logged_in_selected_address_id !== '' && function_exists('papetarie_storefront_address_book_checkout_set_selected_address_id')) {
+    if (
+        !$logged_in_has_temporary_address
+        && $logged_in_selected_address_id !== ''
+        && function_exists('papetarie_storefront_address_book_checkout_set_selected_address_id')
+    ) {
         papetarie_storefront_address_book_checkout_set_selected_address_id('shipping', $logged_in_selected_address_id);
         papetarie_storefront_address_book_checkout_set_selected_address_id('billing', $logged_in_selected_address_id);
     }
 }
 
-$render_logged_in_address_card = static function (array $address, string $selected_id, string $email): void {
+$render_logged_in_address_card = static function (array $address, string $selected_id, string $email, bool $temporary_mode = false): void {
     $address_id = (string) ($address['id'] ?? '');
     $full_name = trim((string) ($address['first_name'] ?? '') . ' ' . (string) ($address['last_name'] ?? ''));
     $state_code = strtoupper(sanitize_key((string) ($address['state'] ?? '')));
@@ -81,7 +89,7 @@ $render_logged_in_address_card = static function (array $address, string $select
         trim((string) ($address['postcode'] ?? '')),
     ]));
     $phone = trim((string) ($address['phone'] ?? ''));
-    $is_selected = $address_id !== '' && $address_id === $selected_id;
+    $is_selected = !$temporary_mode && $address_id !== '' && $address_id === $selected_id;
     ?>
     <div class="pap-checkout-address-option<?php echo $is_selected ? ' is-selected' : ''; ?>" data-pap-auth-address-option>
         <input
@@ -97,14 +105,6 @@ $render_logged_in_address_card = static function (array $address, string $select
                 <div class="pap-checkout-address-card__title-copy">
                     <p class="pap-checkout-address-card__name"><?php echo esc_html($full_name); ?></p>
                 </div>
-                <button
-                    type="button"
-                    class="pap-checkout-address-card__action"
-                    data-pap-auth-address-edit
-                    data-address-id="<?php echo esc_attr($address_id); ?>"
-                >
-                    <?php esc_html_e('Modifică', 'papetarie-storefront'); ?>
-                </button>
             </div>
             <div class="pap-checkout-address-card__body">
                 <?php if ($address_line !== '') : ?>
@@ -147,134 +147,138 @@ $render_logged_in_address_card = static function (array $address, string $select
 ?>
 
 <section
-	class="pap-checkout-card pap-checkout-card--shipping-address pap-checkout-step pap-checkout-step--shipping-address<?php echo $shipping_address_is_summary ? ' is-summary-mode' : ''; ?> is-step-<?php echo esc_attr(function_exists('papetarie_storefront_checkout_step_state') ? papetarie_storefront_checkout_step_state('shipping-address') : 'active'); ?>"
-	data-pap-checkout-section="shipping-address"
-	data-pap-checkout-step="shipping-address"
-	data-pap-step-state="<?php echo esc_attr(function_exists('papetarie_storefront_checkout_step_state') ? papetarie_storefront_checkout_step_state('shipping-address') : 'active'); ?>"
-	data-pap-guest-shipping-mode="<?php echo esc_attr($shipping_address_mode); ?>"
+    class="pap-checkout-card pap-checkout-card--shipping-address pap-checkout-step pap-checkout-step--shipping-address<?php echo $shipping_address_is_summary ? ' is-summary-mode' : ''; ?> is-step-<?php echo esc_attr(function_exists('papetarie_storefront_checkout_step_state') ? papetarie_storefront_checkout_step_state('shipping-address') : 'active'); ?>"
+    data-pap-checkout-section="shipping-address"
+    data-pap-checkout-step="shipping-address"
+    data-pap-step-state="<?php echo esc_attr(function_exists('papetarie_storefront_checkout_step_state') ? papetarie_storefront_checkout_step_state('shipping-address') : 'active'); ?>"
+    data-pap-guest-shipping-mode="<?php echo esc_attr($shipping_address_mode); ?>"
 >
-	<div class="pap-checkout-card__head">
-		<div class="pap-checkout-section-title-row">
-			<span class="pap-checkout-section-badge" aria-hidden="true">1</span>
-			<h2><?php esc_html_e('Adresă de livrare', 'papetarie-storefront'); ?></h2>
-		</div>
-	</div>
+    <div class="pap-checkout-card__head">
+        <div class="pap-checkout-section-title-row">
+            <span class="pap-checkout-section-badge" aria-hidden="true">1</span>
+            <h2><?php esc_html_e('Adresa de livrare', 'papetarie-storefront'); ?></h2>
+        </div>
+    </div>
 
-	<?php if ($is_guest_checkout) : ?>
-		<div class="pap-checkout-guest-shipping">
-			<div class="pap-checkout-guest-shipping__form" data-pap-guest-shipping-form>
-				<?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
+    <?php if ($is_guest_checkout) : ?>
+        <div class="pap-checkout-guest-shipping">
+            <div class="pap-checkout-guest-shipping__form" data-pap-guest-shipping-form>
+                <?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
 
-				<div class="pap-auth-form pap-checkout-address-form">
-					<div class="pap-form-row pap-form-row--split">
-						<?php echo $render_billing_field('billing_first_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-						<?php echo $render_billing_field('billing_last_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                <div class="pap-auth-form pap-checkout-address-form">
+                    <div class="pap-form-row pap-form-row--split">
+                        <?php echo $render_billing_field('billing_first_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                        <?php echo $render_billing_field('billing_last_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<div class="pap-form-row pap-form-row--split">
-						<?php echo $render_billing_field('billing_email'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-						<?php echo $render_billing_field('billing_phone'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                    <div class="pap-form-row pap-form-row--split">
+                        <?php echo $render_billing_field('billing_email'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                        <?php echo $render_billing_field('billing_phone'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<div class="pap-form-row pap-form-row--split">
-						<?php echo $render_shipping_field('shipping_state'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-						<?php echo $render_shipping_field('shipping_city'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                    <div class="pap-form-row pap-form-row--split">
+                        <?php echo $render_shipping_field('shipping_state'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                        <?php echo $render_shipping_field('shipping_city'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<div class="pap-form-row pap-form-row--stack">
-						<?php echo $render_shipping_field('shipping_address_1'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                    <div class="pap-form-row pap-form-row--stack">
+                        <?php echo $render_shipping_field('shipping_address_1'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<div class="pap-form-row pap-form-row--stack">
-						<?php echo $render_shipping_field('shipping_address_2'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                    <div class="pap-form-row pap-form-row--stack">
+                        <?php echo $render_shipping_field('shipping_address_2'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<input type="hidden" name="pap_guest_shipping_snapshot" value="" data-pap-guest-shipping-snapshot>
-					<input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
-					<input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
-				</div>
-			</div>
+                    <input type="hidden" name="pap_guest_shipping_snapshot" value="" data-pap-guest-shipping-snapshot>
+                    <input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
+                    <input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
+                </div>
+            </div>
 
-			<div class="pap-checkout-guest-shipping__summary" data-pap-guest-shipping-summary hidden aria-hidden="true">
-				<?php echo function_exists('papetarie_storefront_get_checkout_guest_shipping_summary_html') ? papetarie_storefront_get_checkout_guest_shipping_summary_html() : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			</div>
+            <div class="pap-checkout-guest-shipping__summary" data-pap-guest-shipping-summary hidden aria-hidden="true">
+                <?php echo function_exists('papetarie_storefront_get_checkout_guest_shipping_summary_html') ? papetarie_storefront_get_checkout_guest_shipping_summary_html() : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
 
-			<?php if ($checkout->is_registration_enabled() && !is_user_logged_in()) : ?>
-				<div class="pap-checkout-guest-shipping__options">
-					<label class="pap-checkout-guest-option">
-						<input type="checkbox" name="createaccount" value="1" <?php checked($checkout->get_value('createaccount'), 1); ?>>
-						<span><?php esc_html_e('Creează cont după finalizarea comenzii', 'papetarie-storefront'); ?></span>
-					</label>
-				</div>
-			<?php endif; ?>
+            <?php if ($checkout->is_registration_enabled() && !is_user_logged_in()) : ?>
+                <div class="pap-checkout-guest-shipping__options">
+                    <label class="pap-checkout-guest-option">
+                        <input type="checkbox" name="createaccount" value="1" <?php checked($checkout->get_value('createaccount'), 1); ?>>
+                        <span><?php esc_html_e('Creează cont după finalizarea comenzii', 'papetarie-storefront'); ?></span>
+                    </label>
+                </div>
+            <?php endif; ?>
 
-			<div class="pap-checkout-guest-shipping__actions">
-				<button type="button" class="button alt pap-cart-checkout pap-checkout-guest-shipping__continue" data-pap-guest-shipping-continue>
-					<?php esc_html_e('Continuă către livrare', 'papetarie-storefront'); ?>
-				</button>
-			</div>
+            <div class="pap-checkout-guest-shipping__actions">
+                <button type="button" class="button alt pap-cart-checkout pap-checkout-guest-shipping__continue" data-pap-guest-shipping-continue>
+                    <?php esc_html_e('Continuă către livrare', 'papetarie-storefront'); ?>
+                </button>
+            </div>
 
-			<?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>
-		</div>
-	<?php else : ?>
-		<div class="pap-checkout-auth-shipping" data-pap-auth-shipping>
-			<div class="pap-checkout-auth-shipping__addresses" data-pap-auth-address-list <?php echo empty($logged_in_addresses) ? 'hidden' : ''; ?>>
-				<div class="pap-checkout-auth-shipping__grid" data-pap-auth-address-grid>
-					<?php foreach ($logged_in_addresses as $logged_in_address) : ?>
-						<?php $render_logged_in_address_card($logged_in_address, $logged_in_selected_address_id, $logged_in_email); ?>
-					<?php endforeach; ?>
-				</div>
-				<button type="button" class="pap-checkout-auth-shipping__add" data-pap-auth-address-add>
-					<?php esc_html_e('Adaugă adresă nouă', 'papetarie-storefront'); ?>
-				</button>
-			</div>
+            <?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>
+        </div>
+    <?php else : ?>
+        <div class="pap-checkout-auth-shipping" data-pap-auth-shipping data-pap-auth-temporary-mode="<?php echo $logged_in_has_temporary_address ? 'summary' : 'list'; ?>">
+            <div class="pap-checkout-auth-shipping__addresses" data-pap-auth-address-list <?php echo (empty($logged_in_addresses) || $logged_in_has_temporary_address) ? 'hidden' : ''; ?>>
+                <div class="pap-checkout-auth-shipping__grid" data-pap-auth-address-grid>
+                    <?php foreach ($logged_in_addresses as $logged_in_address) : ?>
+                        <?php $render_logged_in_address_card($logged_in_address, $logged_in_selected_address_id, $logged_in_email, $logged_in_has_temporary_address); ?>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="pap-checkout-auth-shipping__add" data-pap-auth-address-add>
+                    <?php esc_html_e('Adaugă adresă nouă', 'papetarie-storefront'); ?>
+                </button>
+            </div>
 
-			<div class="pap-checkout-auth-shipping__form" data-pap-auth-shipping-form <?php echo !empty($logged_in_addresses) ? 'hidden' : ''; ?>>
-				<?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
+            <div class="pap-checkout-auth-shipping__summary pap-checkout-guest-shipping__summary" data-pap-auth-shipping-summary <?php echo $logged_in_has_temporary_address ? '' : 'hidden'; ?> aria-hidden="<?php echo $logged_in_has_temporary_address ? 'false' : 'true'; ?>">
+                <?php echo function_exists('papetarie_storefront_get_checkout_auth_shipping_summary_html') ? papetarie_storefront_get_checkout_auth_shipping_summary_html() : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
 
-				<div class="pap-auth-form pap-checkout-address-form">
-					<div class="pap-form-row pap-form-row--split">
-						<?php echo $render_fields(['billing_first_name', 'billing_last_name'], 'billing'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+            <div class="pap-checkout-auth-shipping__form" data-pap-auth-shipping-form <?php echo ($logged_in_has_temporary_address || !empty($logged_in_addresses)) ? 'hidden' : ''; ?>>
+                <?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
 
-					<div class="pap-form-row pap-form-row--split">
-						<?php echo $render_fields(['billing_email', 'billing_phone'], 'billing'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                <div class="pap-auth-form pap-checkout-address-form">
+                    <div class="pap-form-row pap-form-row--split">
+                        <?php echo $render_fields(['billing_first_name', 'billing_last_name'], 'billing'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<div class="pap-form-row pap-form-row--split">
-						<?php echo $render_fields(['shipping_state', 'shipping_city'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                    <div class="pap-form-row pap-form-row--split">
+                        <?php echo $render_fields(['billing_email', 'billing_phone'], 'billing'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<div class="pap-form-row pap-form-row--stack">
-						<?php echo $render_fields(['shipping_address_1'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                    <div class="pap-form-row pap-form-row--split">
+                        <?php echo $render_fields(['shipping_state', 'shipping_city'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<div class="pap-form-row pap-form-row--split">
-						<?php echo $render_fields(['shipping_address_2', 'shipping_postcode'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
+                    <div class="pap-form-row pap-form-row--stack">
+                        <?php echo $render_fields(['shipping_address_1'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-					<input type="hidden" name="pap_auth_address_id" value="" data-pap-auth-address-id>
-					<input type="hidden" name="ship_to_different_address" value="1">
-					<input type="hidden" id="shipping_first_name" name="shipping_first_name" value="<?php echo esc_attr($checkout->get_value('shipping_first_name')); ?>">
-					<input type="hidden" id="shipping_last_name" name="shipping_last_name" value="<?php echo esc_attr($checkout->get_value('shipping_last_name')); ?>">
-					<input type="hidden" id="shipping_company" name="shipping_company" value="<?php echo esc_attr($checkout->get_value('shipping_company')); ?>">
-					<input type="hidden" id="shipping_phone" name="shipping_phone" value="<?php echo esc_attr($checkout->get_value('shipping_phone')); ?>">
-					<input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
-					<input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
-				</div>
+                    <div class="pap-form-row pap-form-row--split">
+                        <?php echo $render_fields(['shipping_address_2', 'shipping_postcode'], 'shipping'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                    </div>
 
-				<div class="pap-checkout-auth-shipping__actions">
-					<button type="button" class="pap-checkout-auth-shipping__cancel" data-pap-auth-address-cancel <?php echo empty($logged_in_addresses) ? 'hidden' : ''; ?>>
-						<?php esc_html_e('Anulează', 'papetarie-storefront'); ?>
-					</button>
-					<button type="button" class="button alt pap-cart-checkout pap-checkout-guest-shipping__continue" data-pap-auth-address-save>
-						<?php esc_html_e('Continuă către livrare', 'papetarie-storefront'); ?>
-					</button>
-				</div>
-				<div class="pap-checkout-auth-shipping__notice" data-pap-auth-address-notice hidden role="alert"></div>
+                    <input type="hidden" name="ship_to_different_address" value="1">
+                    <input type="hidden" id="shipping_first_name" name="shipping_first_name" value="<?php echo esc_attr($checkout->get_value('shipping_first_name')); ?>">
+                    <input type="hidden" id="shipping_last_name" name="shipping_last_name" value="<?php echo esc_attr($checkout->get_value('shipping_last_name')); ?>">
+                    <input type="hidden" id="shipping_company" name="shipping_company" value="<?php echo esc_attr($checkout->get_value('shipping_company')); ?>">
+                    <input type="hidden" id="shipping_phone" name="shipping_phone" value="<?php echo esc_attr($checkout->get_value('shipping_phone')); ?>">
+                    <input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
+                    <input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
+                </div>
 
-				<?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>
-			</div>
-		</div>
-	<?php endif; ?>
+                <div class="pap-checkout-auth-shipping__actions">
+                    <button type="button" class="pap-checkout-auth-shipping__cancel" data-pap-auth-address-cancel <?php echo empty($logged_in_addresses) ? 'hidden' : ''; ?>>
+                        <?php esc_html_e('Anulează', 'papetarie-storefront'); ?>
+                    </button>
+                    <button type="button" class="button alt pap-cart-checkout pap-checkout-guest-shipping__continue" data-pap-auth-address-save>
+                        <?php esc_html_e('Continuă către livrare', 'papetarie-storefront'); ?>
+                    </button>
+                </div>
+                <div class="pap-checkout-auth-shipping__notice" data-pap-auth-address-notice hidden role="alert"></div>
+
+                <?php do_action('woocommerce_after_checkout_shipping_form', $checkout); ?>
+            </div>
+        </div>
+    <?php endif; ?>
 </section>
+

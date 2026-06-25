@@ -10,13 +10,13 @@
     authShipping: '[data-pap-auth-shipping]',
     authShippingForm: '[data-pap-auth-shipping-form]',
     authAddressList: '[data-pap-auth-address-list]',
+    authShippingSummary: '[data-pap-auth-shipping-summary]',
     authAddressGrid: '[data-pap-auth-address-grid]',
     authAddressOption: '[data-pap-auth-address-option]',
     authAddressAdd: '[data-pap-auth-address-add]',
-    authAddressEdit: '[data-pap-auth-address-edit]',
     authAddressCancel: '[data-pap-auth-address-cancel]',
     authAddressSave: '[data-pap-auth-address-save]',
-    authAddressId: '[data-pap-auth-address-id]',
+    authTemporaryEdit: '[data-pap-auth-temporary-edit]',
     authAddressNotice: '[data-pap-auth-address-notice]',
     addressModal: '[data-checkout-address-modal]',
     addressModalPanel: '[data-checkout-address-modal-panel]',
@@ -28,10 +28,10 @@
   };
 
   const messages = {
-    required: 'Completează acest câmp.',
+    required: 'CompleteazÃ„Æ’ acest cÃƒÂ¢mp.',
     email: 'Introdu o adresă de email validă.',
-    phone: 'Introdu un număr de telefon valid.',
-    postcode: 'Introdu un cod poștal valid.',
+    phone: 'Introdu un numÃ„Æ’r de telefon valid.',
+    postcode: 'Introdu un cod poÃˆâ„¢tal valid.',
   };
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,13 +42,15 @@
   let cityOptionsByCounty = checkoutData.citiesByCounty || {};
   let cityDataPromise = null;
   const cityPlaceholder = checkoutData.cityPlaceholder || 'Alege localitatea';
-  const countyFirstPlaceholder = checkoutData.countyFirstPlaceholder || 'Alege județul întâi';
+  const countyFirstPlaceholder = checkoutData.countyFirstPlaceholder || 'Alege judeÃˆâ€ºul ÃƒÂ®ntÃƒÂ¢i';
   const savedAddressesById = checkoutData.savedAddresses && typeof checkoutData.savedAddresses === 'object'
     ? checkoutData.savedAddresses
     : {};
   const selectedBillingAddressId = String(checkoutData.selectedBillingAddressId || '');
   const selectedShippingAddressId = String(checkoutData.selectedShippingAddressId || '');
+  const hasInitialTemporaryCheckoutAddress = Boolean(checkoutData.isTemporaryCheckoutAddress);
   let authAddressFormMode = '';
+  let authTemporarySummaryVisible = hasInitialTemporaryCheckoutAddress;
   let authShippingBusy = false;
   const addressPairs = [
     { state: '#billing_state', city: '#billing_city' },
@@ -1102,10 +1104,93 @@
 
     setCheckoutFieldValue(getFieldBySelector('#billing_email'), checkoutData.customerEmail || '');
     syncDependentCitySelect('#shipping_state', false);
-    getAuthShipping().find(selectors.authAddressId).val('');
   };
 
-  const setAuthShippingFormVisible = (visible, address = null, persistMode = true) => {
+  const syncAuthShippingSummary = () => {
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
+      return;
+    }
+
+    const $summary = $shipping.find(selectors.authShippingSummary).first();
+    if (!$summary.length) {
+      return;
+    }
+
+    const lines = getGuestShippingSummaryLines('dom');
+    const $body = $summary.find('.pap-checkout-address-card__body').first();
+    const $empty = $summary.find('.pap-checkout-address-card__empty').first();
+    const $head = $summary.find('.pap-checkout-address-card__head').first();
+    const $titleCopy = $summary.find('.pap-checkout-address-card__title-copy').first();
+    const $title = $summary.find('.pap-checkout-address-card__title').first();
+    const $name = $summary.find('.pap-checkout-address-card__name').first();
+    const $action = $summary.find('.pap-checkout-address-card__action').first();
+
+    if (!lines.length) {
+      if ($body.length) {
+        $body.remove();
+      }
+      if ($empty.length) {
+        $empty.find('strong').first().text('Nu ai completat încă această adresă.');
+        $empty.find('p').first().text('Deschide formularul ca sa completezi datele necesare pentru comanda.');
+      }
+      return;
+    }
+
+    const [name, ...restLines] = lines;
+    const addressLine = restLines.length > 0 ? restLines[0] : '';
+    const phoneLine = restLines.length > 1 ? restLines[1] : '';
+    const emailLine = restLines.length > 2 ? restLines[2] : '';
+
+    if ($title.length) {
+      $title.remove();
+    }
+
+    if ($titleCopy.length && !$name.length) {
+      $titleCopy.empty();
+      $('<p>', {
+        class: 'pap-checkout-address-card__name',
+        text: name || '',
+      }).appendTo($titleCopy);
+    } else if ($name.length) {
+      $name.text(name || '');
+    }
+
+    if ($head.length) {
+      $head.toggleClass('has-action', !!$action.length);
+    }
+
+    if ($empty.length) {
+      $empty.remove();
+    }
+
+    let $targetBody = $summary.find('.pap-checkout-address-card__body').first();
+    if (!$targetBody.length) {
+      $targetBody = $('<div class="pap-checkout-address-card__body"></div>').appendTo($summary.find('.pap-checkout-address-card').first());
+    }
+
+    $targetBody.empty();
+    [
+      { icon: 'location', text: addressLine },
+      { icon: 'phone', text: phoneLine },
+      { icon: 'envelope', text: emailLine },
+    ].forEach(({ icon, text }) => {
+      if (!text) {
+        return;
+      }
+
+      const $row = $('<p>', { class: 'pap-checkout-address-card__line address-summary-row' });
+      $('<span>', {
+        class: 'pap-checkout-address-card__icon address-summary-icon',
+        html: getAddressIconSvg(icon),
+        'aria-hidden': 'true',
+      }).appendTo($row);
+      $('<span>', { class: 'pap-checkout-address-card__line-text', text }).appendTo($row);
+      $row.appendTo($targetBody);
+    });
+  };
+
+  const setAuthShippingFormVisible = (visible, options = {}) => {
     const $shipping = getAuthShipping();
     if (!$shipping.length) {
       return;
@@ -1113,48 +1198,32 @@
 
     const $form = $shipping.find(selectors.authShippingForm).first();
     const $list = $shipping.find(selectors.authAddressList).first();
+    const $summary = $shipping.find(selectors.authShippingSummary).first();
     const hasAddresses = $shipping.find(selectors.authAddressOption).length > 0;
-
-    if (persistMode) {
-      authAddressFormMode = visible ? String(address && address.id ? address.id : 'new') : '';
-    }
+    const shouldClear = options.clear === true;
+    const showSummary = !visible && authTemporarySummaryVisible;
+    const showList = !visible && !showSummary && hasAddresses;
 
     if (visible) {
-      if (address) {
-        applyAuthAddressToForm(address);
-        $shipping.find(selectors.authAddressId).val(String(address.id || ''));
-      } else {
+      authAddressFormMode = options.mode || 'new';
+      authTemporarySummaryVisible = false;
+      if (shouldClear) {
         clearAuthAddressForm();
       }
       setAuthAddressNotice('');
+    } else {
+      authAddressFormMode = '';
     }
 
     setVisibilityState($form, visible, 'grid');
-    setVisibilityState($list, !visible && hasAddresses, 'grid');
+    setVisibilityState($list, showList, 'grid');
+    setVisibilityState($summary, showSummary, 'grid');
     setVisibilityState($shipping.find(selectors.authAddressCancel).first(), visible && hasAddresses, 'inline-flex');
-  };
 
-  const getAuthAddressPayload = () => ({
-    action: checkoutData.addressBookAction || 'papetarie_storefront_address_book',
-    pap_address_book_nonce: checkoutData.addressBookNonce || '',
-    pap_address_book_action: 'save',
-    pap_address_checkout: '1',
-    pap_address_id: String(getAuthShipping().find(selectors.authAddressId).val() || ''),
-    pap_checkout_selected_address_id: String(
-      getAuthShipping().find('input[type="radio"][data-checkout-address-selector]:checked').val() || ''
-    ),
-    pap_address_is_default: Object.keys(savedAddressesById).length === 0 ? '1' : '0',
-    first_name: String(getFieldBySelector('#billing_first_name').val() || '').trim(),
-    last_name: String(getFieldBySelector('#billing_last_name').val() || '').trim(),
-    phone: String(getFieldBySelector('#billing_phone').val() || '').trim(),
-    email: String(getFieldBySelector('#billing_email').val() || '').trim(),
-    country: String(getFieldBySelector('#shipping_country').val() || 'RO'),
-    state: String(getFieldBySelector('#shipping_state').val() || ''),
-    city: String(getFieldBySelector('#shipping_city').val() || ''),
-    postcode: String(getFieldBySelector('#shipping_postcode').val() || '').trim(),
-    address_1: String(getFieldBySelector('#shipping_address_1').val() || '').trim(),
-    address_2: String(getFieldBySelector('#shipping_address_2').val() || '').trim(),
-  });
+    if (showSummary) {
+      syncAuthShippingSummary();
+    }
+  };
 
   const renderAuthAddressCard = (address, email, isSelected = true) => {
     const fullName = [address.first_name, address.last_name].filter(Boolean).join(' ').trim();
@@ -1187,13 +1256,6 @@
     const $head = $('<div>', { class: 'pap-checkout-address-card__head' }).appendTo($card);
     const $copy = $('<div>', { class: 'pap-checkout-address-card__title-copy' }).appendTo($head);
     $('<p>', { class: 'pap-checkout-address-card__name', text: fullName }).appendTo($copy);
-    $('<button>', {
-      type: 'button',
-      class: 'pap-checkout-address-card__action',
-      text: 'Modifică',
-      'data-pap-auth-address-edit': '',
-      'data-address-id': address.id,
-    }).appendTo($head);
 
     const $body = $('<div>', { class: 'pap-checkout-address-card__body' }).appendTo($card);
     [
@@ -1241,6 +1303,7 @@
     const shouldPersist = options.persist !== false;
     const shouldUpdateCheckout = options.updateCheckout !== false;
 
+    authTemporarySummaryVisible = false;
     syncSelectedAddressCardState(addressId);
     applyAuthAddressToForm(address);
 
@@ -1276,9 +1339,16 @@
 
     if (authAddressFormMode) {
       if (!$shipping.find(`${selectors.authShippingForm}:visible`).length) {
-        const editingAddress = authAddressFormMode === 'new' ? null : getAddressById(authAddressFormMode);
-        setAuthShippingFormVisible(true, editingAddress, false);
+        setAuthShippingFormVisible(true, {
+          clear: false,
+          mode: authAddressFormMode,
+        });
       }
+      return;
+    }
+
+    if (authTemporarySummaryVisible) {
+      setAuthShippingFormVisible(false);
       return;
     }
 
@@ -1472,13 +1542,13 @@
     const name = String($field.attr('name') || '').toLowerCase();
     const id = String($field.attr('id') || '').toLowerCase();
     const requiredMessageByField = {
-      billing_first_name: 'Completează prenumele.',
-      billing_last_name: 'Completează numele.',
+      billing_first_name: 'CompleteazÃ„Æ’ prenumele.',
+      billing_last_name: 'CompleteazÃ„Æ’ numele.',
       billing_email: 'Introdu emailul.',
       billing_phone: 'Introdu telefonul.',
-      shipping_state: 'Alege județul.',
+      shipping_state: 'Alege judeÃˆâ€ºul.',
       shipping_city: 'Alege localitatea.',
-      shipping_address_1: 'Completează adresa.',
+      shipping_address_1: 'CompleteazÃ„Æ’ adresa.',
     };
     const fieldKey = name || id;
     const requiredMessage = requiredMessageByField[fieldKey] || messages.required;
@@ -1694,11 +1764,7 @@
       focusField($firstField);
     });
 
-    $form.on('click', selectors.authAddressOption, function (event) {
-      if ($(event.target).closest(selectors.authAddressEdit).length) {
-        return;
-      }
-
+    $form.on('click', selectors.authAddressOption, function () {
       const $radio = $(this).find('input[type="radio"][data-checkout-address-selector]').first();
       if ($radio.length && !$radio.is(':checked')) {
         $radio.prop('checked', true).trigger('change');
@@ -1707,20 +1773,19 @@
 
     $form.on('click', selectors.authAddressAdd, function (event) {
       event.preventDefault();
-      setAuthShippingFormVisible(true);
+      setAuthShippingFormVisible(true, {
+        clear: true,
+        mode: 'new',
+      });
       focusField(getFieldBySelector('#billing_first_name'));
     });
 
-    $form.on('click', selectors.authAddressEdit, function (event) {
+    $form.on('click', selectors.authTemporaryEdit, function (event) {
       event.preventDefault();
-      event.stopPropagation();
-      const addressId = String($(this).attr('data-address-id') || '');
-      const address = getAddressById(addressId);
-      if (!address) {
-        return;
-      }
-
-      setAuthShippingFormVisible(true, address);
+      setAuthShippingFormVisible(true, {
+        clear: false,
+        mode: 'temporary',
+      });
       focusField(getFieldBySelector('#billing_first_name'));
     });
 
@@ -1737,52 +1802,32 @@
       }
 
       const $button = $(this);
-      const payload = getAuthAddressPayload();
       $button.prop('disabled', true).attr('aria-busy', 'true');
       setAuthShippingBusy(true);
       setAuthAddressNotice('');
 
-      $.post(checkoutData.ajaxUrl, payload)
+      $.post(checkoutData.ajaxUrl, {
+        action: checkoutData.selectAddressAction || 'papetarie_storefront_checkout_select_address',
+        nonce: checkoutData.selectAddressNonce,
+        mode: 'temporary',
+      })
         .done((response) => {
-          if (!response || !response.success || !response.data || !response.data.saved_address) {
+          if (!response || !response.success) {
             setAuthShippingBusy(false);
             setAuthAddressNotice('Adresa nu a putut fi salvată. Încearcă din nou.');
             return;
           }
 
-          const address = response.data.saved_address;
-          const addressId = String(address.id || '');
-          const selectedAddressId = String(response.data.selected_address_id || addressId);
-          if (!addressId) {
-            setAuthShippingBusy(false);
-            setAuthAddressNotice('Adresa nu a putut fi salvată. Încearcă din nou.');
-            return;
-          }
-
-          savedAddressesById[addressId] = address;
-          const $shipping = getAuthShipping();
-          const $grid = $shipping.find(selectors.authAddressGrid).first();
-          const $existing = $shipping.find(`${selectors.authAddressOption} input[value="${addressId.replace(/"/g, '\\"')}"]`).closest(selectors.authAddressOption);
-          const $card = renderAuthAddressCard(
-            address,
-            response.data.email || checkoutData.customerEmail || '',
-            selectedAddressId === addressId
-          );
-
-          $shipping.find(selectors.authAddressOption).removeClass('is-selected');
-          $shipping.find('input[type="radio"][data-checkout-address-selector]').prop('checked', false);
-          if ($existing.length) {
-            $existing.replaceWith($card);
-          } else {
-            $grid.append($card);
-          }
-
+          authTemporarySummaryVisible = true;
           setAuthShippingFormVisible(false);
           setAuthShippingBusy(false);
-          selectAuthAddress(selectedAddressId, {
-            persist: false,
-            updateCheckout: true,
-          });
+          $(document.body).trigger('update_checkout');
+
+          const $summary = getAuthShipping().find(selectors.authShippingSummary).first();
+          const target = $summary.length ? $summary.get(0) : null;
+          if (target && typeof target.scrollIntoView === 'function') {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
         })
         .fail((xhr) => {
           setAuthShippingBusy(false);
@@ -1872,3 +1917,7 @@
     bootstrap();
   }
 })(jQuery);
+
+
+
+
