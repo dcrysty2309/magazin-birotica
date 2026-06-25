@@ -722,12 +722,16 @@ function papetarie_storefront_enqueue_checkout_scripts(): void
     $selected_shipping_address_id = function_exists('papetarie_storefront_address_book_checkout_selected_address_id')
         ? papetarie_storefront_address_book_checkout_selected_address_id('shipping')
         : '';
+    $checkout_script_path = get_stylesheet_directory() . '/assets/js/checkout.js';
+    $checkout_script_version = file_exists($checkout_script_path)
+        ? (string) filemtime($checkout_script_path)
+        : wp_get_theme()->get('Version');
 
     wp_enqueue_script(
         'papetarie-storefront-checkout',
         get_stylesheet_directory_uri() . '/assets/js/checkout.js',
         ['jquery'],
-        wp_get_theme()->get('Version'),
+        $checkout_script_version,
         true
     );
 
@@ -742,6 +746,14 @@ function papetarie_storefront_enqueue_checkout_scripts(): void
             'savedAddresses' => $saved_addresses,
             'selectedBillingAddressId' => $selected_billing_address_id,
             'selectedShippingAddressId' => $selected_shipping_address_id,
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'addressBookAction' => 'papetarie_storefront_address_book',
+            'addressBookNonce' => wp_create_nonce('pap_address_book_save'),
+            'selectAddressAction' => 'papetarie_storefront_checkout_select_address',
+            'selectAddressNonce' => wp_create_nonce('pap_checkout_address'),
+            'customerEmail' => is_user_logged_in() && function_exists('papetarie_storefront_address_book_checkout_email')
+                ? papetarie_storefront_address_book_checkout_email(get_current_user_id())
+                : '',
         ]
     );
 }
@@ -1232,7 +1244,6 @@ function papetarie_storefront_get_checkout_guest_shipping_summary_html(): string
     <div class="pap-checkout-address-card">
         <div class="pap-checkout-address-card__head">
             <div class="pap-checkout-address-card__title-copy">
-                <span class="pap-checkout-address-card__badge" aria-hidden="true"><?php esc_html_e('Rezumat', 'papetarie-storefront'); ?></span>
                 <p class="pap-checkout-address-card__title"><?php esc_html_e('Adresa de livrare', 'papetarie-storefront'); ?></p>
             </div>
             <button type="button" class="pap-checkout-address-card__action" data-pap-guest-shipping-edit>

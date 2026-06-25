@@ -7,6 +7,17 @@
     guestShippingSummary: '[data-pap-guest-shipping-summary]',
     guestShippingContinue: '[data-pap-guest-shipping-continue]',
     guestShippingEdit: '[data-pap-guest-shipping-edit]',
+    authShipping: '[data-pap-auth-shipping]',
+    authShippingForm: '[data-pap-auth-shipping-form]',
+    authAddressList: '[data-pap-auth-address-list]',
+    authAddressGrid: '[data-pap-auth-address-grid]',
+    authAddressOption: '[data-pap-auth-address-option]',
+    authAddressAdd: '[data-pap-auth-address-add]',
+    authAddressEdit: '[data-pap-auth-address-edit]',
+    authAddressCancel: '[data-pap-auth-address-cancel]',
+    authAddressSave: '[data-pap-auth-address-save]',
+    authAddressId: '[data-pap-auth-address-id]',
+    authAddressNotice: '[data-pap-auth-address-notice]',
     addressModal: '[data-checkout-address-modal]',
     addressModalPanel: '[data-checkout-address-modal-panel]',
     addressModalOpen: '[data-checkout-address-modal-open]',
@@ -37,6 +48,8 @@
     : {};
   const selectedBillingAddressId = String(checkoutData.selectedBillingAddressId || '');
   const selectedShippingAddressId = String(checkoutData.selectedShippingAddressId || '');
+  let authAddressFormMode = '';
+  let authShippingBusy = false;
   const addressPairs = [
     { state: '#billing_state', city: '#billing_city' },
     { state: '#shipping_state', city: '#shipping_city' },
@@ -131,6 +144,12 @@
     setCookieValue('pap_checkout_shipping_snapshot', serialized);
   };
 
+  const resetGuestShippingState = () => {
+    guestShippingSummaryCache = null;
+    setGuestShippingSnapshot({});
+    setCookieValue('pap_checkout_shipping_mode', 'edit');
+  };
+
   const getGuestShippingSnapshot = () => {
     const raw = String(getCookieValue('pap_checkout_shipping_snapshot') || '').trim();
 
@@ -173,13 +192,13 @@
     const $row = getFieldRow($field);
 
     $field
-      .removeClass('pap-is-invalid woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated')
+      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated')
       .removeAttr('aria-invalid aria-describedby');
 
     $row
-      .removeClass('pap-is-invalid woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
+      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
 
-    $row.find('.pap-field-error').remove();
+    $row.find('.checkout-inline-error-message').remove();
   };
 
   const getSelectPlaceholder = ($field, countyValue) => {
@@ -213,7 +232,7 @@
     return address && typeof address === 'object' ? address : null;
   };
 
-  const getAddressSelector = (prefix) => getForm().find(`[data-checkout-address-selector][data-checkout-address-prefix="${prefix}"]`).first();
+  const getAddressSelector = (prefix) => getForm().find(`select[data-checkout-address-selector][data-checkout-address-prefix="${prefix}"]`).first();
 
   const getSelectedAddressId = (prefix) => {
     const $selector = getAddressSelector(prefix);
@@ -444,10 +463,9 @@
     const $row = getFieldRow($field);
 
     $field.removeAttr('aria-invalid aria-describedby');
-    $field.removeClass('pap-is-invalid');
     $row
-      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated pap-is-invalid');
-    $row.find('.pap-field-error').remove();
+      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
+    $row.find('.checkout-inline-error-message').remove();
   };
 
   const setFieldError = ($field, message, errorClass, forceDisplay = false) => {
@@ -460,19 +478,25 @@
 
     clearFieldError($field);
     $field.attr('aria-invalid', 'true').attr('aria-describedby', descriptionId);
-    $field.addClass('pap-is-invalid');
-    $row.addClass('pap-is-invalid');
+    $row.addClass(`woocommerce-invalid ${errorClass}`);
 
     if (!message) {
       return;
     }
 
-    $('<small>', {
+    let $error = $row.find('.checkout-inline-error-message').first();
+    if (!$error.length) {
+      $error = $('<small>', {
       id: descriptionId,
-      class: 'pap-field-error',
+      class: 'checkout-inline-error-message',
       role: 'alert',
-      text: message,
-    }).appendTo($row);
+        'aria-live': 'polite',
+        'aria-atomic': 'true',
+      }).appendTo($row);
+    }
+
+    $error.attr('id', descriptionId);
+    $error.text(message);
   };
 
   const setFieldValid = ($field, forceDisplay = false) => {
@@ -778,8 +802,7 @@
 
     const lines = [];
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-    const addressLine = [address1, address2].filter(Boolean).join(', ').trim();
-    const cityLine = [city, state, postcode].filter(Boolean).join(', ').trim();
+    const addressLine = [address1, address2, city, state, postcode].filter(Boolean).join(', ').trim();
 
     if (fullName) {
       lines.push(fullName);
@@ -787,10 +810,6 @@
 
     if (addressLine) {
       lines.push(addressLine);
-    }
-
-    if (cityLine) {
-      lines.push(cityLine);
     }
 
     if (phone) {
@@ -802,6 +821,30 @@
     }
 
     return lines;
+  };
+
+  const getAddressIconSvg = (kind) => {
+    const icons = {
+      location: `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path>
+          <circle cx="12" cy="10" r="2"></circle>
+        </svg>
+      `,
+      phone: `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path d="M6.6 3.6l2.1 4.2c.3.6.2 1.2-.3 1.7l-1 1c1.2 2.4 3.1 4.3 5.5 5.5l1-1c.5-.5 1.1-.6 1.7-.3l4.2 2.1c.6.3.9.9.8 1.5l-.4 2c-.1.6-.7 1.1-1.3 1.1C10 21.4 2.6 14 2.6 5.1c0-.6.5-1.2 1.1-1.3l2-.4c.4-.1.8 0 .9.2z"></path>
+        </svg>
+      `,
+      envelope: `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <rect x="4" y="6" width="16" height="12" rx="1.5"></rect>
+          <path d="M5.5 7.5 12 12.8l6.5-5.3"></path>
+        </svg>
+      `,
+    };
+
+    return icons[kind] || icons.location;
   };
 
   const syncGuestShippingSummary = () => {
@@ -817,6 +860,11 @@
     const lines = getGuestShippingSummaryLines();
     const $body = $summary.find('.pap-checkout-address-card__body').first();
     const $empty = $summary.find('.pap-checkout-address-card__empty').first();
+    const $head = $summary.find('.pap-checkout-address-card__head').first();
+    const $titleCopy = $summary.find('.pap-checkout-address-card__title-copy').first();
+    const $title = $summary.find('.pap-checkout-address-card__title').first();
+    const $name = $summary.find('.pap-checkout-address-card__name').first();
+    const $action = $summary.find('.pap-checkout-address-card__action').first();
 
     if (!lines.length) {
       if ($body.length) {
@@ -829,6 +877,26 @@
       return;
     }
 
+    const [name, ...restLines] = lines;
+    const addressLine = restLines.length > 0 ? restLines[0] : '';
+    const phoneLine = restLines.length > 1 ? restLines[1] : '';
+    const emailLine = restLines.length > 2 ? restLines[2] : '';
+    if ($title.length) {
+      $title.remove();
+    }
+    if ($titleCopy.length && !$name.length) {
+      $titleCopy.empty();
+      $('<p>', {
+        class: 'pap-checkout-address-card__name',
+        text: name || '',
+      }).appendTo($titleCopy);
+    } else if ($name.length) {
+      $name.text(name || '');
+    }
+    if ($head.length) {
+      $head.toggleClass('has-action', !!$action.length);
+    }
+
     if ($empty.length) {
       $empty.remove();
     }
@@ -839,8 +907,25 @@
     }
 
     $targetBody.empty();
-    lines.forEach((line) => {
-      $('<p>', { text: line }).appendTo($targetBody);
+    const lineSpecs = [
+      { icon: 'location', text: addressLine },
+      { icon: 'phone', text: phoneLine },
+      { icon: 'envelope', text: emailLine },
+    ];
+
+    lineSpecs.forEach(({ icon, text }) => {
+      if (!text) {
+        return;
+      }
+
+      const $row = $('<p>', { class: 'pap-checkout-address-card__line address-summary-row' });
+      $('<span>', {
+        class: 'pap-checkout-address-card__icon address-summary-icon',
+        html: getAddressIconSvg(icon),
+        'aria-hidden': 'true',
+      }).appendTo($row);
+      $('<span>', { class: 'pap-checkout-address-card__line-text', text }).appendTo($row);
+      $row.appendTo($targetBody);
     });
   };
 
@@ -853,12 +938,13 @@
     $element.css('display', visible ? (displayValue || '') : 'none');
   };
 
-  const setGuestShippingMode = (mode, persist = true) => {
+  const setGuestShippingMode = (mode, persist = true, options = {}) => {
     if (isLoggedIn) {
       return;
     }
 
     const normalizedMode = mode === 'summary' ? 'summary' : 'edit';
+    const shouldHydrate = options && Object.prototype.hasOwnProperty.call(options, 'hydrate') ? options.hydrate !== false : true;
     debugCheckout('setGuestShippingMode', normalizedMode, { persist });
     const $section = getGuestShippingSection();
     const $form = $section.find(selectors.guestShippingForm).first();
@@ -876,7 +962,7 @@
     setVisibilityState($options, normalizedMode !== 'summary' || !hasSummary, 'grid');
     setVisibilityState($actions, normalizedMode !== 'summary' || !hasSummary, 'flex');
 
-    if (normalizedMode === 'edit') {
+    if (normalizedMode === 'edit' && shouldHydrate) {
       hydrateGuestShippingFields(getGuestShippingSnapshot() || guestShippingSummaryCache);
     }
 
@@ -918,13 +1004,293 @@
     });
 
     if (hasErrors && forceDisplay && firstInvalid && firstInvalid.length) {
-      setGuestShippingMode('edit', false);
+      setGuestShippingMode('edit', false, { hydrate: false });
       const offset = Math.max(firstInvalid.closest(selectors.formRow).offset().top - 120, 0);
       $('html, body').animate({ scrollTop: offset }, 300);
       focusField(firstInvalid);
     }
 
     return !hasErrors;
+  };
+
+  const validateAuthShippingFields = (forceDisplay = false) => {
+    const selectorsToValidate = [
+      '#billing_first_name',
+      '#billing_last_name',
+      '#billing_phone',
+      '#billing_email',
+      '#shipping_state',
+      '#shipping_city',
+      '#shipping_address_1',
+      '#shipping_postcode',
+    ];
+
+    let firstInvalid = null;
+    let hasErrors = false;
+
+    selectorsToValidate.forEach((selector) => {
+      const $field = getFieldBySelector(selector);
+      if (!$field.length || $field.is(':disabled')) {
+        return;
+      }
+
+      if (!validateField($field, forceDisplay)) {
+        hasErrors = true;
+        firstInvalid = firstInvalid || $field;
+      }
+    });
+
+    if (hasErrors && forceDisplay && firstInvalid && firstInvalid.length) {
+      const offset = Math.max(firstInvalid.closest(selectors.formRow).offset().top - 120, 0);
+      $('html, body').animate({ scrollTop: offset }, 300);
+      focusField(firstInvalid);
+    }
+
+    return !hasErrors;
+  };
+
+  const getAuthShipping = () => getForm().find(selectors.authShipping).first();
+
+  const setAuthAddressNotice = (message = '') => {
+    const $notice = getAuthShipping().find(selectors.authAddressNotice).first();
+    if (!$notice.length) {
+      return;
+    }
+
+    $notice.text(message);
+    setVisibilityState($notice, Boolean(message), 'block');
+  };
+
+  const setAuthShippingBusy = (isBusy) => {
+    authShippingBusy = Boolean(isBusy);
+
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
+      return;
+    }
+
+    $shipping.toggleClass('is-loading', authShippingBusy);
+    $shipping.attr('aria-busy', authShippingBusy ? 'true' : 'false');
+  };
+
+  const applyAuthAddressToForm = (address) => {
+    if (!address) {
+      return;
+    }
+
+    runProgrammaticFieldSync(() => {
+      setCheckoutFieldValue(getFieldBySelector('#billing_first_name'), address.first_name || '');
+      setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), address.last_name || '');
+      setCheckoutFieldValue(getFieldBySelector('#billing_phone'), address.phone || '');
+      applySavedAddressToFields('shipping', address);
+    });
+  };
+
+  const clearAuthAddressForm = () => {
+    [
+      '#billing_first_name',
+      '#billing_last_name',
+      '#billing_phone',
+      '#shipping_state',
+      '#shipping_city',
+      '#shipping_address_1',
+      '#shipping_address_2',
+      '#shipping_postcode',
+    ].forEach((selector) => {
+      setCheckoutFieldValue(getFieldBySelector(selector), '');
+    });
+
+    setCheckoutFieldValue(getFieldBySelector('#billing_email'), checkoutData.customerEmail || '');
+    syncDependentCitySelect('#shipping_state', false);
+    getAuthShipping().find(selectors.authAddressId).val('');
+  };
+
+  const setAuthShippingFormVisible = (visible, address = null, persistMode = true) => {
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
+      return;
+    }
+
+    const $form = $shipping.find(selectors.authShippingForm).first();
+    const $list = $shipping.find(selectors.authAddressList).first();
+    const hasAddresses = $shipping.find(selectors.authAddressOption).length > 0;
+
+    if (persistMode) {
+      authAddressFormMode = visible ? String(address && address.id ? address.id : 'new') : '';
+    }
+
+    if (visible) {
+      if (address) {
+        applyAuthAddressToForm(address);
+        $shipping.find(selectors.authAddressId).val(String(address.id || ''));
+      } else {
+        clearAuthAddressForm();
+      }
+      setAuthAddressNotice('');
+    }
+
+    setVisibilityState($form, visible, 'grid');
+    setVisibilityState($list, !visible && hasAddresses, 'grid');
+    setVisibilityState($shipping.find(selectors.authAddressCancel).first(), visible && hasAddresses, 'inline-flex');
+  };
+
+  const getAuthAddressPayload = () => ({
+    action: checkoutData.addressBookAction || 'papetarie_storefront_address_book',
+    pap_address_book_nonce: checkoutData.addressBookNonce || '',
+    pap_address_book_action: 'save',
+    pap_address_checkout: '1',
+    pap_address_id: String(getAuthShipping().find(selectors.authAddressId).val() || ''),
+    pap_checkout_selected_address_id: String(
+      getAuthShipping().find('input[type="radio"][data-checkout-address-selector]:checked').val() || ''
+    ),
+    pap_address_is_default: Object.keys(savedAddressesById).length === 0 ? '1' : '0',
+    first_name: String(getFieldBySelector('#billing_first_name').val() || '').trim(),
+    last_name: String(getFieldBySelector('#billing_last_name').val() || '').trim(),
+    phone: String(getFieldBySelector('#billing_phone').val() || '').trim(),
+    email: String(getFieldBySelector('#billing_email').val() || '').trim(),
+    country: String(getFieldBySelector('#shipping_country').val() || 'RO'),
+    state: String(getFieldBySelector('#shipping_state').val() || ''),
+    city: String(getFieldBySelector('#shipping_city').val() || ''),
+    postcode: String(getFieldBySelector('#shipping_postcode').val() || '').trim(),
+    address_1: String(getFieldBySelector('#shipping_address_1').val() || '').trim(),
+    address_2: String(getFieldBySelector('#shipping_address_2').val() || '').trim(),
+  });
+
+  const renderAuthAddressCard = (address, email, isSelected = true) => {
+    const fullName = [address.first_name, address.last_name].filter(Boolean).join(' ').trim();
+    const stateField = getFieldBySelector('#shipping_state');
+    const stateLabel = stateField.find(`option[value="${String(address.state || '').replace(/"/g, '\\"')}"]`).text()
+      || address.state
+      || '';
+    const addressLine = [
+      address.address_1,
+      address.address_2,
+      address.city,
+      stateLabel,
+      address.postcode,
+    ].filter(Boolean).join(', ');
+
+    const $option = $('<div>', {
+      class: `pap-checkout-address-option${isSelected ? ' is-selected' : ''}`,
+      'data-pap-auth-address-option': '',
+    });
+    $('<input>', {
+      type: 'radio',
+      name: 'papetarie_checkout_selected_address_shipping',
+      value: address.id,
+      checked: isSelected,
+      'data-checkout-address-selector': '',
+      'data-checkout-address-prefix': 'shipping',
+    }).appendTo($option);
+
+    const $card = $('<div>', { class: 'pap-checkout-address-card' }).appendTo($option);
+    const $head = $('<div>', { class: 'pap-checkout-address-card__head' }).appendTo($card);
+    const $copy = $('<div>', { class: 'pap-checkout-address-card__title-copy' }).appendTo($head);
+    $('<p>', { class: 'pap-checkout-address-card__name', text: fullName }).appendTo($copy);
+    $('<button>', {
+      type: 'button',
+      class: 'pap-checkout-address-card__action',
+      text: 'Modifică',
+      'data-pap-auth-address-edit': '',
+      'data-address-id': address.id,
+    }).appendTo($head);
+
+    const $body = $('<div>', { class: 'pap-checkout-address-card__body' }).appendTo($card);
+    [
+      { icon: 'location', text: addressLine },
+      { icon: 'phone', text: address.phone },
+      { icon: 'envelope', text: email },
+    ].forEach(({ icon, text }) => {
+      if (!text) {
+        return;
+      }
+
+      const $row = $('<p>', { class: 'pap-checkout-address-card__line address-summary-row' }).appendTo($body);
+      $('<span>', {
+        class: 'pap-checkout-address-card__icon address-summary-icon',
+        html: getAddressIconSvg(icon),
+        'aria-hidden': 'true',
+      }).appendTo($row);
+      $('<span>', { class: 'pap-checkout-address-card__line-text', text }).appendTo($row);
+    });
+
+    return $option;
+  };
+
+  const syncSelectedAddressCardState = (addressId) => {
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
+      return;
+    }
+
+    $shipping.find(selectors.authAddressOption).removeClass('is-selected');
+    $shipping.find('input[type="radio"][data-checkout-address-selector]').prop('checked', false);
+
+    const $input = $shipping.find(`[data-checkout-address-selector][value="${String(addressId).replace(/"/g, '\\"')}"]`).first();
+    if ($input.length) {
+      $input.prop('checked', true).closest(selectors.authAddressOption).addClass('is-selected');
+    }
+  };
+
+  const selectAuthAddress = (addressId, options = {}) => {
+    const address = getAddressById(addressId);
+    if (!address) {
+      return;
+    }
+
+    const shouldPersist = options.persist !== false;
+    const shouldUpdateCheckout = options.updateCheckout !== false;
+
+    syncSelectedAddressCardState(addressId);
+    applyAuthAddressToForm(address);
+
+    if (shouldPersist && checkoutData.ajaxUrl && checkoutData.selectAddressNonce) {
+      setAuthShippingBusy(true);
+      $.post(checkoutData.ajaxUrl, {
+        action: checkoutData.selectAddressAction || 'papetarie_storefront_checkout_select_address',
+        nonce: checkoutData.selectAddressNonce,
+        address_id: addressId,
+      }).done(() => {
+        setAuthShippingBusy(false);
+        if (shouldUpdateCheckout) {
+          $(document.body).trigger('update_checkout');
+        }
+      }).fail(() => {
+        setAuthShippingBusy(false);
+        setAuthAddressNotice('Adresa nu a putut fi selectată. Încearcă din nou.');
+      });
+      return;
+    }
+
+    setAuthShippingBusy(false);
+    if (shouldUpdateCheckout) {
+      $(document.body).trigger('update_checkout');
+    }
+  };
+
+  const syncAuthSelectedAddressFields = () => {
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
+      return;
+    }
+
+    if (authAddressFormMode) {
+      if (!$shipping.find(`${selectors.authShippingForm}:visible`).length) {
+        const editingAddress = authAddressFormMode === 'new' ? null : getAddressById(authAddressFormMode);
+        setAuthShippingFormVisible(true, editingAddress, false);
+      }
+      return;
+    }
+
+    const selectedId = String(
+      $shipping.find('input[type="radio"][data-checkout-address-selector]:checked').val()
+      || selectedShippingAddressId
+      || ''
+    );
+    const address = getAddressById(selectedId);
+    if (address) {
+      applyAuthAddressToForm(address);
+    }
   };
 
   const getAddressModal = () => $(selectors.addressModal).first();
@@ -1247,6 +1613,11 @@
       const prefix = String($selector.data('checkoutAddressPrefix') || $selector.attr('data-checkout-address-prefix') || '');
       const addressId = String($selector.val() || '');
 
+      if ($selector.is(':radio') && prefix === 'shipping') {
+        selectAuthAddress(addressId);
+        return;
+      }
+
       if (!prefix || !addressId || !applySavedAddressSelection(prefix, addressId)) {
         return;
       }
@@ -1323,6 +1694,110 @@
       focusField($firstField);
     });
 
+    $form.on('click', selectors.authAddressOption, function (event) {
+      if ($(event.target).closest(selectors.authAddressEdit).length) {
+        return;
+      }
+
+      const $radio = $(this).find('input[type="radio"][data-checkout-address-selector]').first();
+      if ($radio.length && !$radio.is(':checked')) {
+        $radio.prop('checked', true).trigger('change');
+      }
+    });
+
+    $form.on('click', selectors.authAddressAdd, function (event) {
+      event.preventDefault();
+      setAuthShippingFormVisible(true);
+      focusField(getFieldBySelector('#billing_first_name'));
+    });
+
+    $form.on('click', selectors.authAddressEdit, function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const addressId = String($(this).attr('data-address-id') || '');
+      const address = getAddressById(addressId);
+      if (!address) {
+        return;
+      }
+
+      setAuthShippingFormVisible(true, address);
+      focusField(getFieldBySelector('#billing_first_name'));
+    });
+
+    $form.on('click', selectors.authAddressCancel, function (event) {
+      event.preventDefault();
+      setAuthShippingFormVisible(false);
+      setAuthAddressNotice('');
+    });
+
+    $form.on('click', selectors.authAddressSave, function (event) {
+      event.preventDefault();
+      if (!validateAuthShippingFields(true)) {
+        return;
+      }
+
+      const $button = $(this);
+      const payload = getAuthAddressPayload();
+      $button.prop('disabled', true).attr('aria-busy', 'true');
+      setAuthShippingBusy(true);
+      setAuthAddressNotice('');
+
+      $.post(checkoutData.ajaxUrl, payload)
+        .done((response) => {
+          if (!response || !response.success || !response.data || !response.data.saved_address) {
+            setAuthShippingBusy(false);
+            setAuthAddressNotice('Adresa nu a putut fi salvată. Încearcă din nou.');
+            return;
+          }
+
+          const address = response.data.saved_address;
+          const addressId = String(address.id || '');
+          const selectedAddressId = String(response.data.selected_address_id || addressId);
+          if (!addressId) {
+            setAuthShippingBusy(false);
+            setAuthAddressNotice('Adresa nu a putut fi salvată. Încearcă din nou.');
+            return;
+          }
+
+          savedAddressesById[addressId] = address;
+          const $shipping = getAuthShipping();
+          const $grid = $shipping.find(selectors.authAddressGrid).first();
+          const $existing = $shipping.find(`${selectors.authAddressOption} input[value="${addressId.replace(/"/g, '\\"')}"]`).closest(selectors.authAddressOption);
+          const $card = renderAuthAddressCard(
+            address,
+            response.data.email || checkoutData.customerEmail || '',
+            selectedAddressId === addressId
+          );
+
+          $shipping.find(selectors.authAddressOption).removeClass('is-selected');
+          $shipping.find('input[type="radio"][data-checkout-address-selector]').prop('checked', false);
+          if ($existing.length) {
+            $existing.replaceWith($card);
+          } else {
+            $grid.append($card);
+          }
+
+          setAuthShippingFormVisible(false);
+          setAuthShippingBusy(false);
+          selectAuthAddress(selectedAddressId, {
+            persist: false,
+            updateCheckout: true,
+          });
+        })
+        .fail((xhr) => {
+          setAuthShippingBusy(false);
+          const response = xhr && xhr.responseJSON ? xhr.responseJSON : null;
+          const message = response && response.data && response.data.message
+            ? response.data.message
+            : 'Adresa nu a putut fi salvată. Verifică datele și încearcă din nou.';
+          setAuthAddressNotice(message);
+        })
+        .always(() => {
+          $button.prop('disabled', false).removeAttr('aria-busy');
+          setAuthShippingBusy(false);
+        });
+    });
+
     document.addEventListener(
       'submit',
       function (event) {
@@ -1367,6 +1842,9 @@
     toggleShippingState();
     if (!isLoggedIn) {
       setGuestShippingMode(getGuestShippingMode(), false);
+    } else {
+      resetGuestShippingState();
+      syncAuthSelectedAddressFields();
     }
     syncCheckoutStepStates();
     syncDependentCitySelect('#billing_state');
@@ -1379,6 +1857,9 @@
   const bootstrap = async () => {
     await loadCityData();
     $(document.body).on('updated_checkout', syncCheckoutState);
+    $(document.body).on('checkout_error', () => {
+      setAuthShippingBusy(false);
+    });
     $(bindFieldValidation);
     $(syncCheckoutState);
   };

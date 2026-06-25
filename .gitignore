@@ -2,3 +2,5 @@
 .env
 db_data
 node_modules
+build/
+database/wordpress-staging.sql
