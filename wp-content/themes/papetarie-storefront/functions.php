@@ -6712,6 +6712,419 @@ function papetarie_storefront_render_checkout_test_cases_route(): void
 
 add_action('template_redirect', 'papetarie_storefront_render_checkout_test_cases_route', 1);
 
+function papetarie_storefront_get_checkout_test_comment_post_type(): string
+{
+    return 'pap_checkout_comment';
+}
+
+function papetarie_storefront_get_checkout_test_comment_statuses(): array
+{
+    return ['open', 'in_progress', 'fixed', 'ignored'];
+}
+
+function papetarie_storefront_normalize_checkout_test_comment_status(string $status): string
+{
+    $status = sanitize_key($status);
+
+    return in_array($status, papetarie_storefront_get_checkout_test_comment_statuses(), true) ? $status : 'open';
+}
+
+function papetarie_storefront_get_checkout_test_comment_environment(): string
+{
+    $environment = function_exists('wp_get_environment_type') ? (string) wp_get_environment_type() : '';
+    $environment = strtolower(trim($environment));
+
+    return match ($environment) {
+        'production', 'prod' => 'production',
+        'staging', 'stage', 'qa' => 'staging',
+        'local', 'development', 'dev' => 'local',
+        default => 'local',
+    };
+}
+
+function papetarie_storefront_register_checkout_test_comment_cpt(): void
+{
+    register_post_type(papetarie_storefront_get_checkout_test_comment_post_type(), [
+        'labels' => [
+            'name' => __('Checkout comments', 'papetarie-storefront'),
+            'singular_name' => __('Checkout comment', 'papetarie-storefront'),
+        ],
+        'public' => false,
+        'publicly_queryable' => false,
+        'show_ui' => false,
+        'show_in_menu' => false,
+        'show_in_nav_menus' => false,
+        'show_in_admin_bar' => false,
+        'exclude_from_search' => true,
+        'rewrite' => false,
+        'query_var' => false,
+        'has_archive' => false,
+        'hierarchical' => false,
+        'supports' => ['title', 'editor', 'author'],
+        'capability_type' => 'post',
+        'map_meta_cap' => true,
+        'menu_icon' => 'dashicons-clipboard',
+    ]);
+}
+add_action('init', 'papetarie_storefront_register_checkout_test_comment_cpt');
+
+function papetarie_storefront_format_checkout_test_comment(WP_Post $post): array
+{
+    $test_case_id = (string) get_post_meta($post->ID, 'test_case_id', true);
+    $test_case_title = (string) get_post_meta($post->ID, 'test_case_title', true);
+    $comment_text = (string) get_post_meta($post->ID, 'comment_text', true);
+    if ($comment_text === '') {
+        $comment_text = (string) $post->post_content;
+    }
+
+    $status = papetarie_storefront_normalize_checkout_test_comment_status((string) get_post_meta($post->ID, 'status', true));
+    $environment = (string) get_post_meta($post->ID, 'environment', true);
+    $page_url = (string) get_post_meta($post->ID, 'page_url', true);
+    $screenshot_url = (string) get_post_meta($post->ID, 'screenshot_url', true);
+    $created_at = (string) get_post_meta($post->ID, 'created_at', true);
+    $updated_at = (string) get_post_meta($post->ID, 'updated_at', true);
+    $user_id = (int) get_post_meta($post->ID, 'user_id', true);
+
+    if ($created_at === '') {
+        $created_at = (string) $post->post_date;
+    }
+
+    if ($updated_at === '') {
+        $updated_at = (string) $post->post_modified;
+    }
+
+    $author_name = '';
+    if ($user_id > 0) {
+        $user = get_user_by('id', $user_id);
+        if ($user instanceof WP_User) {
+            $author_name = $user->display_name ?: $user->user_email;
+        }
+    }
+
+    return [
+        'id' => (int) $post->ID,
+        'test_case_id' => $test_case_id,
+        'test_case_title' => $test_case_title,
+        'comment_text' => $comment_text,
+        'environment' => $environment,
+        'page_url' => $page_url,
+        'user_id' => $user_id,
+        'author_name' => $author_name,
+        'status' => $status,
+        'screenshot_url' => $screenshot_url,
+        'created_at' => $created_at,
+        'updated_at' => $updated_at,
+    ];
+}
+
+function papetarie_storefront_get_checkout_test_comments(array $query_args = []): array
+{
+    $posts = get_posts(array_merge([
+        'post_type' => papetarie_storefront_get_checkout_test_comment_post_type(),
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'orderby' => 'date',
+        'order' => 'ASC',
+        'fields' => 'all',
+        'no_found_rows' => true,
+        'suppress_filters' => true,
+    ], $query_args));
+
+    if (empty($posts)) {
+        return [];
+    }
+
+    return array_values(array_map(static function ($post) {
+        return $post instanceof WP_Post ? papetarie_storefront_format_checkout_test_comment($post) : [];
+    }, $posts));
+}
+
+function papetarie_storefront_get_checkout_test_comment_index(): array
+{
+    $index = [];
+
+    foreach (papetarie_storefront_get_checkout_test_comments() as $comment) {
+        $case_id = isset($comment['test_case_id']) ? (string) $comment['test_case_id'] : '';
+        if ($case_id === '') {
+            continue;
+        }
+
+        if (!isset($index[$case_id])) {
+            $index[$case_id] = [
+                'test_case_id' => $case_id,
+                'test_case_title' => isset($comment['test_case_title']) ? (string) $comment['test_case_title'] : '',
+                'comments' => [],
+                'total_count' => 0,
+                'open_count' => 0,
+                'latest_comment' => null,
+                'has_open_comment' => false,
+            ];
+        }
+
+        $index[$case_id]['comments'][] = $comment;
+        $index[$case_id]['total_count']++;
+
+        $status = isset($comment['status']) ? (string) $comment['status'] : 'open';
+        if (in_array($status, ['open', 'in_progress'], true)) {
+            $index[$case_id]['open_count']++;
+            $index[$case_id]['has_open_comment'] = true;
+        }
+
+        if ($index[$case_id]['test_case_title'] === '' && isset($comment['test_case_title'])) {
+            $index[$case_id]['test_case_title'] = (string) $comment['test_case_title'];
+        }
+    }
+
+    foreach ($index as $case_id => $entry) {
+        usort($index[$case_id]['comments'], static function (array $left, array $right): int {
+            return strcmp((string) ($left['created_at'] ?? ''), (string) ($right['created_at'] ?? ''));
+        });
+
+        $latest_comment = end($index[$case_id]['comments']);
+        $index[$case_id]['latest_comment'] = $latest_comment ?: null;
+        $index[$case_id]['latest_status'] = is_array($latest_comment) ? (string) ($latest_comment['status'] ?? 'open') : 'open';
+        $index[$case_id]['latest_comment_text'] = is_array($latest_comment) ? (string) ($latest_comment['comment_text'] ?? '') : '';
+        reset($index[$case_id]['comments']);
+    }
+
+    return $index;
+}
+
+function papetarie_storefront_insert_checkout_test_comment(array $payload)
+{
+    $case_id = isset($payload['test_case_id']) ? sanitize_text_field(wp_unslash((string) $payload['test_case_id'])) : '';
+    $comment_text = isset($payload['comment_text']) ? sanitize_textarea_field(wp_unslash((string) $payload['comment_text'])) : '';
+    $test_case_title = isset($payload['test_case_title']) ? sanitize_text_field(wp_unslash((string) $payload['test_case_title'])) : '';
+    $page_url = isset($payload['page_url']) ? esc_url_raw(wp_unslash((string) $payload['page_url'])) : '';
+    $screenshot_url = isset($payload['screenshot_url']) ? esc_url_raw(wp_unslash((string) $payload['screenshot_url'])) : '';
+    $status = isset($payload['status']) ? papetarie_storefront_normalize_checkout_test_comment_status(sanitize_text_field(wp_unslash((string) $payload['status']))) : 'open';
+    $comment_id = isset($payload['comment_id']) ? absint($payload['comment_id']) : 0;
+
+    if ($case_id === '') {
+        return new WP_Error('missing_case_id', __('Lipsește identificatorul cazului.', 'papetarie-storefront'));
+    }
+
+    if ($comment_text === '') {
+        return new WP_Error('missing_comment', __('Comentariul nu poate fi gol.', 'papetarie-storefront'));
+    }
+
+    $current_user = wp_get_current_user();
+    $user_id = $current_user instanceof WP_User && $current_user->exists() ? (int) $current_user->ID : 0;
+    $now_gmt = current_time('mysql', true);
+    $now_local = current_time('mysql');
+    $environment = papetarie_storefront_get_checkout_test_comment_environment();
+
+    $post_data = [
+        'post_type' => papetarie_storefront_get_checkout_test_comment_post_type(),
+        'post_status' => 'publish',
+        'post_title' => sprintf('%s | %s | %s', $case_id, $status, wp_trim_words(wp_strip_all_tags($comment_text), 8, '…')),
+        'post_content' => $comment_text,
+        'post_author' => $user_id,
+        'post_date' => $now_local,
+        'post_date_gmt' => $now_gmt,
+    ];
+
+    if ($comment_id > 0 && get_post_type($comment_id) === papetarie_storefront_get_checkout_test_comment_post_type()) {
+        $post_data['ID'] = $comment_id;
+        $result = wp_update_post($post_data, true);
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        $post_id = (int) $result;
+        $created_at = (string) get_post_meta($post_id, 'created_at', true);
+        if ($created_at === '') {
+            $created_at = $now_local;
+        }
+    } else {
+        $result = wp_insert_post($post_data, true);
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        $post_id = (int) $result;
+        $created_at = $now_local;
+    }
+
+    update_post_meta($post_id, 'test_case_id', $case_id);
+    update_post_meta($post_id, 'test_case_title', $test_case_title);
+    update_post_meta($post_id, 'comment_text', $comment_text);
+    update_post_meta($post_id, 'environment', $environment);
+    update_post_meta($post_id, 'page_url', $page_url);
+    update_post_meta($post_id, 'user_id', $user_id);
+    update_post_meta($post_id, 'status', $status);
+    update_post_meta($post_id, 'screenshot_url', $screenshot_url);
+    update_post_meta($post_id, 'created_at', $created_at);
+    update_post_meta($post_id, 'updated_at', $now_local);
+
+    return $post_id;
+}
+
+function papetarie_storefront_migrate_legacy_checkout_case_comments(): void
+{
+    if (get_option('pap_checkout_case_comments_migrated', false)) {
+        return;
+    }
+
+    $legacy_comments = get_option('pap_checkout_case_comments', []);
+    if (!is_array($legacy_comments) || empty($legacy_comments)) {
+        update_option('pap_checkout_case_comments_migrated', 1, false);
+        return;
+    }
+
+    $existing_index = papetarie_storefront_get_checkout_test_comment_index();
+    $imported_count = 0;
+    $failed = false;
+
+    foreach ($legacy_comments as $case_id => $comment_data) {
+        $case_id = sanitize_text_field((string) $case_id);
+        $comment_text = '';
+
+        if (is_array($comment_data)) {
+            $comment_text = isset($comment_data['comment']) ? (string) $comment_data['comment'] : '';
+        } elseif (is_string($comment_data)) {
+            $comment_text = $comment_data;
+        }
+
+        $comment_text = trim(wp_strip_all_tags($comment_text));
+        if ($case_id === '' || $comment_text === '') {
+            continue;
+        }
+
+        $already_imported = false;
+        if (isset($existing_index[$case_id])) {
+            foreach ($existing_index[$case_id]['comments'] as $existing_comment) {
+                if (trim((string) ($existing_comment['comment_text'] ?? '')) === $comment_text) {
+                    $already_imported = true;
+                    break;
+                }
+            }
+        }
+
+        if ($already_imported) {
+            continue;
+        }
+
+        $result = papetarie_storefront_insert_checkout_test_comment([
+            'test_case_id' => $case_id,
+            'test_case_title' => '',
+            'comment_text' => $comment_text,
+            'status' => 'open',
+            'page_url' => home_url('/checkout-test-cases/'),
+        ]);
+
+        if (is_wp_error($result)) {
+            $failed = true;
+            break;
+        }
+
+        $imported_count++;
+    }
+
+    if (!$failed) {
+        delete_option('pap_checkout_case_comments');
+        update_option('pap_checkout_case_comments_migrated', 1, false);
+    } elseif ($imported_count > 0) {
+        update_option('pap_checkout_case_comments_migrated', 1, false);
+    }
+}
+add_action('init', 'papetarie_storefront_migrate_legacy_checkout_case_comments', 20);
+
+function papetarie_storefront_get_checkout_case_comments(): array
+{
+    $index = papetarie_storefront_get_checkout_test_comment_index();
+    $comments = [];
+
+    foreach ($index as $case_id => $entry) {
+        if (empty($entry['comments'])) {
+            continue;
+        }
+
+        $comments[$case_id] = [
+            'comment' => (string) ($entry['latest_comment_text'] ?? ''),
+            'updated_at' => isset($entry['latest_comment']['updated_at']) ? (string) $entry['latest_comment']['updated_at'] : '',
+            'status' => (string) ($entry['latest_status'] ?? 'open'),
+            'count' => (int) ($entry['total_count'] ?? 0),
+        ];
+    }
+
+    return $comments;
+}
+
+function papetarie_storefront_save_checkout_case_comments(array $comments): bool
+{
+    $saved = true;
+
+    foreach ($comments as $case_id => $comment_data) {
+        $comment_text = '';
+        $status = 'open';
+        $comment_id = 0;
+        $test_case_title = '';
+        $page_url = home_url('/checkout-test-cases/');
+
+        if (is_array($comment_data)) {
+            $comment_text = isset($comment_data['comment']) ? (string) $comment_data['comment'] : '';
+            $status = isset($comment_data['status']) ? (string) $comment_data['status'] : 'open';
+            $comment_id = isset($comment_data['comment_id']) ? absint($comment_data['comment_id']) : 0;
+            $test_case_title = isset($comment_data['test_case_title']) ? (string) $comment_data['test_case_title'] : '';
+            $page_url = isset($comment_data['page_url']) ? (string) $comment_data['page_url'] : $page_url;
+        } elseif (is_string($comment_data)) {
+            $comment_text = $comment_data;
+        }
+
+        $result = papetarie_storefront_insert_checkout_test_comment([
+            'test_case_id' => (string) $case_id,
+            'test_case_title' => $test_case_title,
+            'comment_text' => $comment_text,
+            'status' => $status,
+            'comment_id' => $comment_id,
+            'page_url' => $page_url,
+        ]);
+
+        if (is_wp_error($result)) {
+            $saved = false;
+        }
+    }
+
+    return $saved;
+}
+
+function papetarie_storefront_handle_checkout_case_comment_save(): void
+{
+    if (!function_exists('wp_send_json_error')) {
+        return;
+    }
+
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, 'pap_checkout_case_comments')) {
+        wp_send_json_error([
+            'message' => __('Sesiunea a expirat. Reîncarcă pagina și încearcă din nou.', 'papetarie-storefront'),
+        ], 400);
+    }
+
+    $result = papetarie_storefront_insert_checkout_test_comment([
+        'test_case_id' => isset($_POST['case_id']) ? (string) wp_unslash($_POST['case_id']) : '',
+        'test_case_title' => isset($_POST['test_case_title']) ? (string) wp_unslash($_POST['test_case_title']) : '',
+        'comment_text' => isset($_POST['comment']) ? (string) wp_unslash($_POST['comment']) : '',
+        'status' => isset($_POST['status']) ? (string) wp_unslash($_POST['status']) : 'open',
+        'comment_id' => isset($_POST['comment_id']) ? (int) $_POST['comment_id'] : 0,
+        'page_url' => isset($_POST['page_url']) ? (string) wp_unslash($_POST['page_url']) : home_url('/checkout-test-cases/'),
+        'screenshot_url' => isset($_POST['screenshot_url']) ? (string) wp_unslash($_POST['screenshot_url']) : '',
+    ]);
+
+    if (is_wp_error($result)) {
+        wp_send_json_error([
+            'message' => $result->get_error_message(),
+        ], 400);
+    }
+
+    wp_send_json_success([
+        'comments' => papetarie_storefront_get_checkout_test_comment_index(),
+        'saved_comment_id' => (int) $result,
+    ]);
+}
+
+add_action('wp_ajax_pap_checkout_case_save_comment', 'papetarie_storefront_handle_checkout_case_comment_save');
+add_action('wp_ajax_nopriv_pap_checkout_case_save_comment', 'papetarie_storefront_handle_checkout_case_comment_save');
+
 function papetarie_storefront_returns_endpoint_content(): void
 {
     if (!is_user_logged_in()) {

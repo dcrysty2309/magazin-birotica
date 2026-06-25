@@ -51,6 +51,8 @@ Pentru iterații de temă și checkout:
 - rulăm verificările relevante înainte de fiecare deploy pe staging;
 - folosim indexul vizual `/checkout-test-cases/` pentru scenariile checkout;
 - scenariile testate pe staging devin sursa oficială de bug-uri prin comentariile salvate în Preview;
+- comentariile de QA sunt păstrate în WordPress, în CPT-ul intern `pap_checkout_comment`, și pot fi exportate împreună cu backup-ul / dump-ul bazei de date;
+- comentariile pot avea status `open`, `in_progress`, `fixed` sau `ignored`, iar istoricul se păstrează per comentariu;
 - orice bug descoperit pe staging trebuie transformat în task concret înainte de următorul deploy;
 - după fix, se retestează scenariile afectate pe staging;
 - staging rămâne mediul oficial de validare finală până când scenariile relevante nu mai au observații.

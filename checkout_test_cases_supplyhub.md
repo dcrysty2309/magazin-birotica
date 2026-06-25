@@ -21,7 +21,8 @@ Pe aceasta pagina gasesti:
 
 - un tabel simplu cu toate cazurile de testare;
 - preview pentru fiecare caz cu tip cont / user-parola / reproduce / expected;
-- comentarii de testare salvate local per caz și o listă compactă cu cazurile care au observații;
+- comentarii de testare persistate în WordPress, prin CPT-ul intern `pap_checkout_comment`;
+- o listă compactă cu cazurile care au observații, plus istoricul fiecărui caz în Preview;
 - pagina este dedicată doar Pasului 1 - Adresa de livrare;
 - regulile pentru border, label-uri si numarul de adrese.
 
@@ -247,6 +248,28 @@ Trebuie afisata lista de adrese salvate plus optiunea de a adauga una noua.
 
 ---
 
+## 4.3. Adresa noua adaugata in checkout
+
+### Cand
+Userul logat are deja o adresa salvata in My Account si adauga o adresa noua din checkout.
+
+### Atunci
+- noua adresa apare ca al doilea card in checkout;
+- noua adresa devine selectata pentru livrare;
+- noua adresa este folosita pentru comanda curenta;
+- noua adresa nu se salveaza automat in My Account;
+- dupa refresh, daca sesiunea checkout este activa, adresa temporara ramane disponibila;
+- My Account ramane neschimbat.
+
+### Reproducere rapida
+- autentifica-te cu `checkout.oneaddress@test.local`;
+- adauga un produs in cos;
+- deschide `/checkout/`;
+- apasa `Adauga adresa noua`;
+- completeaza si salveaza adresa noua.
+
+---
+
 # 5. User autentificat fara adresa salvata
 
 ## 5.1. Tab: Adresa de livrare
@@ -341,6 +364,7 @@ Observatiile pentru livrare / curier se trateaza la fel ca restul datelor de adr
 - [ ] User logat cu adresa salvata vede rezumatul adresei.
 - [ ] User logat poate schimba adresa.
 - [ ] User logat poate adauga o adresa noua pentru comanda curenta.
+- [ ] User logat cu o adresa in My Account poate adauga o adresa noua in checkout si aceasta devine selectata.
 - [ ] User logat fara adresa salvata vede formularul complet.
 - [ ] User logat poate salva adresa noua in cont, daca este permis.
 - [ ] User logat cu mai multe adrese vede lista de carduri si selectia corecta.

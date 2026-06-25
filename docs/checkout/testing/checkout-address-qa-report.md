@@ -4,7 +4,7 @@ Data executiei: 2026-06-25T09:07:28.288Z
 
 Scop: verificare si standardizare comportament Pasul 1 - Adresa de livrare pentru guest si user logat.
 
-Notă: acest raport surprinde rezultatele istorice ale suitei de testare. Standardul curent pentru formularul de adresă este cel definit în `checkout_test_cases_supplyhub.md`, unde câmpul separat pentru `Bloc / Scară / Etaj / Apartament` a fost eliminat din documentație, iar observațiile pentru livrare / curier sunt tratate ca un câmp opțional separat.
+Notă: acest raport surprinde rezultatele istorice ale suitei de testare. Standardul curent pentru formularul de adresă este cel definit în `checkout_test_cases_supplyhub.md`, unde câmpul separat pentru `Bloc / Scară / Etaj / Apartament` a fost eliminat din documentație, iar observațiile pentru livrare / curier sunt tratate ca un câmp opțional separat. Comentariile QA curente se salvează în WordPress, în CPT-ul intern `pap_checkout_comment`.
 
 ## TC-001 - Guest fara cont - formular gol
 
@@ -228,3 +228,4 @@ Notă: acest raport surprinde rezultatele istorice ale suitei de testare. Standa
 - Flow-ul userului logat a fost reverificat dupa eliminarea request-ului redundant de selectie dupa save.
 - Capturile sunt salvate in `docs/checkout/testing/screenshots/`.
 - Acest raport acopera doar Pasul 1 - Adresa de livrare.
+- Scenariul nou pentru `User logat - o adresă în My Account, adaugă adresă nouă în Checkout` a fost adăugat în matricea oficială și trebuie validat în următorul ciclu QA.

@@ -34,8 +34,10 @@ Pentru referinta rapida a tuturor cazurilor, foloseste indexul vizual:
 - `http://localhost:8080/checkout-test-cases/`
 - acolo gasesti ordinea cazurilor, regulile de border, label-uri si datele de test;
 - `Preview` deschide panoul lateral cu detaliile cazului și comentariile de testare;
-- pagina afișează o listă compactă cu cazurile care au comentarii salvate local.
+- pagina afișează o listă compactă cu cazurile care au observații salvate în WordPress.
 - Pentru verificarea finală pe QA, același index trebuie folosit împreună cu staging.
+- Comentariile salvate în Preview sunt persistate în WordPress, în CPT-ul intern `pap_checkout_comment`, și se reîncarcă la fiecare redeschidere a Preview-ului.
+- Cazurile cu observații apar și în lista compactă de pe index, iar cazurile cu comentarii deschise primesc un marcaj vizual discret în tabel.
 
 Pentru guest:
 
@@ -95,11 +97,20 @@ Pentru guest:
 
 ## 6. Reguli pentru comentarii de testare
 
-- Fiecare caz poate avea un comentariu salvat local din Preview.
-- Comentariile se păstrează per caz și se reîncarcă la redeschiderea Preview-ului.
-- Pagina afișează o listă compactă cu cazurile care au comentarii salvate.
+- Fiecare caz poate avea un comentariu salvat din Preview.
+- Fiecare caz poate avea mai multe comentarii salvate din Preview.
+- Comentariile se păstrează în WordPress, în CPT-ul intern `pap_checkout_comment`, și se reîncarcă la redeschiderea Preview-ului.
+- Comentariile sunt afișate cronologic în Preview.
+- Pagina afișează o listă compactă cu cazurile care au observații și marchează discret rândurile cu comentarii deschise.
+- Statusurile oficiale sunt: `open`, `in_progress`, `fixed`, `ignored`.
+- Un comentariu nou pornește cu status `open`.
+- Un comentariu se marchează ca `fixed` după ce bug-ul a fost reparat și retestat.
+- `ignored` se folosește doar pentru observații confirmate ca nefiind bug.
+- Dacă editezi un comentariu existent, se actualizează aceeași intrare și se schimbă doar `updated_at`.
+- Dacă adaugi un comentariu nou, se creează o intrare nouă în istoricul test case-ului.
 - Comentariile servesc ca bază pentru trierea bug-urilor și pentru generarea de fix-uri ulterioare.
 - Comentariile și bug-urile relevante trebuie păstrate și documentate și pe staging, nu doar local.
+- Comentariile oficiale sunt sursa de backlog pentru bug fix și pot fi exportate din baza de date / staging.
 
 ## 7. Raport final
 
