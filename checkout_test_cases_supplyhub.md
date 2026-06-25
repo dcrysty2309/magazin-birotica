@@ -245,6 +245,8 @@ Trebuie afisata lista de adrese salvate plus optiunea de a adauga una noua.
 - Userul poate edita o adresa existenta.
 - Userul poate adauga o adresa noua pentru comanda curenta.
 - Schimbarea selectiei actualizeaza sesiunea WooCommerce, shipping fields si recalcularea transportului.
+- Formularul folosit in modalul My Account pentru adrese trebuie sa aiba aceleasi campuri ca formularul de checkout: Prenume, Nume, Email, Telefon, Judet, Localitate, Adresa, Cod postal, Observatii pentru livrare / curier.
+- Câmpul separat Bloc / Scară / Etaj / Apartament nu mai trebuie expus ca input separat; detaliile se pun în Adresă sau în Observații.
 
 ---
 
@@ -260,6 +262,7 @@ Userul logat are deja o adresa salvata in My Account si adauga o adresa noua din
 - noua adresa nu se salveaza automat in My Account;
 - dupa refresh, daca sesiunea checkout este activa, adresa temporara ramane disponibila;
 - My Account ramane neschimbat.
+- Adresa adaugata in checkout trebuie sa reuseasca acelasi set de campuri ca My Account, fara bloc/scara/etaj/apartament separat.
 
 ### Reproducere rapida
 - autentifica-te cu `checkout.oneaddress@test.local`;

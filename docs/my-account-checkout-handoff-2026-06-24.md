@@ -22,7 +22,8 @@ Completed:
 - The address list updates without refresh after save/delete.
 - Empty state is compact and informational.
 - The info alert uses Font Awesome directly.
-- The address form now follows the checkout standard fields, and any legacy second address line should be treated as implementation detail until fully removed.
+- The address form now follows the checkout standard fields: Prenume, Nume, Email, Telefon, Județ, Localitate, Adresă, Cod poștal, Observații pentru livrare / curier.
+- The old separate `address_2` field is legacy-only and should not reappear as a visible UI field.
 
 Important files:
 

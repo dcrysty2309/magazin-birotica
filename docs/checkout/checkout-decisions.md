@@ -143,3 +143,21 @@ Reguli aplicate:
 - nu există câmp separat pentru Bloc / Scară / Etaj / Apartament;
 - detaliile suplimentare se introduc în Adresă sau în Observații pentru livrare / curier;
 - observațiile nu apar în summary card, dar se păstrează pentru comanda curentă.
+
+## 2026-06-26 - My Account address schema parity
+
+Decizie:
+
+- Formularul de adresă din My Account trebuie să urmeze aceeași structură ca formularul de adresă din checkout.
+
+Motiv:
+
+- evită dublarea logicii și diferențele de UI între cele două fluxuri;
+- face adresele salvate și adresele temporare compatibile cu același standard de câmpuri;
+- reduce bug-urile generate de câmpuri diferite între checkout și cont.
+
+Reguli aplicate:
+
+- câmpurile sunt: Prenume, Nume, Email, Telefon, Județ, Localitate, Adresă, Cod poștal, Observații pentru livrare / curier;
+- nu se mai afișează un câmp separat pentru Bloc / Scară / Etaj / Apartament;
+- dacă există date legacy `address_2`, ele sunt tratate doar ca compatibilitate istorică.

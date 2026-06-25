@@ -88,6 +88,8 @@ Pentru guest:
 - Nu trebuie să existe câmp separat pentru Bloc / Scară / Etaj / Apartament.
 - Detaliile de tip apartament sau scară se notează în Adresă sau în Observații pentru livrare / curier.
 - Observațiile trebuie să fie opționale și să nu blocheze fluxul dacă sunt goale.
+- Formularul de adresă din My Account trebuie să folosească aceeași ordine și aceleași câmpuri ca formularul din checkout.
+- Dacă există date legacy cu `address_2`, ele se tratează doar ca backward compatibility și nu mai apar ca input separat în UI.
 
 ## 5. Reguli pentru screenshot-uri
 

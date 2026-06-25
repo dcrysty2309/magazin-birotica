@@ -65,6 +65,8 @@ Reguli:
 - Adresele din cont pot fi afișate și selectate în checkout.
 - Modificările făcute din checkout se aplică doar comenzii curente.
 - Dacă userul vrea să schimbe permanent adresele din cont, o face din My Account.
+- Formularul de adresă din My Account folosește aceeași structură de câmpuri ca checkout-ul: Prenume, Nume, Email, Telefon, Județ, Localitate, Adresă, Cod poștal, Observații pentru livrare / curier.
+- Câmpul separat pentru Bloc / Scară / Etaj / Apartament nu mai face parte din UI-ul curent; compatibilitatea legacy poate rămâne doar pentru date istorice până la migrare completă.
 
 ## 4. Reguli UX pentru salvare adresă
 

@@ -34,6 +34,13 @@ function papetarie_storefront_address_book_fields(): array
             'type' => 'text',
             'autocomplete' => 'family-name',
         ],
+        'email' => [
+            'label' => __('Email', 'papetarie-storefront'),
+            'placeholder' => __('nume@exemplu.ro', 'papetarie-storefront'),
+            'required' => true,
+            'type' => 'email',
+            'autocomplete' => 'email',
+        ],
         'phone' => [
             'label' => __('Telefon', 'papetarie-storefront'),
             'placeholder' => __('0712 345 678', 'papetarie-storefront'),
@@ -60,19 +67,18 @@ function papetarie_storefront_address_book_fields(): array
             'type' => 'text',
             'autocomplete' => 'address-line1',
         ],
-        'address_2' => [
-            'label' => __('Bloc / Scară / Etaj / Apartament', 'papetarie-storefront'),
-            'placeholder' => __('Bloc A, scara 1, etaj 2, apartament 10', 'papetarie-storefront'),
-            'required' => false,
-            'type' => 'text',
-            'autocomplete' => 'address-line2',
-        ],
         'postcode' => [
             'label' => __('Cod poștal', 'papetarie-storefront'),
             'placeholder' => __('123456', 'papetarie-storefront'),
             'required' => true,
             'type' => 'text',
             'autocomplete' => 'postal-code',
+        ],
+        'delivery_notes' => [
+            'label' => __('Observații pentru livrare / curier', 'papetarie-storefront'),
+            'placeholder' => __('Interfon 12. Curierul să sune înainte.', 'papetarie-storefront'),
+            'required' => false,
+            'type' => 'textarea',
         ],
     ];
 }
@@ -84,6 +90,7 @@ function papetarie_storefront_address_book_empty_entry(): array
         'label' => '',
         'first_name' => '',
         'last_name' => '',
+        'email' => '',
         'phone' => '',
         'company' => '',
         'country' => 'RO',
@@ -92,6 +99,7 @@ function papetarie_storefront_address_book_empty_entry(): array
         'postcode' => '',
         'address_1' => '',
         'address_2' => '',
+        'delivery_notes' => '',
         'created_at' => '',
         'updated_at' => '',
         'source' => '',
@@ -113,6 +121,16 @@ function papetarie_storefront_address_book_sanitize_entry(array $entry): array
             continue;
         }
 
+        if ($key === 'email') {
+            $normalized[$key] = sanitize_email((string) $value);
+            continue;
+        }
+
+        if ($key === 'delivery_notes') {
+            $normalized[$key] = sanitize_textarea_field((string) $value);
+            continue;
+        }
+
         $normalized[$key] = sanitize_text_field((string) $value);
     }
 
@@ -126,7 +144,9 @@ function papetarie_storefront_address_book_sanitize_entry(array $entry): array
     $normalized['label'] = trim((string) $normalized['label']);
     $normalized['first_name'] = trim((string) $normalized['first_name']);
     $normalized['last_name'] = trim((string) $normalized['last_name']);
+    $normalized['email'] = trim((string) $normalized['email']);
     $normalized['company'] = trim((string) $normalized['company']);
+    $normalized['delivery_notes'] = trim((string) $normalized['delivery_notes']);
 
     return $normalized;
 }
@@ -591,6 +611,7 @@ function papetarie_storefront_address_book_checkout_field_map(): array
     return [
         'billing_first_name' => 'first_name',
         'billing_last_name' => 'last_name',
+        'billing_email' => 'email',
         'billing_company' => 'company',
         'billing_phone' => 'phone',
         'billing_country' => 'country',
@@ -601,6 +622,7 @@ function papetarie_storefront_address_book_checkout_field_map(): array
         'billing_address_2' => 'address_2',
         'shipping_first_name' => 'first_name',
         'shipping_last_name' => 'last_name',
+        'shipping_email' => 'email',
         'shipping_company' => 'company',
         'shipping_phone' => 'phone',
         'shipping_country' => 'country',
@@ -643,6 +665,10 @@ function papetarie_storefront_address_book_checkout_field_value($value, string $
         if ($input === 'billing_phone' || $input === 'shipping_phone') {
             $address_value = trim((string) get_user_meta($customer_id, 'billing_phone', true));
         }
+    }
+
+    if ($address_value === '' && ($input === 'billing_email' || $input === 'shipping_email')) {
+        $address_value = papetarie_storefront_address_book_checkout_email($customer_id);
     }
 
     if ($address_value === '') {
@@ -764,6 +790,7 @@ function papetarie_storefront_address_book_checkout_selection_data(): array
             'label' => papetarie_storefront_address_book_label($address),
             'first_name' => (string) ($address['first_name'] ?? ''),
             'last_name' => (string) ($address['last_name'] ?? ''),
+            'email' => (string) ($address['email'] ?? ''),
             'phone' => (string) ($address['phone'] ?? ''),
             'company' => (string) ($address['company'] ?? ''),
             'country' => (string) ($address['country'] ?? ''),
@@ -772,6 +799,7 @@ function papetarie_storefront_address_book_checkout_selection_data(): array
             'postcode' => (string) ($address['postcode'] ?? ''),
             'address_1' => (string) ($address['address_1'] ?? ''),
             'address_2' => (string) ($address['address_2'] ?? ''),
+            'delivery_notes' => (string) ($address['delivery_notes'] ?? ''),
             'is_default' => !empty($address['is_default']),
         ];
     }
@@ -886,6 +914,12 @@ function papetarie_storefront_address_book_validate(array $posted, \WP_Error $er
         $errors->add('address_last_name_required', __('Completează numele.', 'papetarie-storefront'));
     }
 
+    if (($clean['email'] ?? '') === '') {
+        $errors->add('address_email_required', __('Introdu emailul.', 'papetarie-storefront'));
+    } elseif (!is_email((string) $clean['email'])) {
+        $errors->add('address_email_invalid', __('Introdu o adresă de email validă.', 'papetarie-storefront'));
+    }
+
     if (($clean['phone'] ?? '') === '') {
         $errors->add('address_phone_required', __('Completează numărul de telefon.', 'papetarie-storefront'));
     } else {
@@ -998,6 +1032,10 @@ function papetarie_storefront_address_book_render_input(string $key, array $fiel
         $args['custom_attributes']['data-address-book-country'] = '1';
     }
 
+    if (($field['type'] ?? 'text') === 'textarea') {
+        $args['custom_attributes']['rows'] = 4;
+    }
+
     $args['return'] = true;
     $field_html = woocommerce_form_field($key, $args, $value);
 
@@ -1079,6 +1117,9 @@ function papetarie_storefront_address_book_render_form_fields(array $source): vo
     $fields = papetarie_storefront_address_book_fields();
     foreach ($fields as $key => $field) :
         $value = (string) ($source[$key] ?? '');
+        if ($key === 'email' && $value === '') {
+            $value = papetarie_storefront_address_book_checkout_email(get_current_user_id());
+        }
         if ($key === 'state') {
             $value = strtoupper(sanitize_key($value));
         } elseif ($key === 'country') {
@@ -1339,11 +1380,6 @@ function papetarie_storefront_address_book_process_request(array $request): arra
 
     $errors = new WP_Error();
     $clean = papetarie_storefront_address_book_validate($request, $errors);
-    $email = isset($request['email']) ? sanitize_email(wp_unslash((string) $request['email'])) : '';
-
-    if (isset($request['email']) && $email === '') {
-        $errors->add('address_email_invalid', __('Introdu o adresă de email validă.', 'papetarie-storefront'));
-    }
 
     if ($errors->has_errors()) {
         $clean['is_default'] = !empty($request['pap_address_is_default']) && (string) $request['pap_address_is_default'] === '1';

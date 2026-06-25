@@ -11,6 +11,7 @@
 
   const messages = {
     required: 'Completează acest câmp.',
+    email: 'Introdu o adresă de email validă.',
     phone: 'Introdu un număr de telefon valid.',
     postcode: 'Introdu un cod poștal valid.',
   };
@@ -73,7 +74,7 @@
     const $row = getRow($field);
     $field.removeAttr('aria-invalid aria-describedby');
     $row
-      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
+      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
     $row.find('.checkout-inline-error-message').remove();
   };
 
@@ -181,6 +182,18 @@
       return true;
     }
 
+    if (type === 'email' || name.includes('email') || id.includes('email')) {
+      if (required && value === '') {
+        setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
+        return false;
+      }
+
+      if (value !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        setFieldError($field, messages.email, 'woocommerce-invalid-email');
+        return false;
+      }
+    }
+
     if (required && value === '') {
       setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
       return false;
@@ -272,7 +285,7 @@
     $form.find('[name="pap_address_book_action"]').val('save');
     $form.find('[name="pap_address_is_default"]').prop('checked', false);
     $form.find('[aria-invalid="true"]').removeAttr('aria-invalid aria-describedby');
-    $form.find('.woocommerce-invalid, .woocommerce-validated').removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
+    $form.find('.woocommerce-invalid, .woocommerce-validated').removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
     $form.find('.checkout-inline-error-message').remove();
     syncCitySelect($form);
   };
@@ -289,13 +302,14 @@
     setValue('[name="pap_address_id"]', entry.id || '');
     setValue('[name="first_name"]', entry.first_name || '');
     setValue('[name="last_name"]', entry.last_name || '');
+    setValue('[name="email"]', entry.email || '');
     setValue('[name="phone"]', entry.phone || '');
     setValue('[name="state"]', entry.state || '');
     syncCitySelect($form);
     setValue('[name="city"]', entry.city || '');
     setValue('[name="address_1"]', entry.address_1 || '');
-    setValue('[name="address_2"]', entry.address_2 || '');
     setValue('[name="postcode"]', entry.postcode || '');
+    setValue('[name="delivery_notes"]', entry.delivery_notes || '');
     setValue('[name="country"]', entry.country || 'RO');
     $form.find('[name="pap_address_is_default"]').prop('checked', !!entry.is_default);
 
