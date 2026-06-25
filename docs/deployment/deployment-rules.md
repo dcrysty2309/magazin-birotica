@@ -42,7 +42,16 @@ Pentru iterații de temă și checkout:
 5. testezi flow-ul afectat în UI
 6. documentezi dacă s-a schimbat procesul
 
-## 7. Regula de întreținere
+## 7. Automatizare
+
+- Deploy-ul automat de temă rulează din GitHub Actions prin `.github/workflows/deploy-staging.yml`.
+- Workflow-ul pornește la `push` pe `main` doar când se schimbă tema `papetarie-storefront` sau scriptul de deploy.
+- Workflow-ul poate fi pornit și manual din tab-ul Actions.
+- Secrete necesare în GitHub:
+  - `STAGING_FTP_HOST`
+  - `STAGING_FTP_USER`
+  - `STAGING_FTP_PASSWORD`
+
+## 8. Regula de întreținere
 
 - Dacă se schimbă procesul real de deploy, se actualizează acest fișier și documentația din `docs/deployment/` în aceeași iterație.
-
