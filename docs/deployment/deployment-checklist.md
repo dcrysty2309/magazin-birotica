@@ -4,7 +4,7 @@ Checklist operațional pentru orice deploy pe mediul oficial de staging.
 
 Environment țintă:
 
-- domain: `memoreaza.ro`
+- domain: `notix.ro`
 - cPanel: `http://rs.nsh.ro/cpanel`
 - FTP host: `rs.nsh.ro`
 - port: `21`

@@ -75,8 +75,8 @@ $content = @"
 
 ## Test Context
 
-- Checkout URL: $(if ($TargetEnvironment -eq "staging") { "https://memoreaza.ro/checkout/" } else { "http://localhost:8080/checkout/" })
-- QA Index URL: $(if ($TargetEnvironment -eq "staging") { "https://memoreaza.ro/checkout-test-cases/" } else { "http://localhost:8080/checkout-test-cases/" })
+- Checkout URL: $(if ($TargetEnvironment -eq "staging") { "https://notix.ro/checkout/" } else { "http://localhost:8080/checkout/" })
+- QA Index URL: $(if ($TargetEnvironment -eq "staging") { "https://notix.ro/checkout-test-cases/" } else { "http://localhost:8080/checkout-test-cases/" })
 - Test Users: de completat
 - Products in Cart: de completat
 - Guest / Logged-in scenarios: de completat
