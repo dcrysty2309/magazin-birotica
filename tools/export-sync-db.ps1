@@ -59,7 +59,9 @@ $metaPath = Join-Path $outputRoot ($baseName + ".json")
 
 Push-Location $repoRoot
 try {
-    & docker compose exec -T db mariadb-dump "--user=$dbUser" "--password=$dbPass" $dbName | Out-File -LiteralPath $sqlPath -Encoding utf8
+    $dumpContents = & docker compose exec -T db mariadb-dump "--user=$dbUser" "--password=$dbPass" $dbName | Out-String
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($sqlPath, $dumpContents, $utf8NoBom)
 }
 finally {
     Pop-Location

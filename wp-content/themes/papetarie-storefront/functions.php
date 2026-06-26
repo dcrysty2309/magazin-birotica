@@ -1213,14 +1213,14 @@ function papetarie_storefront_checkout_guest_shipping_summary_lines(): array
 
     $snapshot = papetarie_storefront_checkout_guest_shipping_snapshot();
     $checkout = WC()->checkout();
-    $first_name = $snapshot['#billing_first_name'] ?: trim((string) $checkout->get_value('billing_first_name'));
-    $last_name = $snapshot['#billing_last_name'] ?: trim((string) $checkout->get_value('billing_last_name'));
-    $phone = $snapshot['#billing_phone'] ?: trim((string) $checkout->get_value('billing_phone'));
-    $email = $snapshot['#billing_email'] ?: trim((string) $checkout->get_value('billing_email'));
-    $address_1 = $snapshot['#shipping_address_1'] ?: trim((string) $checkout->get_value('shipping_address_1'));
-    $city = $snapshot['#shipping_city'] ?: trim((string) $checkout->get_value('shipping_city'));
-    $state = $snapshot['#shipping_state'] ?: trim((string) $checkout->get_value('shipping_state'));
-    $postcode = $snapshot['#shipping_postcode'] ?: trim((string) $checkout->get_value('shipping_postcode'));
+    $first_name = ($snapshot['#billing_first_name'] ?? '') ?: trim((string) $checkout->get_value('billing_first_name'));
+    $last_name = ($snapshot['#billing_last_name'] ?? '') ?: trim((string) $checkout->get_value('billing_last_name'));
+    $phone = ($snapshot['#billing_phone'] ?? '') ?: trim((string) $checkout->get_value('billing_phone'));
+    $email = ($snapshot['#billing_email'] ?? '') ?: trim((string) $checkout->get_value('billing_email'));
+    $address_1 = ($snapshot['#shipping_address_1'] ?? '') ?: trim((string) $checkout->get_value('shipping_address_1'));
+    $city = ($snapshot['#shipping_city'] ?? '') ?: trim((string) $checkout->get_value('shipping_city'));
+    $state = ($snapshot['#shipping_state'] ?? '') ?: trim((string) $checkout->get_value('shipping_state'));
+    $postcode = ($snapshot['#shipping_postcode'] ?? '') ?: trim((string) $checkout->get_value('shipping_postcode'));
 
     $lines = [];
     $full_name = trim($first_name . ' ' . $last_name);

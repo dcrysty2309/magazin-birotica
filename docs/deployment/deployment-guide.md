@@ -272,3 +272,27 @@ Checklist-ul operațional detaliat este în:
 - proiectul nu are pipeline de build pentru CSS/JS al temei
 - `style.css` este mare și trebuie monitorizat la auditul de performanță
 - performanța reală se validează doar după publicarea online
+- 
+## 16. Sync automat local -> staging
+
+Scriptul complet pentru sync este:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\sync-staging.ps1 -SourceEnvironment office-local -ExportDatabase -Label checkout-sync
+```
+
+Scriptul de DB-only este:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\sync-staging-db.ps1 -SqlFile database\exports\latest-office-local.sql
+```
+
+Aceste scripturi:
+
+- urcÄƒ tema pe staging;
+- urcÄƒ temporar dump-ul SQL;
+- ruleazÄƒ importul controlat Ã®n baza staging;
+- fac search-replace pentru `http://localhost:8080` -> `https://memoreaza.ro`;
+- fac flush la permalinks;
+- ruleazÄƒ smoke checks pe `checkout` È™i `checkout-test-cases`;
+- È™terg artefactele temporare de pe server.

@@ -82,3 +82,9 @@ Pentru iterații de temă și checkout:
 
 - Dacă se schimbă procesul real de deploy, se actualizează acest fișier și documentația din `docs/deployment/` în aceeași iterație.
 - Sincronizarea între `HOME-LOCAL`, `OFFICE-LOCAL` și `STAGING` urmează obligatoriu regulile din [environment-sync-rules.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/environment-sync-rules.md).
+- 
+## 10. Scripturi oficiale pentru sync complet
+
+- Pentru sync de DB local -> staging folosim [sync-staging-db.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging-db.ps1).
+- Pentru sync complet `tema + DB + smoke check` folosim [sync-staging.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging.ps1).
+- Nu lÄƒsÄƒm dump-uri SQL sau runner-e PHP Ã®n `public_html` dupÄƒ sincronizare.
