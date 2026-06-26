@@ -6689,6 +6689,23 @@ function papetarie_storefront_is_checkout_test_cases_request(): bool
     return $path === 'checkout-test-cases';
 }
 
+function papetarie_storefront_redirect_checkout_test_cases_nested_path(): void
+{
+    if (is_admin() || wp_doing_ajax()) {
+        return;
+    }
+
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? (string) wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $path = trim((string) wp_parse_url($request_uri, PHP_URL_PATH), '/');
+
+    if ($path === 'checkout/checkout-test-cases' || $path === 'checkout/checkout-test-cases/') {
+        wp_safe_redirect(home_url('/checkout-test-cases/'), 301);
+        exit;
+    }
+}
+
+add_action('template_redirect', 'papetarie_storefront_redirect_checkout_test_cases_nested_path', 0);
+
 function papetarie_storefront_get_checkout_test_cases_title(): string
 {
     $page = get_page_by_path('checkout-test-cases', OBJECT, 'page');
