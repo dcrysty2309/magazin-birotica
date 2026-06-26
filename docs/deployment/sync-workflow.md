@@ -217,3 +217,4 @@ Pentru acest proces folosim:
 - [prepare-sync-package.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/prepare-sync-package.ps1)
 - [sync-staging-db.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging-db.ps1)
 - [sync-staging.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging.ps1)
+- [data-sync-strategy.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/data-sync-strategy.md)

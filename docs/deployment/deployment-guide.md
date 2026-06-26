@@ -5,6 +5,7 @@ Acest document descrie procesul complet și repetabil de deploy pentru mediul de
 Regulile de sincronizare între `HOME-LOCAL`, `OFFICE-LOCAL` și `STAGING` sunt definite în:
 
 - [environment-sync-rules.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/environment-sync-rules.md)
+- [data-sync-strategy.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/data-sync-strategy.md)
 
 ## 1. Scop
 

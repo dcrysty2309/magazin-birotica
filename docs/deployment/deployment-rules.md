@@ -88,3 +88,7 @@ Pentru iterații de temă și checkout:
 - Pentru sync de DB local -> staging folosim [sync-staging-db.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging-db.ps1).
 - Pentru sync complet `tema + DB + smoke check` folosim [sync-staging.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging.ps1).
 - Nu lÄƒsÄƒm dump-uri SQL sau runner-e PHP Ã®n `public_html` dupÄƒ sincronizare.
+## 11. Strategie de propagare a datelor
+
+- Pentru a decide cand sincronizam DB complet si cand lasam staging-ul neschimbat pe continut, folosim [data-sync-strategy.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/data-sync-strategy.md).
+- Regula practica este simpla: pentru checkout, My Account si configurari WooCommerce relevante preferam paritate controlata; pentru continut comercial preferam sync selectiv, nu dump complet automat.
