@@ -53,7 +53,26 @@ Exemple:
 
 Regula:
 
-- acestea se sincronizeaza in staging cand flow-ul depinde de ele.
+- acestea NU se sincronizeaza automat in staging;
+- daca sunt configuratii stabile de business, staging trebuie pastrat aliniat cu live;
+- propagarea lor spre staging se face doar cu confirmare explicita.
+
+### B1. Configuratii stabile de business
+
+Exemple:
+
+- metode de plata;
+- metode de transport;
+- shipping zones;
+- taxe;
+- checkout pages oficiale;
+- setari WooCommerce care trebuie sa ramana compatibile cu live.
+
+Regula:
+
+- staging trebuie sa ramana 1 la 1 cu live pentru aceasta categorie;
+- localul poate fi folosit pentru experimente, dar acele schimbari nu se urca automat;
+- orice sync care atinge aceasta categorie trebuie confirmat explicit de utilizator.
 
 ### C. Date de test pentru checkout
 
@@ -68,6 +87,7 @@ Exemple:
 Regula:
 
 - acestea se sincronizeaza in staging atunci cand vrem paritate reala pentru QA.
+- ele nu trebuie sa rescrie configuratiile stabile de business fara acord explicit.
 
 ## 3. Ce facem in practica
 
@@ -101,10 +121,9 @@ Exemple:
 
 Actiune:
 
-- commit cod
-- export DB din mediul sursa
-- sync spre staging
-- QA pe staging
+- daca schimbarea atinge doar fixtures de test, exporti datele relevante si faci sync controlat;
+- daca schimbarea atinge configuratii stabile de business, nu faci sync automat;
+- inainte de sync trebuie confirmat explicit daca staging trebuie sa devina diferit de live.
 
 ### Caz 3. Modificare comerciala/editoriala
 
@@ -143,6 +162,21 @@ Dump-ul complet este acceptabil pentru:
 
 Dar nu este solutia standard pentru orice schimbare mica din admin.
 
+## 5.1. Regula de confirmare explicita
+
+Pentru urmatoarele categorii trebuie intrebat utilizatorul inainte de sync:
+
+- payment methods;
+- shipping methods;
+- shipping zones;
+- taxe;
+- pagini WooCommerce oficiale;
+- setari WooCommerce de business.
+
+Intrebarea standard este:
+
+- `Vrei sa propag si configuratiile de business spre staging sau pastram staging aliniat cu live si urcam doar fixture-urile de test?`
+
 ## 6. Strategia recomandata de acum inainte
 
 ### Layer 1. Cod
@@ -156,6 +190,12 @@ Dar nu este solutia standard pentru orice schimbare mica din admin.
 - le tratam ca "data fixtures";
 - cand sunt importante pentru QA, le urcam in staging prin sync controlat.
 
+### Layer 2B. Configuratii de business
+
+- staging trebuie sa ramana aliniat cu live;
+- nu le modificam automat din local;
+- orice propagare se face doar dupa confirmare explicita.
+
 ### Layer 3. Continut comercial
 
 - nu il propagam automat din local;
@@ -168,17 +208,20 @@ Inainte de sync intrebi doar:
 1. schimbarea afecteaza flow-ul sau doar continutul?
 2. staging trebuie sa reproduca exact aceasta stare?
 3. fara aceste date, QA-ul ar fi fals sau incomplet?
+4. schimbarea atinge configuratii stabile de business?
 
 Daca raspunsul este:
 
 - `nu` -> deploy doar cod;
-- `da` -> sync cod + date relevante.
+- `da`, dar doar pentru fixtures -> sync cod + date relevante;
+- `da`, iar schimbarea atinge business config -> ceri confirmare explicita inainte de sync.
 
 ## 8. Regula operationala
 
 Pentru checkout, My Account, shipping, billing si payment:
 
-- preferam paritate reala intre local si staging.
+- preferam paritate reala intre local si staging doar pentru fixture-urile necesare QA;
+- pentru configuratiile de business preferam paritate intre staging si live.
 
 Pentru produse, continut si marketing:
 

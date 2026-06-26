@@ -218,3 +218,12 @@ Pentru acest proces folosim:
 - [sync-staging-db.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging-db.ps1)
 - [sync-staging.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging.ps1)
 - [data-sync-strategy.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/data-sync-strategy.md)
+
+## 12. Confirmare pentru business config
+
+Pentru metode de plata, metode de livrare, shipping zones, taxe, pagini WooCommerce oficiale si alte setari WooCommerce de business:
+
+- staging trebuie tratat ca oglinda a live-ului;
+- aceste schimbari nu se propaga automat din local;
+- inainte de orice sync care le atinge, utilizatorul trebuie intrebat explicit;
+- fara confirmare explicita, se urca doar codul sau fixture-urile de test.

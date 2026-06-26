@@ -92,3 +92,5 @@ Pentru iterații de temă și checkout:
 
 - Pentru a decide cand sincronizam DB complet si cand lasam staging-ul neschimbat pe continut, folosim [data-sync-strategy.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/data-sync-strategy.md).
 - Regula practica este simpla: pentru checkout, My Account si configurari WooCommerce relevante preferam paritate controlata; pentru continut comercial preferam sync selectiv, nu dump complet automat.
+- Pentru configuratiile stabile de business, staging trebuie tratat ca oglinda a live-ului, nu ca oglinda a ultimului local.
+- Daca sync-ul atinge metode de plata, metode de transport, taxe, shipping zones sau pagini WooCommerce oficiale, se cere confirmare explicita inainte de propagare.
