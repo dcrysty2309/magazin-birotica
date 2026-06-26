@@ -2,7 +2,7 @@ param(
     [string]$FtpHost = $env:STAGING_FTP_HOST,
     [string]$FtpUser = $env:STAGING_FTP_USER,
     [string]$FtpPassword = $env:STAGING_FTP_PASSWORD,
-    [string]$TargetUrl = "https://notix.ro",
+    [string]$TargetUrl = "https://memoreaza.ro",
     [string]$SqlFile = "database\\exports\\latest-office-local.sql",
     [string]$LocalUrl = "http://localhost:8080",
     [string]$RemoteSqlFileName = "staging-sync-db.sql",

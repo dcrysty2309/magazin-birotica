@@ -19,7 +19,7 @@ Roluri:
 
 ## 2. Context infrastructură
 
-- domeniu: `notix.ro`
+- domeniu: `memoreaza.ro`
 - cPanel: `http://rs.nsh.ro/cpanel`
 - FTP host: `rs.nsh.ro`
 - FTP port: `21`
@@ -169,14 +169,14 @@ URL-ul local actual:
 
 URL-ul de staging:
 
-- `https://notix.ro`
+- `https://memoreaza.ro`
 
 După import trebuie înlocuite URL-urile.
 
 Varianta recomandată cu WP-CLI:
 
 ```bash
-wp search-replace 'http://localhost:8080' 'https://notix.ro' --all-tables
+wp search-replace 'http://localhost:8080' 'https://memoreaza.ro' --all-tables
 ```
 
 Dacă nu există WP-CLI:
@@ -211,8 +211,8 @@ define('DB_USER', 'staging_user');
 define('DB_PASSWORD', '***');
 define('DB_HOST', 'localhost');
 
-define('WP_HOME', 'https://notix.ro');
-define('WP_SITEURL', 'https://notix.ro');
+define('WP_HOME', 'https://memoreaza.ro');
+define('WP_SITEURL', 'https://memoreaza.ro');
 
 define('WP_DEBUG', false);
 ```
@@ -293,7 +293,7 @@ Aceste scripturi:
 - urcÄƒ tema pe staging;
 - urcÄƒ temporar dump-ul SQL;
 - ruleazÄƒ importul controlat Ã®n baza staging;
-- fac search-replace pentru `http://localhost:8080` -> `https://notix.ro`;
+- fac search-replace pentru `http://localhost:8080` -> `https://memoreaza.ro`;
 - fac flush la permalinks;
 - ruleazÄƒ smoke checks pe `checkout` È™i `checkout-test-cases`;
 - È™terg artefactele temporare de pe server.

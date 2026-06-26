@@ -1,6 +1,6 @@
 # Staging Deploy Checklist
 
-Checklist dedicat primului deploy și deploy-urilor viitoare pe `notix.ro`.
+Checklist dedicat primului deploy și deploy-urilor viitoare pe `memoreaza.ro`.
 
 ## 1. Pregătire locală
 
