@@ -2,7 +2,7 @@ param(
     [string]$FtpHost = $env:STAGING_FTP_HOST,
     [string]$FtpUser = $env:STAGING_FTP_USER,
     [string]$FtpPassword = $env:STAGING_FTP_PASSWORD,
-    [string]$RemoteThemePath = "/public_html/wp-content/themes/papetarie-storefront",
+    [string]$RemoteThemePath = "/wp-content/themes/papetarie-storefront",
     [string]$LocalThemePath = "wp-content/themes/papetarie-storefront",
     [switch]$DryRun
 )

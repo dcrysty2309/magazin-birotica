@@ -37,7 +37,17 @@ Pentru iterații de temă și checkout:
 - Credențialele FTP, MySQL, API și SMTP nu se salvează în repo.
 - Scripturile de deploy citesc secretele din parametri sau variabile de mediu.
 
-## 6. Flow standard pentru deploy
+## 6. Regula FTP pentru acest hosting
+
+- Contul FTP de deploy pentru `memoreaza.ro` este deja chroot-uit în `public_html`.
+- Asta înseamnă că path-urile remote trebuie scrise relativ la `public_html`, nu cu prefix suplimentar `/public_html/...`.
+- Exemplu corect pentru temă:
+  - `/wp-content/themes/papetarie-storefront`
+- Exemplu greșit:
+  - `/public_html/wp-content/themes/papetarie-storefront`
+- Dacă folosim prefixul greșit, ajungem să uploadăm într-o structură paralelă de tip `public_html/public_html/...`, iar site-ul live nu va servi acele fișiere.
+
+## 7. Flow standard pentru deploy
 
 1. verifici statusul local
 2. testezi local schimbările relevante
@@ -46,7 +56,7 @@ Pentru iterații de temă și checkout:
 5. testezi flow-ul afectat în UI
 6. documentezi dacă s-a schimbat procesul
 
-## 6.1. Ciclul oficial de QA pentru checkout
+## 7.1. Ciclul oficial de QA pentru checkout
 
 - rulăm verificările relevante înainte de fiecare deploy pe staging;
 - folosim indexul vizual `/checkout-test-cases/` pentru scenariile checkout;
@@ -57,7 +67,7 @@ Pentru iterații de temă și checkout:
 - după fix, se retestează scenariile afectate pe staging;
 - staging rămâne mediul oficial de validare finală până când scenariile relevante nu mai au observații.
 
-## 7. Automatizare
+## 8. Automatizare
 
 - Deploy-ul automat de temă rulează din GitHub Actions prin `.github/workflows/deploy-staging.yml`.
 - Workflow-ul pornește la `push` pe `main` doar când se schimbă tema `papetarie-storefront` sau scriptul de deploy.
@@ -68,6 +78,6 @@ Pentru iterații de temă și checkout:
   - `STAGING_FTP_USER`
   - `STAGING_FTP_PASSWORD`
 
-## 8. Regula de întreținere
+## 9. Regula de întreținere
 
 - Dacă se schimbă procesul real de deploy, se actualizează acest fișier și documentația din `docs/deployment/` în aceeași iterație.
