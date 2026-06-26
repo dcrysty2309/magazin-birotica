@@ -2,6 +2,10 @@
 
 Acest document descrie procesul complet și repetabil de deploy pentru mediul de staging pe hosting cPanel.
 
+Regulile de sincronizare între `HOME-LOCAL`, `OFFICE-LOCAL` și `STAGING` sunt definite în:
+
+- [environment-sync-rules.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/environment-sync-rules.md)
+
 ## 1. Scop
 
 Acest mediu este mediul oficial de `STAGING`.

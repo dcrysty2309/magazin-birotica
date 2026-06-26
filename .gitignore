@@ -4,3 +4,6 @@ db_data
 node_modules
 build/
 database/wordpress-staging.sql
+database/exports/
+tmp/
+docs/deployment/manifests/*.md

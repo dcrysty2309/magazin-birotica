@@ -6677,21 +6677,73 @@ function papetarie_storefront_handle_return_request(): void
 }
 add_action('template_redirect', 'papetarie_storefront_handle_return_request');
 
-function papetarie_storefront_render_checkout_test_cases_route(): void
+function papetarie_storefront_is_checkout_test_cases_request(): bool
 {
     if (is_admin() || wp_doing_ajax()) {
-        return;
+        return false;
     }
 
     $request_uri = isset($_SERVER['REQUEST_URI']) ? (string) wp_unslash($_SERVER['REQUEST_URI']) : '';
     $path = trim((string) wp_parse_url($request_uri, PHP_URL_PATH), '/');
 
-    if ($path !== 'checkout-test-cases') {
+    return $path === 'checkout-test-cases';
+}
+
+function papetarie_storefront_get_checkout_test_cases_title(): string
+{
+    $page = get_page_by_path('checkout-test-cases', OBJECT, 'page');
+
+    if ($page instanceof WP_Post && $page->post_title !== '') {
+        return $page->post_title;
+    }
+
+    return __('Index cazuri de testare Checkout', 'papetarie-storefront');
+}
+
+function papetarie_storefront_filter_checkout_test_cases_document_title(array $title_parts): array
+{
+    if (!papetarie_storefront_is_checkout_test_cases_request()) {
+        return $title_parts;
+    }
+
+    $title_parts['title'] = papetarie_storefront_get_checkout_test_cases_title();
+
+    return $title_parts;
+}
+
+add_filter('document_title_parts', 'papetarie_storefront_filter_checkout_test_cases_document_title', 20);
+
+function papetarie_storefront_render_checkout_test_cases_route(): void
+{
+    if (!papetarie_storefront_is_checkout_test_cases_request()) {
         return;
     }
 
     if (!function_exists('status_header')) {
         return;
+    }
+
+    global $post, $wp_query;
+
+    $page = get_page_by_path('checkout-test-cases', OBJECT, 'page');
+
+    if ($page instanceof WP_Post) {
+        $post = $page;
+
+        if ($wp_query instanceof WP_Query) {
+            $wp_query->is_404 = false;
+            $wp_query->is_page = true;
+            $wp_query->is_singular = true;
+            $wp_query->queried_object = $page;
+            $wp_query->queried_object_id = (int) $page->ID;
+            $wp_query->post = $page;
+            $wp_query->posts = [$page];
+            $wp_query->post_count = 1;
+            $wp_query->found_posts = 1;
+            $wp_query->max_num_pages = 1;
+        }
+
+        setup_postdata($post);
     }
 
     status_header(200);

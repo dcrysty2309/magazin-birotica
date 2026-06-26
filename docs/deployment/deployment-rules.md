@@ -81,3 +81,4 @@ Pentru iterații de temă și checkout:
 ## 9. Regula de întreținere
 
 - Dacă se schimbă procesul real de deploy, se actualizează acest fișier și documentația din `docs/deployment/` în aceeași iterație.
+- Sincronizarea între `HOME-LOCAL`, `OFFICE-LOCAL` și `STAGING` urmează obligatoriu regulile din [environment-sync-rules.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/environment-sync-rules.md).
