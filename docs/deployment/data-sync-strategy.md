@@ -89,6 +89,22 @@ Regula:
 - acestea se sincronizeaza in staging atunci cand vrem paritate reala pentru QA.
 - ele nu trebuie sa rescrie configuratiile stabile de business fara acord explicit.
 
+### C1. QA data salvata direct pe staging
+
+Exemple:
+
+- comentarii salvate din `Preview` in `checkout-test-cases`;
+- statusuri de bug precum `open`, `in_progress`, `fixed`, `ignored`;
+- observatii de retestare lasate direct pe staging;
+- note QA salvate in WordPress pentru scenarii de checkout.
+
+Regula:
+
+- aceste date apartin staging-ului si trebuie pastrate acolo pana la inchiderea problemelor;
+- ele nu se suprascriu prin import de DB fara confirmare explicita;
+- daca utilizatorul cere citirea observatiilor, sursa este staging, nu local;
+- observatiile colectate din staging trebuie transformate in lista de probleme si apoi in taskuri concrete.
+
 ## 3. Ce facem in practica
 
 ### Caz 1. Modificare doar de cod
@@ -161,6 +177,14 @@ Dump-ul complet este acceptabil pentru:
 - milestone major.
 
 Dar nu este solutia standard pentru orice schimbare mica din admin.
+
+Inainte de orice import de DB peste staging trebuie verificat explicit daca exista QA data activa care trebuie pastrata:
+
+- comentarii din Preview;
+- statusuri de retestare;
+- observatii nesolutionate legate de checkout.
+
+Daca exista, importul complet se amana sau se face doar dupa backup/export al acelor date.
 
 ## 5.1. Regula de confirmare explicita
 

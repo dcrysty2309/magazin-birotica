@@ -94,3 +94,13 @@ Pentru iterații de temă și checkout:
 - Regula practica este simpla: pentru checkout, My Account si configurari WooCommerce relevante preferam paritate controlata; pentru continut comercial preferam sync selectiv, nu dump complet automat.
 - Pentru configuratiile stabile de business, staging trebuie tratat ca oglinda a live-ului, nu ca oglinda a ultimului local.
 - Daca sync-ul atinge metode de plata, metode de transport, taxe, shipping zones sau pagini WooCommerce oficiale, se cere confirmare explicita inainte de propagare.
+
+
+## 12. Regula pentru comentarii QA din staging
+
+- Comentariile salvate din `Preview` pe `checkout-test-cases` in staging sunt backlog QA activ.
+- Aceste comentarii raman pe staging pana cand problema este fixata si retestata.
+- Comentariile QA din staging nu se suprascriu prin import de DB fara confirmare explicita.
+- Inainte de orice sync de DB spre staging se verifica daca exista observatii QA active care trebuie protejate.
+- Daca utilizatorul cere citirea observatiilor, sursa oficiala este staging.
+- Observatiile citite de pe staging trebuie transformate mai intai in lista de probleme, apoi in taskuri concrete.

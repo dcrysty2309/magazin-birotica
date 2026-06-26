@@ -118,3 +118,12 @@ Reguli:
 - Nu se creează stiluri noi pentru butoane, carduri, input-uri, label-uri, mesaje de eroare sau badge-uri dacă există deja o componentă echivalentă.
 - Orice implementare nouă trebuie să refolosească clasele, spațierile și comportamentul deja stabilite în Checkout.
 - Orice excepție trebuie documentată înainte de implementare.
+
+
+## 9. Regula pentru feedback-ul QA din staging
+
+- Comentariile salvate in `Preview` pe staging sunt date QA oficiale pana la rezolvare.
+- Daca utilizatorul cere citirea comentariilor sau a observatiilor, sursa oficiala este staging.
+- Comentariile colectate de pe staging se transforma mai intai in lista de probleme, apoi in taskuri concrete de fix, polish sau retestare.
+- Aceste comentarii nu se suprascriu prin sync de DB fara confirmare explicita.
+- Deploy-ul de cod poate continua fara sa afecteze backlog-ul QA din staging, dar importurile de DB trebuie tratate separat.

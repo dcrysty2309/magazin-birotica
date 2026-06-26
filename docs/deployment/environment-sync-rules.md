@@ -388,3 +388,18 @@ Standardul oficial de acum înainte este:
 - `Staging` = adevărul pentru validarea finală
 
 Dacă un lucru nu este ori în git, ori într-un dump DB clar identificat, îl considerăm nesincronizat și nereproductibil.
+
+
+## 16. Protectia feedback-ului QA din staging
+
+Cand utilizatorul lasa comentarii direct in `checkout-test-cases` pe staging:
+
+- acele comentarii devin date QA oficiale pentru staging;
+- ele trebuie citite de pe staging atunci cand utilizatorul cere colectarea observatiilor;
+- ele se transforma in lista de probleme si apoi in taskuri concrete;
+- ele nu se suprascriu prin import de DB fara confirmare explicita.
+
+Practic:
+
+- `deploy cod` este sigur;
+- `sync complet de DB` necesita verificare daca exista backlog QA activ pe staging.

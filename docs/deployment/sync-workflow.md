@@ -227,3 +227,19 @@ Pentru metode de plata, metode de livrare, shipping zones, taxe, pagini WooComme
 - aceste schimbari nu se propaga automat din local;
 - inainte de orice sync care le atinge, utilizatorul trebuie intrebat explicit;
 - fara confirmare explicita, se urca doar codul sau fixture-urile de test.
+
+
+## 13. Regula pentru colectarea feedback-ului QA
+
+Cand utilizatorul lasa observatii direct in `checkout-test-cases` pe staging:
+
+- observatiile se considera date QA oficiale;
+- se citesc direct din staging, nu din local;
+- se colecteaza intr-o lista de probleme;
+- apoi se transforma in taskuri concrete de implementare, fix sau retestare;
+- raman pe staging pana cand sunt rezolvate si marcate corespunzator.
+
+Inainte de orice import de DB peste staging:
+
+- se verifica daca exista comentarii QA active in `Preview`;
+- daca exista, nu se face import complet fara confirmare explicita sau fara backup al acelor date.

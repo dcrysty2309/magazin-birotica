@@ -161,3 +161,22 @@ Reguli aplicate:
 - câmpurile sunt: Prenume, Nume, Email, Telefon, Județ, Localitate, Adresă, Cod poștal, Observații pentru livrare / curier;
 - nu se mai afișează un câmp separat pentru Bloc / Scară / Etaj / Apartament;
 - dacă există date legacy `address_2`, ele sunt tratate doar ca compatibilitate istorică.
+
+
+## 2026-06-26 - Comentariile QA din staging sunt backlog oficial
+
+Decizie:
+
+- Comentariile salvate in `Preview` pe staging devin backlog QA oficial pana la rezolvare.
+
+Motiv:
+
+- feedback-ul lasat direct pe staging este legat de mediul oficial de validare;
+- observatiile trebuie sa ramana vizibile pana la fix si retestare;
+- fara aceasta regula, un sync de DB poate sterge exact problemele pe care trebuie sa le rezolvam.
+
+Reguli aplicate:
+
+- cand utilizatorul cere citirea comentariilor, ele se citesc de pe staging;
+- comentariile colectate se transforma in lista de probleme si apoi in taskuri concrete;
+- comentariile QA active de pe staging nu se suprascriu prin import de DB fara confirmare explicita.
