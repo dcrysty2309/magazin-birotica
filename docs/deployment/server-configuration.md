@@ -6,7 +6,7 @@ Acest document descrie configurația minimă necesară pe server pentru staging.
 
 - tip: `STAGING`
 - hosting: `cPanel shared hosting`
-- domeniu: `memoreaza.ro`
+- domeniu: `notix.ro`
 - cPanel: `http://rs.nsh.ro/cpanel`
 - file manager: `Da`
 - FTP: `Da`
@@ -45,7 +45,7 @@ De verificat în cPanel:
 De verificat:
 
 - certificat SSL activ
-- `https://memoreaza.ro` funcțional
+- `https://notix.ro` funcțional
 - redirect HTTP -> HTTPS
 
 ### Email

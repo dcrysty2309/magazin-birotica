@@ -3,7 +3,7 @@
 ## STAGING
 
 - Environment: `STAGING`
-- Domain: `memoreaza.ro`
+- Domain: `notix.ro`
 - Hosting: `cPanel shared hosting`
 - Server/IP: `89.40.19.79`
 - cPanel: `http://rs.nsh.ro/cpanel`

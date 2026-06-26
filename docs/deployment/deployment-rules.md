@@ -39,7 +39,7 @@ Pentru iterații de temă și checkout:
 
 ## 6. Regula FTP pentru acest hosting
 
-- Contul FTP de deploy pentru `memoreaza.ro` este deja chroot-uit în `public_html`.
+- Contul FTP de deploy pentru `notix.ro` este deja chroot-uit în `public_html`.
 - Asta înseamnă că path-urile remote trebuie scrise relativ la `public_html`, nu cu prefix suplimentar `/public_html/...`.
 - Exemplu corect pentru temă:
   - `/wp-content/themes/papetarie-storefront`
