@@ -1164,6 +1164,20 @@ function papetarie_storefront_checkout_shipping_address_mode(): string
 
 function papetarie_storefront_checkout_guest_shipping_snapshot(): array
 {
+    if (
+        function_exists('is_user_logged_in')
+        && is_user_logged_in()
+        && function_exists('papetarie_storefront_address_book_checkout_has_temporary_address')
+        && papetarie_storefront_address_book_checkout_has_temporary_address()
+        && function_exists('papetarie_storefront_address_book_checkout_temporary_snapshot_is_valid')
+    ) {
+        if (papetarie_storefront_address_book_checkout_temporary_snapshot_is_valid()) {
+            return papetarie_storefront_address_book_checkout_temporary_snapshot();
+        }
+
+        return [];
+    }
+
     $raw = '';
 
     if (isset($_POST['pap_guest_shipping_snapshot'])) {
@@ -1262,6 +1276,16 @@ function papetarie_storefront_checkout_address_card_icon_svg(string $kind): stri
     return $icons[$kind] ?? $icons['location'];
 }
 
+function papetarie_storefront_checkout_address_badge_icon_svg(string $kind): string
+{
+    $icons = [
+        'check' => '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M20 7 10.5 16.5 6 12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'home' => '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M3.5 11.5 12 4l8.5 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.5V21h13V10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 21v-6h5v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    ];
+
+    return $icons[$kind] ?? $icons['check'];
+}
+
 function papetarie_storefront_get_checkout_guest_shipping_summary_html(): string
 {
     $lines = papetarie_storefront_checkout_guest_shipping_summary_lines();
@@ -1324,7 +1348,7 @@ function papetarie_storefront_get_checkout_auth_shipping_summary_html(): string
 
     ob_start();
     ?>
-    <div class="pap-checkout-address-card">
+    <div class="pap-checkout-address-card is-selected">
         <div class="pap-checkout-address-card__head">
             <div class="pap-checkout-address-card__title-copy pap-checkout-address-card__title-copy--with-icon">
                 <span class="pap-checkout-address-card__user-icon" aria-hidden="true">
@@ -1335,6 +1359,16 @@ function papetarie_storefront_get_checkout_auth_shipping_summary_html(): string
                     <p class="pap-checkout-address-card__name"><?php echo esc_html($full_name); ?></p>
                 <?php endif; ?>
             </div>
+            <?php if (!empty($lines)) : ?>
+                <div class="pap-checkout-address-card__labels pap-checkout-address-card__labels--summary" aria-hidden="true">
+                    <span class="pap-checkout-address-card__label pap-checkout-address-card__label--selected">
+                        <span class="pap-checkout-address-card__label-icon" aria-hidden="true">
+                            <?php echo papetarie_storefront_checkout_address_badge_icon_svg('check'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                        </span>
+                        <span class="pap-checkout-address-card__label-text"><?php esc_html_e('Selectată pentru livrare', 'papetarie-storefront'); ?></span>
+                    </span>
+                </div>
+            <?php endif; ?>
             <button type="button" class="pap-checkout-address-card__action" data-pap-auth-temporary-edit>
                 <?php esc_html_e('Modifică', 'papetarie-storefront'); ?>
             </button>

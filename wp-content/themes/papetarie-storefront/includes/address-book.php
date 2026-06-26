@@ -464,6 +464,11 @@ function papetarie_storefront_address_book_checkout_temporary_mode_key(): string
     return 'papetarie_checkout_temporary_address_active';
 }
 
+function papetarie_storefront_address_book_checkout_temporary_snapshot_key(): string
+{
+    return 'papetarie_checkout_temporary_address_snapshot';
+}
+
 function papetarie_storefront_address_book_checkout_has_temporary_address(): bool
 {
     $session = papetarie_storefront_address_book_session();
@@ -482,6 +487,114 @@ function papetarie_storefront_address_book_checkout_set_temporary_address(bool $
     }
 
     $session->set(papetarie_storefront_address_book_checkout_temporary_mode_key(), $is_active);
+
+    if (!$is_active) {
+        $session->set(papetarie_storefront_address_book_checkout_temporary_snapshot_key(), []);
+    }
+
+    papetarie_storefront_address_book_checkout_persist_session();
+}
+
+function papetarie_storefront_address_book_checkout_set_temporary_snapshot(array $snapshot): void
+{
+    $session = papetarie_storefront_address_book_session();
+    if (!$session) {
+        return;
+    }
+
+    $clean = [];
+    foreach ($snapshot as $key => $value) {
+        $clean[(string) $key] = sanitize_text_field((string) $value);
+    }
+
+    $session->set(papetarie_storefront_address_book_checkout_temporary_snapshot_key(), $clean);
+    papetarie_storefront_address_book_checkout_persist_session();
+}
+
+function papetarie_storefront_address_book_checkout_temporary_snapshot(): array
+{
+    $session = papetarie_storefront_address_book_session();
+    if (!$session) {
+        return [];
+    }
+
+    $snapshot = $session->get(papetarie_storefront_address_book_checkout_temporary_snapshot_key(), []);
+    return is_array($snapshot) ? $snapshot : [];
+}
+
+function papetarie_storefront_address_book_checkout_temporary_snapshot_has_content(): bool
+{
+    $snapshot = papetarie_storefront_address_book_checkout_temporary_snapshot();
+    if (empty($snapshot)) {
+        return false;
+    }
+
+    foreach ($snapshot as $value) {
+        if (trim((string) $value) !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function papetarie_storefront_address_book_checkout_temporary_snapshot_is_valid(): bool
+{
+    $snapshot = papetarie_storefront_address_book_checkout_temporary_snapshot();
+    if (empty($snapshot)) {
+        return false;
+    }
+
+    $required_keys = [
+        '#billing_first_name',
+        '#billing_last_name',
+        '#billing_phone',
+        '#billing_email',
+        '#shipping_state',
+        '#shipping_city',
+        '#shipping_address_1',
+    ];
+
+    foreach ($required_keys as $key) {
+        if (trim((string) ($snapshot[$key] ?? '')) === '') {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function papetarie_storefront_address_book_checkout_clear_temporary_state(): void
+{
+    $session = papetarie_storefront_address_book_session();
+    if (!$session) {
+        return;
+    }
+
+    $session->set(papetarie_storefront_address_book_checkout_temporary_mode_key(), false);
+    $session->set(papetarie_storefront_address_book_checkout_temporary_snapshot_key(), []);
+    papetarie_storefront_address_book_checkout_persist_session();
+}
+
+function papetarie_storefront_address_book_checkout_clear_temporary_snapshot(): void
+{
+    $session = papetarie_storefront_address_book_session();
+    if (!$session) {
+        return;
+    }
+
+    $session->set(papetarie_storefront_address_book_checkout_temporary_snapshot_key(), []);
+    papetarie_storefront_address_book_checkout_persist_session();
+}
+
+function papetarie_storefront_address_book_checkout_persist_session(): void
+{
+    $session = papetarie_storefront_address_book_session();
+    if (!$session || !method_exists($session, 'save_data')) {
+        return;
+    }
+
+    $session->save_data();
 }
 
 function papetarie_storefront_address_book_checkout_selected_address_id(string $prefix): string
@@ -503,6 +616,7 @@ function papetarie_storefront_address_book_checkout_set_selected_address_id(stri
     }
 
     $session->set(papetarie_storefront_address_book_checkout_selection_key($prefix), sanitize_text_field(trim($address_id)));
+    papetarie_storefront_address_book_checkout_persist_session();
 }
 
 function papetarie_storefront_address_book_checkout_clear_selected_address_id(string $prefix): void
@@ -513,7 +627,11 @@ function papetarie_storefront_address_book_checkout_clear_selected_address_id(st
 function papetarie_storefront_address_book_checkout_selected_address(int $user_id, string $prefix): ?array
 {
     if (papetarie_storefront_address_book_checkout_has_temporary_address()) {
-        return null;
+        if (!papetarie_storefront_address_book_checkout_temporary_snapshot_is_valid()) {
+            papetarie_storefront_address_book_checkout_clear_temporary_state();
+        } else {
+            return null;
+        }
     }
 
     $selected_id = papetarie_storefront_address_book_checkout_selected_address_id($prefix);
@@ -536,12 +654,19 @@ function papetarie_storefront_address_book_checkout_selected_address(int $user_i
 
 function papetarie_storefront_address_book_checkout_address_count(): int
 {
+    $saved_count = is_user_logged_in() ? count(papetarie_storefront_address_book_get_all(get_current_user_id())) : 0;
+
     if (papetarie_storefront_address_book_checkout_has_temporary_address()) {
-        return 1;
+        if (!papetarie_storefront_address_book_checkout_temporary_snapshot_is_valid()) {
+            papetarie_storefront_address_book_checkout_clear_temporary_state();
+            return $saved_count;
+        }
+
+        return $saved_count > 0 ? $saved_count + 1 : 1;
     }
 
     if (is_user_logged_in()) {
-        return count(papetarie_storefront_address_book_get_all(get_current_user_id()));
+        return $saved_count;
     }
 
     if (function_exists('papetarie_storefront_checkout_guest_shipping_snapshot')) {
@@ -643,8 +768,28 @@ function papetarie_storefront_address_book_checkout_field_value($value, string $
     $customer_id = get_current_user_id();
     $map = papetarie_storefront_address_book_checkout_field_map();
     $address = null;
+    $temporary_snapshot = [];
+
+    if (papetarie_storefront_address_book_checkout_has_temporary_address()) {
+        $temporary_snapshot = papetarie_storefront_address_book_checkout_temporary_snapshot();
+    }
 
     if (isset($map[$input])) {
+        if (!empty($temporary_snapshot)) {
+            $snapshot_key = '#' . $input;
+            $temporary_value = isset($temporary_snapshot[$snapshot_key]) ? trim((string) $temporary_snapshot[$snapshot_key]) : '';
+            if ($temporary_value !== '') {
+                if (($input === 'billing_state' || $input === 'shipping_state') && function_exists('papetarie_storefront_romania_counties')) {
+                    $counties = papetarie_storefront_romania_counties();
+                    if (isset($counties[strtoupper(sanitize_key($temporary_value))])) {
+                        return strtoupper(sanitize_key($temporary_value));
+                    }
+                }
+
+                return $temporary_value;
+            }
+        }
+
         $prefix = str_starts_with($input, 'shipping_') ? 'shipping' : 'billing';
         $address = papetarie_storefront_address_book_checkout_selected_address($customer_id, $prefix);
     }
@@ -1432,8 +1577,44 @@ function papetarie_storefront_handle_checkout_address_selection(): void
     $mode = isset($_POST['mode']) ? sanitize_key(wp_unslash((string) $_POST['mode'])) : '';
 
     if ($mode === 'temporary') {
+        $snapshot_payload = [];
+        if (isset($_POST['pap_auth_shipping_snapshot'])) {
+            $snapshot_payload = json_decode((string) wp_unslash($_POST['pap_auth_shipping_snapshot']), true);
+            if (!is_array($snapshot_payload)) {
+                $snapshot_payload = [];
+            }
+        } elseif (isset($_POST['pap_guest_shipping_snapshot'])) {
+            $snapshot_payload = json_decode(rawurldecode((string) wp_unslash($_POST['pap_guest_shipping_snapshot'])), true);
+            if (!is_array($snapshot_payload)) {
+                $snapshot_payload = [];
+            }
+        }
+
+        $required_keys = [
+            '#billing_first_name',
+            '#billing_last_name',
+            '#billing_phone',
+            '#billing_email',
+            '#shipping_state',
+            '#shipping_city',
+            '#shipping_address_1',
+        ];
+        $has_snapshot_value = true;
+        foreach ($required_keys as $required_key) {
+            if (trim((string) ($snapshot_payload[$required_key] ?? '')) === '') {
+                $has_snapshot_value = false;
+                break;
+            }
+        }
+
+        if (!$has_snapshot_value) {
+            papetarie_storefront_address_book_checkout_clear_temporary_state();
+            wp_send_json_error(['message' => __('Adresa nu a putut fi salvată. Verifică datele și încearcă din nou.', 'papetarie-storefront')], 400);
+        }
+
         papetarie_storefront_address_book_checkout_clear_selected_address_id('shipping');
         papetarie_storefront_address_book_checkout_clear_selected_address_id('billing');
+        papetarie_storefront_address_book_checkout_set_temporary_snapshot($snapshot_payload);
         papetarie_storefront_address_book_checkout_set_temporary_address(true);
 
         wp_send_json_success([
@@ -1450,6 +1631,7 @@ function papetarie_storefront_handle_checkout_address_selection(): void
     papetarie_storefront_address_book_checkout_set_selected_address_id('shipping', $address_id);
     papetarie_storefront_address_book_checkout_set_selected_address_id('billing', $address_id);
     papetarie_storefront_address_book_checkout_set_temporary_address(false);
+    papetarie_storefront_address_book_checkout_clear_temporary_snapshot();
 
     wp_send_json_success([
         'selected_address_id' => $address_id,
