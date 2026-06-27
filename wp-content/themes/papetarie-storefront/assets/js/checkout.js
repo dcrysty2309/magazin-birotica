@@ -18,6 +18,8 @@
     authAddressSave: '[data-pap-auth-address-save]',
     authTemporaryEdit: '[data-pap-auth-temporary-edit]',
     authAddressNotice: '[data-pap-auth-address-notice]',
+    authAddressNoticeCopy: '[data-pap-auth-address-notice-copy]',
+    authShippingActions: '[data-pap-auth-shipping-actions]',
     addressModal: '[data-checkout-address-modal]',
     addressModalPanel: '[data-checkout-address-modal-panel]',
     addressModalOpen: '[data-checkout-address-modal-open]',
@@ -725,6 +727,20 @@
     return guestShippingSummaryCache;
   };
 
+  const captureAuthShippingSnapshot = () => ({
+    '#billing_first_name': getGuestShippingFieldValue('#billing_first_name'),
+    '#billing_last_name': getGuestShippingFieldValue('#billing_last_name'),
+    '#billing_phone': getGuestShippingFieldValue('#billing_phone'),
+    '#billing_email': getGuestShippingFieldValue('#billing_email'),
+    '#billing_country': getGuestShippingFieldValue('#billing_country'),
+    '#shipping_country': getGuestShippingFieldValue('#shipping_country'),
+    '#shipping_address_1': getGuestShippingFieldValue('#shipping_address_1'),
+    '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
+    '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
+    '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
+    '#order_comments': getGuestShippingFieldValue('#order_comments'),
+  });
+
   const setSelectFieldByLabel = ($field, label) => {
     if (!$field.length) {
       return;
@@ -1059,8 +1075,23 @@
       return;
     }
 
-    $notice.text(message);
-    setVisibilityState($notice, Boolean(message), 'block');
+    const $copy = $notice.find(selectors.authAddressNoticeCopy).first();
+    if ($copy.length) {
+      $copy.text(message);
+    } else {
+      $notice.text(message);
+    }
+
+    setVisibilityState($notice, Boolean(message), 'flex');
+
+    if (message) {
+      window.requestAnimationFrame(() => {
+        const element = $notice.get(0);
+        if (element && typeof element.scrollIntoView === 'function') {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
   };
 
   const setAuthShippingBusy = (isBusy) => {
@@ -1073,6 +1104,45 @@
 
     $shipping.toggleClass('is-loading', authShippingBusy);
     $shipping.attr('aria-busy', authShippingBusy ? 'true' : 'false');
+  };
+
+  const syncAuthShippingActionWidths = () => {
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
+      return;
+    }
+
+    const $actions = $shipping.find(selectors.authShippingActions).first();
+    if (!$actions.length) {
+      return;
+    }
+
+    if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+      $actions.css('--pap-auth-shipping-action-width', '');
+      return;
+    }
+
+    const $buttons = $actions.find('.pap-checkout-action').filter(':visible');
+    if ($buttons.length < 2) {
+      $actions.css('--pap-auth-shipping-action-width', '');
+      return;
+    }
+
+    let maxWidth = 0;
+    $buttons.each(function () {
+      const previousWidth = this.style.width;
+      const previousMinWidth = this.style.minWidth;
+      this.style.width = 'auto';
+      this.style.minWidth = '0';
+      const width = Math.ceil(this.getBoundingClientRect().width);
+      maxWidth = Math.max(maxWidth, width);
+      this.style.width = previousWidth;
+      this.style.minWidth = previousMinWidth;
+    });
+
+    if (maxWidth > 0) {
+      $actions.css('--pap-auth-shipping-action-width', `${maxWidth}px`);
+    }
   };
 
   const applyAuthAddressToForm = (address) => {
@@ -1126,12 +1196,21 @@
     const $action = $summary.find('.pap-checkout-address-card__action').first();
 
     if (!lines.length) {
+      authTemporarySummaryVisible = false;
       if ($body.length) {
         $body.remove();
       }
       if ($empty.length) {
         $empty.find('strong').first().text('Nu ai completat încă această adresă.');
         $empty.find('p').first().text('Deschide formularul ca sa completezi datele necesare pentru comanda.');
+      }
+      if (Object.keys(savedAddressesById || {}).length > 0) {
+        setAuthShippingFormVisible(false);
+      } else {
+        setAuthShippingFormVisible(true, {
+          clear: false,
+          mode: 'new',
+        });
       }
       return;
     }
@@ -1207,7 +1286,7 @@
     const hasAddresses = getAuthAddressCount() > 0;
     const shouldClear = options.clear === true;
     const showSummary = !visible && authTemporarySummaryVisible;
-    const showList = !visible && !showSummary && hasAddresses;
+    const showList = !visible && hasAddresses;
 
     if (visible) {
       authAddressFormMode = options.mode || 'new';
@@ -1229,6 +1308,8 @@
     if (showSummary) {
       syncAuthShippingSummary();
     }
+
+    syncAuthShippingActionWidths();
   };
 
   const renderAuthAddressCard = (address, email, isSelected = true) => {
@@ -1243,12 +1324,11 @@
       stateLabel,
       address.postcode,
     ].filter(Boolean).join(', ');
-    const isDefault = Boolean(address.is_default);
     const hasMultipleAddresses = getAuthAddressCount() > 1;
 
     const $option = $('<button>', {
       type: 'button',
-      class: `pap-checkout-address-option${isSelected && hasMultipleAddresses ? ' is-selected' : ''}${isDefault ? ' is-default' : ''}${hasMultipleAddresses ? ' is-selectable' : ' is-static'}`,
+      class: `pap-checkout-address-option${isSelected && hasMultipleAddresses ? ' is-selected' : ''}${hasMultipleAddresses ? ' is-selectable' : ' is-static'}`,
       'data-pap-auth-address-option': '',
       'data-checkout-address-selector': '',
       'data-checkout-address-prefix': 'shipping',
@@ -1274,10 +1354,6 @@
       $('<span>', {
         class: 'pap-checkout-address-card__label pap-checkout-address-card__label--selected',
         text: 'Selectată pentru livrare',
-      }).appendTo($labels);
-      $('<span>', {
-        class: 'pap-checkout-address-card__label pap-checkout-address-card__label--default',
-        text: 'Adresa implicită din cont',
       }).appendTo($labels);
     }
 
@@ -1337,6 +1413,7 @@
     const shouldUpdateCheckout = options.updateCheckout !== false;
 
     authTemporarySummaryVisible = false;
+    setAuthAddressNotice('');
     syncSelectedAddressCardState(addressId);
     applyAuthAddressToForm(address);
 
@@ -1845,11 +1922,13 @@
       $button.prop('disabled', true).attr('aria-busy', 'true');
       setAuthShippingBusy(true);
       setAuthAddressNotice('');
+      const authShippingSnapshot = captureAuthShippingSnapshot();
 
       $.post(checkoutData.ajaxUrl, {
         action: checkoutData.selectAddressAction || 'papetarie_storefront_checkout_select_address',
         nonce: checkoutData.selectAddressNonce,
         mode: 'temporary',
+        pap_auth_shipping_snapshot: JSON.stringify(authShippingSnapshot),
       })
         .done((response) => {
           if (!response || !response.success) {
@@ -1859,6 +1938,7 @@
           }
 
           authTemporarySummaryVisible = true;
+          setAuthAddressNotice('');
           setAuthShippingFormVisible(false);
           setAuthShippingBusy(false);
           $(document.body).trigger('update_checkout');
@@ -1935,6 +2015,7 @@
     syncDependentCitySelect('#billing_state');
     syncDependentCitySelect('#shipping_state');
     syncProductsLists();
+    syncAuthShippingActionWidths();
     debugCheckout('syncCheckoutState end');
 
   };
@@ -1944,6 +2025,9 @@
     $(document.body).on('updated_checkout', syncCheckoutState);
     $(document.body).on('checkout_error', () => {
       setAuthShippingBusy(false);
+    });
+    $(window).on('resize', () => {
+      syncAuthShippingActionWidths();
     });
     $(bindFieldValidation);
     $(syncCheckoutState);

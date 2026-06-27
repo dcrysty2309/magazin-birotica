@@ -52,7 +52,6 @@ Folosește acest template pentru fiecare sincronizare importantă între:
 - [ ] guest checkout
 - [ ] logged-in no address
 - [ ] logged-in one address
-- [ ] logged-in multiple addresses
 - [ ] shipping method
 - [ ] billing step
 - [ ] payment step

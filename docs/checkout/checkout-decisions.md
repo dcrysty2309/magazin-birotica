@@ -1,10 +1,10 @@
 # Checkout Decisions
 
-## 2026-06-25 - Pasul 1 pentru user logat
+## 2026-06-27 - Pasul 1 simplificat pentru versiunea 1
 
 Decizie:
 
-- Checkout-ul nu mai editează adresele salvate în cont.
+- Checkout-ul v1 nu mai folosește multiple saved addresses.
 
 Motiv:
 
@@ -14,22 +14,23 @@ Motiv:
 
 Ce rămâne în checkout:
 
-- selecția unei adrese salvate;
-- adăugarea unei adrese temporare pentru comanda curentă;
-- summary card pentru adresa temporară.
+- formularul de adresă completat de la zero pentru guest;
+- formularul precompletat din adresa standard WooCommerce pentru user logat;
+- editarea datelor pentru comanda curentă;
+- checkbox opțional pentru salvarea adresei în My Account.
 
 Ce rămâne în My Account:
 
-- creare adresă salvată;
-- editare adresă salvată;
-- ștergere adresă salvată;
-- alegere adresă implicită.
+- adresa standard WooCommerce de facturare;
+- adresa standard WooCommerce de livrare;
+- editare din pagina Contul meu → Adrese.
 
 Impact tehnic:
 
-- checkout nu mai apelează handler-ul generic de address book pentru editare/salvare în cont;
-- checkout nu mai actualizează user meta pentru adrese din My Account;
-- selecția adresei salvate și adresa temporară actualizează doar sesiunea WooCommerce folosită pentru comandă.
+- checkout nu mai citește listă de adrese multiple în UI;
+- checkout actualizează WooCommerce session pentru comanda curentă;
+- user meta se actualizează doar când checkbox-ul de salvare este bifat explicit;
+- handler-ele legacy de address book rămân doar pentru compatibilitate istorică și nu sunt rulate în UI-ul curent.
 
 ## 2026-06-25 - Sistemul de butoane din checkout
 
@@ -88,7 +89,7 @@ Reguli aplicate:
 
 Decizie:
 
-- Guest-ul are o singură adresă activă în checkout și nu primește Address Book.
+- Guest-ul completează adresa de la zero și nu primește Address Book.
 
 Motiv:
 
@@ -103,11 +104,11 @@ Reguli aplicate:
 - nu există buton `Adaugă adresă nouă` pentru guest;
 - adresele guest rămân strict în sesiunea curentă de checkout.
 
-## 2026-06-25 - Address Selection Rules
+## 2026-06-27 - Address Selection Rules
 
 Decizie:
 
-- UI-ul adreselor din Pasul 1 depinde de numărul de adrese disponibile în checkout.
+- UI-ul adreselor din Pasul 1 nu mai depinde de un address book multiplu; checkout-ul folosește o singură adresă curentă.
 
 Motiv:
 
@@ -117,14 +118,11 @@ Motiv:
 
 Reguli aplicate:
 
-- 0 adrese: formular deschis;
-- 1 adresă: card neutru, fără label de selecție;
-- 2+ adrese: listă de carduri, cu o singură adresă selectată;
-- border-ul de selecție apare doar când există minimum 2 adrese;
-- label-ul principal este `Selectată pentru livrare`;
-- dacă adresa selectată este și adresa implicită din cont, apare și label-ul `Adresa implicită din cont`;
-- nu se folosesc checkbox-uri, radio button-uri sau iconuri pentru selecție;
-- selecția schimbată în checkout actualizează sesiunea WooCommerce și adresa folosită în comandă.
+- checkout v1 folosește o singură adresă activă;
+- nu există selecție între mai multe carduri în UI-ul curent;
+- nu se folosește badge-ul `Adresa implicită din cont`;
+- modificările din checkout afectează doar comanda curentă, iar salvarea în cont este explicită prin checkbox;
+- summary card-ul trebuie să reflecte exact datele care ajung în comandă.
 
 ## 2026-06-25 - Address Form Field Order
 

@@ -761,20 +761,12 @@ function papetarie_storefront_address_book_checkout_field_map(): array
 
 function papetarie_storefront_address_book_checkout_field_value($value, string $input)
 {
-    if (!function_exists('is_checkout') || !is_checkout() || !is_user_logged_in()) {
+    if (!function_exists('is_checkout') || !is_checkout()) {
         return $value;
     }
 
-    $customer_id = get_current_user_id();
-    $map = papetarie_storefront_address_book_checkout_field_map();
-    $address = null;
-    $temporary_snapshot = [];
-
     if (papetarie_storefront_address_book_checkout_has_temporary_address()) {
         $temporary_snapshot = papetarie_storefront_address_book_checkout_temporary_snapshot();
-    }
-
-    if (isset($map[$input])) {
         if (!empty($temporary_snapshot)) {
             $snapshot_key = '#' . $input;
             $temporary_value = isset($temporary_snapshot[$snapshot_key]) ? trim((string) $temporary_snapshot[$snapshot_key]) : '';
@@ -789,49 +781,9 @@ function papetarie_storefront_address_book_checkout_field_value($value, string $
                 return $temporary_value;
             }
         }
-
-        $prefix = str_starts_with($input, 'shipping_') ? 'shipping' : 'billing';
-        $address = papetarie_storefront_address_book_checkout_selected_address($customer_id, $prefix);
     }
 
-    if (!$address) {
-        return $value;
-    }
-
-    if (!isset($map[$input])) {
-        return $value;
-    }
-
-    $current_value = is_string($value) ? trim($value) : $value;
-    $field_key = $map[$input];
-    $address_value = trim((string) ($address[$field_key] ?? ''));
-
-    if ($address_value === '') {
-        if ($input === 'billing_phone' || $input === 'shipping_phone') {
-            $address_value = trim((string) get_user_meta($customer_id, 'billing_phone', true));
-        }
-    }
-
-    if ($address_value === '' && ($input === 'billing_email' || $input === 'shipping_email')) {
-        $address_value = papetarie_storefront_address_book_checkout_email($customer_id);
-    }
-
-    if ($address_value === '') {
-        return $value;
-    }
-
-    $country_options = function_exists('papetarie_storefront_country_options') ? papetarie_storefront_country_options() : [];
-    $counties = function_exists('papetarie_storefront_romania_counties') ? papetarie_storefront_romania_counties() : [];
-
-    if (($input === 'billing_country' || $input === 'shipping_country') && isset($country_options[$current_value])) {
-        return $address_value;
-    }
-
-    if (($input === 'billing_state' || $input === 'shipping_state') && isset($counties[$address_value])) {
-        return $address_value;
-    }
-
-    return $address_value;
+    return $value;
 }
 add_filter('woocommerce_checkout_get_value', 'papetarie_storefront_address_book_checkout_field_value', 20, 2);
 
@@ -1699,38 +1651,8 @@ add_action('wp_ajax_papetarie_storefront_address_book', 'papetarie_storefront_ha
 
 function papetarie_storefront_enqueue_address_book_script(): void
 {
-    if (!function_exists('is_account_page') || !is_account_page() || !is_wc_endpoint_url('edit-address')) {
-        return;
-    }
-
-    $script_path = get_stylesheet_directory() . '/assets/js/address-book.js';
-    $script_version = file_exists($script_path) ? (string) filemtime($script_path) : wp_get_theme()->get('Version');
-
-    wp_enqueue_script(
-        'papetarie-storefront-address-book',
-        get_stylesheet_directory_uri() . '/assets/js/address-book.js',
-        ['jquery'],
-        $script_version,
-        true
-    );
-
-    wp_localize_script(
-        'papetarie-storefront-address-book',
-        'papAddressBookData',
-        [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'ajaxAction' => 'papetarie_storefront_address_book',
-            'ajaxNonce' => wp_create_nonce('pap_address_book_save'),
-            'citiesByCounty' => function_exists('papetarie_storefront_romania_cities_by_county') ? papetarie_storefront_romania_cities_by_county() : [],
-            'cityPlaceholder' => __('Alege localitatea', 'papetarie-storefront'),
-            'countyFirstPlaceholder' => __('Alege județul întâi', 'papetarie-storefront'),
-            'deleteConfirm' => __('Sigur vrei să ștergi această adresă?', 'papetarie-storefront'),
-            'currentMode' => papetarie_storefront_address_book_current_mode(),
-            'currentAddressId' => papetarie_storefront_address_book_current_id(),
-        ]
-    );
+    return;
 }
-add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_address_book_script', 25);
 
 function papetarie_storefront_render_account_addresses_page(): void
 {

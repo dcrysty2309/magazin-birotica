@@ -48,6 +48,7 @@ $cases = [
             'Apar erori doar după submit.',
             'Toate câmpurile obligatorii sunt marcate invalid.',
             'Focusul merge pe primul câmp invalid.',
+            'Orice mesaj de salvare / validare apare în partea de sus a formularului, nu sub acțiuni.',
         ],
         'user_test' => [
             'User: Guest',
@@ -72,6 +73,7 @@ $cases = [
         'expected' => [
             'Formularul dispare complet.',
             'Apare summary card-ul.',
+            'Nu există badge de selecție.',
             'Butonul "Modifică" este vizibil.',
             'Pasul 2 devine activ.',
         ],
@@ -109,20 +111,20 @@ $cases = [
     ],
     [
         'id' => '4.1',
-        'scenario' => 'User logat - o adresă',
+        'scenario' => 'User logat - adresă salvată precompletată',
         'user_type' => 'User logat',
         'addresses' => '1',
         'reproduce' => [
             'Autentifică-te cu `checkout.oneaddress@test.local`.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'Verifică primul card disponibil.',
+            'Verifică faptul că formularul este precompletat cu adresa din cont.',
         ],
         'expected' => [
-            'Apare un singur card neutru.',
-            'Nu există label de selecție.',
-            'Nu există border de selecție.',
-            'Poate exista "Adaugă adresă nouă" dacă logica o permite.',
+            'Apare formularul precompletat cu datele din cont.',
+            'Nu există listă de adrese multiple.',
+            'Nu există badge de selecție.',
+            'Modificările nu suprascriu contul decât dacă userul bifează salvarea.',
         ],
         'user_test' => [
             'User: checkout.oneaddress@test.local',
@@ -133,24 +135,22 @@ $cases = [
     ],
     [
         'id' => '4.2',
-        'scenario' => 'User logat - două adrese',
+        'scenario' => 'User logat - fără adresă salvată',
         'user_type' => 'User logat',
-        'addresses' => '2+',
+        'addresses' => '0',
         'reproduce' => [
-            'Autentifică-te cu `checkout.multiaddress@test.local`.',
+            'Autentifică-te cu un cont de test fără adresă salvată.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'Verifică lista de adrese.',
-            'Schimbă selecția pe alt card.',
+            'Verifică faptul că formularul este gol și complet editabil.',
         ],
         'expected' => [
-            'Cardul activ are border selectat.',
-            'Apare labelul "Selectată pentru livrare".',
-            'Dacă adresa activă este implicită în cont, apare și "Adresa implicită din cont".',
-            'Click pe alt card mută selecția instant.',
+            'Checkout afișează formularul gol.',
+            'Poate apărea checkbox-ul pentru salvarea adresei pentru viitor.',
+            'Nu există selecție implicită sau listă de adrese.',
         ],
         'user_test' => [
-            'User: checkout.multiaddress@test.local',
+            'User: checkout.oneaddress@test.local',
             'Parolă: Steauab23.',
             'Login state: logat',
         ],
@@ -158,24 +158,46 @@ $cases = [
     ],
     [
         'id' => '4.3',
-        'scenario' => 'User logat - o adresă în My Account, adaugă adresă nouă în Checkout',
+        'scenario' => 'User logat - editează fără salvare',
         'user_type' => 'User logat',
         'addresses' => '1',
         'reproduce' => [
             'Autentifică-te cu `checkout.oneaddress@test.local`.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'În Pasul 1, apasă `Adaugă adresă nouă`.',
-            'Completează o adresă nouă și salveaz-o pentru comanda curentă.',
-            'Verifică faptul că noua adresă devine cardul selectat.',
+            'Schimbă câteva câmpuri din adresă.',
+            'Nu bifa salvarea pentru comenzile viitoare.',
+            'Continuă checkout-ul și verifică datele de pe comandă.',
         ],
         'expected' => [
-            'Noua adresă apare ca al doilea card în checkout.',
-            'Noua adresă devine selectată pentru livrare.',
-            'Noua adresă este folosită pentru comanda curentă.',
-            'Noua adresă nu se salvează în My Account.',
-            'După refresh, dacă sesiunea checkout este activă, adresa temporară rămâne disponibilă.',
+            'Comanda folosește valorile editate.',
             'My Account rămâne neschimbat.',
+            'Nu se salvează adresa în cont.',
+        ],
+        'user_test' => [
+            'User: checkout.oneaddress@test.local',
+            'Parolă: Steauab23.',
+            'Login state: logat',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => '4.4',
+        'scenario' => 'User logat - salvează adresa pentru viitor',
+        'user_type' => 'User logat',
+        'addresses' => '1',
+        'reproduce' => [
+            'Autentifică-te cu `checkout.oneaddress@test.local`.',
+            'Adaugă un produs în coș.',
+            'Deschide pagina `/checkout/`.',
+            'Schimbă câteva câmpuri din adresă.',
+            'Bifează salvarea pentru comenzile viitoare.',
+            'Continuă checkout-ul.',
+        ],
+        'expected' => [
+            'My Account este actualizat cu noile date.',
+            'Adresa de pe comandă rămâne corectă.',
+            'Checkbox-ul de salvare nu afectează plata sau transportul.',
         ],
         'user_test' => [
             'User: checkout.oneaddress@test.local',
@@ -186,18 +208,20 @@ $cases = [
     ],
     [
         'id' => '5.1',
-        'scenario' => 'User logat - fără adresă',
+        'scenario' => 'User logat - refresh după salvare',
         'user_type' => 'User logat',
-        'addresses' => '0',
+        'addresses' => '1',
         'reproduce' => [
-            'Autentifică-te cu `checkout.noaddress@test.local`.',
+            'Autentifică-te cu `checkout.oneaddress@test.local`.',
             'Adaugă un produs în coș.',
-            'Deschide pagina `/checkout/` fără adresă salvată.',
+            'Deschide pagina `/checkout/`.',
+            'Salvează o adresă pentru comanda curentă.',
+            'Dă refresh paginii fără să schimbi sesiunea de checkout.',
         ],
         'expected' => [
-            'Se afișează formularul complet, identic cu guest.',
-            'După salvare apare summary card.',
-            'Nu se modifică automat My Account.',
+            'Checkout păstrează adresa temporară până la ieșirea din sesiune.',
+            'Summary-ul rămâne coerent după refresh.',
+            'My Account rămâne neschimbat dacă salvarea nu a fost bifată.',
         ],
         'user_test' => [
             'User: checkout.noaddress@test.local',
@@ -222,7 +246,7 @@ function pap_checkout_cases_join_lines(array $lines): string
   <section class="pap-shell pap-checkout-cases-header">
     <div class="pap-checkout-cases-header__copy">
       <h4><?php esc_html_e('Teste Checkout — Pasul 1: Adresa de livrare', 'papetarie-storefront'); ?></h4>
-      <p class="pap-checkout-cases-lead"><?php esc_html_e('Scenarii pentru guest și user logat: formular, summary card, selecție adresă și persistență în sesiune.', 'papetarie-storefront'); ?></p>
+      <p class="pap-checkout-cases-lead"><?php esc_html_e('Scenarii pentru guest și user logat: formular, summary card și persistență în sesiune.', 'papetarie-storefront'); ?></p>
     </div>
   </section>
 
@@ -428,6 +452,17 @@ window.papCheckoutCaseCommentEndpoint = <?php echo wp_json_encode(admin_url('adm
     }
 
     return String(value).replace(/"/g, '\\"');
+  };
+
+  const parseCaseLines = (value) => (value || '')
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const getCaseLineValue = (lines, prefix) => {
+    const normalizedPrefix = String(prefix || '').toLowerCase();
+    const match = (lines || []).find((line) => line.toLowerCase().startsWith(normalizedPrefix));
+    return match ? match.slice(prefix.length).trim() : '';
   };
 
   const formatTimestamp = (value) => {
@@ -668,23 +703,26 @@ window.papCheckoutCaseCommentEndpoint = <?php echo wp_json_encode(admin_url('adm
       return;
     }
 
-    const lines = (value || '').split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    const lines = parseCaseLines(value);
     if (!lines.length) {
       target.innerHTML = '<li><?php echo esc_js(__('Nu sunt disponibile date pentru acest câmp.', 'papetarie-storefront')); ?></li>';
       return;
     }
 
-    target.innerHTML = lines.map((line) => `<li>${line}</li>`).join('');
+    target.innerHTML = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join('');
   };
 
   const openPreview = (button) => {
     const isGuest = (button.dataset.caseUserType || '').toLowerCase() === 'guest';
+    const caseUserLines = parseCaseLines(button.dataset.caseUser || '');
+    const caseUser = getCaseLineValue(caseUserLines, 'User:') || caseUserLines[0] || '';
+    const casePassword = getCaseLineValue(caseUserLines, 'Parolă:');
     activeCaseId = button.dataset.caseId || '';
 
     fields.userType.textContent = button.dataset.caseUserType || '';
     fields.user.innerHTML = isGuest
       ? '<li><strong><?php echo esc_js(__('User:', 'papetarie-storefront')); ?></strong> Guest</li><li><strong><?php echo esc_js(__('Parolă:', 'papetarie-storefront')); ?></strong> Nu se aplică</li><li><strong><?php echo esc_js(__('Notă:', 'papetarie-storefront')); ?></strong> testează delogat sau în incognito</li>'
-      : '<li><strong><?php echo esc_js(__('User:', 'papetarie-storefront')); ?></strong> ' + (button.dataset.caseUser?.split('\n')[0]?.replace('User: ', '') || '') + '</li><li><strong><?php echo esc_js(__('Parolă:', 'papetarie-storefront')); ?></strong> Steauab23.</li>';
+      : '<li><strong><?php echo esc_js(__('User:', 'papetarie-storefront')); ?></strong> ' + escapeHtml(caseUser) + '</li><li><strong><?php echo esc_js(__('Parolă:', 'papetarie-storefront')); ?></strong> ' + escapeHtml(casePassword || '<?php echo esc_js(__('Nu se aplică', 'papetarie-storefront')); ?>') + '</li>';
     renderList(fields.reproduce, button.dataset.caseReproduce);
     renderList(fields.expected, button.dataset.caseExpected);
     renderCommentHistory(activeCaseId);

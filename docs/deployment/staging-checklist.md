@@ -20,12 +20,18 @@ Scop:
 - comentariile devin lista oficială de bug-uri pentru cazul respectiv;
 - după fiecare rundă de fix, se retestează scenariile afectate;
 - dacă datele de test sunt modificate, se rulează resetul de date înainte de următorul ciclu.
+- înainte de a marca taskul ca finalizat, verificăm că staging este curat, coerent și testabil;
+- dacă deploymentul a afectat conturi de test, acestea trebuie readuse la stare cunoscută;
+- dacă deploymentul a afectat adrese, comenzi sau alte fixture-uri, acestea trebuie recreatate sau resetate;
+- documentația trebuie actualizată dacă s-au schimbat conturi, parole, adrese sau note QA;
+- comentariile QA active din staging trebuie păstrate și tratate ca backlog oficial.
 
 ## Reguli de lansare
 
 - nu se lansează un nou deploy pe staging până când scenariile relevante nu au trecut pe mediul curent;
 - nu se tratează staging ca mediu de producție;
 - staging trebuie să folosească aceleași conturi de test ca local.
+- staging trebuie să rămână fără debug temporar, fixture-uri invalide sau date de test nealiniate înainte de o nouă rundă QA.
 
 ## 1. Homepage
 
@@ -113,6 +119,7 @@ Pentru fiecare:
 - summary/list update imediat
 - persistă după refresh
 - aceeași adresă ajunge în sesiunea WooCommerce
+- dacă testul modifică adrese, comenzi sau date de checkout, verifică resetul înainte de următorul ciclu.
 
 ## 10. Livrare
 

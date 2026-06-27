@@ -207,69 +207,56 @@ Datele completate la firma pot ramane temporar in state, dar nu trebuie trimise 
 
 ---
 
-# 4. User autentificat cu adresa salvata
+# 4. User autentificat cu adresa standard
 
 ## 4.1. Tab: Adresa de livrare
 
 ### Cand
-Userul este logat si are cel putin o adresa salvata.
+Userul este logat si are date standard WooCommerce pentru livrare.
 
 ### Atunci
-Tabul "Adresa de livrare" trebuie sa afiseze un singur card neutru daca exista o singura adresa sau o lista de carduri daca exista 2+ adrese.
+Tabul "Adresa de livrare" trebuie sa afiseze formularul precompletat.
 
 ### Continut
-- 1 adresă: card neutru, fara label de selectie.
-- 2+ adrese: lista de carduri cu o singura adresa selectata.
-- Label principal: "Selectata pentru livrare" doar la 2+ adrese.
-- Label secundar: "Adresa implicita din cont" pentru adresa implicita, doar la 2+ adrese.
 - Nume complet
 - Adresa completa
 - Judet + localitate
 - Cod postal
 - Telefon
 - Email
-- Buton/link: "Adauga adresa noua" doar daca exista cel putin o adresa in checkout si utilizatorul este logat.
+- Checkbox optional: "Salveaza aceasta adresa pentru comenzile viitoare"
+
+### Observatie
+Nu exista lista de adrese multiple, nu exista badge-uri de selectie si nu exista buton "Adauga adresa noua".
 
 ---
 
-## 4.2. Selectare alta adresa
+## 4.2. Editare pentru comanda curenta
 
 ### Cand
-Userul apasa "Modifica".
+Userul modifica unul sau mai multe campuri din formular.
 
 ### Atunci
-Trebuie afisata lista de adrese salvate plus optiunea de a adauga una noua.
+Modificarile se aplica doar comenzii curente.
 
 ### Comportament
-- Userul poate selecta o adresa existenta.
-- Userul poate edita o adresa existenta.
-- Userul poate adauga o adresa noua pentru comanda curenta.
-- Schimbarea selectiei actualizeaza sesiunea WooCommerce, shipping fields si recalcularea transportului.
-- Formularul folosit in modalul My Account pentru adrese trebuie sa aiba aceleasi campuri ca formularul de checkout: Prenume, Nume, Email, Telefon, Judet, Localitate, Adresa, Cod postal, Observatii pentru livrare / curier.
-- Câmpul separat Bloc / Scară / Etaj / Apartament nu mai trebuie expus ca input separat; detaliile se pun în Adresă sau în Observații.
+- Userul poate edita orice camp relevant pentru comanda curenta.
+- Checkbox-ul de salvare decide daca modificarile se scriu si in My Account.
+- Schimbarea datelor actualizeaza checkout session si summary-ul.
+- Formularul de checkout si My Account trebuie sa ramana compatibile cu aceleasi campuri standard.
 
 ---
 
-## 4.3. Adresa noua adaugata in checkout
+## 4.3. Salvare explicita in My Account
 
 ### Cand
-Userul logat are deja o adresa salvata in My Account si adauga o adresa noua din checkout.
+Userul bifeaza checkbox-ul de salvare si continua checkout-ul.
 
 ### Atunci
-- noua adresa apare ca al doilea card in checkout;
-- noua adresa devine selectata pentru livrare;
-- noua adresa este folosita pentru comanda curenta;
-- noua adresa nu se salveaza automat in My Account;
-- dupa refresh, daca sesiunea checkout este activa, adresa temporara ramane disponibila;
-- My Account ramane neschimbat.
-- Adresa adaugata in checkout trebuie sa reuseasca acelasi set de campuri ca My Account, fara bloc/scara/etaj/apartament separat.
+Datele sunt salvate si in My Account pentru utilizari viitoare.
 
-### Reproducere rapida
-- autentifica-te cu `checkout.oneaddress@test.local`;
-- adauga un produs in cos;
-- deschide `/checkout/`;
-- apasa `Adauga adresa noua`;
-- completeaza si salveaza adresa noua.
+### Regula
+Salvarea permanenta se face doar daca checkbox-ul este bifat explicit.
 
 ---
 
@@ -278,29 +265,16 @@ Userul logat are deja o adresa salvata in My Account si adauga o adresa noua din
 ## 5.1. Tab: Adresa de livrare
 
 ### Cand
-Userul este logat, dar nu are adrese salvate.
+Userul este logat, dar nu are adrese standard completate.
 
 ### Atunci
 Se afiseaza acelasi formular ca la guest checkout.
 
-### Diferenta
-Dupa salvare, adresa poate fi salvata in contul userului, daca exista functionalitatea aferenta.
-
 ### Optiune
-- Checkbox: "Salveaza aceasta adresa in contul meu"
+- Checkbox: "Salveaza aceasta adresa pentru comenzile viitoare"
 
-## 5.2. Verificare selectie adrese
-
-### Cand
-Userul logat are 2+ adrese salvate.
-
-### Atunci
-- cardul selectat are border discret;
-- label-ul "Selectata pentru livrare" apare doar pe cardul activ;
-- daca adresa activa este si adresa implicita din cont, apare si label-ul "Adresa implicita din cont";
-- celelalte carduri raman neutre;
-- click pe alt card muta imediat selectia;
-- selectionarea actualizeaza checkout session si summary-ul.
+### Observatie
+Nu exista lista de adrese multiple si nu exista badge-uri de selectie.
 
 ---
 
@@ -364,13 +338,11 @@ Observatiile pentru livrare / curier se trateaza la fel ca restul datelor de adr
 - [ ] Observatiile pentru livrare / curier pot fi completate si se pastreaza la redeschidere.
 
 ## User logat
-- [ ] User logat cu adresa salvata vede rezumatul adresei.
-- [ ] User logat poate schimba adresa.
-- [ ] User logat poate adauga o adresa noua pentru comanda curenta.
-- [ ] User logat cu o adresa in My Account poate adauga o adresa noua in checkout si aceasta devine selectata.
+- [ ] User logat cu adresa standard vede formularul completat.
+- [ ] User logat poate modifica datele pentru comanda curenta.
+- [ ] User logat poate salva adresa in My Account doar daca bifeaza checkbox-ul.
 - [ ] User logat fara adresa salvata vede formularul complet.
-- [ ] User logat poate salva adresa noua in cont, daca este permis.
-- [ ] User logat cu mai multe adrese vede lista de carduri si selectia corecta.
+- [ ] Nu exista lista de adrese multiple in checkout-ul v1.
 
 ## Facturare
 - [ ] Facturare PF foloseste adresa de livrare cand checkbox-ul este bifat.
@@ -389,5 +361,5 @@ Observatiile pentru livrare / curier se trateaza la fel ca restul datelor de adr
   - Observatii pentru livrare / curier: "Acces prin spatele cladirii."
 - checkout.oneaddress@test.local
   - Observatii pentru livrare / curier: "Livrare dupa ora 14:00."
-- checkout.multiaddress@test.local
-  - Observatii pentru livrare / curier: "Se livreaza doar in intervalul 12:00-16:00."
+- cont legacy istoric
+  - Folosit doar pentru verificari de compatibilitate, daca este nevoie.

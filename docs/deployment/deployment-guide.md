@@ -260,6 +260,10 @@ După deploy verifici minim:
 - flow adresă salvată
 - order received
 - email de comandă
+- conturile de test afectate sunt restaurate la o stare cunoscută
+- fixture-urile de test modificate sunt resetate sau recreate
+- comentariile QA din `checkout-test-cases` rămân disponibile și neatinse dacă fac parte din backlog-ul activ
+- documentația aferentă este actualizată dacă au apărut conturi, parole, adrese sau reguli noi
 
 Checklist-ul operațional detaliat este în:
 
@@ -273,8 +277,20 @@ Checklist-ul operațional detaliat este în:
 - proiectul nu are pipeline de build pentru CSS/JS al temei
 - `style.css` este mare și trebuie monitorizat la auditul de performanță
 - performanța reală se validează doar după publicarea online
-- 
-## 16. Sync automat local -> staging
+- după orice deploy trebuie verificat că staging rămâne curat, coerent și testabil
+- dacă debug-ul temporar a fost folosit în dezvoltare, nu se publică pe staging
+
+## 16. Regula de închidere a ciclului de deploy
+
+- Un deploy nu se consideră finalizat până când:
+  - conturile de test sunt funcționale;
+  - datele de test sunt la baseline;
+  - comentariile QA sunt păstrate;
+  - documentația este sincronizată;
+  - nu există debug temporar rămas;
+  - staging este pregătit pentru o nouă rundă QA.
+
+## 17. Sync automat local -> staging
 
 Scriptul complet pentru sync este:
 

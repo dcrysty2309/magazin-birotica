@@ -8,7 +8,7 @@ Base commit: `61e7fc88`
 This repo has two separate working areas that should stay separated unless a task explicitly crosses them:
 
 - `My Account` covers sidebar, dashboard, orders, view order, edit account, favorites, and addresses.
-- `Checkout` covers saved addresses, shipping/billing sync, checkout modals, and checkout field population.
+- `Checkout` covers shipping/billing sync, summary cards, and checkout field population.
 
 The current refactor focused on My Account addresses and the checkout address mapping needed to support the current address shape.
 
@@ -16,14 +16,9 @@ The current refactor focused on My Account addresses and the checkout address ma
 
 Completed:
 
-- The `Adrese` page now behaves as a list-first page.
-- The old dedicated add-address page flow was replaced by a centered modal.
-- Add/edit share the same modal form.
-- The address list updates without refresh after save/delete.
-- Empty state is compact and informational.
-- The info alert uses Font Awesome directly.
-- The address form now follows the checkout standard fields: Prenume, Nume, Email, Telefon, Județ, Localitate, Adresă, Cod poștal, Observații pentru livrare / curier.
-- The old separate `address_2` field is legacy-only and should not reappear as a visible UI field.
+- My Account now uses the standard WooCommerce billing and shipping address flow.
+- No custom multi-address address book is exposed in the active UI.
+- Checkout changes can be saved back to My Account only when the explicit save checkbox is checked.
 
 Important files:
 
@@ -33,17 +28,16 @@ Important files:
 
 Things to keep in mind:
 
-- Do not reintroduce a separate add-address page unless explicitly requested.
-- Keep My Account UI consistent with the existing square, non-rounded style.
-- Keep the modal single-column and simple.
-- The address list should stay shipping-focused unless a task explicitly brings back billing UI.
+- Do not reintroduce a custom address book unless explicitly requested.
+- Keep My Account UI consistent with the existing theme and WooCommerce endpoints.
+- Preserve the standard billing/shipping address semantics.
 
 ## Checkout status
 
 Completed:
 
-- Checkout address mapping follows the current address standard used by checkout.
-- Saved address data remains compatible with the checkout selectors.
+- Checkout address mapping follows the current standard checkout fields.
+- Checkout uses a single current address flow instead of multiple saved-address selectors.
 
 Important files:
 
@@ -52,8 +46,8 @@ Important files:
 
 Things to keep in mind:
 
-- Checkout should continue to consume saved addresses from My Account.
-- If address shape changes again, update both the My Account form and checkout field mapping.
+- Checkout should continue to stay compatible with WooCommerce customer meta.
+- If address shape changes again, update both the My Account flow and checkout field mapping.
 - Keep an eye on any legacy `address_2` references until they are fully retired.
 - Billing/shipping behavior should remain untouched unless the task explicitly asks for it.
 

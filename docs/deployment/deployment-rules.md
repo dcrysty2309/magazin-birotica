@@ -10,6 +10,11 @@ Acest document stabilește procesul standard pentru deploy-urile viitoare pe sta
 - Deploy-ul merge într-o singură direcție: local → staging.
 - Nu se sincronizează automat staging înapoi în local.
 - Datele din staging sunt date de test, nu date reale.
+- După orice deploy pe staging sau production, mediul trebuie lăsat curat, coerent și testabil.
+- Dacă developmentul a atins conturi de test, acestea trebuie restaurate la o stare cunoscută.
+- Dacă developmentul a modificat adrese, coșuri, comenzi sau alte fixtures de test, acestea trebuie resetate la baseline.
+- Documentația trebuie actualizată ori de câte ori se schimbă conturi, parole, adrese, note QA sau alte prerechizite de test.
+- Comentariile QA vizibile în staging sunt backlog oficial și trebuie păstrate până la rezolvare.
 
 ## 2. Sursa de adevăr
 
@@ -31,6 +36,7 @@ Pentru iterații de temă și checkout:
 - Modificările de cod nu trebuie să depindă de dump-uri SQL lăsate în `public_html`.
 - Nu se publică fișiere SQL pe serverul public.
 - Dacă un test modifică adrese, comenzi sau alte date de checkout, trebuie să existe o procedură clară de reset pentru datele de test.
+- Dacă un test sau un deploy a schimbat fixture-uri, conturi sau adrese, acestea trebuie recreate sau restaurate înainte de închiderea taskului.
 
 ## 5. Secrete
 
@@ -66,6 +72,8 @@ Pentru iterații de temă și checkout:
 - orice bug descoperit pe staging trebuie transformat în task concret înainte de următorul deploy;
 - după fix, se retestează scenariile afectate pe staging;
 - staging rămâne mediul oficial de validare finală până când scenariile relevante nu mai au observații.
+- dacă un scenariu schimbă comportamentul implementat, documentația și test cases trebuie actualizate în aceeași iterație.
+- dacă staging are comentarii QA active, acestea nu se pierd prin import de DB fără confirmare explicită.
 
 ## 8. Automatizare
 
@@ -104,3 +112,13 @@ Pentru iterații de temă și checkout:
 - Inainte de orice sync de DB spre staging se verifica daca exista observatii QA active care trebuie protejate.
 - Daca utilizatorul cere citirea observatiilor, sursa oficiala este staging.
 - Observatiile citite de pe staging trebuie transformate mai intai in lista de probleme, apoi in taskuri concrete.
+
+## 13. Regula de finalizare
+
+- Nu raportăm un task ca fiind gata dacă staging nu este curat, coerent și testabil.
+- Nu raportăm "Ready for staging QA" până când:
+  - test accounts sunt în stare cunoscută;
+  - test data este resetată la baseline;
+  - documentația este sincronizată;
+  - comentariile QA sunt păstrate și disponibile;
+  - nu există debug temporar rămas în cod.

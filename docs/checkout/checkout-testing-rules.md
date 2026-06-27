@@ -23,11 +23,11 @@ Teste minime:
 1. guest fara cont, formular gol
 2. guest completeaza si salveaza
 3. guest refresh dupa salvare
-4. user logat cu adresa salvata, afisare lista
-5. user logat cu adresa salvata, selectare adresa
-6. user logat, Adauga adresa noua
-7. user logat, salvare adresa temporara
-8. user logat, refresh dupa adresa temporara
+4. user logat cu adresa standard, formular precompletat
+5. user logat editeaza fara salvare in cont
+6. user logat bifeaza salvarea in cont
+7. user logat fara adresa salvata, formular gol
+8. user logat, refresh dupa salvare temporara
 
 Pentru referinta rapida a tuturor cazurilor, foloseste indexul vizual:
 
@@ -70,15 +70,12 @@ Pentru guest:
 - Spatierea dintre randuri este de 12px.
 - Line-height-ul liniilor din card este 1.45 si trebuie sa fie uniform peste tot.
 - 0 adrese: formular deschis.
-- 1 adresa: card neutru, fara label de selectie.
-- 2+ adrese: lista de carduri, cu o singura adresa selectata.
-- Border-ul de selectie apare doar cand exista minimum 2 adrese.
-- Label-ul principal este `Selectata pentru livrare`.
-- Label-ul secundar este `Adresa implicita din cont`.
-- Label-urile apar doar cand exista minimum 2 adrese.
-- Nu se folosesc checkbox-uri, radio button-uri sau iconuri pentru selectie.
+- 1 adresa: formular precompletat sau card neutru, fara label de selectie.
+- Nu exista lista de carduri pentru multiple adrese in checkout-ul v1.
+- Nu exista badge-ul `Adresa implicita din cont`.
+- Nu se folosesc checkbox-uri, radio button-uri sau iconuri pentru selectie intre adrese.
 - Pentru guest, nu exista butonul `Adauga adresa noua`.
-- Userul logat poate vedea `Adauga adresa noua` doar cand exista deja cel putin o adresa in checkout.
+- Userul logat poate salva adresa in cont doar prin checkbox-ul explicit.
 - Verifica daca adresa afisata in card este identica cu datele salvate in sesiunea checkout-ului.
 - Verifica faptul ca observatiile pentru livrare / curier nu apar in summary card, daca acesta este standardul ales pentru UI.
 
@@ -89,6 +86,7 @@ Pentru guest:
 - Detaliile de tip apartament sau scara se noteaza in Adresa sau in Observatii pentru livrare / curier.
 - Observatiile trebuie sa fie optionale si sa nu blocheze fluxul daca sunt goale.
 - Formularul de adresa din My Account trebuie sa foloseasca aceeasi ordine si aceleasi campuri ca formularul din checkout.
+- Checkout-ul nu mai afiseaza un address book cu mai multe adrese salvate.
 - Daca exista date legacy cu `address_2`, ele se trateaza doar ca backward compatibility si nu mai apar ca input separat in UI.
 
 ## 5. Reguli pentru screenshot-uri

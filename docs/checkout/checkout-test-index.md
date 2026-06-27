@@ -26,7 +26,8 @@ Cum se citește pagina:
 
 Reguli vizuale de bază rămase valabile:
 
-- `0 adrese` = formular deschis;
-- `1 adresă` = card neutru, border `#dbe4f0`, fără label de selecție;
-- `2+ adrese` = card selectat cu border `rgba(13, 46, 97, 0.22)` și fundal `#f8fbff`;
-- label-urile `Selectată pentru livrare` și `Adresa implicită din cont` apar doar la 2+ adrese.
+- guest = formular deschis;
+- user logat cu adresă standard = formular completat;
+- salvarea explicită în cont se face doar prin checkbox;
+- nu apare niciodată badge-ul `Adresa implicită din cont`;
+- nu există listă de adrese multiple în checkout-ul v1.
