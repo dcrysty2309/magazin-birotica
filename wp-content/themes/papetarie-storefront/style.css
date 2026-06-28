@@ -11204,7 +11204,6 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-address-sections {
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card {
-  --pap-checkout-address-badge-width: 228px;
   display: grid;
   gap: 0;
   padding: 20px;
@@ -11213,10 +11212,16 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card {
   box-shadow: none;
 }
 
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__head {
+  position: relative;
+  min-height: 0;
+  padding-right: clamp(120px, 18vw, 180px);
+}
+
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-option .pap-checkout-address-card__head {
   position: relative;
   display: block;
-  padding-right: calc(var(--pap-checkout-address-badge-width) + 12px);
+  padding-right: 0;
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__title-copy {
@@ -11243,7 +11248,7 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__name {
   font-weight: 600;
 }
 
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-option .pap-checkout-address-card__labels {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__meta {
   position: absolute;
   top: 0;
   right: 0;
@@ -11251,64 +11256,7 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-address-option .pap-chec
   justify-items: end;
   gap: 8px;
   width: fit-content;
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__label {
-  display: none;
-  align-items: center;
-  justify-content: flex-start;
-  width: fit-content;
-  min-width: 0;
-  gap: 6px;
-  padding: 7px 10px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: #f7fafe;
-  color: #516173;
-  font-size: 12px;
-  line-height: 1.2;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-align: left;
-  box-shadow: none;
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-option.is-selected .pap-checkout-address-card__label--selected {
-  display: inline-flex;
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__label--selected {
-  border-color: rgba(13, 94, 74, 0.18);
-  background: rgba(13, 94, 74, 0.08);
-  color: var(--pap-green);
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__label-icon {
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-  flex: 0 0 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: currentColor;
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__label-icon svg {
-  display: block;
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__label-text {
-  display: inline-block;
-  transform: translateY(1px);
-  white-space: nowrap;
+  max-width: min(100%, 260px);
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__user-icon {
@@ -11334,23 +11282,10 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__user-icon 
   stroke-linejoin: round;
 }
 
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(13, 46, 97, 0.08);
-  color: #516173;
-  font-size: 12px;
-  line-height: 1.2;
-  font-weight: 400;
-}
-
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__action {
   flex: 0 0 auto;
   align-self: center;
+  position: static;
   border: 1px solid #cfd9e8;
   background: #fff;
   color: var(--pap-navy);
@@ -11463,21 +11398,20 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__line-text 
 }
 
 @media (max-width: 767px) {
+  body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__head {
+    padding-right: 0;
+  }
+
   body.theme-papetarie.woocommerce-checkout .pap-checkout-address-option .pap-checkout-address-card__head {
     min-height: 0;
     padding-right: 0;
   }
 
-  body.theme-papetarie.woocommerce-checkout .pap-checkout-address-option .pap-checkout-address-card__labels {
+  body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__meta {
     position: static;
     width: 100%;
     justify-items: start;
     margin-top: 8px;
-  }
-
-  body.theme-papetarie.woocommerce-checkout .pap-checkout-address-card__label {
-    max-width: 100%;
-    white-space: normal;
   }
 }
 
@@ -11548,21 +11482,7 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping__summary .
 body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping__summary .pap-checkout-address-card__head {
   position: relative;
   display: block;
-  padding-right: calc(var(--pap-checkout-address-badge-width) + 12px);
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping__summary .pap-checkout-address-card__labels {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: grid;
-  justify-items: end;
-  gap: 8px;
-  width: fit-content;
-}
-
-body.theme-papetarie.woocommerce-checkout .pap-checkout-auth-shipping__summary .pap-checkout-address-card__label--selected {
-  display: inline-flex;
+  padding-right: clamp(120px, 18vw, 180px);
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-option {

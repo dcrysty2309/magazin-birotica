@@ -16,7 +16,8 @@ The current refactor focused on My Account addresses and the checkout address ma
 
 Completed:
 
-- My Account now uses the standard WooCommerce billing and shipping address flow.
+- My Account now exposes a single unified `Adresa mea` block in the UI.
+- Internally, WooCommerce billing and shipping remain synchronized to the same standard address.
 - No custom multi-address address book is exposed in the active UI.
 - Checkout changes can be saved back to My Account only when the explicit save checkbox is checked.
 
@@ -31,6 +32,7 @@ Things to keep in mind:
 - Do not reintroduce a custom address book unless explicitly requested.
 - Keep My Account UI consistent with the existing theme and WooCommerce endpoints.
 - Preserve the standard billing/shipping address semantics.
+- Keep the public My Account address UI at one visible address block only.
 
 ## Checkout status
 

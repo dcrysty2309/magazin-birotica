@@ -111,20 +111,20 @@ $cases = [
     ],
     [
         'id' => '4.1',
-        'scenario' => 'User logat - adresă salvată precompletată',
+        'scenario' => 'User logat - adresă salvată în summary',
         'user_type' => 'User logat',
         'addresses' => '1',
         'reproduce' => [
             'Autentifică-te cu `checkout.oneaddress@test.local`.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'Verifică faptul că formularul este precompletat cu adresa din cont.',
+            'Verifică faptul că Pasul 1 afișează cardul de summary pentru adresa din cont.',
         ],
         'expected' => [
-            'Apare formularul precompletat cu datele din cont.',
+            'Apare summary-ul adresei standard din My Account.',
+            'Formularul este ascuns până la apăsarea "Modifică".',
             'Nu există listă de adrese multiple.',
             'Nu există badge de selecție.',
-            'Modificările nu suprascriu contul decât dacă userul bifează salvarea.',
         ],
         'user_test' => [
             'User: checkout.oneaddress@test.local',
@@ -139,7 +139,7 @@ $cases = [
         'user_type' => 'User logat',
         'addresses' => '0',
         'reproduce' => [
-            'Autentifică-te cu un cont de test fără adresă salvată.',
+            'Autentifică-te cu `checkout.noaddress@test.local`.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
             'Verifică faptul că formularul este gol și complet editabil.',
@@ -198,6 +198,34 @@ $cases = [
             'My Account este actualizat cu noile date.',
             'Adresa de pe comandă rămâne corectă.',
             'Checkbox-ul de salvare nu afectează plata sau transportul.',
+        ],
+        'user_test' => [
+            'User: checkout.oneaddress@test.local',
+            'Parolă: Steauab23.',
+            'Login state: logat',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C13',
+        'scenario' => 'User salvează ulterior în My Account adresa curentă a comenzii',
+        'user_type' => 'User logat',
+        'addresses' => '1',
+        'reproduce' => [
+            'Autentifică-te cu `checkout.oneaddress@test.local` și verifică faptul că în My Account există Adresa A.',
+            'Adaugă un produs în coș și deschide pagina `/checkout/`.',
+            'Apasă „Modifică” pe Pasul 1 - Adresa de livrare.',
+            'Schimbă datele în Adresa B și nu bifa checkbox-ul de salvare.',
+            'Apasă „Continuă” și verifică faptul că summary-ul afișează Adresa B.',
+            'Apasă din nou „Modifică” și confirmă că formularul revine cu Adresa B, nu cu Adresa A.',
+            'Bifează checkbox-ul „Actualizează adresa din contul meu cu aceste date”.',
+            'Apasă din nou „Continuă” și verifică faptul că My Account se actualizează cu Adresa B.',
+        ],
+        'expected' => [
+            'currentOrderAddress rămâne Adresa B după primul „Continuă”.',
+            'La redeschiderea formularului, câmpurile sunt precompletate cu Adresa B.',
+            'My Account se actualizează doar după ce checkbox-ul este bifat.',
+            'Adresa A nu mai reapare în formular sau în summary.',
         ],
         'user_test' => [
             'User: checkout.oneaddress@test.local',

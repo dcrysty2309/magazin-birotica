@@ -41,7 +41,9 @@ Reguli:
 - Guest-ul completează adresa de la zero.
 - Userul logat vede formularul completat din adresa standard WooCommerce, dacă există.
 - Userul logat poate modifica datele pentru comanda curentă.
+- La redeschiderea formularului, folosim mai întâi `currentOrderAddress`, apoi adresa salvată în cont, apoi formular gol.
 - Userul logat salvează adresa în My Account doar dacă bifează explicit `Salvează această adresă pentru comenzile viitoare`.
+- Salvarea în My Account trebuie să fie opt-in real: checkbox-ul trebuie bifat explicit în sesiunea curentă, nu doar restaurat de browser.
 - Nu există checkbox-uri, radio button-uri sau badge-uri de selecție între mai multe adrese.
 - Nu există buton `Adaugă adresă nouă` în checkout.
 - După salvare, UI-ul trece în summary card view.
@@ -58,6 +60,7 @@ Reguli:
 - Checkout-ul nu editează automat adresele salvate în My Account.
 - Modificările făcute din checkout se aplică doar comenzii curente.
 - Dacă userul vrea să schimbe permanent adresa, o face prin checkbox-ul de salvare sau direct din My Account.
+- My Account afișează public un singur bloc, `Adresa mea`, iar intern WooCommerce păstrează billing și shipping sincronizate.
 - Formularul de adresă din My Account folosește aceeași structură de câmpuri ca checkout-ul.
 - Câmpul separat pentru Bloc / Scară / Etaj / Apartament nu mai face parte din UI-ul curent; compatibilitatea legacy poate rămâne doar pentru date istorice.
 

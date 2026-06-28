@@ -16,6 +16,7 @@
     authAddressAdd: '[data-pap-auth-address-add]',
     authAddressCancel: '[data-pap-auth-address-cancel]',
     authAddressSave: '[data-pap-auth-address-save]',
+    authAddressSaveCheckbox: 'input[name="pap_save_address_for_future"]',
     authTemporaryEdit: '[data-pap-auth-temporary-edit]',
     authAddressNotice: '[data-pap-auth-address-notice]',
     authAddressNoticeCopy: '[data-pap-auth-address-notice-copy]',
@@ -55,6 +56,9 @@
   let authAddressFormMode = '';
   let authTemporarySummaryVisible = hasInitialTemporaryCheckoutAddress;
   let authShippingBusy = false;
+  let authShippingEditSnapshotCache = null;
+  let authShippingDraft = null;
+  let authCurrentOrderSnapshot = null;
   const addressPairs = [
     { state: '#billing_state', city: '#billing_city' },
     { state: '#shipping_state', city: '#shipping_city' },
@@ -265,6 +269,14 @@
     clearFieldError($field);
   };
 
+  const setCheckboxFieldState = ($field, checked) => {
+    if (!$field.length || $field.is(':disabled')) {
+      return;
+    }
+
+    $field.prop('checked', Boolean(checked));
+  };
+
   const applySavedAddressToFields = (prefix, address) => {
     if (!address) {
       return;
@@ -279,8 +291,8 @@
     const $stateField = getFieldBySelector(fields.state);
     const $cityField = getFieldBySelector(fields.city);
 
-    setCheckoutFieldValue($countryField, address.country || 'RO');
-    setCheckoutFieldValue($stateField, address.state || '');
+    setSelectFieldByValueOrLabel($countryField, address.country || 'RO', true);
+    setSelectFieldByValueOrLabel($stateField, address.state || '', true);
     setCheckoutFieldValue(getFieldBySelector(fields.first_name), address.first_name || '');
     setCheckoutFieldValue(getFieldBySelector(fields.last_name), address.last_name || '');
     setCheckoutFieldValue(getFieldBySelector(fields.company), address.company || '');
@@ -293,7 +305,7 @@
     }
 
     if ($cityField.length) {
-      setCheckoutFieldValue($cityField, address.city || '');
+      setSelectFieldByValueOrLabel($cityField, address.city || '', true);
     }
   };
 
@@ -698,6 +710,7 @@
     '#billing_phone': getGuestShippingFieldValue('#billing_phone'),
     '#billing_email': getGuestShippingFieldValue('#billing_email'),
     '#shipping_address_1': getGuestShippingFieldValue('#shipping_address_1'),
+    '#shipping_address_2': getGuestShippingFieldValue('#shipping_address_2'),
     '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
     '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
     '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
@@ -717,6 +730,7 @@
       || String(snapshot['#shipping_state'] || '').trim()
       || String(snapshot['#shipping_city'] || '').trim()
       || String(snapshot['#shipping_address_1'] || '').trim()
+      || String(snapshot['#shipping_address_2'] || '').trim()
       || String(snapshot['#shipping_postcode'] || '').trim()
     );
   };
@@ -735,11 +749,253 @@
     '#billing_country': getGuestShippingFieldValue('#billing_country'),
     '#shipping_country': getGuestShippingFieldValue('#shipping_country'),
     '#shipping_address_1': getGuestShippingFieldValue('#shipping_address_1'),
+    '#shipping_address_2': getGuestShippingFieldValue('#shipping_address_2'),
     '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
     '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
     '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
     '#order_comments': getGuestShippingFieldValue('#order_comments'),
   });
+
+  const captureAuthShippingDraft = (reason = 'capture') => {
+    authShippingDraft = captureAuthShippingSnapshot();
+    debugCheckout('auth draft captured', reason, authShippingDraft);
+    return authShippingDraft;
+  };
+
+  const setAuthCurrentOrderSnapshot = (snapshot, reason = 'set-current-order') => {
+    if (!snapshot || typeof snapshot !== 'object') {
+      return;
+    }
+
+    authCurrentOrderSnapshot = snapshot;
+    debugCheckout('auth current order snapshot set', reason, snapshot);
+  };
+
+  const getCheckoutStandardAddressSnapshot = () => {
+    const snapshot = checkoutData.checkoutStandardAddressSnapshot;
+    if (!snapshot || typeof snapshot !== 'object') {
+      return null;
+    }
+
+    if (Object.keys(snapshot).some((key) => String(key).startsWith('#'))) {
+      return snapshot;
+    }
+
+    return {
+      '#billing_first_name': String(snapshot.billing_first_name || ''),
+      '#billing_last_name': String(snapshot.billing_last_name || ''),
+      '#billing_email': String(snapshot.billing_email || ''),
+      '#billing_phone': String(snapshot.billing_phone || ''),
+      '#billing_country': String(snapshot.billing_country || 'RO') || 'RO',
+      '#billing_state': String(snapshot.billing_state || ''),
+      '#billing_city': String(snapshot.billing_city || ''),
+      '#billing_postcode': String(snapshot.billing_postcode || ''),
+      '#billing_address_1': String(snapshot.billing_address_1 || ''),
+      '#billing_address_2': String(snapshot.billing_address_2 || ''),
+      '#shipping_first_name': String(snapshot.shipping_first_name || ''),
+      '#shipping_last_name': String(snapshot.shipping_last_name || ''),
+      '#shipping_phone': String(snapshot.shipping_phone || ''),
+      '#shipping_country': String(snapshot.shipping_country || 'RO') || 'RO',
+      '#shipping_state': String(snapshot.shipping_state || snapshot.billing_state || ''),
+      '#shipping_city': String(snapshot.shipping_city || snapshot.billing_city || ''),
+      '#shipping_postcode': String(snapshot.shipping_postcode || snapshot.billing_postcode || ''),
+      '#shipping_address_1': String(snapshot.shipping_address_1 || snapshot.billing_address_1 || ''),
+      '#shipping_address_2': String(snapshot.shipping_address_2 || snapshot.billing_address_2 || ''),
+      '#order_comments': String(snapshot.order_comments || ''),
+    };
+  };
+
+  const hasMeaningfulAuthShippingSnapshot = (snapshot) => {
+    if (!snapshot || typeof snapshot !== 'object') {
+      return false;
+    }
+
+    return Boolean(
+      String(snapshot['#billing_first_name'] || '').trim()
+      || String(snapshot['#billing_last_name'] || '').trim()
+      || String(snapshot['#billing_phone'] || '').trim()
+      || String(snapshot['#billing_email'] || '').trim()
+      || String(snapshot['#shipping_state'] || '').trim()
+      || String(snapshot['#shipping_city'] || '').trim()
+      || String(snapshot['#shipping_address_1'] || '').trim()
+      || String(snapshot['#shipping_postcode'] || '').trim()
+      || String(snapshot['#order_comments'] || '').trim()
+    );
+  };
+
+  const getAuthShippingInitialSnapshot = () => {
+    if (hasMeaningfulAuthShippingSnapshot(authCurrentOrderSnapshot)) {
+      return authCurrentOrderSnapshot;
+    }
+
+    if (hasMeaningfulAuthShippingSnapshot(authShippingDraft)) {
+      return authShippingDraft;
+    }
+
+    if (hasMeaningfulAuthShippingSnapshot(authShippingEditSnapshotCache)) {
+      return authShippingEditSnapshotCache;
+    }
+
+    const standardSnapshot = getCheckoutStandardAddressSnapshot();
+    if (hasMeaningfulAuthShippingSnapshot(standardSnapshot)) {
+      return standardSnapshot;
+    }
+
+    return captureAuthShippingSnapshot();
+  };
+
+  const hydrateAuthShippingFieldsFromSnapshot = (snapshot) => {
+    if (!snapshot || typeof snapshot !== 'object') {
+      return;
+    }
+
+    const shippingStateValue = String(snapshot['#shipping_state'] || snapshot['#billing_state'] || '').trim();
+    const shippingCityValue = String(snapshot['#shipping_city'] || snapshot['#billing_city'] || '').trim();
+    const shippingAddress1Value = String(snapshot['#shipping_address_1'] || snapshot['#billing_address_1'] || '').trim();
+    const shippingPostcodeValue = String(snapshot['#shipping_postcode'] || snapshot['#billing_postcode'] || '').trim();
+
+    runProgrammaticFieldSync(() => {
+      setCheckoutFieldValue(getFieldBySelector('#billing_first_name'), String(snapshot['#billing_first_name'] || '').trim());
+      setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), String(snapshot['#billing_last_name'] || '').trim());
+      setCheckoutFieldValue(getFieldBySelector('#billing_phone'), String(snapshot['#billing_phone'] || '').trim());
+      setCheckoutFieldValue(getFieldBySelector('#billing_email'), String(snapshot['#billing_email'] || '').trim());
+      setSelectFieldByValueOrLabel(getFieldBySelector('#billing_country'), String(snapshot['#billing_country'] || 'RO').trim() || 'RO', true);
+      setSelectFieldByValueOrLabel(getFieldBySelector('#shipping_country'), String(snapshot['#shipping_country'] || 'RO').trim() || 'RO', true);
+      setCheckoutFieldValue(getFieldBySelector('#shipping_address_1'), shippingAddress1Value);
+      setCheckoutFieldValue(getFieldBySelector('#shipping_address_2'), String(snapshot['#shipping_address_2'] || '').trim());
+      setCheckoutFieldValue(getFieldBySelector('#shipping_postcode'), shippingPostcodeValue);
+      setCheckoutFieldValue(getFieldBySelector('#order_comments'), String(snapshot['#order_comments'] || '').trim());
+
+      const $stateField = getFieldBySelector('#shipping_state');
+      if ($stateField.length) {
+        setSelectFieldByValueOrLabel($stateField, shippingStateValue, true);
+        syncDependentCitySelect('#shipping_state', false);
+      }
+
+      const $cityField = getFieldBySelector('#shipping_city');
+      if ($cityField.length) {
+        setSelectFieldByValueOrLabel($cityField, shippingCityValue, true);
+      }
+    });
+  };
+
+  const getAuthShippingSummaryLinesFromSnapshot = (snapshot) => {
+    const data = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const firstName = String(data['#billing_first_name'] || '').trim();
+    const lastName = String(data['#billing_last_name'] || '').trim();
+    const phone = String(data['#billing_phone'] || '').trim();
+    const email = String(data['#billing_email'] || '').trim();
+    const shippingAddress1 = String(data['#shipping_address_1'] || '').trim();
+    const shippingAddress2 = String(data['#shipping_address_2'] || '').trim();
+    const shippingCity = String(data['#shipping_city'] || '').trim();
+    const shippingState = String(data['#shipping_state'] || '').trim();
+    const shippingPostcode = String(data['#shipping_postcode'] || '').trim();
+    const billingAddress1 = String(data['#billing_address_1'] || '').trim();
+    const billingAddress2 = String(data['#billing_address_2'] || '').trim();
+    const billingCity = String(data['#billing_city'] || '').trim();
+    const billingState = String(data['#billing_state'] || '').trim();
+    const billingPostcode = String(data['#billing_postcode'] || '').trim();
+    const orderComments = String(data['#order_comments'] || '').trim();
+
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    const streetLine = [shippingAddress1 || billingAddress1, shippingAddress2 || billingAddress2].filter(Boolean).join(', ').trim();
+    const cityLine = [shippingCity || billingCity, shippingState || billingState, shippingPostcode || billingPostcode].filter(Boolean).join(', ').trim();
+
+    const lines = [];
+
+    if (fullName) {
+      lines.push(fullName);
+    }
+
+    if (streetLine) {
+      lines.push(streetLine);
+    }
+
+    if (cityLine) {
+      lines.push(cityLine);
+    }
+
+    if (phone) {
+      lines.push(phone);
+    }
+
+    if (email) {
+      lines.push(email);
+    }
+
+    if (orderComments) {
+      lines.push(`Observații: ${orderComments}`);
+    }
+
+    return lines;
+  };
+
+  const getAuthShippingSummaryLines = () => {
+    if (hasMeaningfulAuthShippingSnapshot(authCurrentOrderSnapshot)) {
+      const currentOrderLines = getAuthShippingSummaryLinesFromSnapshot(authCurrentOrderSnapshot);
+      if (currentOrderLines.length > 0) {
+        return currentOrderLines;
+      }
+    }
+
+    if (hasMeaningfulAuthShippingSnapshot(authShippingDraft)) {
+      const draftLines = getAuthShippingSummaryLinesFromSnapshot(authShippingDraft);
+      if (draftLines.length > 0) {
+        return draftLines;
+      }
+    }
+
+    const standardSnapshot = getCheckoutStandardAddressSnapshot();
+    if (hasMeaningfulAuthShippingSnapshot(standardSnapshot)) {
+      const standardLines = getAuthShippingSummaryLinesFromSnapshot(standardSnapshot);
+      if (standardLines.length > 0) {
+        return standardLines;
+      }
+    }
+
+    return getAuthShippingSummaryLinesFromSnapshot(captureAuthShippingSnapshot());
+  };
+
+  const normalizeSelectMatchValue = (value) => {
+    const text = String(value || '').trim().toLowerCase();
+    if (!text) {
+      return '';
+    }
+
+    try {
+      return text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    } catch (error) {
+      return text.replace(/\s+/g, ' ').trim();
+    }
+  };
+
+  const findSelectOptionValueByMatch = ($field, targetLabel) => {
+    const normalizedTarget = normalizeSelectMatchValue(targetLabel);
+    if (!$field.length || !normalizedTarget) {
+      return '';
+    }
+
+    let matchedValue = '';
+    $field.find('option').each(function () {
+      const $option = $(this);
+      const optionValue = String($option.val() || '').trim();
+      const optionLabel = String($option.text() || '').trim();
+      if (
+        normalizeSelectMatchValue(optionValue) === normalizedTarget
+        || normalizeSelectMatchValue(optionLabel) === normalizedTarget
+      ) {
+        matchedValue = optionValue;
+        return false;
+      }
+      return true;
+    });
+
+    return matchedValue;
+  };
 
   const setSelectFieldByLabel = ($field, label) => {
     if (!$field.length) {
@@ -751,18 +1007,27 @@
       setCheckoutFieldValue($field, '');
       return;
     }
+    setCheckoutFieldValue($field, findSelectOptionValueByMatch($field, targetLabel));
+  };
 
-    let matchedValue = '';
-    $field.find('option').each(function () {
-      const $option = $(this);
-      if (String($option.text() || '').trim() === targetLabel) {
-        matchedValue = String($option.val() || '').trim();
-        return false;
-      }
-      return true;
-    });
+  const setSelectFieldByValueOrLabel = ($field, rawValue, triggerChange = false) => {
+    if (!$field.length) {
+      return;
+    }
 
-    setCheckoutFieldValue($field, matchedValue);
+    const targetValue = String(rawValue || '').trim();
+    if (!targetValue) {
+      setCheckoutFieldValue($field, '');
+      return;
+    }
+
+    setCheckoutFieldValue($field, findSelectOptionValueByMatch($field, targetValue));
+
+    if (triggerChange) {
+      runProgrammaticFieldSync(() => {
+        $field.trigger('change');
+      });
+    }
   };
 
   const hydrateGuestShippingFields = (snapshot) => {
@@ -801,6 +1066,7 @@
       || getGuestShippingFieldValue('#shipping_city')
       || getGuestShippingFieldValue('#shipping_address_1')
       || getGuestShippingFieldValue('#shipping_postcode')
+      || getGuestShippingFieldValue('#order_comments')
     );
   };
 
@@ -811,20 +1077,27 @@
     const phone = getGuestShippingFieldValue('#billing_phone', useCache ? 'cache' : 'dom');
     const email = getGuestShippingFieldValue('#billing_email', useCache ? 'cache' : 'dom');
     const address1 = getGuestShippingFieldValue('#shipping_address_1', useCache ? 'cache' : 'dom');
+    const address2 = getGuestShippingFieldValue('#shipping_address_2', useCache ? 'cache' : 'dom');
     const city = getGuestShippingFieldValue('#shipping_city', useCache ? 'cache' : 'dom');
     const state = getGuestShippingFieldValue('#shipping_state', useCache ? 'cache' : 'dom');
     const postcode = getGuestShippingFieldValue('#shipping_postcode', useCache ? 'cache' : 'dom');
+    const orderComments = getGuestShippingFieldValue('#order_comments', useCache ? 'cache' : 'dom');
 
     const lines = [];
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-    const addressLine = [address1, city, state, postcode].filter(Boolean).join(', ').trim();
+    const streetLine = [address1, address2].filter(Boolean).join(', ').trim();
+    const locationLine = [city, state, postcode].filter(Boolean).join(', ').trim();
 
     if (fullName) {
       lines.push(fullName);
     }
 
-    if (addressLine) {
-      lines.push(addressLine);
+    if (streetLine) {
+      lines.push(streetLine);
+    }
+
+    if (locationLine) {
+      lines.push(locationLine);
     }
 
     if (phone) {
@@ -833,6 +1106,10 @@
 
     if (email) {
       lines.push(email);
+    }
+
+    if (orderComments) {
+      lines.push(`Observații: ${orderComments}`);
     }
 
     return lines;
@@ -852,6 +1129,14 @@
           <circle cx="12" cy="10" r="2" stroke="currentColor" stroke-width="1.8"></circle>
         </svg>
       `,
+      city: `
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path d="M4 20V9l6-3v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M10 20V5l6 3v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M16 20v-7l4-2v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M2.5 20h19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+      `,
       phone: `
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
           <path d="M6.6 3.6l2.1 4.2c.3.6.2 1.2-.3 1.7l-1 1c1.2 2.4 3.1 4.3 5.5 5.5l1-1c.5-.5 1.1-.6 1.7-.3l4.2 2.1c.6.3.9.9.8 1.5l-.4 2c-.1.6-.7 1.1-1.3 1.1C10 21.4 2.6 14 2.6 5.1c0-.6.5-1.2 1.1-1.3l2-.4c.4-.1.8 0 .9.2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -863,9 +1148,35 @@
           <path d="M5 8l7 5 7-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
         </svg>
       `,
+      note: `
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 16H9l-4 4v-4H5A1.5 1.5 0 0 1 3.5 14V6A1.5 1.5 0 0 1 5 4.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M7 8h10M7 11h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+      `,
     };
 
     return icons[kind] || icons.location;
+  };
+
+  const getSummaryRowIconKind = (index) => {
+    if (index === 0) {
+      return 'location';
+    }
+
+    if (index === 1) {
+      return 'city';
+    }
+
+    if (index === 2) {
+      return 'phone';
+    }
+
+    if (index === 3) {
+      return 'envelope';
+    }
+
+    return 'note';
   };
 
   const syncGuestShippingSummary = () => {
@@ -938,7 +1249,7 @@
       const $row = $('<p>', { class: 'pap-checkout-address-card__line address-summary-row' });
       $('<span>', {
         class: 'pap-checkout-address-card__icon address-summary-icon',
-        html: getAddressIconSvg(index === 0 ? 'location' : index === 1 ? 'phone' : 'envelope'),
+        html: getAddressIconSvg(getSummaryRowIconKind(index)),
         'aria-hidden': 'true',
       }).appendTo($row);
       $('<span>', { class: 'pap-checkout-address-card__line-text', text }).appendTo($row);
@@ -952,7 +1263,12 @@
     }
 
     $element.prop('hidden', !visible).attr('aria-hidden', visible ? 'false' : 'true');
-    $element.css('display', visible ? (displayValue || '') : 'none');
+    const element = $element.get(0);
+    if (element && element.style && typeof element.style.setProperty === 'function') {
+      element.style.setProperty('display', visible ? (displayValue || '') : 'none', 'important');
+    } else {
+      $element.css('display', visible ? (displayValue || '') : 'none');
+    }
   };
 
   const setGuestShippingMode = (mode, persist = true, options = {}) => {
@@ -1150,10 +1466,12 @@
       return;
     }
 
+    debugCheckout('apply auth address to form', address);
     runProgrammaticFieldSync(() => {
       setCheckoutFieldValue(getFieldBySelector('#billing_first_name'), address.first_name || '');
       setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), address.last_name || '');
       setCheckoutFieldValue(getFieldBySelector('#billing_phone'), address.phone || '');
+      setCheckoutFieldValue(getFieldBySelector('#billing_email'), address.email || checkoutData.customerEmail || '');
       applySavedAddressToFields('shipping', address);
     });
   };
@@ -1186,7 +1504,7 @@
       return;
     }
 
-    const lines = getGuestShippingSummaryLines('dom');
+    const lines = getAuthShippingSummaryLines();
     const fullName = lines.shift() || '';
     const $body = $summary.find('.pap-checkout-address-card__body').first();
     const $empty = $summary.find('.pap-checkout-address-card__empty').first();
@@ -1204,14 +1522,10 @@
         $empty.find('strong').first().text('Nu ai completat încă această adresă.');
         $empty.find('p').first().text('Deschide formularul ca sa completezi datele necesare pentru comanda.');
       }
-      if (Object.keys(savedAddressesById || {}).length > 0) {
-        setAuthShippingFormVisible(false);
-      } else {
-        setAuthShippingFormVisible(true, {
-          clear: false,
-          mode: 'new',
-        });
-      }
+      setAuthShippingFormVisible(true, {
+        clear: false,
+        mode: 'new',
+      });
       return;
     }
 
@@ -1256,7 +1570,7 @@
       const $row = $('<p>', { class: 'pap-checkout-address-card__line address-summary-row' });
       $('<span>', {
         class: 'pap-checkout-address-card__icon address-summary-icon',
-        html: getAddressIconSvg(index === 0 ? 'location' : index === 1 ? 'phone' : 'envelope'),
+        html: getAddressIconSvg(getSummaryRowIconKind(index)),
         'aria-hidden': 'true',
       }).appendTo($row);
       $('<span>', { class: 'pap-checkout-address-card__line-text', text }).appendTo($row);
@@ -1265,13 +1579,7 @@
   };
 
   const getAuthAddressCount = () => {
-    const $shipping = getAuthShipping();
-    if (!$shipping.length) {
-      return checkoutAddressCount;
-    }
-
-    const domCount = Number($shipping.attr('data-pap-auth-address-count') || 0);
-    return Number.isFinite(domCount) && domCount > 0 ? domCount : checkoutAddressCount;
+    return getAuthShippingSummaryLines().length > 0 ? 1 : 0;
   };
 
   const setAuthShippingFormVisible = (visible, options = {}) => {
@@ -1283,29 +1591,47 @@
     const $form = $shipping.find(selectors.authShippingForm).first();
     const $list = $shipping.find(selectors.authAddressList).first();
     const $summary = $shipping.find(selectors.authShippingSummary).first();
-    const hasAddresses = getAuthAddressCount() > 0;
+    const hasSummaryData = getAuthShippingSummaryLines().length > 0;
     const shouldClear = options.clear === true;
-    const showSummary = !visible && authTemporarySummaryVisible;
-    const showList = !visible && hasAddresses;
+    const shouldRestore = options.restore === true;
+    const showSummary = !visible && (authTemporarySummaryVisible || hasSummaryData);
+    const showList = false;
 
     if (visible) {
       authAddressFormMode = options.mode || 'new';
       authTemporarySummaryVisible = false;
+      const initialSnapshot = getAuthShippingInitialSnapshot();
+      authShippingEditSnapshotCache = initialSnapshot;
+      authShippingDraft = initialSnapshot;
+      setCookieValue('pap_checkout_shipping_mode', 'edit');
       if (shouldClear) {
         clearAuthAddressForm();
+        authShippingDraft = captureAuthShippingSnapshot();
+      } else if (initialSnapshot) {
+        hydrateAuthShippingFieldsFromSnapshot(initialSnapshot);
+        authShippingDraft = captureAuthShippingSnapshot();
       }
+      setCheckboxFieldState(getFieldBySelector(selectors.authAddressSaveCheckbox), false);
       setAuthAddressNotice('');
     } else {
       authAddressFormMode = '';
+      if (shouldRestore && authShippingEditSnapshotCache) {
+        hydrateAuthShippingFieldsFromSnapshot(authShippingEditSnapshotCache);
+        authShippingDraft = authShippingEditSnapshotCache;
+      }
+      if (showSummary) {
+        setCookieValue('pap_checkout_shipping_mode', 'summary');
+      }
     }
 
+    $shipping.toggleClass('is-summary-mode', showSummary);
     setVisibilityState($form, visible, 'grid');
     setVisibilityState($list, showList, 'grid');
     setVisibilityState($summary, showSummary, 'grid');
-    setVisibilityState($shipping.find(selectors.authAddressCancel).first(), visible && hasAddresses, 'inline-flex');
+    setVisibilityState($shipping.find(selectors.authAddressCancel).first(), visible && (authTemporarySummaryVisible || hasSummaryData), 'inline-flex');
     $shipping.attr('data-pap-auth-temporary-mode', showSummary ? 'summary' : (visible ? 'form' : 'list'));
 
-    if (showSummary) {
+    if (showSummary && !shouldRestore) {
       syncAuthShippingSummary();
     }
 
@@ -1315,15 +1641,22 @@
   const renderAuthAddressCard = (address, email, isSelected = true) => {
     const fullName = [address.first_name, address.last_name].filter(Boolean).join(' ').trim();
     const stateField = getFieldBySelector('#shipping_state');
-    const stateLabel = stateField.find(`option[value="${String(address.state || '').replace(/"/g, '\\"')}"]`).text()
-      || address.state
-      || '';
-    const addressLine = [
-      address.address_1,
-      address.city,
-      stateLabel,
-      address.postcode,
-    ].filter(Boolean).join(', ');
+    const stateLabel = (() => {
+      const targetState = String(address.state || '').trim();
+      if (!stateField.length || !targetState) {
+        return targetState || '';
+      }
+
+      const matchedValue = findSelectOptionValueByMatch(stateField, targetState);
+      if (!matchedValue) {
+        return targetState;
+      }
+
+      const $matchedOption = stateField.find(`option[value="${matchedValue.replace(/"/g, '\\"')}"]`).first();
+      return String($matchedOption.length ? $matchedOption.text() : targetState).trim() || targetState;
+    })();
+    const streetLine = [address.address_1, address.address_2].filter(Boolean).join(', ').trim();
+    const locationLine = [address.city, stateLabel, address.postcode].filter(Boolean).join(', ').trim();
     const hasMultipleAddresses = getAuthAddressCount() > 1;
 
     const $option = $('<button>', {
@@ -1349,17 +1682,10 @@
     $('<p>', { class: 'pap-checkout-address-card__title', text: 'Adresa de livrare' }).appendTo($copy);
     $('<p>', { class: 'pap-checkout-address-card__name', text: fullName }).appendTo($copy);
 
-    if (hasMultipleAddresses) {
-      const $labels = $('<div>', { class: 'pap-checkout-address-card__labels', 'aria-hidden': 'true' }).appendTo($head);
-      $('<span>', {
-        class: 'pap-checkout-address-card__label pap-checkout-address-card__label--selected',
-        text: 'Selectată pentru livrare',
-      }).appendTo($labels);
-    }
-
     const $body = $('<div>', { class: 'pap-checkout-address-card__body' }).appendTo($card);
     [
-      { text: addressLine, icon: 'location' },
+      { text: streetLine, icon: 'location' },
+      { text: locationLine, icon: 'city' },
       { text: address.phone, icon: 'phone' },
       { text: email, icon: 'envelope' },
     ].forEach(({ icon, text }) => {
@@ -1416,6 +1742,8 @@
     setAuthAddressNotice('');
     syncSelectedAddressCardState(addressId);
     applyAuthAddressToForm(address);
+    authShippingDraft = captureAuthShippingSnapshot();
+    setAuthCurrentOrderSnapshot(authShippingDraft, 'selectAuthAddress');
 
     if (shouldPersist && checkoutData.ajaxUrl && checkoutData.selectAddressNonce) {
       setAuthShippingBusy(true);
@@ -1453,6 +1781,8 @@
           clear: false,
           mode: authAddressFormMode,
         });
+      } else if (authShippingDraft) {
+        hydrateAuthShippingFieldsFromSnapshot(authShippingDraft);
       }
       return;
     }
@@ -1470,6 +1800,8 @@
     const address = getAddressById(selectedId);
     if (address) {
       applyAuthAddressToForm(address);
+      authShippingDraft = captureAuthShippingSnapshot();
+      setAuthCurrentOrderSnapshot(authShippingDraft, 'syncAuthSelectedAddressFields');
     }
   };
 
@@ -1747,9 +2079,15 @@
 
     $form.on('change', selectors.field, function () {
       const $field = $(this);
+      const fieldSelector = `#${$field.attr('id') || ''}`;
+      const isAuthAddressField = authAddressFormMode && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
 
       if (isProgrammaticFieldSync && isAddressCityField($field)) {
         return;
+      }
+
+      if (isAuthAddressField && !isProgrammaticFieldSync) {
+        captureAuthShippingDraft(`change:${fieldSelector}`);
       }
 
       if (getForm().data('papSubmitted') === true) {
@@ -1763,9 +2101,15 @@
 
     $form.on('input', selectors.field, function () {
       const $field = $(this);
+      const fieldSelector = `#${$field.attr('id') || ''}`;
+      const isAuthAddressField = authAddressFormMode && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
 
       if (isProgrammaticFieldSync && isAddressCityField($field)) {
         return;
+      }
+
+      if (isAuthAddressField && !isProgrammaticFieldSync) {
+        captureAuthShippingDraft(`input:${fieldSelector}`);
       }
 
       if (getForm().data('papSubmitted') !== true) {
@@ -1825,6 +2169,9 @@
     $form.on('change', '#billing_state, #shipping_state', function () {
       const $field = $(this);
       syncDependentCitySelect(`#${$field.attr('id')}`);
+      if (authAddressFormMode && !isProgrammaticFieldSync) {
+        captureAuthShippingDraft(`state-change:${$field.attr('id') || ''}`);
+      }
     });
 
     $form.on('change', '#billing_city, #shipping_city', function () {
@@ -1838,6 +2185,10 @@
       if (getForm().data('papSubmitted') === true) {
         validateField($field);
         return;
+      }
+
+      if (authAddressFormMode && !isProgrammaticFieldSync) {
+        captureAuthShippingDraft(`city-change:${$field.attr('id') || ''}`);
       }
 
       clearNativeInvalidState($field);
@@ -1899,17 +2250,30 @@
 
     $form.on('click', selectors.authTemporaryEdit, function (event) {
       event.preventDefault();
+      debugCheckout('click modify auth summary');
       setAuthShippingFormVisible(true, {
         clear: false,
         mode: 'temporary',
       });
+      if (!authShippingDraft) {
+        authShippingDraft = captureAuthShippingSnapshot();
+      }
       focusField(getFieldBySelector('#billing_first_name'));
     });
 
     $form.on('click', selectors.authAddressCancel, function (event) {
       event.preventDefault();
-      setAuthShippingFormVisible(false);
+      setAuthShippingFormVisible(false, {
+        restore: true,
+      });
+      setCheckboxFieldState(getFieldBySelector(selectors.authAddressSaveCheckbox), false);
       setAuthAddressNotice('');
+    });
+
+    $form.on('change', selectors.authAddressSaveCheckbox, function () {
+      debugCheckout('save address checkbox change', {
+        checked: $(this).is(':checked'),
+      });
     });
 
     $form.on('click', selectors.authAddressSave, function (event) {
@@ -1922,13 +2286,14 @@
       $button.prop('disabled', true).attr('aria-busy', 'true');
       setAuthShippingBusy(true);
       setAuthAddressNotice('');
-      const authShippingSnapshot = captureAuthShippingSnapshot();
+      const authShippingSnapshot = captureAuthShippingDraft('save-click');
 
       $.post(checkoutData.ajaxUrl, {
         action: checkoutData.selectAddressAction || 'papetarie_storefront_checkout_select_address',
         nonce: checkoutData.selectAddressNonce,
         mode: 'temporary',
         pap_auth_shipping_snapshot: JSON.stringify(authShippingSnapshot),
+        pap_save_address_for_future: getFieldBySelector(selectors.authAddressSaveCheckbox).is(':checked') ? '1' : '0',
       })
         .done((response) => {
           if (!response || !response.success) {
@@ -1938,6 +2303,11 @@
           }
 
           authTemporarySummaryVisible = true;
+          authShippingEditSnapshotCache = authShippingSnapshot;
+          authShippingDraft = authShippingSnapshot;
+          setCheckboxFieldState(getFieldBySelector(selectors.authAddressSaveCheckbox), false);
+          setAuthCurrentOrderSnapshot(authShippingSnapshot, 'auth-save-success');
+          setCookieValue('pap_checkout_shipping_mode', 'summary');
           setAuthAddressNotice('');
           setAuthShippingFormVisible(false);
           setAuthShippingBusy(false);
@@ -2008,6 +2378,15 @@
     if (!isLoggedIn) {
       setGuestShippingMode(getGuestShippingMode(), false);
     } else {
+      if (authAddressFormMode && authShippingDraft) {
+        debugCheckout('syncCheckoutState rehydrate auth draft', authShippingDraft);
+        hydrateAuthShippingFieldsFromSnapshot(authShippingDraft);
+      }
+      if (getAuthAddressCount() > 0) {
+        setCookieValue('pap_checkout_shipping_mode', getCookieValue('pap_checkout_shipping_mode') || 'summary');
+      } else {
+        setCookieValue('pap_checkout_shipping_mode', 'edit');
+      }
       resetGuestShippingState();
       syncAuthSelectedAddressFields();
     }

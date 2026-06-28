@@ -9,6 +9,7 @@ Acest document completează regulile oficiale din `docs/checkout/checkout-rules.
 - Implementarea se face local, dar validarea finală se face pe staging.
 - Folosește întotdeauna conturile de test documentate.
 - Dacă un test modifică adrese, comenzi sau sesiuni, trebuie făcut reset la datele de test.
+- Pentru resetul conturilor de checkout folosește `wp-content/themes/papetarie-storefront/tools/reset-checkout-test-fixtures.php`.
 - Comentariile din `Preview` de pe pagina de testare sunt backlog oficial până la rezolvare.
 - Nu se consideră test trecut fără verificare manuală în browser.
 
@@ -19,7 +20,10 @@ Reguli de testare:
 - Guest-ul completează adresa de la zero.
 - Userul logat vede formularul completat din datele standard WooCommerce, dacă există.
 - Userul logat poate edita datele pentru comanda curentă.
+- La reluarea editării, formularul trebuie să se preîncarce din `currentOrderAddress` dacă există, nu dintr-o adresă veche din cont.
 - Userul logat salvează adresa în My Account doar dacă bifează explicit checkbox-ul de salvare.
+- Salvarea trebuie verificată explicit în browser: dacă checkbox-ul nu este bifat în sesiunea curentă, My Account rămâne neschimbat.
+- My Account afișează un singur bloc public `Adresa mea`; billing și shipping rămân sincronizate intern.
 - Nu există address book cu multiple adrese salvate în checkout.
 - Nu există badge de adrese multiple sau adresă implicită custom.
 - Eroarea de salvare se afișează sus, nu sub butoane.
@@ -33,5 +37,6 @@ Reguli de testare:
 - user logat cu adresă standard completată;
 - user logat editează fără să salveze;
 - user logat editează și bifează salvarea;
+- C13 - user logat revine la editare și salvează ulterior în My Account adresa curentă a comenzii;
 - verificare că My Account se actualizează doar dacă bifează salvarea;
 - verificare că adresa din comandă rămâne corectă indiferent de salvare.

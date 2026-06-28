@@ -1569,6 +1569,12 @@ function papetarie_storefront_handle_checkout_address_selection(): void
         papetarie_storefront_address_book_checkout_set_temporary_snapshot($snapshot_payload);
         papetarie_storefront_address_book_checkout_set_temporary_address(true);
 
+        $should_persist_to_account = isset($_POST['pap_save_address_for_future'])
+            && sanitize_text_field(wp_unslash((string) $_POST['pap_save_address_for_future'])) === '1';
+        if ($should_persist_to_account && function_exists('papetarie_storefront_checkout_persist_snapshot_to_account')) {
+            papetarie_storefront_checkout_persist_snapshot_to_account($snapshot_payload);
+        }
+
         wp_send_json_success([
             'mode' => 'temporary',
         ]);

@@ -215,7 +215,7 @@ Datele completate la firma pot ramane temporar in state, dar nu trebuie trimise 
 Userul este logat si are date standard WooCommerce pentru livrare.
 
 ### Atunci
-Tabul "Adresa de livrare" trebuie sa afiseze formularul precompletat.
+Tabul "Adresa de livrare" trebuie sa afiseze cardul de summary pentru adresa standard.
 
 ### Continut
 - Nume complet
@@ -224,7 +224,7 @@ Tabul "Adresa de livrare" trebuie sa afiseze formularul precompletat.
 - Cod postal
 - Telefon
 - Email
-- Checkbox optional: "Salveaza aceasta adresa pentru comenzile viitoare"
+- Buton "Modifica"
 
 ### Observatie
 Nu exista lista de adrese multiple, nu exista badge-uri de selectie si nu exista buton "Adauga adresa noua".
@@ -243,7 +243,10 @@ Modificarile se aplica doar comenzii curente.
 - Userul poate edita orice camp relevant pentru comanda curenta.
 - Checkbox-ul de salvare decide daca modificarile se scriu si in My Account.
 - Schimbarea datelor actualizeaza checkout session si summary-ul.
+- La redeschiderea formularului, trebuie folosita adresa curenta a comenzii (`currentOrderAddress`), nu adresa veche din cont.
 - Formularul de checkout si My Account trebuie sa ramana compatibile cu aceleasi campuri standard.
+- Daca userul nu bifeaza salvarea, My Account ramane neschimbat.
+- Daca userul bifeaza salvarea, My Account se sincronizeaza cu adresa curenta.
 
 ---
 
@@ -268,7 +271,7 @@ Salvarea permanenta se face doar daca checkbox-ul este bifat explicit.
 Userul este logat, dar nu are adrese standard completate.
 
 ### Atunci
-Se afiseaza acelasi formular ca la guest checkout.
+Se afiseaza formularul gol, identic cu guest checkout.
 
 ### Optiune
 - Checkbox: "Salveaza aceasta adresa pentru comenzile viitoare"
