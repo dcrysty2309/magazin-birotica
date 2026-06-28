@@ -15,6 +15,11 @@ if (!$checkout->is_registration_enabled() && $checkout->is_registration_required
     echo esc_html(apply_filters('woocommerce_checkout_must_be_logged_in_message', __('You must be logged in to checkout.', 'woocommerce')));
     return;
 }
+
+if (function_exists('WC') && WC() && WC()->cart && WC()->cart->is_empty()) {
+    echo function_exists('papetarie_storefront_render_checkout_empty_cart_html') ? papetarie_storefront_render_checkout_empty_cart_html() : '';
+    return;
+}
 ?>
 <div class="pap-shell pap-checkout-page-shell">
   <div class="pap-checkout-shell">

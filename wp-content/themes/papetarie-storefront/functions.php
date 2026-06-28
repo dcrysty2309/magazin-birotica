@@ -3549,6 +3549,35 @@ function papetarie_storefront_render_cart_empty_html(): string
     return (string) ob_get_clean();
 }
 
+function papetarie_storefront_render_checkout_empty_cart_html(): string
+{
+    $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
+    $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/');
+
+    ob_start();
+    ?>
+    <section class="pap-cart-empty-stack pap-checkout-empty-cart" aria-label="<?php esc_attr_e('Coș gol', 'papetarie-storefront'); ?>">
+      <div class="pap-cart-empty-hero pap-checkout-empty-cart__hero">
+        <div class="pap-cart-empty-hero-visual" aria-hidden="true">
+          <img class="pap-cart-empty-hero-image" src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/cart-empty-hero.png'); ?>" alt="" />
+        </div>
+        <div class="pap-cart-empty-hero-copy">
+          <h1 class="pap-cart-empty-hero-title"><?php esc_html_e('Coșul tău este gol.', 'papetarie-storefront'); ?></h1>
+          <p class="pap-cart-empty-hero-text"><?php esc_html_e('Adaugă produse în coș pentru a continua spre checkout și a completa comanda.', 'papetarie-storefront'); ?></p>
+          <a class="button pap-cart-empty-continue pap-checkout-empty-cart__primary" href="<?php echo esc_url($shop_url); ?>">
+            <span><?php esc_html_e('Continuă cumpărăturile', 'papetarie-storefront'); ?></span>
+          </a>
+          <a class="pap-checkout-empty-cart__secondary" href="<?php echo esc_url($cart_url); ?>">
+            <?php esc_html_e('Înapoi la magazin', 'papetarie-storefront'); ?>
+          </a>
+        </div>
+      </div>
+    </section>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
 function papetarie_storefront_render_cart_page_html(): string
 {
     if (!function_exists('wc_get_template')) {

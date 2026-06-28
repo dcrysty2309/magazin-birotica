@@ -39,7 +39,10 @@ Pe aceasta pagina gasesti:
 - C14 - fără eroare goală la load;
 - C17 - sesiune expirată;
 - C19 - cod poștal persistă la tab;
-- C22 - cod poștal nu declanșează reset/focus jump.
+- C22 - cod poștal nu declanșează reset/focus jump;
+- C25 - checkout cu coș gol nu afișează flow de comandă.
+
+Pentru coș gol, checkout-ul trebuie să afișeze doar mesajul „Coșul tău este gol.” și CTA către magazin, fără formular, shipping, payment sau butonul de plasare a comenzii.
 
 Restul cazurilor rămân disponibile în setul complet, dar nu sunt necesare la fiecare rundă de testare.
 

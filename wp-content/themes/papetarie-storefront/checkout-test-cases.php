@@ -494,6 +494,33 @@ $cases = [
         ],
         'screenshot' => '',
     ],
+    [
+        'id' => 'C25',
+        'scenario' => 'Checkout cu coș gol nu afișează flow de comandă',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Pornește dintr-o sesiune guest sau logată.',
+            'Adaugă un produs în coș.',
+            'Intră în checkout și confirmă sau completează adresa.',
+            'Revino în coș și șterge toate produsele.',
+            'Accesează manual pagina `/checkout/` cu coșul gol.',
+        ],
+        'expected' => [
+            'Nu se afișează formularul de adresă.',
+            'Nu se afișează summary de adresă.',
+            'Nu se afișează transport sau plată.',
+            'Nu se afișează butonul „Plasează comanda”.',
+            'Se afișează mesajul „Coșul tău este gol.”.',
+            'Se afișează CTA pentru continuarea cumpărăturilor / întoarcerea la magazin.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
 ];
 
 $comment_index = function_exists('papetarie_storefront_get_checkout_test_comment_index') ? papetarie_storefront_get_checkout_test_comment_index() : [];
@@ -506,7 +533,7 @@ function pap_checkout_cases_join_lines(array $lines): string
     return implode("\n", array_map('trim', $lines));
 }
 
-$recommended_case_ids = ['1.1', '1.3', '4.1', '4.2', '4.3', 'C13', 'C14', 'C17', 'C19', 'C22'];
+$recommended_case_ids = ['1.1', '1.3', '4.1', '4.2', '4.3', 'C13', 'C14', 'C17', 'C19', 'C22', 'C25'];
 $recommended_cases = array_values(array_filter($cases, static function (array $case) use ($recommended_case_ids): bool {
     return in_array($case['id'], $recommended_case_ids, true);
 }));
