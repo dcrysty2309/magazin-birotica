@@ -39,13 +39,12 @@ $is_guest_checkout = !is_user_logged_in();
 $shipping_address_mode = function_exists('papetarie_storefront_checkout_shipping_address_mode')
     ? papetarie_storefront_checkout_shipping_address_mode()
     : 'edit';
-$shipping_mode_cookie_present = isset($_COOKIE['pap_checkout_shipping_mode']);
 $has_standard_address = function_exists('papetarie_storefront_checkout_standard_address_has_content')
     ? papetarie_storefront_checkout_standard_address_has_content()
     : false;
 $shipping_address_is_summary = $is_guest_checkout
     ? ('summary' === $shipping_address_mode)
-    : ($has_standard_address && (!$shipping_mode_cookie_present || 'summary' === $shipping_address_mode));
+    : $has_standard_address;
 $show_form = !$shipping_address_is_summary;
 
 ?>

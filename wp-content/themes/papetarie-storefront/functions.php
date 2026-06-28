@@ -1395,21 +1395,17 @@ function papetarie_storefront_checkout_standard_address_snapshot(): array
 
 function papetarie_storefront_checkout_standard_address_has_content(): bool
 {
-    $snapshot = papetarie_storefront_checkout_standard_address_snapshot();
-    if (empty($snapshot)) {
+    $lines = papetarie_storefront_checkout_standard_address_lines();
+
+    if (empty($lines)) {
         return false;
     }
 
-    return (bool) array_filter([
-        $snapshot['billing_first_name'] ?? '',
-        $snapshot['billing_last_name'] ?? '',
-        $snapshot['billing_email'] ?? '',
-        $snapshot['billing_phone'] ?? '',
-        $snapshot['shipping_address_1'] ?? '',
-        $snapshot['shipping_city'] ?? '',
-        $snapshot['shipping_state'] ?? '',
-        $snapshot['shipping_postcode'] ?? '',
-    ], static fn($value) => trim((string) $value) !== '');
+    return (bool) array_filter($lines, static function ($line): bool {
+        $value = trim((string) $line);
+
+        return $value !== '' && 0 !== strpos($value, 'Observații: ');
+    });
 }
 
 function papetarie_storefront_checkout_standard_address_lines(): array
