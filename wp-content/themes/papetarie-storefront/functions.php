@@ -801,6 +801,27 @@ function papetarie_storefront_checkout_notice_hooks(): void
 }
 add_action('wp', 'papetarie_storefront_checkout_notice_hooks', 20);
 
+function papetarie_storefront_get_checkout_notices_html(): string
+{
+    if (!function_exists('wc_print_notices')) {
+        return '';
+    }
+
+    ob_start();
+    wc_print_notices();
+    $html = trim((string) ob_get_clean());
+
+    if ($html !== '') {
+        $html = preg_replace(
+            '#<ul[^>]*class="[^"]*woocommerce-error[^"]*"[^>]*>.*?(Sesiunea ta a expirat\.(?:\s*<a[^>]*>Înapoi la magazin</a>)?).*?</ul>#is',
+            '',
+            $html
+        ) ?? $html;
+    }
+
+    return '' !== trim(wp_strip_all_tags($html)) ? $html : '';
+}
+
 function papetarie_storefront_disable_checkout_coupon_form(): void
 {
     if (!papetarie_storefront_is_checkout_like_page()) {
@@ -1194,6 +1215,7 @@ function papetarie_storefront_checkout_guest_shipping_snapshot(): array
         '#shipping_address_2',
         '#shipping_city',
         '#shipping_state',
+        'postcode',
         '#shipping_postcode',
         '#order_comments',
     ];
@@ -1206,6 +1228,10 @@ function papetarie_storefront_checkout_guest_shipping_snapshot(): array
             : sanitize_text_field($raw_value);
         $snapshot[$key] = trim($value);
     }
+
+    $postcode = trim((string) ($snapshot['#shipping_postcode'] ?? $snapshot['postcode'] ?? ''));
+    $snapshot['postcode'] = $postcode;
+    $snapshot['#shipping_postcode'] = $postcode;
 
     return $snapshot;
 }
@@ -6355,7 +6381,7 @@ function papetarie_storefront_checkout_persist_snapshot_to_account(array $snapsh
     $billing_country = sanitize_text_field((string) ($snapshot['#billing_country'] ?? $snapshot['billing_country'] ?? 'RO'));
     $billing_state = sanitize_text_field((string) ($snapshot['#billing_state'] ?? $snapshot['billing_state'] ?? $snapshot['#shipping_state'] ?? $snapshot['shipping_state'] ?? ''));
     $billing_city = sanitize_text_field((string) ($snapshot['#billing_city'] ?? $snapshot['billing_city'] ?? $snapshot['#shipping_city'] ?? $snapshot['shipping_city'] ?? ''));
-    $billing_postcode = sanitize_text_field((string) ($snapshot['#billing_postcode'] ?? $snapshot['billing_postcode'] ?? $snapshot['#shipping_postcode'] ?? $snapshot['shipping_postcode'] ?? ''));
+    $billing_postcode = sanitize_text_field((string) ($snapshot['#billing_postcode'] ?? $snapshot['billing_postcode'] ?? $snapshot['postcode'] ?? $snapshot['#shipping_postcode'] ?? $snapshot['shipping_postcode'] ?? ''));
     $billing_address_1 = sanitize_text_field((string) ($snapshot['#billing_address_1'] ?? $snapshot['billing_address_1'] ?? $snapshot['#shipping_address_1'] ?? $snapshot['shipping_address_1'] ?? ''));
     $billing_address_2 = sanitize_text_field((string) ($snapshot['#billing_address_2'] ?? $snapshot['billing_address_2'] ?? $snapshot['#shipping_address_2'] ?? $snapshot['shipping_address_2'] ?? ''));
     $billing_company = sanitize_text_field((string) ($snapshot['#billing_company'] ?? $snapshot['billing_company'] ?? $snapshot['#shipping_company'] ?? $snapshot['shipping_company'] ?? ''));
@@ -7902,6 +7928,100 @@ function papetarie_storefront_handle_checkout_case_comment_save(): void
 
 add_action('wp_ajax_pap_checkout_case_save_comment', 'papetarie_storefront_handle_checkout_case_comment_save');
 add_action('wp_ajax_nopriv_pap_checkout_case_save_comment', 'papetarie_storefront_handle_checkout_case_comment_save');
+
+function papetarie_storefront_delete_checkout_test_comments(array $delete_args): int
+{
+    $deleted = 0;
+    $posts = get_posts(array_merge([
+        'post_type' => papetarie_storefront_get_checkout_test_comment_post_type(),
+        'post_status' => 'any',
+        'posts_per_page' => -1,
+        'orderby' => 'date',
+        'order' => 'ASC',
+        'fields' => 'ids',
+        'no_found_rows' => true,
+        'suppress_filters' => true,
+    ], $delete_args));
+
+    foreach ($posts as $post_id) {
+        $deleted_post = wp_delete_post((int) $post_id, true);
+        if ($deleted_post instanceof WP_Post || $deleted_post === true) {
+            $deleted++;
+        }
+    }
+
+    return $deleted;
+}
+
+function papetarie_storefront_handle_checkout_case_comment_delete(): void
+{
+    if (!function_exists('wp_send_json_error')) {
+        return;
+    }
+
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, 'pap_checkout_case_comments')) {
+        wp_send_json_error([
+            'message' => __('Sesiunea a expirat. Reîncarcă pagina și încearcă din nou.', 'papetarie-storefront'),
+        ], 400);
+    }
+
+    $comment_id = isset($_POST['comment_id']) ? absint($_POST['comment_id']) : 0;
+    $case_id = isset($_POST['case_id']) ? sanitize_text_field(wp_unslash((string) $_POST['case_id'])) : '';
+    $delete_all = isset($_POST['delete_all']) && sanitize_text_field(wp_unslash((string) $_POST['delete_all'])) === '1';
+
+    if ($delete_all) {
+        $deleted = papetarie_storefront_delete_checkout_test_comments([]);
+        wp_send_json_success([
+            'deleted_count' => $deleted,
+            'comments' => papetarie_storefront_get_checkout_test_comment_index(),
+        ]);
+    }
+
+    if ($comment_id <= 0 && $case_id === '') {
+        wp_send_json_error([
+            'message' => __('Lipsește identificatorul comentariului.', 'papetarie-storefront'),
+        ], 400);
+    }
+
+    if ($comment_id > 0) {
+        $post_type = get_post_type($comment_id);
+        if ($post_type !== papetarie_storefront_get_checkout_test_comment_post_type()) {
+            wp_send_json_error([
+                'message' => __('Comentariul nu există.', 'papetarie-storefront'),
+            ], 404);
+        }
+
+        $deleted = wp_delete_post($comment_id, true);
+        if (!$deleted) {
+            wp_send_json_error([
+                'message' => __('Nu am putut șterge comentariul.', 'papetarie-storefront'),
+            ], 400);
+        }
+    } else {
+        $deleted = papetarie_storefront_delete_checkout_test_comments([
+            'meta_query' => [
+                [
+                    'key' => 'test_case_id',
+                    'value' => $case_id,
+                    'compare' => '=',
+                ],
+            ],
+        ]);
+        if ($deleted <= 0) {
+            wp_send_json_error([
+                'message' => __('Nu am găsit comentarii pentru acest caz.', 'papetarie-storefront'),
+            ], 404);
+        }
+    }
+
+    wp_send_json_success([
+        'comments' => papetarie_storefront_get_checkout_test_comment_index(),
+    ]);
+}
+
+add_action('wp_ajax_pap_checkout_case_delete_comment', 'papetarie_storefront_handle_checkout_case_comment_delete');
+add_action('wp_ajax_nopriv_pap_checkout_case_delete_comment', 'papetarie_storefront_handle_checkout_case_comment_delete');
 
 function papetarie_storefront_returns_endpoint_content(): void
 {

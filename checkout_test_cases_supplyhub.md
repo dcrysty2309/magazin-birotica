@@ -19,12 +19,29 @@ Workflow oficial:
 
 Pe aceasta pagina gasesti:
 
-- un tabel simplu cu toate cazurile de testare;
+- un tabel compact cu cazurile recomandate pentru verificarea rapidă;
 - preview pentru fiecare caz cu tip cont / user-parola / reproduce / expected;
 - comentarii de testare persistate în WordPress, prin CPT-ul intern `pap_checkout_comment`;
 - o listă compactă cu cazurile care au observații, plus istoricul fiecărui caz în Preview;
 - pagina este dedicată doar Pasului 1 - Adresa de livrare;
 - regulile pentru border, label-uri si numarul de adrese.
+
+## Flux recomandat pentru testare rapidă
+
+În practică, pentru o verificare manuală rapidă, începe cu:
+
+- 1.1 - Guest: stare inițială;
+- 1.3 - Guest: după completare și summary;
+- 4.1 - User logat: adresă salvată în summary;
+- 4.2 - User logat: fără adresă salvată;
+- 4.3 - User logat: editare fără salvare;
+- C13 - User salvează ulterior adresa curentă a comenzii;
+- C14 - fără eroare goală la load;
+- C17 - sesiune expirată;
+- C19 - cod poștal persistă la tab;
+- C22 - cod poștal nu declanșează reset/focus jump.
+
+Restul cazurilor rămân disponibile în setul complet, dar nu sunt necesare la fiecare rundă de testare.
 
 ---
 
@@ -128,6 +145,46 @@ Pasul 2 se dezactiveaza pana la reconfirmarea adresei.
 
 ### Observatie
 Datele nu trebuie pierdute dupa inchidere/deschidere.
+
+---
+
+## 1.5. Cod poștal persistă la tab și la redeschiderea formularului
+
+### Cand
+Userul guest completează codul poștal, apoi mută focusul către câmpul următor sau redeschide formularul cu "Modifica".
+
+### Atunci
+Codul poștal nu trebuie să se șteargă la blur/tab și trebuie să fie precompletat la reeditare.
+
+### Reguli
+- Codul poștal se păstrează în snapshot-ul curent al checkout-ului.
+- Când formularul revine în edit mode, codul poștal trebuie să fie completat.
+- Schimbarea altor câmpuri nu șterge codul poștal.
+
+### Cazuri asociate
+- C19 - Guest cod poștal nu se pierde la tab
+- C20 - Guest Modifică precompletează codul poștal
+- C21 - Cod poștal persistă în currentOrderAddress
+
+---
+
+## 1.6. Cod poștal nu declanșează reset sau focus jump
+
+### Când
+Userul completează codul poștal și continuă navigarea prin formular.
+
+### Atunci
+Codul poștal nu se golește la input/tab/blur, focusul nu sare și formularul nu se resetează după recalculări.
+
+### Reguli
+- codul poștal se păstrează în draft-ul curent;
+- recalcularea checkout-ului nu trebuie să rescrie formularul;
+- `updated_checkout` nu suprascrie valorile editate;
+- focusul rămâne pe fluxul normal al formularului.
+
+### Cazuri asociate
+- C22 - Codul poștal nu declanșează reset sau focus jump
+- C23 - updated_checkout nu suprascrie formularul în edit mode
 
 ---
 

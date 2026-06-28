@@ -23,9 +23,10 @@ if (!$checkout->is_registration_enabled() && $checkout->is_registration_required
       <p><?php esc_html_e('Completează datele de livrare și confirmă comanda în pasul final.', 'papetarie-storefront'); ?></p>
     </header>
 
-    <?php if (function_exists('wc_notice_count') && wc_notice_count()) : ?>
+    <?php $checkout_notices_html = function_exists('papetarie_storefront_get_checkout_notices_html') ? papetarie_storefront_get_checkout_notices_html() : ''; ?>
+    <?php if ('' !== trim(wp_strip_all_tags($checkout_notices_html))) : ?>
       <div class="pap-checkout-notices woocommerce-notices-wrapper" role="status" aria-live="polite">
-        <?php woocommerce_output_all_notices(); ?>
+        <?php echo wp_kses_post($checkout_notices_html); ?>
       </div>
     <?php endif; ?>
 

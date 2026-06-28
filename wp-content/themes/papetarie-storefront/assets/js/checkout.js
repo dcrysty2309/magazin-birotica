@@ -59,6 +59,7 @@
   let authShippingEditSnapshotCache = null;
   let authShippingDraft = null;
   let authCurrentOrderSnapshot = null;
+  const postcodeSelectors = new Set(['#billing_postcode', '#shipping_postcode']);
   const addressPairs = [
     { state: '#billing_state', city: '#billing_city' },
     { state: '#shipping_state', city: '#shipping_city' },
@@ -140,8 +141,32 @@
 
   const getSnapshotField = () => getForm().find('[data-pap-guest-shipping-snapshot]').first();
 
+  const normalizeCheckoutPostcodeSnapshot = (snapshot) => {
+    if (!snapshot || typeof snapshot !== 'object') {
+      return {};
+    }
+
+    const postcode = String(
+      snapshot.postcode
+      || snapshot.shipping_postcode
+      || snapshot['#shipping_postcode']
+      || snapshot.billing_postcode
+      || snapshot['#billing_postcode']
+      || ''
+    ).trim();
+
+    return {
+      ...snapshot,
+      postcode,
+      shipping_postcode: String(snapshot.shipping_postcode || snapshot['#shipping_postcode'] || postcode).trim(),
+      billing_postcode: String(snapshot.billing_postcode || snapshot['#billing_postcode'] || postcode).trim(),
+      '#shipping_postcode': String(snapshot['#shipping_postcode'] || postcode).trim(),
+      '#billing_postcode': String(snapshot['#billing_postcode'] || postcode).trim(),
+    };
+  };
+
   const setGuestShippingSnapshot = (snapshot) => {
-    const serialized = JSON.stringify(snapshot && typeof snapshot === 'object' ? snapshot : {});
+    const serialized = JSON.stringify(normalizeCheckoutPostcodeSnapshot(snapshot && typeof snapshot === 'object' ? snapshot : {}));
     const $snapshotField = getSnapshotField();
 
     if ($snapshotField.length) {
@@ -158,7 +183,9 @@
   };
 
   const getGuestShippingSnapshot = () => {
-    const raw = String(getCookieValue('pap_checkout_shipping_snapshot') || '').trim();
+    const $snapshotField = getSnapshotField();
+    const fieldRaw = $snapshotField.length ? String($snapshotField.val() || '').trim() : '';
+    const raw = fieldRaw || String(getCookieValue('pap_checkout_shipping_snapshot') || '').trim();
 
     if (!raw) {
       return null;
@@ -166,11 +193,11 @@
 
     try {
       const decoded = JSON.parse(decodeURIComponent(raw));
-      return decoded && typeof decoded === 'object' ? decoded : null;
+      return decoded && typeof decoded === 'object' ? normalizeCheckoutPostcodeSnapshot(decoded) : null;
     } catch (error) {
       try {
         const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' ? parsed : null;
+        return parsed && typeof parsed === 'object' ? normalizeCheckoutPostcodeSnapshot(parsed) : null;
       } catch (nestedError) {
         return null;
       }
@@ -187,6 +214,94 @@
     if (window.console && typeof window.console.log === 'function') {
       window.console.log('[checkout]', ...args);
     }
+  };
+
+  const getActiveFieldDebugLabel = () => {
+    const activeElement = document.activeElement;
+    if (!activeElement) {
+      return 'none';
+    }
+
+    const tagName = String(activeElement.tagName || '').toLowerCase();
+    const id = String(activeElement.id || '').trim();
+    const name = String(activeElement.getAttribute ? activeElement.getAttribute('name') || '' : '').trim();
+
+    if (id) {
+      return `${tagName}#${id}`;
+    }
+
+    if (name) {
+      return `${tagName}[name="${name}"]`;
+    }
+
+    return tagName || 'unknown';
+  };
+
+  const getPostcodeDebugState = () => ({
+    activeElement: getActiveFieldDebugLabel(),
+    shippingPostcode: String(getFieldBySelector('#shipping_postcode').val() || '').trim(),
+    billingPostcode: String(getFieldBySelector('#billing_postcode').val() || '').trim(),
+    guestCachePostcode: guestShippingSummaryCache ? String(guestShippingSummaryCache.postcode || guestShippingSummaryCache['#shipping_postcode'] || guestShippingSummaryCache.shipping_postcode || '').trim() : '',
+    authDraftPostcode: authShippingDraft ? String(authShippingDraft.postcode || authShippingDraft['#shipping_postcode'] || authShippingDraft.shipping_postcode || authShippingDraft['#billing_postcode'] || authShippingDraft.billing_postcode || '').trim() : '',
+    authCurrentOrderPostcode: authCurrentOrderSnapshot ? String(authCurrentOrderSnapshot.postcode || authCurrentOrderSnapshot['#shipping_postcode'] || authCurrentOrderSnapshot.shipping_postcode || authCurrentOrderSnapshot['#billing_postcode'] || authCurrentOrderSnapshot.billing_postcode || '').trim() : '',
+  });
+
+  const bindPostcodeInputGuards = () => {
+    if (document.documentElement && document.documentElement.dataset.papCheckoutPostcodeGuardsBound === '1') {
+      return;
+    }
+
+    if (document.documentElement) {
+      document.documentElement.dataset.papCheckoutPostcodeGuardsBound = '1';
+    }
+
+    const handlePostcodeKeystroke = (event) => {
+      const target = event.target;
+      if (!target || !target.matches || !target.matches('#billing_postcode, #shipping_postcode')) {
+        return;
+      }
+
+      debugCheckout(`postcode ${event.type} capture`, {
+        field: `#${target.id || ''}`,
+        value: String(target.value || '').trim(),
+        state: getPostcodeDebugState(),
+      });
+
+      if (!isProgrammaticFieldSync) {
+        if (authAddressFormMode) {
+          captureAuthShippingDraft(`postcode-input-capture:${target.id || ''}`);
+        } else if (!isLoggedIn) {
+          captureAndPersistGuestShippingSummaryCache();
+        }
+      }
+
+      clearFieldError($(target));
+      clearNativeInvalidState($(target));
+
+      // Prevent WooCommerce core listeners from reacting to each keystroke.
+      event.stopImmediatePropagation();
+    };
+
+    document.addEventListener('input', handlePostcodeKeystroke, true);
+    document.addEventListener('keyup', handlePostcodeKeystroke, true);
+  };
+
+  const clearSessionExpiredNotice = () => {
+    const $notices = $('ul.woocommerce-error, .woocommerce-notices-wrapper .woocommerce-error, .pap-checkout-notices .woocommerce-error').filter(':visible');
+    if (!$notices.length) {
+      return;
+    }
+
+    $notices.each(function () {
+      const $notice = $(this);
+      const text = String($notice.text() || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const matchesExpired = text.includes('sesiunea ta a expirat') || text.includes('sorry, your session has expired');
+      if (!matchesExpired) {
+        return;
+      }
+
+      $notice.remove();
+    });
   };
 
   const shouldShowValidation = () => getForm().data('papSubmitted') === true;
@@ -297,6 +412,7 @@
     setCheckoutFieldValue(getFieldBySelector(fields.last_name), address.last_name || '');
     setCheckoutFieldValue(getFieldBySelector(fields.company), address.company || '');
     setCheckoutFieldValue(getFieldBySelector(fields.phone), address.phone || '');
+    setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), address.postcode || '');
     setCheckoutFieldValue(getFieldBySelector(fields.postcode), address.postcode || '');
     setCheckoutFieldValue(getFieldBySelector(fields.address_1), address.address_1 || '');
 
@@ -713,7 +829,10 @@
     '#shipping_address_2': getGuestShippingFieldValue('#shipping_address_2'),
     '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
     '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
+    postcode: getGuestShippingFieldValue('#shipping_postcode'),
     '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
+    shipping_postcode: getGuestShippingFieldValue('#shipping_postcode'),
+    billing_postcode: getGuestShippingFieldValue('#shipping_postcode'),
     '#order_comments': getGuestShippingFieldValue('#order_comments'),
   });
 
@@ -731,7 +850,9 @@
       || String(snapshot['#shipping_city'] || '').trim()
       || String(snapshot['#shipping_address_1'] || '').trim()
       || String(snapshot['#shipping_address_2'] || '').trim()
+      || String(snapshot.postcode || '').trim()
       || String(snapshot['#shipping_postcode'] || '').trim()
+      || String(snapshot.shipping_postcode || '').trim()
     );
   };
 
@@ -752,7 +873,11 @@
     '#shipping_address_2': getGuestShippingFieldValue('#shipping_address_2'),
     '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
     '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
+    postcode: getGuestShippingFieldValue('#shipping_postcode') || getGuestShippingFieldValue('#billing_postcode'),
+    '#billing_postcode': getGuestShippingFieldValue('#billing_postcode') || getGuestShippingFieldValue('#shipping_postcode'),
     '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
+    billing_postcode: getGuestShippingFieldValue('#billing_postcode') || getGuestShippingFieldValue('#shipping_postcode'),
+    shipping_postcode: getGuestShippingFieldValue('#shipping_postcode'),
     '#order_comments': getGuestShippingFieldValue('#order_comments'),
   });
 
@@ -767,8 +892,8 @@
       return;
     }
 
-    authCurrentOrderSnapshot = snapshot;
-    debugCheckout('auth current order snapshot set', reason, snapshot);
+    authCurrentOrderSnapshot = normalizeCheckoutPostcodeSnapshot(snapshot);
+    debugCheckout('auth current order snapshot set', reason, authCurrentOrderSnapshot);
   };
 
   const getCheckoutStandardAddressSnapshot = () => {
@@ -818,7 +943,9 @@
       || String(snapshot['#shipping_state'] || '').trim()
       || String(snapshot['#shipping_city'] || '').trim()
       || String(snapshot['#shipping_address_1'] || '').trim()
+      || String(snapshot.postcode || '').trim()
       || String(snapshot['#shipping_postcode'] || '').trim()
+      || String(snapshot.shipping_postcode || '').trim()
       || String(snapshot['#order_comments'] || '').trim()
     );
   };
@@ -849,16 +976,25 @@
       return;
     }
 
+    debugCheckout('hydrateAuthShippingFieldsFromSnapshot', snapshot);
     const shippingStateValue = String(snapshot['#shipping_state'] || snapshot['#billing_state'] || '').trim();
     const shippingCityValue = String(snapshot['#shipping_city'] || snapshot['#billing_city'] || '').trim();
     const shippingAddress1Value = String(snapshot['#shipping_address_1'] || snapshot['#billing_address_1'] || '').trim();
-    const shippingPostcodeValue = String(snapshot['#shipping_postcode'] || snapshot['#billing_postcode'] || '').trim();
+    const shippingPostcodeValue = String(
+      snapshot.postcode
+      || snapshot['#shipping_postcode']
+      || snapshot.shipping_postcode
+      || snapshot['#billing_postcode']
+      || snapshot.billing_postcode
+      || ''
+    ).trim();
 
     runProgrammaticFieldSync(() => {
       setCheckoutFieldValue(getFieldBySelector('#billing_first_name'), String(snapshot['#billing_first_name'] || '').trim());
       setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), String(snapshot['#billing_last_name'] || '').trim());
       setCheckoutFieldValue(getFieldBySelector('#billing_phone'), String(snapshot['#billing_phone'] || '').trim());
       setCheckoutFieldValue(getFieldBySelector('#billing_email'), String(snapshot['#billing_email'] || '').trim());
+      setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), shippingPostcodeValue);
       setSelectFieldByValueOrLabel(getFieldBySelector('#billing_country'), String(snapshot['#billing_country'] || 'RO').trim() || 'RO', true);
       setSelectFieldByValueOrLabel(getFieldBySelector('#shipping_country'), String(snapshot['#shipping_country'] || 'RO').trim() || 'RO', true);
       setCheckoutFieldValue(getFieldBySelector('#shipping_address_1'), shippingAddress1Value);
@@ -880,7 +1016,7 @@
   };
 
   const getAuthShippingSummaryLinesFromSnapshot = (snapshot) => {
-    const data = snapshot && typeof snapshot === 'object' ? snapshot : {};
+    const data = normalizeCheckoutPostcodeSnapshot(snapshot && typeof snapshot === 'object' ? snapshot : {});
     const firstName = String(data['#billing_first_name'] || '').trim();
     const lastName = String(data['#billing_last_name'] || '').trim();
     const phone = String(data['#billing_phone'] || '').trim();
@@ -889,12 +1025,12 @@
     const shippingAddress2 = String(data['#shipping_address_2'] || '').trim();
     const shippingCity = String(data['#shipping_city'] || '').trim();
     const shippingState = String(data['#shipping_state'] || '').trim();
-    const shippingPostcode = String(data['#shipping_postcode'] || '').trim();
+    const shippingPostcode = String(data.postcode || data['#shipping_postcode'] || data.shipping_postcode || '').trim();
     const billingAddress1 = String(data['#billing_address_1'] || '').trim();
     const billingAddress2 = String(data['#billing_address_2'] || '').trim();
     const billingCity = String(data['#billing_city'] || '').trim();
     const billingState = String(data['#billing_state'] || '').trim();
-    const billingPostcode = String(data['#billing_postcode'] || '').trim();
+    const billingPostcode = String(data.billing_postcode || data['#billing_postcode'] || shippingPostcode || '').trim();
     const orderComments = String(data['#order_comments'] || '').trim();
 
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
@@ -1035,6 +1171,7 @@
       return;
     }
 
+    debugCheckout('hydrateGuestShippingFields', snapshot);
     const firstName = String(snapshot['#billing_first_name'] || '').trim();
     const lastName = String(snapshot['#billing_last_name'] || '').trim();
     const phone = String(snapshot['#billing_phone'] || '').trim();
@@ -1042,6 +1179,14 @@
     const address1 = String(snapshot['#shipping_address_1'] || '').trim();
     const countyLabel = String(snapshot['#shipping_state'] || '').trim();
     const cityLabel = String(snapshot['#shipping_city'] || '').trim();
+    const postcode = String(
+      snapshot.postcode
+      || snapshot['#shipping_postcode']
+      || snapshot.shipping_postcode
+      || snapshot['#billing_postcode']
+      || snapshot.billing_postcode
+      || ''
+    ).trim();
     const orderComments = String(snapshot['#order_comments'] || '').trim();
 
     setCheckoutFieldValue(getFieldBySelector('#billing_first_name'), firstName);
@@ -1049,6 +1194,7 @@
     setCheckoutFieldValue(getFieldBySelector('#billing_phone'), phone);
     setCheckoutFieldValue(getFieldBySelector('#billing_email'), email);
     setCheckoutFieldValue(getFieldBySelector('#shipping_address_1'), address1);
+    setCheckoutFieldValue(getFieldBySelector('#shipping_postcode'), postcode);
     setSelectFieldByLabel(getFieldBySelector('#shipping_state'), countyLabel);
     syncDependentCitySelect('#shipping_state', false);
     setSelectFieldByLabel(getFieldBySelector('#shipping_city'), cityLabel);
@@ -1296,7 +1442,7 @@
     setVisibilityState($actions, normalizedMode !== 'summary' || !hasSummary, 'flex');
 
     if (normalizedMode === 'edit' && shouldHydrate) {
-      hydrateGuestShippingFields(getGuestShippingSnapshot() || guestShippingSummaryCache);
+      hydrateGuestShippingFields(normalizeCheckoutPostcodeSnapshot(getGuestShippingSnapshot() || guestShippingSummaryCache));
     }
 
     syncGuestShippingSummary();
@@ -1386,9 +1532,37 @@
   const getAuthShipping = () => getForm().find(selectors.authShipping).first();
 
   const setAuthAddressNotice = (message = '') => {
-    const $notice = getAuthShipping().find(selectors.authAddressNotice).first();
-    if (!$notice.length) {
+    const hasMessage = Boolean(String(message || '').trim());
+
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
       return;
+    }
+
+    let $notice = $shipping.find(selectors.authAddressNotice).first();
+
+    if (!hasMessage) {
+      if ($notice.length) {
+        $notice.remove();
+      }
+      return;
+    }
+
+    if (!$notice.length) {
+      const noticeHtml = [
+        '<div class="pap-checkout-auth-shipping__notice pap-auth-notice wc-block-components-notice-banner is-error pap-auth-notice--error" data-pap-auth-address-notice role="alert" aria-live="assertive" aria-atomic="true">',
+        '  <span class="pap-auth-notice-icon wc-block-components-notice-banner__icon" aria-hidden="true">',
+        '    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm1 5v7h-2V7h2Zm0 9v2h-2v-2h2Z" fill="currentColor"/></svg>',
+        '  </span>',
+        '  <div class="pap-auth-notice-copy wc-block-components-notice-banner__content" data-pap-auth-address-notice-copy></div>',
+        '</div>',
+      ].join('');
+
+      const $form = $shipping.find(selectors.authShippingForm).first();
+      if ($form.length) {
+        $notice = $(noticeHtml);
+        $form.prepend($notice);
+      }
     }
 
     const $copy = $notice.find(selectors.authAddressNoticeCopy).first();
@@ -1398,16 +1572,14 @@
       $notice.text(message);
     }
 
-    setVisibilityState($notice, Boolean(message), 'flex');
+    setVisibilityState($notice, true, 'flex');
 
-    if (message) {
-      window.requestAnimationFrame(() => {
-        const element = $notice.get(0);
-        if (element && typeof element.scrollIntoView === 'function') {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-    }
+    window.requestAnimationFrame(() => {
+      const element = $notice.get(0);
+      if (element && typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
   };
 
   const setAuthShippingBusy = (isBusy) => {
@@ -1472,6 +1644,7 @@
       setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), address.last_name || '');
       setCheckoutFieldValue(getFieldBySelector('#billing_phone'), address.phone || '');
       setCheckoutFieldValue(getFieldBySelector('#billing_email'), address.email || checkoutData.customerEmail || '');
+      setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), address.postcode || '');
       applySavedAddressToFields('shipping', address);
     });
   };
@@ -1481,6 +1654,7 @@
       '#billing_first_name',
       '#billing_last_name',
       '#billing_phone',
+      '#billing_postcode',
       '#shipping_state',
       '#shipping_city',
       '#shipping_address_1',
@@ -1600,7 +1774,7 @@
     if (visible) {
       authAddressFormMode = options.mode || 'new';
       authTemporarySummaryVisible = false;
-      const initialSnapshot = getAuthShippingInitialSnapshot();
+      const initialSnapshot = normalizeCheckoutPostcodeSnapshot(getAuthShippingInitialSnapshot());
       authShippingEditSnapshotCache = initialSnapshot;
       authShippingDraft = initialSnapshot;
       setCookieValue('pap_checkout_shipping_mode', 'edit');
@@ -1782,7 +1956,7 @@
           mode: authAddressFormMode,
         });
       } else if (authShippingDraft) {
-        hydrateAuthShippingFieldsFromSnapshot(authShippingDraft);
+        hydrateAuthShippingFieldsFromSnapshot(normalizeCheckoutPostcodeSnapshot(authShippingDraft));
       }
       return;
     }
@@ -1800,7 +1974,7 @@
     const address = getAddressById(selectedId);
     if (address) {
       applyAuthAddressToForm(address);
-      authShippingDraft = captureAuthShippingSnapshot();
+      authShippingDraft = normalizeCheckoutPostcodeSnapshot(captureAuthShippingSnapshot());
       setAuthCurrentOrderSnapshot(authShippingDraft, 'syncAuthSelectedAddressFields');
     }
   };
@@ -2063,9 +2237,20 @@
 
     $form.on('blur', selectors.field, function () {
       const $field = $(this);
+      const fieldSelector = `#${$field.attr('id') || ''}`;
+      const isGuestAddressField = !isLoggedIn && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
+      const isAuthAddressField = authAddressFormMode && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#billing_postcode', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
 
       if (isProgrammaticFieldSync && isAddressCityField($field)) {
         return;
+      }
+
+      if (postcodeSelectors.has(fieldSelector)) {
+        debugCheckout('postcode blur', {
+          field: fieldSelector,
+          value: String($field.val() || '').trim(),
+          state: getPostcodeDebugState(),
+        });
       }
 
       if (getForm().data('papSubmitted') !== true) {
@@ -2075,19 +2260,40 @@
           }
         }, 0);
       }
+
+      if (isAuthAddressField && !isProgrammaticFieldSync) {
+        captureAuthShippingDraft(`blur:${fieldSelector}`);
+      }
+
+      if (isGuestAddressField && !isProgrammaticFieldSync) {
+        captureAndPersistGuestShippingSummaryCache();
+      }
     });
 
     $form.on('change', selectors.field, function () {
       const $field = $(this);
       const fieldSelector = `#${$field.attr('id') || ''}`;
-      const isAuthAddressField = authAddressFormMode && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
+      const isGuestAddressField = !isLoggedIn && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
+      const isAuthAddressField = authAddressFormMode && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#billing_postcode', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
 
       if (isProgrammaticFieldSync && isAddressCityField($field)) {
         return;
       }
 
+      if (postcodeSelectors.has(fieldSelector)) {
+        debugCheckout('postcode change', {
+          field: fieldSelector,
+          value: String($field.val() || '').trim(),
+          state: getPostcodeDebugState(),
+        });
+      }
+
       if (isAuthAddressField && !isProgrammaticFieldSync) {
         captureAuthShippingDraft(`change:${fieldSelector}`);
+      }
+
+      if (isGuestAddressField && !isProgrammaticFieldSync) {
+        captureAndPersistGuestShippingSummaryCache();
       }
 
       if (getForm().data('papSubmitted') === true) {
@@ -2102,14 +2308,27 @@
     $form.on('input', selectors.field, function () {
       const $field = $(this);
       const fieldSelector = `#${$field.attr('id') || ''}`;
-      const isAuthAddressField = authAddressFormMode && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
+      const isGuestAddressField = !isLoggedIn && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
+      const isAuthAddressField = authAddressFormMode && ['#billing_first_name', '#billing_last_name', '#billing_phone', '#billing_email', '#billing_postcode', '#shipping_state', '#shipping_city', '#shipping_address_1', '#shipping_postcode', '#order_comments', '#shipping_country', '#billing_country'].includes(fieldSelector);
 
       if (isProgrammaticFieldSync && isAddressCityField($field)) {
         return;
       }
 
+      if (postcodeSelectors.has(fieldSelector)) {
+        debugCheckout('postcode input bubble', {
+          field: fieldSelector,
+          value: String($field.val() || '').trim(),
+          state: getPostcodeDebugState(),
+        });
+      }
+
       if (isAuthAddressField && !isProgrammaticFieldSync) {
         captureAuthShippingDraft(`input:${fieldSelector}`);
+      }
+
+      if (isGuestAddressField && !isProgrammaticFieldSync) {
+        captureAndPersistGuestShippingSummaryCache();
       }
 
       if (getForm().data('papSubmitted') !== true) {
@@ -2286,7 +2505,7 @@
       $button.prop('disabled', true).attr('aria-busy', 'true');
       setAuthShippingBusy(true);
       setAuthAddressNotice('');
-      const authShippingSnapshot = captureAuthShippingDraft('save-click');
+      const authShippingSnapshot = normalizeCheckoutPostcodeSnapshot(captureAuthShippingDraft('save-click'));
 
       $.post(checkoutData.ajaxUrl, {
         action: checkoutData.selectAddressAction || 'papetarie_storefront_checkout_select_address',
@@ -2401,15 +2620,27 @@
 
   const bootstrap = async () => {
     await loadCityData();
+    bindPostcodeInputGuards();
+    $(document.body).on('update_checkout', () => {
+      debugCheckout('body update_checkout event', getPostcodeDebugState());
+    });
     $(document.body).on('updated_checkout', syncCheckoutState);
+    $(document.body).on('updated_checkout', () => {
+      debugCheckout('body updated_checkout event', getPostcodeDebugState());
+      clearSessionExpiredNotice();
+    });
     $(document.body).on('checkout_error', () => {
       setAuthShippingBusy(false);
+      debugCheckout('body checkout_error event', getPostcodeDebugState());
     });
     $(window).on('resize', () => {
       syncAuthShippingActionWidths();
     });
     $(bindFieldValidation);
     $(syncCheckoutState);
+    clearSessionExpiredNotice();
+    window.setTimeout(clearSessionExpiredNotice, 250);
+    window.setTimeout(clearSessionExpiredNotice, 1250);
   };
 
   if (document.readyState === 'loading') {

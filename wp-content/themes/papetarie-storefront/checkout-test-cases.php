@@ -66,7 +66,7 @@ $cases = [
             'Asigură-te că ești delogat sau folosește o fereastră incognito.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'Completează formularul guest cu date valide.',
+            'Completează formularul cu date clare și verificabile: Prenume Ion, Nume Popescu, Email ion.popescu@test.local, Telefon 0712223333, Județ Cluj, Localitate Cluj-Napoca, Adresă Strada Test 12, Cod poștal 405400.',
             'Apasă "Continuă".',
             'Așteaptă să se închidă formularul și să apară summary card.',
         ],
@@ -118,7 +118,7 @@ $cases = [
             'Autentifică-te cu `checkout.oneaddress@test.local`.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'Verifică faptul că Pasul 1 afișează cardul de summary pentru adresa din cont.',
+            'Verifică faptul că Pasul 1 afișează cardul de summary pentru adresa din cont, fără formular deschis dedesubt.',
         ],
         'expected' => [
             'Apare summary-ul adresei standard din My Account.',
@@ -142,7 +142,7 @@ $cases = [
             'Autentifică-te cu `checkout.noaddress@test.local`.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'Verifică faptul că formularul este gol și complet editabil.',
+            'Verifică faptul că Pasul 1 pornește cu formularul gol și editabil, fără summary.',
         ],
         'expected' => [
             'Checkout afișează formularul gol.',
@@ -165,7 +165,7 @@ $cases = [
             'Autentifică-te cu `checkout.oneaddress@test.local`.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'Schimbă câteva câmpuri din adresă.',
+            'Apasă „Modifică” și schimbă explicit telefonul, strada și codul poștal, de exemplu: Telefon 0740000000, Adresă Strada Nouă 44, Cod poștal 400000.',
             'Nu bifa salvarea pentru comenzile viitoare.',
             'Continuă checkout-ul și verifică datele de pe comandă.',
         ],
@@ -190,7 +190,7 @@ $cases = [
             'Autentifică-te cu `checkout.oneaddress@test.local`.',
             'Adaugă un produs în coș.',
             'Deschide pagina `/checkout/`.',
-            'Schimbă câteva câmpuri din adresă.',
+            'Apasă „Modifică” și schimbă explicit telefonul, strada și codul poștal, de exemplu: Telefon 0740000000, Adresă Strada Nouă 44, Cod poștal 400000.',
             'Bifează salvarea pentru comenzile viitoare.',
             'Continuă checkout-ul.',
         ],
@@ -215,7 +215,8 @@ $cases = [
             'Autentifică-te cu `checkout.oneaddress@test.local` și verifică faptul că în My Account există Adresa A.',
             'Adaugă un produs în coș și deschide pagina `/checkout/`.',
             'Apasă „Modifică” pe Pasul 1 - Adresa de livrare.',
-            'Schimbă datele în Adresa B și nu bifa checkbox-ul de salvare.',
+            'Schimbă datele în Adresa B: Telefon 0740000000, Adresă Strada Nouă 44, Cod poștal 400000 și păstrează noul nume dacă este nevoie.',
+            'Nu bifa checkbox-ul de salvare.',
             'Apasă „Continuă” și verifică faptul că summary-ul afișează Adresa B.',
             'Apasă din nou „Modifică” și confirmă că formularul revine cu Adresa B, nu cu Adresa A.',
             'Bifează checkbox-ul „Actualizează adresa din contul meu cu aceste date”.',
@@ -258,6 +259,241 @@ $cases = [
         ],
         'screenshot' => '',
     ],
+    [
+        'id' => 'C14',
+        'scenario' => 'Guest checkout fără eroare goală la load',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau deschide o fereastră incognito.',
+            'Adaugă un produs în coș.',
+            'Deschide pagina `/checkout/`.',
+            'Nu apăsa nimic și verifică starea inițială a formularului.',
+        ],
+        'expected' => [
+            'Nu apare alert roșu la încărcarea inițială.',
+            'Nu apare mesaj de eroare gol.',
+            'Formularul rămâne gata de completare.',
+            'Validarea apare doar după submit.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C15',
+        'scenario' => 'Guest checkout fără auth/session error la load',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau deschide o fereastră incognito.',
+            'Adaugă un produs în coș.',
+            'Deschide pagina `/checkout/`.',
+            'Nu apăsa nimic și verifică starea inițială a pasului 1.',
+        ],
+        'expected' => [
+            'Nu apare notice roșu gol.',
+            'Nu apare mesaj de autentificare sau sesiune expirată.',
+            'Formularul este gata de completare.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C16',
+        'scenario' => 'User logat fără auth/session error la load',
+        'user_type' => 'User logat',
+        'addresses' => '1',
+        'reproduce' => [
+            'Autentifică-te cu un cont valid de test.',
+            'Adaugă un produs în coș.',
+            'Deschide pagina `/checkout/`.',
+            'Verifică faptul că Pasul 1 nu afișează alertă roșie la încărcare.',
+        ],
+        'expected' => [
+            'Nu apare notice roșu gol.',
+            'Nu apare mesaj de sesiune expirată.',
+            'Checkout rămâne funcțional.',
+        ],
+        'user_test' => [
+            'User: checkout.oneaddress@test.local',
+            'Parolă: Steauab23.',
+            'Login state: logat',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C17',
+        'scenario' => 'Sesiune expirată afișează mesaj clar',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Deschide checkout-ul cu o sesiune expirată sau invalidează temporar nonce-ul / sesiunea.',
+            'Reîncarcă pagina și verifică mesajul de eroare.',
+        ],
+        'expected' => [
+            'Apare mesaj clar de sesiune expirată.',
+            'Nu apare container gol.',
+            'Userul primește instrucțiune clară să reîncarce pagina.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C18',
+        'scenario' => 'Guest checkout rămâne permis',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau deschide o fereastră incognito.',
+            'Adaugă un produs în coș.',
+            'Deschide pagina `/checkout/`.',
+            'Completează adresa și continuă flow-ul normal.',
+        ],
+        'expected' => [
+            'Guest poate completa adresa.',
+            'Guest poate continua către pașii următori.',
+            'Nu este blocat de notice-uri de autentificare.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C19',
+        'scenario' => 'Guest cod poștal nu se pierde la tab',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau deschide o fereastră incognito.',
+            'Adaugă un produs în coș și deschide pagina `/checkout/`.',
+            'Completează câmpurile obligatorii pentru Pasul 1 - Adresa de livrare.',
+            'Scrie cod poștal exact `405400` în câmpul Cod poștal.',
+            'Apasă Tab sau mută focusul în câmpul „Observații pentru livrare / curier”.',
+        ],
+        'expected' => [
+            'Codul poștal rămâne `405400`.',
+            'Nu se golește câmpul după blur/tab.',
+            'Câmpul rămâne disponibil pentru continuarea checkout-ului.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C20',
+        'scenario' => 'Guest Modifică precompletează codul poștal',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau deschide o fereastră incognito.',
+            'Adaugă un produs în coș și deschide pagina `/checkout/`.',
+            'Completează adresa de livrare, inclusiv codul poștal `405400`.',
+            'Apasă „Continuă”.',
+            'După apariția summary-ului, apasă „Modifică”.',
+        ],
+        'expected' => [
+            'Formularul se redeschide complet.',
+            'Codul poștal este precompletat cu `405400`.',
+            'Niciun câmp completat anterior nu se pierde la reeditare.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C21',
+        'scenario' => 'Cod poștal persistă în currentOrderAddress',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau deschide o fereastră incognito.',
+            'Adaugă un produs în coș și deschide pagina `/checkout/`.',
+            'Completează codul poștal `405400` și restul adresei de livrare.',
+            'Apasă „Continuă”.',
+            'Deschide din nou editarea cu „Modifică”.',
+            'Schimbă un alt câmp, de exemplu telefonul, fără să rescrii codul poștal.',
+        ],
+        'expected' => [
+            'Codul poștal rămâne `405400`.',
+            'Schimbarea altui câmp nu șterge codul poștal.',
+            'currentOrderAddress păstrează codul poștal confirmat.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C22',
+        'scenario' => 'Cod poștal nu declanșează reset sau focus jump',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau deschide o fereastră incognito.',
+            'Adaugă un produs în coș și deschide pagina `/checkout/`.',
+            'Completează câmpurile Pasului 1 până la codul poștal.',
+            'Scrie cod poștal exact `405400`.',
+            'Apasă Tab către câmpul „Observații pentru livrare / curier”.',
+        ],
+        'expected' => [
+            'Codul poștal rămâne `405400`.',
+            'Focusul ajunge normal în următorul câmp.',
+            'Formularul nu se resetează și nu pierde starea introdusă.',
+            'Recalcularea eventuală nu mută focusul și nu golește câmpul.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => 'C23',
+        'scenario' => 'updated_checkout nu suprascrie formularul în edit mode',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau deschide o fereastră incognito.',
+            'Adaugă un produs în coș și deschide pagina `/checkout/`.',
+            'Completează telefonul, adresa și codul poștal.',
+            'Declanșează o recalculare a checkout-ului printr-o schimbare validă de date.',
+        ],
+        'expected' => [
+            'Toate câmpurile rămân neschimbate după `updated_checkout`.',
+            'Formularul nu este repopulat din valori vechi.',
+            'Nu se pierde codul poștal și nu se resetează alte câmpuri.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
 ];
 
 $comment_index = function_exists('papetarie_storefront_get_checkout_test_comment_index') ? papetarie_storefront_get_checkout_test_comment_index() : [];
@@ -269,12 +505,17 @@ function pap_checkout_cases_join_lines(array $lines): string
 {
     return implode("\n", array_map('trim', $lines));
 }
+
+$recommended_case_ids = ['1.1', '1.3', '4.1', '4.2', '4.3', 'C13', 'C14', 'C17', 'C19', 'C22'];
+$recommended_cases = array_values(array_filter($cases, static function (array $case) use ($recommended_case_ids): bool {
+    return in_array($case['id'], $recommended_case_ids, true);
+}));
 ?>
 <main id="primary" class="site-main pap-checkout-cases-page">
   <section class="pap-shell pap-checkout-cases-header">
     <div class="pap-checkout-cases-header__copy">
       <h4><?php esc_html_e('Teste Checkout — Pasul 1: Adresa de livrare', 'papetarie-storefront'); ?></h4>
-      <p class="pap-checkout-cases-lead"><?php esc_html_e('Scenarii pentru guest și user logat: formular, summary card și persistență în sesiune.', 'papetarie-storefront'); ?></p>
+      <p class="pap-checkout-cases-lead"><?php esc_html_e('Scenarii recomandate pentru guest și user logat, plus setul complet disponibil mai jos pentru edge cases.', 'papetarie-storefront'); ?></p>
     </div>
   </section>
 
@@ -282,7 +523,12 @@ function pap_checkout_cases_join_lines(array $lines): string
     <div class="pap-checkout-cases-commented" aria-label="<?php esc_attr_e('Cazuri cu observații', 'papetarie-storefront'); ?>">
       <div class="pap-checkout-cases-commented__head">
         <span><?php esc_html_e('Cazuri cu observații', 'papetarie-storefront'); ?></span>
-        <strong data-comments-count><?php echo esc_html((string) count($commented_cases)); ?></strong>
+        <div class="pap-checkout-cases-commented__head-actions">
+          <strong data-comments-count><?php echo esc_html((string) count($commented_cases)); ?></strong>
+          <button type="button" class="pap-checkout-cases-button pap-checkout-cases-button--secondary pap-checkout-cases-button--small" data-comments-clear-all>
+            <?php esc_html_e('Șterge toate', 'papetarie-storefront'); ?>
+          </button>
+        </div>
       </div>
       <div class="pap-checkout-cases-commented__list" data-comments-list>
         <?php if (!empty($commented_cases)) : ?>
@@ -302,56 +548,61 @@ function pap_checkout_cases_join_lines(array $lines): string
       </div>
     </div>
 
-    <div class="pap-checkout-cases-table-wrap">
-      <table class="pap-checkout-cases-table">
-        <thead>
-          <tr>
-            <th><?php esc_html_e('ID', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Scenariu', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Tip utilizator', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Nr. adrese', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Preview', 'papetarie-storefront'); ?></th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($cases as $case) : ?>
-            <?php
-            $comment_entry = $comment_index[$case['id']] ?? [];
-            $row_classes = [];
-            if (!empty($comment_entry)) {
-                $row_classes[] = 'pap-checkout-cases-row--has-comments';
-            }
-            if (!empty($comment_entry['has_open_comment'])) {
-                $row_classes[] = 'pap-checkout-cases-row--open-comments';
-            }
-            ?>
-            <tr class="<?php echo esc_attr(implode(' ', $row_classes)); ?>" data-case-id="<?php echo esc_attr($case['id']); ?>" data-case-title="<?php echo esc_attr($case['scenario']); ?>" data-case-comment-count="<?php echo esc_attr((string) ($comment_entry['total_count'] ?? 0)); ?>" data-case-open-comment-count="<?php echo esc_attr((string) ($comment_entry['open_count'] ?? 0)); ?>">
-              <td><strong><?php echo esc_html($case['id']); ?></strong></td>
-              <td><?php echo esc_html($case['scenario']); ?></td>
-              <td><span class="pap-checkout-cases-badge pap-checkout-cases-badge--<?php echo esc_attr('Guest' === $case['user_type'] ? 'guest' : 'user'); ?>"><?php echo esc_html($case['user_type']); ?></span></td>
-              <td><?php echo esc_html($case['addresses']); ?></td>
-              <td>
-                <button
-                  type="button"
-                  class="pap-checkout-cases-button pap-checkout-cases-button--secondary"
-                  data-case-preview
-                  data-case-id="<?php echo esc_attr($case['id']); ?>"
-                  data-case-user-type="<?php echo esc_attr($case['user_type']); ?>"
-                  data-case-addresses="<?php echo esc_attr($case['addresses']); ?>"
-                  data-case-title="<?php echo esc_attr($case['scenario']); ?>"
-                  data-case-reproduce="<?php echo esc_attr(pap_checkout_cases_join_lines($case['reproduce'])); ?>"
-                  data-case-expected="<?php echo esc_attr(pap_checkout_cases_join_lines($case['expected'])); ?>"
-                  data-case-user="<?php echo esc_attr(pap_checkout_cases_join_lines($case['user_test'])); ?>"
-                  data-case-screenshot="<?php echo esc_attr($case['screenshot']); ?>"
-                >
-                  <?php esc_html_e('Preview', 'papetarie-storefront'); ?>
-                </button>
-              </td>
+    <details class="pap-checkout-cases-group" open>
+      <summary><?php esc_html_e('Cazuri recomandate', 'papetarie-storefront'); ?></summary>
+      <p class="pap-checkout-cases-group__lead"><?php esc_html_e('Folosește-le pentru verificarea rapidă a fluxului principal. Acoperă starea inițială, salvarea, editarea și regresiile de cod poștal.', 'papetarie-storefront'); ?></p>
+      <div class="pap-checkout-cases-table-wrap">
+        <table class="pap-checkout-cases-table">
+          <thead>
+            <tr>
+              <th><?php esc_html_e('ID', 'papetarie-storefront'); ?></th>
+              <th><?php esc_html_e('Scenariu', 'papetarie-storefront'); ?></th>
+              <th><?php esc_html_e('Tip utilizator', 'papetarie-storefront'); ?></th>
+              <th><?php esc_html_e('Nr. adrese', 'papetarie-storefront'); ?></th>
+              <th><?php esc_html_e('Preview', 'papetarie-storefront'); ?></th>
             </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            <?php foreach ($recommended_cases as $case) : ?>
+              <?php
+              $comment_entry = $comment_index[$case['id']] ?? [];
+              $row_classes = [];
+              if (!empty($comment_entry)) {
+                  $row_classes[] = 'pap-checkout-cases-row--has-comments';
+              }
+              if (!empty($comment_entry['has_open_comment'])) {
+                  $row_classes[] = 'pap-checkout-cases-row--open-comments';
+              }
+              ?>
+              <tr class="<?php echo esc_attr(implode(' ', $row_classes)); ?>" data-case-id="<?php echo esc_attr($case['id']); ?>" data-case-title="<?php echo esc_attr($case['scenario']); ?>" data-case-comment-count="<?php echo esc_attr((string) ($comment_entry['total_count'] ?? 0)); ?>" data-case-open-comment-count="<?php echo esc_attr((string) ($comment_entry['open_count'] ?? 0)); ?>">
+                <td><strong><?php echo esc_html($case['id']); ?></strong></td>
+                <td><?php echo esc_html($case['scenario']); ?></td>
+                <td><span class="pap-checkout-cases-badge pap-checkout-cases-badge--<?php echo esc_attr('Guest' === $case['user_type'] ? 'guest' : 'user'); ?>"><?php echo esc_html($case['user_type']); ?></span></td>
+                <td><?php echo esc_html($case['addresses']); ?></td>
+                <td>
+                  <button
+                    type="button"
+                    class="pap-checkout-cases-button pap-checkout-cases-button--secondary"
+                    data-case-preview
+                    data-case-id="<?php echo esc_attr($case['id']); ?>"
+                    data-case-user-type="<?php echo esc_attr($case['user_type']); ?>"
+                    data-case-addresses="<?php echo esc_attr($case['addresses']); ?>"
+                    data-case-title="<?php echo esc_attr($case['scenario']); ?>"
+                    data-case-reproduce="<?php echo esc_attr(pap_checkout_cases_join_lines($case['reproduce'])); ?>"
+                    data-case-expected="<?php echo esc_attr(pap_checkout_cases_join_lines($case['expected'])); ?>"
+                    data-case-user="<?php echo esc_attr(pap_checkout_cases_join_lines($case['user_test'])); ?>"
+                    data-case-screenshot="<?php echo esc_attr($case['screenshot']); ?>"
+                  >
+                    <?php esc_html_e('Preview', 'papetarie-storefront'); ?>
+                  </button>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
   </section>
 
   <div class="pap-checkout-cases-preview" hidden aria-hidden="true">
@@ -454,7 +705,8 @@ window.papCheckoutCaseCommentEndpoint = <?php echo wp_json_encode(admin_url('adm
 
   const commentsList = document.querySelector('[data-comments-list]');
   const commentsCount = document.querySelector('[data-comments-count]');
-  const saveButtonEl = preview.querySelector('[data-preview-comment-save]');
+      const saveButtonEl = preview.querySelector('[data-preview-comment-save]');
+      const clearAllButtonEl = document.querySelector('[data-comments-clear-all]');
   const caseIndex = <?php echo wp_json_encode(array_map(static function ($case) { return ['id' => $case['id'], 'scenario' => $case['scenario']]; }, $cases)); ?>;
   const statusLabels = {
     open: '<?php echo esc_js(__('Deschis', 'papetarie-storefront')); ?>',
@@ -600,6 +852,9 @@ window.papCheckoutCaseCommentEndpoint = <?php echo wp_json_encode(admin_url('adm
             <button type="button" class="pap-checkout-cases-button pap-checkout-cases-button--secondary" data-comment-edit data-comment-id="${escapeHtml(commentId)}" data-comment-status="${escapeHtml(status)}" data-comment-title="${escapeHtml(String(comment.test_case_title || ''))}">
               <?php echo esc_js(__('Editează', 'papetarie-storefront')); ?>
             </button>
+            <button type="button" class="pap-checkout-cases-button pap-checkout-cases-button--secondary" data-comment-delete data-comment-id="${escapeHtml(commentId)}">
+              <?php echo esc_js(__('Șterge', 'papetarie-storefront')); ?>
+            </button>
           </div>
         </article>
       `;
@@ -716,7 +971,39 @@ window.papCheckoutCaseCommentEndpoint = <?php echo wp_json_encode(admin_url('adm
       })
       .catch(() => {
         // Keep the local fallback visible if the migration request fails.
-      });
+    });
+  };
+
+  const deleteCommentFromServer = (commentId) => {
+    const payload = new URLSearchParams();
+    payload.set('action', 'pap_checkout_case_delete_comment');
+    payload.set('nonce', window.papCheckoutCaseCommentNonce || '');
+    payload.set('comment_id', String(commentId || ''));
+
+    return fetch(window.papCheckoutCaseCommentEndpoint || '/wp-admin/admin-ajax.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      },
+      body: payload.toString(),
+    }).then((response) => response.json());
+  };
+
+  const deleteAllCommentsFromServer = () => {
+    const payload = new URLSearchParams();
+    payload.set('action', 'pap_checkout_case_delete_comment');
+    payload.set('nonce', window.papCheckoutCaseCommentNonce || '');
+    payload.set('delete_all', '1');
+
+    return fetch(window.papCheckoutCaseCommentEndpoint || '/wp-admin/admin-ajax.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      },
+      body: payload.toString(),
+    }).then((response) => response.json());
   };
 
   const closePreview = () => {
@@ -839,6 +1126,39 @@ window.papCheckoutCaseCommentEndpoint = <?php echo wp_json_encode(admin_url('adm
       return;
     }
 
+    const deleteButton = event.target.closest('[data-comment-delete]');
+    if (deleteButton) {
+      event.preventDefault();
+      const commentId = deleteButton.getAttribute('data-comment-id') || '';
+      if (!commentId) {
+        return;
+      }
+
+      if (!window.confirm('<?php echo esc_js(__('Sigur vrei să ștergi acest comentariu?', 'papetarie-storefront')); ?>')) {
+        return;
+      }
+
+      deleteCommentFromServer(commentId)
+        .then((data) => {
+          if (!data || !data.success) {
+            throw new Error((data && data.data && data.data.message) || '<?php echo esc_js(__('Nu am putut șterge comentariul.', 'papetarie-storefront')); ?>');
+          }
+
+          window.papCheckoutCaseCommentIndex = data.data.comments || {};
+          commentIndex = window.papCheckoutCaseCommentIndex;
+          renderCommentList();
+          renderCommentHistory(activeCaseId);
+          resetComposer();
+        })
+        .catch((error) => {
+          if (fields.saveStatus) {
+            fields.saveStatus.textContent = error && error.message ? error.message : '<?php echo esc_js(__('Nu am putut șterge comentariul.', 'papetarie-storefront')); ?>';
+            fields.saveStatus.hidden = false;
+          }
+        });
+      return;
+    }
+
     const jumpButton = event.target.closest('[data-comment-jump]');
     if (jumpButton) {
       event.preventDefault();
@@ -852,6 +1172,34 @@ window.papCheckoutCaseCommentEndpoint = <?php echo wp_json_encode(admin_url('adm
 
     if (event.target.closest('[data-preview-close]')) {
       closePreview();
+      return;
+    }
+
+    if (event.target.closest('[data-comments-clear-all]')) {
+      if (!window.confirm('<?php echo esc_js(__('Sigur vrei să ștergi toate comentariile QA?', 'papetarie-storefront')); ?>')) {
+        return;
+      }
+
+      deleteAllCommentsFromServer()
+        .then((data) => {
+          if (!data || !data.success) {
+            throw new Error((data && data.data && data.data.message) || '<?php echo esc_js(__('Nu am putut șterge comentariile.', 'papetarie-storefront')); ?>');
+          }
+
+          window.papCheckoutCaseCommentIndex = data.data.comments || {};
+          commentIndex = window.papCheckoutCaseCommentIndex;
+          renderCommentList();
+          if (activeCaseId) {
+            renderCommentHistory(activeCaseId);
+          }
+          resetComposer();
+        })
+        .catch((error) => {
+          if (fields.saveStatus) {
+            fields.saveStatus.textContent = error && error.message ? error.message : '<?php echo esc_js(__('Nu am putut șterge comentariile.', 'papetarie-storefront')); ?>';
+            fields.saveStatus.hidden = false;
+          }
+        });
     }
   });
 

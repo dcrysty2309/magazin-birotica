@@ -70,13 +70,6 @@ $show_form = !$shipping_address_is_summary;
                 <?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
 
                 <div class="pap-auth-form pap-checkout-address-form">
-                    <div class="pap-checkout-auth-shipping__notice pap-auth-notice wc-block-components-notice-banner is-error pap-auth-notice--error" data-pap-auth-address-notice hidden role="alert" aria-live="assertive" aria-atomic="true">
-                        <span class="pap-auth-notice-icon wc-block-components-notice-banner__icon" aria-hidden="true">
-                            <?php echo function_exists('papetarie_storefront_notice_icon') ? papetarie_storefront_notice_icon('error') : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                        </span>
-                        <div class="pap-auth-notice-copy wc-block-components-notice-banner__content" data-pap-auth-address-notice-copy></div>
-                    </div>
-
                     <div class="pap-form-row pap-form-row--split">
                         <?php echo $render_billing_field('billing_first_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                         <?php echo $render_billing_field('billing_last_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -129,13 +122,6 @@ $show_form = !$shipping_address_is_summary;
                 <?php do_action('woocommerce_before_checkout_shipping_form', $checkout); ?>
 
                 <div class="pap-auth-form pap-checkout-address-form">
-                    <div class="pap-checkout-auth-shipping__notice pap-auth-notice wc-block-components-notice-banner is-error pap-auth-notice--error" data-pap-auth-address-notice hidden role="alert" aria-live="assertive" aria-atomic="true">
-                        <span class="pap-auth-notice-icon wc-block-components-notice-banner__icon" aria-hidden="true">
-                            <?php echo function_exists('papetarie_storefront_notice_icon') ? papetarie_storefront_notice_icon('error') : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                        </span>
-                        <div class="pap-auth-notice-copy wc-block-components-notice-banner__content" data-pap-auth-address-notice-copy></div>
-                    </div>
-
                     <div class="pap-form-row pap-form-row--split">
                         <?php echo $render_billing_field('billing_first_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                         <?php echo $render_billing_field('billing_last_name'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
