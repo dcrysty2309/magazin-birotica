@@ -127,7 +127,7 @@ $cases = [
             'Nu există badge de selecție.',
         ],
         'user_test' => [
-            'User: checkout.oneaddress@test.local',
+            'User: checkout.noaddress@test.local',
             'Parolă: Steauab23.',
             'Login state: logat',
         ],
@@ -542,7 +542,7 @@ $recommended_cases = array_values(array_filter($cases, static function (array $c
   <section class="pap-shell pap-checkout-cases-header">
     <div class="pap-checkout-cases-header__copy">
       <h4><?php esc_html_e('Teste Checkout — Pasul 1: Adresa de livrare', 'papetarie-storefront'); ?></h4>
-      <p class="pap-checkout-cases-lead"><?php esc_html_e('Scenarii recomandate pentru guest și user logat, plus setul complet disponibil mai jos pentru edge cases.', 'papetarie-storefront'); ?></p>
+      <p class="pap-checkout-cases-lead"><?php esc_html_e('Scenarii recomandate pentru guest și user logat, ordonate de la fluxul de bază la cazurile cu cont.', 'papetarie-storefront'); ?></p>
     </div>
   </section>
 

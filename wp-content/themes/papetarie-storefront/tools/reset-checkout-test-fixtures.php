@@ -18,7 +18,7 @@ global $wpdb;
 
 $baseline = [
     'checkout.oneaddress@test.local' => [
-        'password' => 'Steauab23',
+        'password' => 'Steauab23.',
         'display_name' => 'Cristian Editat Diaconescu',
         'meta' => [
             'first_name' => 'Cristian Editat',
@@ -65,7 +65,7 @@ $baseline = [
         'default' => 'test-one-cluj',
     ],
     'checkout.multiaddress@test.local' => [
-        'password' => 'Steauab23',
+        'password' => 'Steauab23.',
         'display_name' => 'Cristian Diaconescu',
         'meta' => [
             'first_name' => 'Cristian',
@@ -146,7 +146,7 @@ $baseline = [
         'default' => 'test-multi-cluj',
     ],
     'checkout.noaddress@test.local' => [
-        'password' => 'Steauab23',
+        'password' => 'Steauab23.',
         'display_name' => 'Checkout No Address',
         'clear' => [
             'first_name',
@@ -178,13 +178,24 @@ $baseline = [
     ],
 ];
 
+$requested_emails = [];
+if (PHP_SAPI === 'cli' && !empty($argv) && is_array($argv) && count($argv) > 1) {
+    $requested_emails = array_values(array_filter(array_map(static function ($value): string {
+        return sanitize_email((string) $value);
+    }, array_slice($argv, 1)), static fn(string $email): bool => $email !== ''));
+}
+
+if (!empty($requested_emails)) {
+    $baseline = array_intersect_key($baseline, array_flip($requested_emails));
+}
+
 foreach ($baseline as $email => $config) {
     $user = get_user_by('email', $email);
     if (!$user) {
         $user = get_user_by('login', $email);
     }
     if (!$user) {
-        $password = (string) ($config['password'] ?? 'Steauab23');
+        $password = (string) ($config['password'] ?? 'Steauab23.');
         $user_id = wp_create_user($email, $password, $email);
         if (is_wp_error($user_id)) {
             echo 'missing:' . $email . ' (' . $user_id->get_error_message() . ")\n";

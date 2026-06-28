@@ -25,6 +25,9 @@ Pe aceasta pagina gasesti:
 - o listă compactă cu cazurile care au observații, plus istoricul fiecărui caz în Preview;
 - pagina este dedicată doar Pasului 1 - Adresa de livrare;
 - regulile pentru border, label-uri si numarul de adrese.
+- reset rapid pentru conturile de test se poate face din:
+  - `wp-content/themes/papetarie-storefront/tools/reset-checkout-test-fixtures.sh`
+  - `wp-content/themes/papetarie-storefront/tools/reset-checkout-test-fixtures.sh checkout.oneaddress@test.local`
 
 ## Flux recomandat pentru testare rapidă
 
@@ -307,6 +310,7 @@ Modificarile se aplica doar comenzii curente.
 - Formularul de checkout si My Account trebuie sa ramana compatibile cu aceleasi campuri standard.
 - Daca userul nu bifeaza salvarea, My Account ramane neschimbat.
 - Daca userul bifeaza salvarea, My Account se sincronizeaza cu adresa curenta.
+- Scenariul de test folosește contul `checkout.noaddress@test.local`, adică user logat fără adresă salvată la pornire.
 
 ---
 
@@ -426,3 +430,17 @@ Observatiile pentru livrare / curier se trateaza la fel ca restul datelor de adr
   - Observatii pentru livrare / curier: "Livrare dupa ora 14:00."
 - cont legacy istoric
   - Folosit doar pentru verificari de compatibilitate, daca este nevoie.
+
+## Reset rapid fixture-uri
+
+Pentru a relua testele curat, ruleaza:
+
+```bash
+wp-content/themes/papetarie-storefront/tools/reset-checkout-test-fixtures.sh
+```
+
+Pentru un singur cont:
+
+```bash
+wp-content/themes/papetarie-storefront/tools/reset-checkout-test-fixtures.sh checkout.oneaddress@test.local
+```
