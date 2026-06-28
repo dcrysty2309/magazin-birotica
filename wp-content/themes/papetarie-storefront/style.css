@@ -11357,6 +11357,7 @@ body.theme-papetarie.woocommerce-checkout .address-summary-row {
   display: flex;
   align-items: center;
   gap: 16px;
+  margin: 0;
   line-height: 1.45;
   color: #516173;
 }
