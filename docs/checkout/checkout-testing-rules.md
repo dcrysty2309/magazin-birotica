@@ -16,14 +16,9 @@
 - Comentariile din Preview devin lista oficiala de bug-uri pentru staging.
 - Dupa fix, scenariile afectate se retesteaza tot pe staging inainte de urmatorul deploy.
 
-## 2. Reguli pentru Pasul 1
+## 2. Reguli pentru indexul de testare
 
-Setul minim de testare manuala a fost comprimat la patru scenarii esentiale:
-
-1. guest fara cont, formular gol;
-2. guest completeaza si salveaza;
-3. user logat cu adresa standard, formular precompletat;
-4. user logat editeaza adresa si confirma sau nu salvarea in cont.
+Indexul vizual este organizat in doua grupe: Pasul 1 (adresa) si Phase 1 (shipping + payment).
 
 Pentru referinta rapida a tuturor cazurilor, foloseste indexul vizual:
 
@@ -31,6 +26,7 @@ Pentru referinta rapida a tuturor cazurilor, foloseste indexul vizual:
 - acolo gasesti ordinea cazurilor, regulile de border, label-uri si datele de test;
 - `Preview` deschide panoul lateral cu detaliile cazului si comentariile de testare;
 - pagina afiseaza o lista compacta cu cazurile care au observatii salvate in WordPress;
+- Pasul 1 si Phase 1 sunt grupate separat in index pentru a ramane usor de scanat;
 - pentru verificarea finala pe QA, acelasi index trebuie folosit impreuna cu staging;
 - comentariile salvate in Preview sunt persistate in WordPress, in CPT-ul intern `pap_checkout_comment`, si se reincarca la fiecare redeschidere a Preview-ului;
 - cazurile cu observatii apar si in lista compacta de pe index, iar cazurile cu comentarii deschise primesc un marcaj vizual discret in tabel.
@@ -40,6 +36,16 @@ Pentru guest:
 - trebuie sa existe doar un singur flux: formular -> salvare -> summary card -> editare aceleiasi adrese;
 - nu se testeaza lista de adrese sau adresa noua pentru guest, pentru ca acele stari nu exista;
 - butonul `Adauga adresa noua` nu trebuie sa apara niciodata in guest flow.
+
+
+## 2.1. Reguli pentru Phase 1 shipping + payment
+
+- Shipping-ul și plata trebuie validate separat de flow-ul de adresă.
+- Nu trecem la card payment până când transportul real și ramburs nu sunt PASS.
+- Cazurile de shipping/payment sunt grupate în Checkout Test Index într-o secțiune separată pentru Phase 1.
+- Pentru Phase 1, shipping-ul de referință este `Flat rate`, iar transportul gratuit se testează la pragul de 150 lei.
+- Dacă WooCommerce nu are metode active, testul trebuie să confirme mesajul de business, nu o valoare fallback.
+- Documentația de referință pentru shipping și payment este `docs/checkout/payment-and-shipping-rules.md`.
 
 ## 3. Reguli de validare
 

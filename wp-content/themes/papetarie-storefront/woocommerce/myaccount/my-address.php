@@ -50,6 +50,8 @@ if ($edit_id !== '' && function_exists('papetarie_storefront_address_book_get'))
 if (function_exists('papetarie_storefront_address_book_get_form_state')) {
     $active_address = array_merge($active_address, papetarie_storefront_address_book_get_form_state());
 }
+
+$active_address_json = wp_json_encode($active_address, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ?>
 
 <div class="pap-account-page pap-account-page--addresses">
@@ -67,9 +69,31 @@ if (function_exists('papetarie_storefront_address_book_get_form_state')) {
           <div class="pap-account-address-card__head-copy">
             <h3><?php esc_html_e('Adresa mea', 'papetarie-storefront'); ?></h3>
           </div>
-          <a class="pap-account-row-action" href="<?php echo esc_url($edit_address_url()); ?>">
-            <?php esc_html_e('Editează', 'papetarie-storefront'); ?>
-          </a>
+          <div class="pap-account-address-card__actions">
+            <a
+              class="pap-account-row-action"
+              href="<?php echo esc_url($edit_address_url()); ?>"
+              data-address-book-open-modal
+              data-address-book-mode="edit"
+              data-address-book-id="<?php echo esc_attr((string) ($active_address['id'] ?? '')); ?>"
+              data-address-book-entry="<?php echo esc_attr($active_address_json ?: '{}'); ?>"
+            >
+              <?php esc_html_e('Editează', 'papetarie-storefront'); ?>
+            </a>
+            <form method="post" action="<?php echo esc_url(function_exists('papetarie_storefront_address_book_base_url') ? papetarie_storefront_address_book_base_url() : $account_url); ?>" data-address-delete-form>
+              <?php wp_nonce_field('pap_address_book_save', 'pap_address_book_nonce'); ?>
+              <input type="hidden" name="pap_address_book_action" value="delete">
+              <input type="hidden" name="pap_address_id" value="<?php echo esc_attr((string) ($active_address['id'] ?? '')); ?>">
+              <input type="hidden" name="pap_address_type" value="shipping">
+              <button
+                type="submit"
+                class="pap-account-row-action pap-account-row-action--danger"
+                onclick="return confirm('<?php echo esc_js(__('Sigur vrei să ștergi această adresă?', 'papetarie-storefront')); ?>');"
+              >
+                <?php esc_html_e('Șterge', 'papetarie-storefront'); ?>
+              </button>
+            </form>
+          </div>
         </div>
 
         <div class="pap-account-address-card__content">

@@ -35,7 +35,7 @@ if (function_exists('WC') && WC() && WC()->cart && WC()->cart->is_empty()) {
       </div>
     <?php endif; ?>
 
-    <form name="checkout" method="post" class="checkout woocommerce-checkout pap-checkout-form" action="<?php echo esc_url(wc_get_checkout_url()); ?>" enctype="multipart/form-data" aria-label="<?php echo esc_attr__('Checkout', 'woocommerce'); ?>">
+    <form name="checkout" method="post" class="checkout woocommerce-checkout pap-checkout-form" action="<?php echo esc_url(wc_get_checkout_url()); ?>" enctype="multipart/form-data" novalidate="novalidate" aria-label="<?php echo esc_attr__('Checkout', 'woocommerce'); ?>">
       <?php if ($checkout->get_checkout_fields()) : ?>
         <?php do_action('woocommerce_checkout_before_customer_details'); ?>
 

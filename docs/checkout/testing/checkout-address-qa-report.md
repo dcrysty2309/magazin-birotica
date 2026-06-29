@@ -229,3 +229,5 @@ Notă: acest raport surprinde rezultatele istorice ale suitei de testare. Standa
 - Capturile sunt salvate in `docs/checkout/testing/screenshots/`.
 - Acest raport acopera doar Pasul 1 - Adresa de livrare.
 - Scenariul nou pentru `User logat - o adresă în My Account, adaugă adresă nouă în Checkout` a fost adăugat în matricea oficială și trebuie validat în următorul ciclu QA.
+- Retestul final al Phase 1 submit a fost confirmat manual în browser pe `order-received/730/` cu redirect corect către thank-you page și comandă creată în WooCommerce Admin.
+- Status operațional Phase 1 la ultima verificare: PASS pentru flow-ul complet guest checkout + ramburs.

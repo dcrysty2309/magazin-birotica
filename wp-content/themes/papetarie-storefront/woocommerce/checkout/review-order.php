@@ -44,7 +44,7 @@ if ($cart && $cart->needs_shipping()) {
 			}
 
 			$rate = $package['rates'][$chosen_method];
-			$shipping_row_label = wc_cart_totals_shipping_method_label($rate);
+			$shipping_row_label = papetarie_storefront_shipping_method_label_text($rate);
 			break;
 		}
 
@@ -52,7 +52,7 @@ if ($cart && $cart->needs_shipping()) {
 			$shipping_row_label = __('Livrare', 'papetarie-storefront');
 		}
 
-		$shipping_row_value = wc_price(max(0.0, $shipping_total));
+		$shipping_row_value = papetarie_storefront_shipping_method_price_text(max(0.0, $shipping_total));
 	}
 }
 

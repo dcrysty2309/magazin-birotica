@@ -64,6 +64,9 @@ Reguli:
 - Blocul `Adresa mea` apare doar dacă există o adresă standard completă; dacă lipsesc câmpurile obligatorii, My Account afișează empty state-ul cu butonul `Adaugă adresă nouă`.
 - Formularul de adresă din My Account folosește aceeași structură de câmpuri ca checkout-ul.
 - Standardul de formular de adresă este unic: Checkout și My Account folosesc aceeași ordine a câmpurilor, aceleași validări și aceeași structură vizuală pentru editare.
+- My Account trebuie să folosească un singur modal reutilizabil pentru `Adaugă adresă nouă` și `Editează`; diferența este doar titlul, datele inițiale și acțiunea de salvare.
+- În My Account, fiecare card de adresă existentă afișează în dreapta sus acțiunile `Editează` și `Șterge`.
+- `Șterge` cere confirmare explicită și, dacă nu mai rămâne nicio adresă, UI-ul revine la empty state-ul cu pin.
 - Labelul pentru câmpul principal este `Adresă` în ambele zone; placeholder-ul poate rămâne specific variantei.
 - În modalul My Account nu se folosesc iconuri pe inputuri; structura trebuie să rămână identică cu Checkout-ul curent, adică label deasupra și câmp simplu dedesubt.
 - Standardul include și câmpul opțional `Observații pentru livrare / curier`; acesta are același comportament și aceeași prezentare în Checkout și în modalul My Account.
@@ -152,3 +155,12 @@ Orice task de checkout trebuie să se încheie cu:
 - bug-uri găsite;
 - ce nu a putut fi testat;
 - recomandări pentru următorul pas.
+
+## 12. Phase 1 - Transport și plată
+
+- Transportul vine exclusiv din WooCommerce și nu folosește fallback-uri inventate.
+- Metodele de plată vin exclusiv din WooCommerce gateways active.
+- COD / Ramburs apare doar dacă este activ în WooCommerce.
+- Pentru magazinul curent, shipping-ul de bază este `Flat rate`, iar `Free shipping` este configurat la pragul de 150 lei.
+- Card payment rămâne out of scope până când Phase 1 este PASS complet.
+- Dacă shipping sau payment nu sunt configurate, UI-ul afișează mesaje clare de business, nu valori simulate.

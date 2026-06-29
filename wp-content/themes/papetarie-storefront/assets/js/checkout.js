@@ -412,6 +412,9 @@
     setCheckoutFieldValue(getFieldBySelector(fields.last_name), address.last_name || '');
     setCheckoutFieldValue(getFieldBySelector(fields.company), address.company || '');
     setCheckoutFieldValue(getFieldBySelector(fields.phone), address.phone || '');
+    setCheckoutFieldValue(getFieldBySelector('#billing_state'), address.state || '');
+    setCheckoutFieldValue(getFieldBySelector('#billing_city'), address.city || '');
+    setCheckoutFieldValue(getFieldBySelector('#billing_address_1'), address.address_1 || '');
     setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), address.postcode || '');
     setCheckoutFieldValue(getFieldBySelector(fields.postcode), address.postcode || '');
     setCheckoutFieldValue(getFieldBySelector(fields.address_1), address.address_1 || '');
@@ -836,6 +839,27 @@
     '#order_comments': getGuestShippingFieldValue('#order_comments'),
   });
 
+  const getRawFieldValue = (selector) => {
+    const $field = getFieldBySelector(selector);
+    if (!$field.length) {
+      return '';
+    }
+
+    return String($field.val() || '').trim();
+  };
+
+  const syncBillingShadowFieldsFromCurrentFields = () => {
+    const shippingState = getRawFieldValue('#shipping_state');
+    const shippingCity = getRawFieldValue('#shipping_city');
+    const shippingAddress1 = getRawFieldValue('#shipping_address_1');
+    const shippingPostcode = getRawFieldValue('#shipping_postcode');
+
+    setCheckoutFieldValue(getFieldBySelector('#billing_state'), shippingState || getRawFieldValue('#billing_state'));
+    setCheckoutFieldValue(getFieldBySelector('#billing_city'), shippingCity || getRawFieldValue('#billing_city'));
+    setCheckoutFieldValue(getFieldBySelector('#billing_address_1'), shippingAddress1 || getRawFieldValue('#billing_address_1'));
+    setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), shippingPostcode || getRawFieldValue('#billing_postcode'));
+  };
+
   const hasGuestShippingSnapshotData = (snapshot) => {
     if (!snapshot || typeof snapshot !== 'object') {
       return false;
@@ -858,6 +882,7 @@
 
   const captureAndPersistGuestShippingSummaryCache = () => {
     guestShippingSummaryCache = captureGuestShippingSummaryCache();
+    syncBillingShadowFieldsFromCurrentFields();
     setGuestShippingSnapshot(guestShippingSummaryCache);
     return guestShippingSummaryCache;
   };
@@ -878,11 +903,18 @@
     '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
     billing_postcode: getGuestShippingFieldValue('#billing_postcode') || getGuestShippingFieldValue('#shipping_postcode'),
     shipping_postcode: getGuestShippingFieldValue('#shipping_postcode'),
+    billing_state: getGuestShippingFieldValue('#billing_state'),
+    shipping_state: getGuestShippingFieldValue('#shipping_state'),
+    billing_city: getGuestShippingFieldValue('#billing_city'),
+    shipping_city: getGuestShippingFieldValue('#shipping_city'),
+    billing_address_1: getGuestShippingFieldValue('#billing_address_1'),
+    shipping_address_1: getGuestShippingFieldValue('#shipping_address_1'),
     '#order_comments': getGuestShippingFieldValue('#order_comments'),
   });
 
   const captureAuthShippingDraft = (reason = 'capture') => {
     authShippingDraft = captureAuthShippingSnapshot();
+    syncBillingShadowFieldsFromCurrentFields();
     debugCheckout('auth draft captured', reason, authShippingDraft);
     return authShippingDraft;
   };
@@ -937,16 +969,28 @@
 
     return Boolean(
       String(snapshot['#billing_first_name'] || '').trim()
+      || String(snapshot.billing_first_name || '').trim()
       || String(snapshot['#billing_last_name'] || '').trim()
+      || String(snapshot.billing_last_name || '').trim()
       || String(snapshot['#billing_phone'] || '').trim()
+      || String(snapshot.billing_phone || '').trim()
       || String(snapshot['#billing_email'] || '').trim()
+      || String(snapshot.billing_email || '').trim()
       || String(snapshot['#shipping_state'] || '').trim()
+      || String(snapshot.shipping_state || '').trim()
+      || String(snapshot.billing_state || '').trim()
       || String(snapshot['#shipping_city'] || '').trim()
+      || String(snapshot.shipping_city || '').trim()
+      || String(snapshot.billing_city || '').trim()
       || String(snapshot['#shipping_address_1'] || '').trim()
+      || String(snapshot.shipping_address_1 || '').trim()
+      || String(snapshot.billing_address_1 || '').trim()
       || String(snapshot.postcode || '').trim()
       || String(snapshot['#shipping_postcode'] || '').trim()
       || String(snapshot.shipping_postcode || '').trim()
+      || String(snapshot.billing_postcode || '').trim()
       || String(snapshot['#order_comments'] || '').trim()
+      || String(snapshot.order_comments || '').trim()
     );
   };
 
@@ -994,6 +1038,9 @@
       setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), String(snapshot['#billing_last_name'] || '').trim());
       setCheckoutFieldValue(getFieldBySelector('#billing_phone'), String(snapshot['#billing_phone'] || '').trim());
       setCheckoutFieldValue(getFieldBySelector('#billing_email'), String(snapshot['#billing_email'] || '').trim());
+      setCheckoutFieldValue(getFieldBySelector('#billing_state'), shippingStateValue);
+      setCheckoutFieldValue(getFieldBySelector('#billing_city'), shippingCityValue);
+      setCheckoutFieldValue(getFieldBySelector('#billing_address_1'), shippingAddress1Value);
       setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), shippingPostcodeValue);
       setSelectFieldByValueOrLabel(getFieldBySelector('#billing_country'), String(snapshot['#billing_country'] || 'RO').trim() || 'RO', true);
       setSelectFieldByValueOrLabel(getFieldBySelector('#shipping_country'), String(snapshot['#shipping_country'] || 'RO').trim() || 'RO', true);
@@ -1090,6 +1137,61 @@
     }
 
     return getAuthShippingSummaryLinesFromSnapshot(captureAuthShippingSnapshot());
+  };
+
+  const getAuthShippingSummarySnapshotFromDom = () => {
+    const $shipping = getAuthShipping();
+    if (!$shipping.length) {
+      return null;
+    }
+
+    const $summary = $shipping.find(selectors.authShippingSummary).first();
+    if (!$summary.length || !$summary.is(':visible')) {
+      return null;
+    }
+
+    const summaryName = String($summary.find('.pap-checkout-address-card__name').first().text() || '').trim();
+    const summaryLines = $summary
+      .find('.pap-checkout-address-card__line-text')
+      .map(function () {
+        return String($(this).text() || '').trim();
+      })
+      .get()
+      .filter(Boolean);
+
+    if (!summaryName && !summaryLines.length) {
+      return null;
+    }
+
+    const cityParts = String(summaryLines[1] || '').split(',').map((part) => part.trim()).filter(Boolean);
+    const summaryCity = cityParts[0] || '';
+    const summaryState = cityParts[1] || '';
+    const summaryPostcode = cityParts[2] || '';
+
+    return normalizeCheckoutPostcodeSnapshot({
+      '#billing_first_name': String(getRawFieldValue('#billing_first_name') || '').trim(),
+      '#billing_last_name': String(getRawFieldValue('#billing_last_name') || '').trim(),
+      '#billing_phone': String(getRawFieldValue('#billing_phone') || '').trim(),
+      '#billing_email': String(getRawFieldValue('#billing_email') || '').trim(),
+      '#billing_country': String(getRawFieldValue('#billing_country') || 'RO').trim() || 'RO',
+      '#shipping_country': String(getRawFieldValue('#shipping_country') || 'RO').trim() || 'RO',
+      '#shipping_address_1': String(summaryLines[0] || getRawFieldValue('#shipping_address_1') || '').trim(),
+      '#shipping_address_2': String(getRawFieldValue('#shipping_address_2') || '').trim(),
+      '#shipping_city': summaryCity || String(getRawFieldValue('#shipping_city') || '').trim(),
+      '#shipping_state': summaryState || String(getRawFieldValue('#shipping_state') || '').trim(),
+      postcode: summaryPostcode || String(getRawFieldValue('#shipping_postcode') || getRawFieldValue('#billing_postcode') || '').trim(),
+      '#shipping_postcode': summaryPostcode || String(getRawFieldValue('#shipping_postcode') || getRawFieldValue('#billing_postcode') || '').trim(),
+      shipping_postcode: summaryPostcode || String(getRawFieldValue('#shipping_postcode') || getRawFieldValue('#billing_postcode') || '').trim(),
+      billing_postcode: summaryPostcode || String(getRawFieldValue('#billing_postcode') || getRawFieldValue('#shipping_postcode') || '').trim(),
+      billing_state: summaryState || String(getRawFieldValue('#billing_state') || '').trim(),
+      shipping_state: summaryState || String(getRawFieldValue('#shipping_state') || '').trim(),
+      billing_city: summaryCity || String(getRawFieldValue('#billing_city') || '').trim(),
+      shipping_city: summaryCity || String(getRawFieldValue('#shipping_city') || '').trim(),
+      billing_address_1: String(getRawFieldValue('#billing_address_1') || summaryLines[0] || '').trim(),
+      shipping_address_1: String(getRawFieldValue('#shipping_address_1') || summaryLines[0] || '').trim(),
+      '#order_comments': String(getRawFieldValue('#order_comments') || '').trim(),
+      order_comments: String(getRawFieldValue('#order_comments') || '').trim(),
+    });
   };
 
   const normalizeSelectMatchValue = (value) => {
@@ -1193,8 +1295,12 @@
     setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), lastName);
     setCheckoutFieldValue(getFieldBySelector('#billing_phone'), phone);
     setCheckoutFieldValue(getFieldBySelector('#billing_email'), email);
+    setCheckoutFieldValue(getFieldBySelector('#billing_state'), countyLabel);
+    setCheckoutFieldValue(getFieldBySelector('#billing_city'), cityLabel);
+    setCheckoutFieldValue(getFieldBySelector('#billing_address_1'), address1);
     setCheckoutFieldValue(getFieldBySelector('#shipping_address_1'), address1);
     setCheckoutFieldValue(getFieldBySelector('#shipping_postcode'), postcode);
+    setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), postcode);
     setSelectFieldByLabel(getFieldBySelector('#shipping_state'), countyLabel);
     syncDependentCitySelect('#shipping_state', false);
     setSelectFieldByLabel(getFieldBySelector('#shipping_city'), cityLabel);
@@ -2232,6 +2338,44 @@
     return !hasErrors;
   };
 
+  const hydrateSubmitAddressState = () => {
+    if (isLoggedIn) {
+      if (hasMeaningfulAuthShippingSnapshot(authCurrentOrderSnapshot)) {
+        debugCheckout('hydrate submit from auth current order snapshot', authCurrentOrderSnapshot);
+        hydrateAuthShippingFieldsFromSnapshot(authCurrentOrderSnapshot);
+        return;
+      }
+
+      if (hasMeaningfulAuthShippingSnapshot(authShippingDraft)) {
+        debugCheckout('hydrate submit from auth draft', authShippingDraft);
+        hydrateAuthShippingFieldsFromSnapshot(authShippingDraft);
+        return;
+      }
+
+      if (hasMeaningfulAuthShippingSnapshot(authShippingEditSnapshotCache)) {
+        debugCheckout('hydrate submit from auth edit cache', authShippingEditSnapshotCache);
+        hydrateAuthShippingFieldsFromSnapshot(authShippingEditSnapshotCache);
+        return;
+      }
+
+      const summarySnapshot = getAuthShippingSummarySnapshotFromDom();
+      if (hasMeaningfulAuthShippingSnapshot(summarySnapshot)) {
+        debugCheckout('hydrate submit from auth summary dom snapshot', summarySnapshot);
+        authShippingDraft = summarySnapshot;
+        authCurrentOrderSnapshot = summarySnapshot;
+        hydrateAuthShippingFieldsFromSnapshot(summarySnapshot);
+      }
+
+      return;
+    }
+
+    const guestSnapshot = normalizeCheckoutPostcodeSnapshot(getGuestShippingSnapshot() || guestShippingSummaryCache || captureGuestShippingSummaryCache());
+    if (hasGuestShippingSnapshotData(guestSnapshot)) {
+      debugCheckout('hydrate submit from guest snapshot', guestSnapshot);
+      hydrateGuestShippingFields(guestSnapshot);
+    }
+  };
+
   const bindFieldValidation = () => {
     const $form = getForm();
 
@@ -2556,7 +2700,7 @@
       'submit',
       function (event) {
         const form = event.target;
-        if (!(form instanceof HTMLFormElement) || !form.matches(selectors.form)) {
+      if (!(form instanceof HTMLFormElement) || !form.matches(selectors.form)) {
           return;
         }
 
@@ -2566,20 +2710,28 @@
           guestMode: !isLoggedIn ? getGuestShippingMode() : 'logged-in',
         });
 
-        if (!isLoggedIn && getGuestShippingMode() === 'summary' && !validateGuestShippingFields(true)) {
-          event.preventDefault();
-          event.stopPropagation();
-          if (typeof event.stopImmediatePropagation === 'function') {
-            event.stopImmediatePropagation();
-          }
-          return;
-        }
+        const guestMode = !isLoggedIn ? getGuestShippingMode() : 'logged-in';
+        const isSummarySubmit = (!isLoggedIn && guestMode === 'summary')
+          || (isLoggedIn && !authAddressFormMode && hasMeaningfulAuthShippingSnapshot(authCurrentOrderSnapshot));
 
-        if (!validateVisibleFields(true)) {
-          event.preventDefault();
-          event.stopPropagation();
-          if (typeof event.stopImmediatePropagation === 'function') {
-            event.stopImmediatePropagation();
+        hydrateSubmitAddressState();
+
+        if (!isSummarySubmit) {
+          if (!isLoggedIn && guestMode === 'summary' && !validateGuestShippingFields(true)) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof event.stopImmediatePropagation === 'function') {
+              event.stopImmediatePropagation();
+            }
+            return;
+          }
+
+          if (!validateVisibleFields(true)) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof event.stopImmediatePropagation === 'function') {
+              event.stopImmediatePropagation();
+            }
           }
         }
       },

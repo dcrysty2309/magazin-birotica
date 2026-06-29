@@ -111,6 +111,144 @@ $cases = [
         ],
         'screenshot' => '',
     ],
+    [
+        'id' => '2.1',
+        'scenario' => 'Guest - adresă incompletă, transport indisponibil',
+        'user_type' => 'Guest',
+        'addresses' => '0',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau folosește o fereastră incognito.',
+            'Adaugă un produs fizic în coș.',
+            'Deschide pagina `/checkout/`.',
+            'Lasă formularul de adresă necompletat și verifică Pasul 2 - Tip de livrare.',
+        ],
+        'expected' => [
+            'Pasul 2 rămâne blocat până când adresa este completată.',
+            'Nu apare tarif inventat.',
+            'Este afișat un mesaj clar care spune că trebuie completată adresa pentru a calcula transportul.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => '2.2',
+        'scenario' => 'Guest - adresă completă, transport calculat',
+        'user_type' => 'Guest',
+        'addresses' => '1',
+        'reproduce' => [
+            'Asigură-te că ești delogat sau folosește o fereastră incognito.',
+            'Adaugă un produs fizic în coș.',
+            'Deschide pagina `/checkout/`.',
+            'Completează formularul cu date clare și verificabile: Prenume Ion, Nume Popescu, Email ion.popescu@test.local, Telefon 0712223333, Județ Cluj, Localitate Cluj-Napoca, Adresă Strada Test 12, Cod poștal 405400.',
+            'Continuă până ajungi la Pasul 2 - Tip de livrare.',
+        ],
+        'expected' => [
+            'Transportul afișează metoda și costul venite din WooCommerce.',
+            'Nu există `STANDARD` sau ETA inventat.',
+            'Dacă există rate multiple, apar doar ratele reale din WooCommerce.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => '2.3',
+        'scenario' => 'Guest - transport gratuit la pragul de 150 lei',
+        'user_type' => 'Guest',
+        'addresses' => '1',
+        'reproduce' => [
+            'Asigură-te că în WooCommerce există o zonă de shipping pentru România cu Free Shipping activ la pragul de 150 lei.',
+            'Deschide checkout ca guest cu o adresă completă.',
+            'Verifică Pasul 2 - Tip de livrare după ce adresa este validă.',
+        ],
+        'expected' => [
+            'Metoda gratuită apare doar dacă este configurată în WooCommerce.',
+            'Costul de livrare reflectă exact regula administrată în WooCommerce și apare ca text, fără HTML vizibil.',
+            'Nu apare fallback vizual cu `0.00 lei` inventat.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => '2.4',
+        'scenario' => 'Guest - ramburs activ, comandă test și thank-you page',
+        'user_type' => 'Guest',
+        'addresses' => '1',
+        'reproduce' => [
+            'Verifică în WooCommerce că metoda Cash on Delivery este activă.',
+            'Deschide checkout ca guest cu o adresă completă.',
+            'Continuă până când vezi summary card-ul adresei, shipping calculat și Pasul 4 - Metodă de plată activ.',
+            'Selectează ramburs și plasează comanda test.',
+        ],
+        'expected' => [
+            'Ramburs apare doar dacă este activ în WooCommerce.',
+            'Comanda se poate plasa cap-coadă.',
+            'După submit, checkout-ul ajunge pe pagina de confirmare / thank-you page.',
+            'În WooCommerce Admin, metoda de plată și datele comenzii sunt corecte.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => '2.5',
+        'scenario' => 'Guest - nicio metodă de plată activă',
+        'user_type' => 'Guest',
+        'addresses' => '1',
+        'reproduce' => [
+            'În WooCommerce dezactivează temporar metodele de plată disponibile.',
+            'Deschide checkout ca guest cu o adresă completă.',
+            'Continuă până la Pasul 4 - Metodă de plată.',
+        ],
+        'expected' => [
+            'Nu se afișează metode inactive.',
+            'Se afișează un mesaj clar de business, nu o eroare tehnică.',
+            'Nu se poate plasa comanda fără metodă de plată selectată.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
+    [
+        'id' => '2.6',
+        'scenario' => 'Guest - ramburs și meta corecte în Admin',
+        'user_type' => 'Guest',
+        'addresses' => '1',
+        'reproduce' => [
+            'Verifică în WooCommerce că metoda Cash on Delivery este activă.',
+            'Deschide checkout ca guest cu o adresă completă.',
+            'Selectează ramburs și plasează comanda test.',
+            'Deschide comanda în WooCommerce Admin și verifică adresa, shipping-ul, plata și totalul.',
+        ],
+        'expected' => [
+            'Adresa, shipping-ul, metoda de plată și totalul sunt identice cu ce s-a ales în checkout.',
+            'Ramburs apare doar dacă este activ în WooCommerce.',
+            'Comanda rămâne corectă și după refresh în Admin.',
+        ],
+        'user_test' => [
+            'User: Guest',
+            'Parolă: Nu se aplică',
+            'Login state: guest / incognito',
+        ],
+        'screenshot' => '',
+    ],
 ];
 
 $comment_index = function_exists('papetarie_storefront_get_checkout_test_comment_index') ? papetarie_storefront_get_checkout_test_comment_index() : [];
@@ -131,8 +269,8 @@ $recommended_cases = array_values(array_filter($cases, static function (array $c
 <main id="primary" class="site-main pap-checkout-cases-page">
   <section class="pap-shell pap-checkout-cases-header">
     <div class="pap-checkout-cases-header__copy">
-      <h4><?php esc_html_e('Teste Checkout — Pasul 1: Adresa de livrare', 'papetarie-storefront'); ?></h4>
-      <p class="pap-checkout-cases-lead"><?php esc_html_e('Scenarii recomandate pentru guest și user logat, ordonate de la fluxul de bază la cazurile cu cont.', 'papetarie-storefront'); ?></p>
+      <h4><?php esc_html_e('Teste Checkout — Phase 1: Adresă, transport și plată', 'papetarie-storefront'); ?></h4>
+      <p class="pap-checkout-cases-lead"><?php esc_html_e('Scenarii recomandate pentru guest și user logat, de la fluxul de adresă la transport real și ramburs în WooCommerce.', 'papetarie-storefront'); ?></p>
     </div>
   </section>
 
@@ -166,8 +304,8 @@ $recommended_cases = array_values(array_filter($cases, static function (array $c
     </div>
 
     <details class="pap-checkout-cases-group" open>
-      <summary><?php esc_html_e('Cazuri recomandate', 'papetarie-storefront'); ?></summary>
-      <p class="pap-checkout-cases-group__lead"><?php esc_html_e('Folosește-le pentru verificarea rapidă a fluxului principal. Acoperă starea inițială, salvarea, editarea și regresiile de cod poștal.', 'papetarie-storefront'); ?></p>
+      <summary><?php esc_html_e('Cazuri adresă', 'papetarie-storefront'); ?></summary>
+      <p class="pap-checkout-cases-group__lead"><?php esc_html_e('Folosește-le pentru verificarea rapidă a Pasului 1 - Adresa de livrare. Acoperă starea inițială, salvarea, editarea și regresiile de cod poștal.', 'papetarie-storefront'); ?></p>
       <div class="pap-checkout-cases-table-wrap">
         <table class="pap-checkout-cases-table">
           <thead>
@@ -181,6 +319,63 @@ $recommended_cases = array_values(array_filter($cases, static function (array $c
           </thead>
           <tbody>
             <?php foreach ($recommended_cases as $case) : ?>
+              <?php
+              $comment_entry = $comment_index[$case['id']] ?? [];
+              $row_classes = [];
+              if (!empty($comment_entry)) {
+                  $row_classes[] = 'pap-checkout-cases-row--has-comments';
+              }
+              if (!empty($comment_entry['has_open_comment'])) {
+                  $row_classes[] = 'pap-checkout-cases-row--open-comments';
+              }
+              ?>
+              <tr class="<?php echo esc_attr(implode(' ', $row_classes)); ?>" data-case-id="<?php echo esc_attr($case['id']); ?>" data-case-title="<?php echo esc_attr($case['scenario']); ?>" data-case-comment-count="<?php echo esc_attr((string) ($comment_entry['total_count'] ?? 0)); ?>" data-case-open-comment-count="<?php echo esc_attr((string) ($comment_entry['open_count'] ?? 0)); ?>">
+                <td><strong><?php echo esc_html($case['id']); ?></strong></td>
+                <td><?php echo esc_html($case['scenario']); ?></td>
+                <td><span class="pap-checkout-cases-badge pap-checkout-cases-badge--<?php echo esc_attr('Guest' === $case['user_type'] ? 'guest' : 'user'); ?>"><?php echo esc_html($case['user_type']); ?></span></td>
+                <td><?php echo esc_html($case['addresses']); ?></td>
+                <td>
+                  <button
+                    type="button"
+                    class="pap-checkout-cases-button pap-checkout-cases-button--secondary"
+                    data-case-preview
+                    data-case-id="<?php echo esc_attr($case['id']); ?>"
+                    data-case-user-type="<?php echo esc_attr($case['user_type']); ?>"
+                    data-case-addresses="<?php echo esc_attr($case['addresses']); ?>"
+                    data-case-title="<?php echo esc_attr($case['scenario']); ?>"
+                    data-case-reproduce="<?php echo esc_attr(pap_checkout_cases_join_lines($case['reproduce'])); ?>"
+                    data-case-expected="<?php echo esc_attr(pap_checkout_cases_join_lines($case['expected'])); ?>"
+                    data-case-user="<?php echo esc_attr(pap_checkout_cases_join_lines($case['user_test'])); ?>"
+                    data-case-screenshot="<?php echo esc_attr($case['screenshot']); ?>"
+                  >
+                    <?php esc_html_e('Preview', 'papetarie-storefront'); ?>
+                  </button>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="pap-checkout-cases-group">
+      <summary><?php esc_html_e('Cazuri Phase 1 - shipping și plată', 'papetarie-storefront'); ?></summary>
+      <p class="pap-checkout-cases-group__lead"><?php esc_html_e('Folosește-le pentru verificarea transportului real din WooCommerce, a rambursului și a comenzilor test cap-coadă.', 'papetarie-storefront'); ?></p>
+      <div class="pap-checkout-cases-table-wrap">
+        <table class="pap-checkout-cases-table">
+          <thead>
+            <tr>
+              <th><?php esc_html_e('ID', 'papetarie-storefront'); ?></th>
+              <th><?php esc_html_e('Scenariu', 'papetarie-storefront'); ?></th>
+              <th><?php esc_html_e('Tip utilizator', 'papetarie-storefront'); ?></th>
+              <th><?php esc_html_e('Nr. adrese', 'papetarie-storefront'); ?></th>
+              <th><?php esc_html_e('Preview', 'papetarie-storefront'); ?></th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach (array_values(array_filter($cases, static function (array $case): bool {
+                return str_starts_with((string) $case['id'], '2.');
+            })) as $case) : ?>
               <?php
               $comment_entry = $comment_index[$case['id']] ?? [];
               $row_classes = [];

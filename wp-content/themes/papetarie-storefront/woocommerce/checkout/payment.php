@@ -30,18 +30,15 @@ $step_state = function_exists('papetarie_storefront_checkout_step_state') ? pape
           <?php wc_get_template('checkout/payment-method.php', ['gateway' => $gateway]); ?>
         <?php endforeach; ?>
       <?php else : ?>
-        <li>
+        <li class="pap-checkout-payment-methods__notice-item">
           <?php
-          wc_print_notice(
-              apply_filters(
-                  'woocommerce_no_available_payment_methods_message',
-                  WC()->customer->get_billing_country()
-                      ? esc_html__('Nu este disponibilă nicio metodă de plată. Te rog să ne contactezi pentru ajutor la plasarea comenzii.', 'woocommerce')
-                      : esc_html__('Completează datele de livrare pentru a vedea metodele de plată disponibile.', 'woocommerce')
-              ),
-              'notice'
-          );
+          $payment_notice = WC()->customer->get_billing_country()
+              ? __('Nu există metode de plată active în WooCommerce pentru această comandă. Verifică setările magazinului.', 'papetarie-storefront')
+              : __('Completează datele de livrare pentru a vedea metodele de plată disponibile.', 'papetarie-storefront');
           ?>
+          <div class="woocommerce-info pap-checkout-payment-methods__notice" role="status">
+            <?php echo esc_html($payment_notice); ?>
+          </div>
         </li>
       <?php endif; ?>
     </ul>
