@@ -27,6 +27,9 @@ $excludedPrefixes = @(
 $files = Get-ChildItem -LiteralPath $localThemeRoot -Recurse -File |
     Where-Object {
         $relativePath = $_.FullName.Substring($localThemeRoot.Length).TrimStart('\')
+        if ($_.Name -like '*.codex-*') {
+            return $false
+        }
         foreach ($prefix in $excludedPrefixes) {
             if ($relativePath.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
                 return $false

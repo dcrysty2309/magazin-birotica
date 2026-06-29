@@ -1657,8 +1657,38 @@ add_action('wp_ajax_papetarie_storefront_address_book', 'papetarie_storefront_ha
 
 function papetarie_storefront_enqueue_address_book_script(): void
 {
-    return;
+    if (!is_user_logged_in() || !function_exists('is_account_page') || !is_account_page()) {
+        return;
+    }
+
+    $script_path = get_stylesheet_directory() . '/assets/js/address-book.js';
+    $script_version = file_exists($script_path) ? (string) filemtime($script_path) : wp_get_theme()->get('Version');
+
+    wp_enqueue_script(
+        'papetarie-storefront-address-book',
+        get_stylesheet_directory_uri() . '/assets/js/address-book.js',
+        ['jquery'],
+        $script_version,
+        true
+    );
+
+    wp_localize_script(
+        'papetarie-storefront-address-book',
+        'papAddressBookData',
+        [
+            'cityPlaceholder' => __('Alege localitatea', 'papetarie-storefront'),
+            'countyFirstPlaceholder' => __('Alege județul întâi', 'papetarie-storefront'),
+            'deleteConfirm' => __('Sigur vrei să ștergi această adresă?', 'papetarie-storefront'),
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'ajaxAction' => 'papetarie_storefront_address_book',
+            'ajaxNonce' => wp_create_nonce('pap_address_book_save'),
+            'currentMode' => papetarie_storefront_address_book_current_mode(),
+            'currentAddressId' => papetarie_storefront_address_book_current_id(),
+            'citiesByCounty' => new stdClass(),
+        ]
+    );
 }
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_address_book_script');
 
 function papetarie_storefront_render_account_addresses_page(): void
 {
