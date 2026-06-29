@@ -61,7 +61,12 @@ Reguli:
 - Modificările făcute din checkout se aplică doar comenzii curente.
 - Dacă userul vrea să schimbe permanent adresa, o face prin checkbox-ul de salvare sau direct din My Account.
 - My Account afișează public un singur bloc, `Adresa mea`, iar intern WooCommerce păstrează billing și shipping sincronizate.
+- Blocul `Adresa mea` apare doar dacă există o adresă standard completă; dacă lipsesc câmpurile obligatorii, My Account afișează empty state-ul cu butonul `Adaugă adresă nouă`.
 - Formularul de adresă din My Account folosește aceeași structură de câmpuri ca checkout-ul.
+- Standardul de formular de adresă este unic: Checkout și My Account folosesc aceeași ordine a câmpurilor, aceleași validări și aceeași structură vizuală pentru editare.
+- Labelul pentru câmpul principal este `Adresă` în ambele zone; placeholder-ul poate rămâne specific variantei.
+- În modalul My Account nu se folosesc iconuri pe inputuri; structura trebuie să rămână identică cu Checkout-ul curent, adică label deasupra și câmp simplu dedesubt.
+- Standardul include și câmpul opțional `Observații pentru livrare / curier`; acesta are același comportament și aceeași prezentare în Checkout și în modalul My Account.
 - Câmpul separat pentru Bloc / Scară / Etaj / Apartament nu mai face parte din UI-ul curent; compatibilitatea legacy poate rămâne doar pentru date istorice.
 
 ## 4. UX pentru salvare

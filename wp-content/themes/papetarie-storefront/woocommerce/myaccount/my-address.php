@@ -22,14 +22,14 @@ $edit_address_url = static function () use ($account_url): string {
     return add_query_arg(['edit-address' => 'billing'], $account_url);
 };
 
-$lines = function_exists('papetarie_storefront_checkout_standard_account_address_lines')
+$address_snapshot = function_exists('papetarie_storefront_checkout_standard_account_address_snapshot')
+    ? papetarie_storefront_checkout_standard_account_address_snapshot()
+    : [];
+$lines = $address_snapshot !== [] && function_exists('papetarie_storefront_checkout_standard_account_address_lines')
     ? papetarie_storefront_checkout_standard_account_address_lines()
     : [];
 $full_name = array_shift($lines) ?: '';
-$has_address = $full_name !== ''
-    || !empty($lines)
-    || trim((string) $customer->get_billing_address_1()) !== ''
-    || trim((string) $customer->get_shipping_address_1()) !== '';
+$has_address = $address_snapshot !== [];
 $mode = function_exists('papetarie_storefront_address_book_current_mode')
     ? papetarie_storefront_address_book_current_mode()
     : 'add';

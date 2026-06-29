@@ -20,6 +20,7 @@ $baseline = [
     'checkout.oneaddress@test.local' => [
         'password' => 'Steauab23.',
         'display_name' => 'Cristian Editat Diaconescu',
+        'recreate' => true,
         'meta' => [
             'first_name' => 'Cristian Editat',
             'last_name' => 'Diaconescu',
@@ -67,6 +68,7 @@ $baseline = [
     'checkout.multiaddress@test.local' => [
         'password' => 'Steauab23.',
         'display_name' => 'Cristian Diaconescu',
+        'recreate' => true,
         'meta' => [
             'first_name' => 'Cristian',
             'last_name' => 'Diaconescu',
@@ -148,33 +150,22 @@ $baseline = [
     'checkout.noaddress@test.local' => [
         'password' => 'Steauab23.',
         'display_name' => 'Checkout No Address',
-        'clear' => [
-            'first_name',
-            'last_name',
-            'billing_first_name',
-            'billing_last_name',
-            'billing_phone',
-            'billing_country',
-            'billing_state',
-            'billing_city',
-            'billing_postcode',
-            'billing_address_1',
-            'billing_address_2',
-            'shipping_first_name',
-            'shipping_last_name',
-            'shipping_phone',
-            'shipping_country',
-            'shipping_state',
-            'shipping_city',
-            'shipping_postcode',
-            'shipping_address_1',
-            'shipping_address_2',
-            'papetarie_address_book',
-            'papetarie_default_address_id',
-            'papetarie_checkout_selected_address_shipping',
-            'papetarie_checkout_selected_address_billing',
-            'papetarie_address_book_form_state',
-        ],
+        'recreate' => true,
+    ],
+    'checkout.cleannoaddress@test.local' => [
+        'password' => 'Steauab23.',
+        'display_name' => 'Checkout Clean No Address',
+        'recreate' => true,
+    ],
+    'checkout.cleanalt@test.local' => [
+        'password' => 'Clean1234.',
+        'display_name' => 'Checkout Clean Alt',
+        'recreate' => true,
+    ],
+    'checkout.cleanlogin@test.local' => [
+        'password' => 'Login1234.',
+        'display_name' => 'Checkout Clean Login',
+        'recreate' => true,
     ],
 ];
 
@@ -193,6 +184,24 @@ foreach ($baseline as $email => $config) {
     $user = get_user_by('email', $email);
     if (!$user) {
         $user = get_user_by('login', $email);
+    }
+    if (!empty($config['recreate']) && $user instanceof WP_User) {
+        if (!function_exists('wp_delete_user')) {
+            require_once ABSPATH . 'wp-admin/includes/user.php';
+        }
+
+        $reassign_to = 0;
+        $admins = get_users([
+            'role' => 'administrator',
+            'number' => 1,
+            'fields' => 'ID',
+        ]);
+        if (!empty($admins)) {
+            $reassign_to = (int) $admins[0];
+        }
+
+        wp_delete_user((int) $user->ID, $reassign_to);
+        $user = null;
     }
     if (!$user) {
         $password = (string) ($config['password'] ?? 'Steauab23.');

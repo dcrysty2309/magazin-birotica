@@ -310,7 +310,7 @@ Modificarile se aplica doar comenzii curente.
 - Formularul de checkout si My Account trebuie sa ramana compatibile cu aceleasi campuri standard.
 - Daca userul nu bifeaza salvarea, My Account ramane neschimbat.
 - Daca userul bifeaza salvarea, My Account se sincronizeaza cu adresa curenta.
-- Scenariul de test folosește contul `checkout.noaddress@test.local`, adică user logat fără adresă salvată la pornire.
+- Scenariul de test folosește contul `checkout.cleannoaddress@test.local`, adică user logat fără adresă salvată la pornire. Contul este recreat din reset fixture pentru a elimina datele reziduale.
 
 ---
 
@@ -426,6 +426,8 @@ Observatiile pentru livrare / curier se trateaza la fel ca restul datelor de adr
   - Observatii pentru livrare / curier: "Interfon 12. Curierul sa sune inainte."
 - checkout.noaddress@test.local
   - Observatii pentru livrare / curier: "Acces prin spatele cladirii."
+- checkout.cleannoaddress@test.local
+  - Observatii pentru livrare / curier: "Acces prin poarta secundara."
 - checkout.oneaddress@test.local
   - Observatii pentru livrare / curier: "Livrare dupa ora 14:00."
 - cont legacy istoric

@@ -61,7 +61,7 @@ function papetarie_storefront_address_book_fields(): array
             'type' => 'select',
         ],
         'address_1' => [
-            'label' => __('Adresă (stradă și număr)', 'papetarie-storefront'),
+            'label' => __('Adresă', 'papetarie-storefront'),
             'placeholder' => __('Strada Exemplu 12', 'papetarie-storefront'),
             'required' => true,
             'type' => 'text',
@@ -76,7 +76,7 @@ function papetarie_storefront_address_book_fields(): array
         ],
         'delivery_notes' => [
             'label' => __('Observații pentru livrare / curier', 'papetarie-storefront'),
-            'placeholder' => __('Interfon 12. Curierul să sune înainte.', 'papetarie-storefront'),
+            'placeholder' => __('Interfon, reper, instrucțiuni pentru curier.', 'papetarie-storefront'),
             'required' => false,
             'type' => 'textarea',
         ],
@@ -1018,7 +1018,7 @@ function papetarie_storefront_address_book_validate(array $posted, \WP_Error $er
     }
 
     if (($clean['phone'] ?? '') === '') {
-        $errors->add('address_phone_required', __('Completează numărul de telefon.', 'papetarie-storefront'));
+        $errors->add('address_phone_required', __('Introdu telefonul.', 'papetarie-storefront'));
     } else {
         $phone_digits = preg_replace('/\D+/', '', $clean['phone']);
         if (strlen($phone_digits) < 8) {
@@ -1033,13 +1033,13 @@ function papetarie_storefront_address_book_validate(array $posted, \WP_Error $er
     }
 
     if (($clean['state'] ?? '') === '') {
-        $errors->add('address_state_required', __('Selectează județul / regiunea.', 'papetarie-storefront'));
+        $errors->add('address_state_required', __('Alege județul.', 'papetarie-storefront'));
     } elseif (($clean['country'] ?? 'RO') === 'RO' && !isset($counties[$clean['state']])) {
         $errors->add('address_state_invalid', __('Județul selectat nu este valid.', 'papetarie-storefront'));
     }
 
     if (($clean['city'] ?? '') === '') {
-        $errors->add('address_city_required', __('Completează orașul.', 'papetarie-storefront'));
+        $errors->add('address_city_required', __('Alege localitatea.', 'papetarie-storefront'));
     } elseif (($clean['country'] ?? 'RO') === 'RO' && ($clean['state'] ?? '') !== '') {
         $county_cities = function_exists('papetarie_storefront_checkout_city_options_for_county')
             ? papetarie_storefront_checkout_city_options_for_county((string) $clean['state'])
@@ -1078,7 +1078,7 @@ function papetarie_storefront_address_book_validate(array $posted, \WP_Error $er
     }
 
     if (($clean['address_1'] ?? '') === '') {
-        $errors->add('address_line_1_required', __('Completează prima linie a adresei.', 'papetarie-storefront'));
+        $errors->add('address_line_1_required', __('Completează adresa.', 'papetarie-storefront'));
     }
 
     return $clean;
@@ -1214,27 +1214,53 @@ function papetarie_storefront_address_book_render_form_fields(array $source): vo
     $fields = papetarie_storefront_address_book_fields();
     foreach ($fields as $key => $field) :
         $value = (string) ($source[$key] ?? '');
+        $custom_attributes = (array) ($field['custom_attributes'] ?? []);
+        $options = [];
         if ($key === 'email' && $value === '') {
             $value = papetarie_storefront_address_book_checkout_email(get_current_user_id());
         }
         if ($key === 'state') {
             $value = strtoupper(sanitize_key($value));
+            $options = ['' => $field['placeholder'] ?? __('Alege județul', 'papetarie-storefront')] + (function_exists('papetarie_storefront_romania_counties') ? papetarie_storefront_romania_counties() : []);
         } elseif ($key === 'country') {
             $value = strtoupper($value ?: 'RO');
-        } elseif ($key === 'city' && $value !== '') {
+        } elseif ($key === 'city') {
             $state_value = sanitize_key((string) ($source['state'] ?? ''));
             if ($state_value !== '' && function_exists('papetarie_storefront_checkout_city_options_for_county')) {
                 $city_options = papetarie_storefront_checkout_city_options_for_county($state_value);
+                $options = ['' => $field['placeholder'] ?? __('Alege localitatea', 'papetarie-storefront')] + $city_options;
+                $custom_attributes['aria-disabled'] = 'false';
+                $custom_attributes['disabled'] = null;
                 foreach (array_keys($city_options) as $city_option) {
                     if (function_exists('papetarie_storefront_normalize_city_key') && papetarie_storefront_normalize_city_key((string) $city_option) === papetarie_storefront_normalize_city_key($value)) {
                         $value = (string) $city_option;
                         break;
                     }
                 }
+            } else {
+                $options = ['' => __('Alege județul întâi', 'papetarie-storefront')];
+                $custom_attributes['disabled'] = 'disabled';
+                $custom_attributes['aria-disabled'] = 'true';
             }
         }
         ?>
-        <?php papetarie_storefront_address_book_render_input($key, $field, $value, ['state' => (string) ($source['state'] ?? '')]); ?>
+        <?php echo papetarie_storefront_render_checkout_form_field(
+            $key,
+            array_merge($field, [
+                'class' => ['pap-address-form-field', 'pap-address-form-field--' . $key, 'pap-form-row--' . $key],
+                'input_class' => ['input-text'],
+                'custom_attributes' => array_merge(
+                    $custom_attributes,
+                    $key === 'state' ? ['data-address-book-state' => '1'] : [],
+                    $key === 'city' ? ['data-address-book-city' => '1'] : [],
+                    $key === 'country' ? ['data-address-book-country' => '1'] : [],
+                    $key === 'delivery_notes' ? ['rows' => 4] : []
+                ),
+                'options' => $options,
+            ]),
+            $value,
+            false
+        ); ?>
     <?php endforeach;
 }
 
@@ -1254,7 +1280,6 @@ function papetarie_storefront_address_book_render_form(array $address = [], stri
         <input type="hidden" name="pap_address_id" value="<?php echo esc_attr((string) $address['id']); ?>">
         <input type="hidden" name="country" value="<?php echo esc_attr((string) ($address['country'] ?? 'RO')); ?>">
         <input type="hidden" name="pap_address_type" value="shipping">
-        <input type="hidden" name="pap_address_is_default" value="0">
 
         <?php $form_state = papetarie_storefront_address_book_get_form_state(); ?>
         <?php $source = !empty($form_state) ? array_merge($address, $form_state) : $address; ?>
@@ -1263,17 +1288,6 @@ function papetarie_storefront_address_book_render_form(array $address = [], stri
 
         <div class="pap-account-address-form-grid pap-account-address-form-grid--modal">
           <?php papetarie_storefront_address_book_render_form_fields($source); ?>
-        </div>
-
-        <div class="pap-account-address-form-options">
-          <label class="pap-account-address-default-toggle">
-            <input type="checkbox" name="pap_address_is_default" value="1" <?php checked(!empty($source['is_default'])); ?>>
-            <span class="pap-account-address-default-toggle__box" aria-hidden="true"></span>
-            <span class="pap-account-address-default-toggle__copy">
-              <strong><?php esc_html_e('Setează ca adresă implicită', 'papetarie-storefront'); ?></strong>
-              <span><?php esc_html_e('Această adresă va fi selectată automat la checkout.', 'papetarie-storefront'); ?></span>
-            </span>
-          </label>
         </div>
 
         <div class="pap-account-address-form-actions">

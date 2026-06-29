@@ -16,10 +16,14 @@ The current refactor focused on My Account addresses and the checkout address ma
 
 Completed:
 
-- My Account now exposes a single unified `Adresa mea` block in the UI.
+- My Account now exposes a single unified `Adresa mea` block in the UI when a complete standard address exists; otherwise it falls back to the centered empty state.
 - Internally, WooCommerce billing and shipping remain synchronized to the same standard address.
 - No custom multi-address address book is exposed in the active UI.
 - Checkout changes can be saved back to My Account only when the explicit save checkbox is checked.
+- The address modal in My Account must reuse the same field order, validation rules, and visual system as Checkout.
+- The address modal in My Account must reuse the same field order, validation rules, and visual system as Checkout, including the optional `Observații pentru livrare / curier` textarea.
+- The modal should use the current Checkout field layout without input icons.
+- The main street field should be labeled `Adresă`, matching Checkout exactly.
 
 Important files:
 
@@ -32,7 +36,10 @@ Things to keep in mind:
 - Do not reintroduce a custom address book unless explicitly requested.
 - Keep My Account UI consistent with the existing theme and WooCommerce endpoints.
 - Preserve the standard billing/shipping address semantics.
-- Keep the public My Account address UI at one visible address block only.
+- Keep the public My Account address UI at one visible address block only when the address is complete; otherwise show the empty state.
+- Keep the address modal aligned 1:1 with the checkout address form standard.
+- Do not reintroduce legacy `address_2` or multiple-address UI in the customer-facing My Account screen.
+- Keep the layout two-column, matching Checkout: first/last, email/phone, state/city, address full width, postcode/notes side by side.
 
 ## Checkout status
 

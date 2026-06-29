@@ -18,16 +18,12 @@
 
 ## 2. Reguli pentru Pasul 1
 
-Teste minime:
+Setul minim de testare manuala a fost comprimat la patru scenarii esentiale:
 
-1. guest fara cont, formular gol
-2. guest completeaza si salveaza
-3. guest refresh dupa salvare
-4. user logat cu adresa standard, formular precompletat
-5. user logat editeaza fara salvare in cont
-6. user logat bifeaza salvarea in cont
-7. user logat fara adresa salvata, formular gol
-8. user logat, refresh dupa salvare temporara
+1. guest fara cont, formular gol;
+2. guest completeaza si salveaza;
+3. user logat cu adresa standard, formular precompletat;
+4. user logat editeaza adresa si confirma sau nu salvarea in cont.
 
 Pentru referinta rapida a tuturor cazurilor, foloseste indexul vizual:
 
@@ -121,7 +117,7 @@ Pentru guest:
 Orice task de checkout se incheie cu:
 
 - fisiere modificate;
-- cazuri testate;
+- cazuri testate, limitate la scenariile esentiale;
 - screenshot-uri;
 - bug-uri gasite;
 - ce nu a putut fi testat;

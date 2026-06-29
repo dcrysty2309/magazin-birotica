@@ -1289,10 +1289,6 @@ function papetarie_storefront_checkout_guest_shipping_summary_lines(): array
 
 function papetarie_storefront_checkout_standard_address_snapshot(): array
 {
-    if (!function_exists('WC') || !WC() || !(WC()->customer instanceof WC_Customer)) {
-        return [];
-    }
-
     if (
         function_exists('is_user_logged_in')
         && is_user_logged_in()
@@ -1330,67 +1326,35 @@ function papetarie_storefront_checkout_standard_address_snapshot(): array
         }
     }
 
-    $customer = WC()->customer;
-    $checkout = function_exists('WC') && WC() && WC()->checkout() ? WC()->checkout() : null;
-
-    $resolve_value = static function (string $checkout_key, string $getter, array $fallback_getters = [], string $meta_key = '') use ($checkout, $customer): string {
-        $value = '';
-
-        if ($value === '' && $meta_key !== '' && function_exists('get_current_user_id')) {
-            $current_user_id = absint(get_current_user_id());
-            if ($current_user_id > 0) {
-                $value = trim((string) get_user_meta($current_user_id, $meta_key, true));
-            }
+    if (function_exists('is_user_logged_in') && is_user_logged_in()) {
+        $account_snapshot = papetarie_storefront_checkout_standard_account_address_snapshot();
+        if (!empty($account_snapshot)) {
+            return [
+                'billing_first_name' => trim((string) ($account_snapshot['first_name'] ?? '')),
+                'billing_last_name' => trim((string) ($account_snapshot['last_name'] ?? '')),
+                'billing_email' => trim((string) ($account_snapshot['email'] ?? '')),
+                'billing_phone' => trim((string) ($account_snapshot['phone'] ?? '')),
+                'billing_country' => 'RO',
+                'billing_state' => trim((string) ($account_snapshot['state'] ?? '')),
+                'billing_city' => trim((string) ($account_snapshot['city'] ?? '')),
+                'billing_postcode' => trim((string) ($account_snapshot['postcode'] ?? '')),
+                'billing_address_1' => trim((string) ($account_snapshot['address_1'] ?? '')),
+                'billing_address_2' => trim((string) ($account_snapshot['address_2'] ?? '')),
+                'shipping_first_name' => trim((string) ($account_snapshot['first_name'] ?? '')),
+                'shipping_last_name' => trim((string) ($account_snapshot['last_name'] ?? '')),
+                'shipping_phone' => trim((string) ($account_snapshot['phone'] ?? '')),
+                'shipping_country' => 'RO',
+                'shipping_state' => trim((string) ($account_snapshot['state'] ?? '')),
+                'shipping_city' => trim((string) ($account_snapshot['city'] ?? '')),
+                'shipping_postcode' => trim((string) ($account_snapshot['postcode'] ?? '')),
+                'shipping_address_1' => trim((string) ($account_snapshot['address_1'] ?? '')),
+                'shipping_address_2' => trim((string) ($account_snapshot['address_2'] ?? '')),
+                'order_comments' => '',
+            ];
         }
+    }
 
-        if ($value === '' && $checkout && function_exists('is_checkout') && is_checkout()) {
-            $value = trim((string) $checkout->get_value($checkout_key));
-        }
-
-        if ($value === '' && method_exists($customer, $getter)) {
-            $value = trim((string) $customer->{$getter}());
-        }
-
-        if ($value === '') {
-            foreach ($fallback_getters as $fallback_getter) {
-                if (!method_exists($customer, $fallback_getter)) {
-                    continue;
-                }
-
-                $value = trim((string) $customer->{$fallback_getter}());
-                if ($value !== '') {
-                    break;
-                }
-            }
-        }
-
-        return $value;
-    };
-
-    $snapshot = [
-        'billing_first_name' => $resolve_value('billing_first_name', 'get_billing_first_name', ['get_shipping_first_name'], 'billing_first_name'),
-        'billing_last_name' => $resolve_value('billing_last_name', 'get_billing_last_name', ['get_shipping_last_name'], 'billing_last_name'),
-        'billing_email' => $resolve_value('billing_email', 'get_billing_email', [], 'billing_email'),
-        'billing_phone' => $resolve_value('billing_phone', 'get_billing_phone', ['get_shipping_phone'], 'billing_phone'),
-        'billing_country' => $resolve_value('billing_country', 'get_billing_country', ['get_shipping_country'], 'billing_country') ?: 'RO',
-        'billing_state' => $resolve_value('billing_state', 'get_billing_state', ['get_shipping_state'], 'billing_state'),
-        'billing_city' => $resolve_value('billing_city', 'get_billing_city', ['get_shipping_city'], 'billing_city'),
-        'billing_postcode' => $resolve_value('billing_postcode', 'get_billing_postcode', ['get_shipping_postcode'], 'billing_postcode'),
-        'billing_address_1' => $resolve_value('billing_address_1', 'get_billing_address_1', ['get_shipping_address_1'], 'billing_address_1'),
-        'billing_address_2' => $resolve_value('billing_address_2', 'get_billing_address_2', ['get_shipping_address_2'], 'billing_address_2'),
-        'shipping_first_name' => $resolve_value('shipping_first_name', 'get_shipping_first_name', ['get_billing_first_name'], 'shipping_first_name'),
-        'shipping_last_name' => $resolve_value('shipping_last_name', 'get_shipping_last_name', ['get_billing_last_name'], 'shipping_last_name'),
-        'shipping_phone' => $resolve_value('shipping_phone', 'get_shipping_phone', ['get_billing_phone'], 'shipping_phone'),
-        'shipping_country' => $resolve_value('shipping_country', 'get_shipping_country', ['get_billing_country'], 'shipping_country') ?: 'RO',
-        'shipping_state' => $resolve_value('shipping_state', 'get_shipping_state', ['get_billing_state'], 'shipping_state'),
-        'shipping_city' => $resolve_value('shipping_city', 'get_shipping_city', ['get_billing_city'], 'shipping_city'),
-        'shipping_postcode' => $resolve_value('shipping_postcode', 'get_shipping_postcode', ['get_billing_postcode'], 'shipping_postcode'),
-        'shipping_address_1' => $resolve_value('shipping_address_1', 'get_shipping_address_1', ['get_billing_address_1'], 'shipping_address_1'),
-        'shipping_address_2' => $resolve_value('shipping_address_2', 'get_shipping_address_2', ['get_billing_address_2'], 'shipping_address_2'),
-        'order_comments' => function_exists('WC') && WC() && WC()->checkout() ? trim((string) WC()->checkout()->get_value('order_comments')) : '',
-    ];
-
-    return array_map(static fn($value) => trim((string) $value), $snapshot);
+    return [];
 }
 
 function papetarie_storefront_checkout_standard_address_has_content(): bool
@@ -1460,50 +1424,20 @@ function papetarie_storefront_checkout_standard_address_lines(): array
 
 function papetarie_storefront_checkout_standard_account_address_lines(): array
 {
-    if (!function_exists('WC') || !WC() || !(WC()->customer instanceof WC_Customer)) {
+    $snapshot = papetarie_storefront_checkout_standard_account_address_snapshot();
+    if ($snapshot === []) {
         return [];
     }
 
-    $customer = WC()->customer;
-    $user_id = function_exists('get_current_user_id') ? absint(get_current_user_id()) : 0;
-    $user_email = $user_id > 0 ? sanitize_email((string) get_user_meta($user_id, 'billing_email', true)) : '';
-    if ($user_email === '' && $user_id > 0) {
-        $user = get_userdata($user_id);
-        if ($user instanceof WP_User) {
-            $user_email = sanitize_email((string) $user->user_email);
-        }
-    }
-
-    $snapshot = [
-        'first_name' => trim((string) get_user_meta($user_id, 'first_name', true)),
-        'last_name' => trim((string) get_user_meta($user_id, 'last_name', true)),
-        'billing_first_name' => trim((string) get_user_meta($user_id, 'billing_first_name', true)) ?: trim((string) $customer->get_billing_first_name()),
-        'billing_last_name' => trim((string) get_user_meta($user_id, 'billing_last_name', true)) ?: trim((string) $customer->get_billing_last_name()),
-        'billing_email' => $user_email ?: trim((string) $customer->get_billing_email()),
-        'billing_phone' => trim((string) get_user_meta($user_id, 'billing_phone', true)) ?: trim((string) $customer->get_billing_phone()),
-        'billing_country' => trim((string) get_user_meta($user_id, 'billing_country', true)) ?: trim((string) $customer->get_billing_country()) ?: 'RO',
-        'billing_state' => trim((string) get_user_meta($user_id, 'billing_state', true)) ?: trim((string) $customer->get_billing_state()),
-        'billing_city' => trim((string) get_user_meta($user_id, 'billing_city', true)) ?: trim((string) $customer->get_billing_city()),
-        'billing_postcode' => trim((string) get_user_meta($user_id, 'billing_postcode', true)) ?: trim((string) $customer->get_billing_postcode()),
-        'billing_address_1' => trim((string) get_user_meta($user_id, 'billing_address_1', true)) ?: trim((string) $customer->get_billing_address_1()),
-        'billing_address_2' => trim((string) get_user_meta($user_id, 'billing_address_2', true)) ?: trim((string) $customer->get_billing_address_2()),
-        'shipping_first_name' => trim((string) get_user_meta($user_id, 'shipping_first_name', true)) ?: trim((string) $customer->get_shipping_first_name()),
-        'shipping_last_name' => trim((string) get_user_meta($user_id, 'shipping_last_name', true)) ?: trim((string) $customer->get_shipping_last_name()),
-        'shipping_phone' => trim((string) get_user_meta($user_id, 'shipping_phone', true)) ?: trim((string) $customer->get_shipping_phone()),
-        'shipping_country' => trim((string) get_user_meta($user_id, 'shipping_country', true)) ?: trim((string) $customer->get_shipping_country()) ?: 'RO',
-        'shipping_state' => trim((string) get_user_meta($user_id, 'shipping_state', true)) ?: trim((string) $customer->get_shipping_state()),
-        'shipping_city' => trim((string) get_user_meta($user_id, 'shipping_city', true)) ?: trim((string) $customer->get_shipping_city()),
-        'shipping_postcode' => trim((string) get_user_meta($user_id, 'shipping_postcode', true)) ?: trim((string) $customer->get_shipping_postcode()),
-        'shipping_address_1' => trim((string) get_user_meta($user_id, 'shipping_address_1', true)) ?: trim((string) $customer->get_shipping_address_1()),
-        'shipping_address_2' => trim((string) get_user_meta($user_id, 'shipping_address_2', true)) ?: trim((string) $customer->get_shipping_address_2()),
-    ];
-
-    $full_name = trim(($snapshot['shipping_first_name'] ?: $snapshot['billing_first_name']) . ' ' . ($snapshot['shipping_last_name'] ?: $snapshot['billing_last_name']));
-    $street_line = trim(implode(', ', array_filter([$snapshot['shipping_address_1'] ?: $snapshot['billing_address_1'], $snapshot['shipping_address_2'] ?: $snapshot['billing_address_2']])));
+    $full_name = trim((string) ($snapshot['first_name'] ?? '') . ' ' . (string) ($snapshot['last_name'] ?? ''));
+    $street_line = trim(implode(', ', array_filter([
+        (string) ($snapshot['address_1'] ?? ''),
+        (string) ($snapshot['address_2'] ?? ''),
+    ])));
     $location_line = trim(implode(', ', array_filter([
-        $snapshot['shipping_city'] ?: $snapshot['billing_city'],
-        $snapshot['shipping_state'] ?: $snapshot['billing_state'],
-        $snapshot['shipping_postcode'] ?: $snapshot['billing_postcode'],
+        (string) ($snapshot['city'] ?? ''),
+        (string) ($snapshot['state'] ?? ''),
+        (string) ($snapshot['postcode'] ?? ''),
     ])));
 
     $lines = [];
@@ -1516,14 +1450,72 @@ function papetarie_storefront_checkout_standard_account_address_lines(): array
     if ($location_line !== '') {
         $lines[] = $location_line;
     }
-    if ($snapshot['shipping_phone'] !== '' || $snapshot['billing_phone'] !== '') {
-        $lines[] = $snapshot['shipping_phone'] ?: $snapshot['billing_phone'];
+    if (trim((string) ($snapshot['phone'] ?? '')) !== '') {
+        $lines[] = trim((string) $snapshot['phone']);
     }
-    if ($snapshot['billing_email'] !== '') {
-        $lines[] = $snapshot['billing_email'];
+    if (trim((string) ($snapshot['email'] ?? '')) !== '') {
+        $lines[] = trim((string) $snapshot['email']);
     }
 
     return $lines;
+}
+
+function papetarie_storefront_checkout_standard_account_address_snapshot(): array
+{
+    if (!function_exists('get_current_user_id')) {
+        return [];
+    }
+
+    $user_id = absint(get_current_user_id());
+    if ($user_id <= 0) {
+        return [];
+    }
+
+    $user = get_userdata($user_id);
+    $user_email = '';
+    if ($user instanceof WP_User) {
+        $user_email = sanitize_email((string) $user->user_email);
+    }
+
+    $build_candidate = static function (string $prefix) use ($user_email, $user_id): array {
+        $getter = static fn (string $field): string => trim((string) get_user_meta($user_id, $prefix . '_' . $field, true));
+
+        return [
+            'first_name' => $getter('first_name'),
+            'last_name' => $getter('last_name'),
+            'phone' => $getter('phone'),
+            'state' => $getter('state'),
+            'city' => $getter('city'),
+            'postcode' => $getter('postcode'),
+            'address_1' => $getter('address_1'),
+            'address_2' => $getter('address_2'),
+            'email' => $user_email,
+        ];
+    };
+
+    $is_complete = static function (array $candidate): bool {
+        $required = ['first_name', 'last_name', 'phone', 'state', 'city', 'address_1', 'postcode'];
+
+        foreach ($required as $field) {
+            if (trim((string) ($candidate[$field] ?? '')) === '') {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    $shipping = $build_candidate('shipping');
+    if ($is_complete($shipping)) {
+        return $shipping;
+    }
+
+    $billing = $build_candidate('billing');
+    if ($is_complete($billing)) {
+        return $billing;
+    }
+
+    return [];
 }
 
 function papetarie_storefront_checkout_address_card_icon_svg(string $kind): string
@@ -4060,6 +4052,7 @@ function papetarie_storefront_auth_input_icon(string $name): string
         'location-pin' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s5-4.6 5-9a5 5 0 1 0-10 0c0 4.4 5 9 5 9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
         'home' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.5V21h13V10.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 21v-6h5v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         'building' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V8l8-4 8 4v12M9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'note' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 16H9l-4 4v-4H5A1.5 1.5 0 0 1 3.5 14V6A1.5 1.5 0 0 1 5 4.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 8h10M7 11h7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
     ];
 
     return $icons[$name] ?? '';
@@ -4087,6 +4080,10 @@ function papetarie_storefront_checkout_field_icon(string $key, array $field): st
 
     if (str_contains($key, 'address_1')) {
         return 'home';
+    }
+
+    if ($key === 'delivery_notes' || str_contains($key, 'notes')) {
+        return 'note';
     }
 
     if ($key === 'order_comments') {
@@ -4186,6 +4183,9 @@ function papetarie_storefront_render_checkout_form_field(string $key, array $fie
         $input_html .= '</select>';
     } elseif ('textarea' === $type) {
         $attributes = [];
+        if ($field_placeholder !== '') {
+            $attributes[] = sprintf('placeholder="%s"', esc_attr($field_placeholder));
+        }
         foreach ($field_attributes as $attribute_name => $attribute_value) {
             if ($attribute_value === null || $attribute_value === false || $attribute_value === '') {
                 continue;

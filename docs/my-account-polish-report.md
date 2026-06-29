@@ -20,6 +20,7 @@ Date: 2026-06-19
 - Am adus titlurile paginilor și subtitlurile la o scară tipografică consistentă.
 - Am refăcut afișarea orders și view-order pe carduri la viewport-uri mai mici, fără scroll orizontal.
 - Am tratat empty states și linkurile de acțiune cu aceeași componentizare vizuală.
+- Empty state-ul pentru `Adresa mea` apare acum când userul nu are o adresă standard completă; nu mai afișăm un card gol cu date parțiale sau fallback-uri.
 - Am adăugat seed-uri locale pentru adrese și favorite, ca să pot valida state-uri reale, nu doar empty state.
 - Am mutat testele My Account pe login WordPress stabil, fără să depind de auth modal.
 
@@ -75,4 +76,3 @@ Suite rulată: `tests/my-account.spec.js`
 - `/wp-content/themes/papetarie-storefront/woocommerce/myaccount/view-order.php`
 - `/tests/my-account.spec.js`
 - `/docs/my-account-polish-report.md`
-
