@@ -7639,6 +7639,10 @@ function papetarie_storefront_render_checkout_test_cases_route(): void
     }
 
     if (is_readable($template)) {
+        if (function_exists('opcache_invalidate')) {
+            @opcache_invalidate($template, true);
+        }
+
         include $template;
         exit;
     }
