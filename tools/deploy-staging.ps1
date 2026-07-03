@@ -62,7 +62,7 @@ function Upload-Tree {
         throw "Nu există fișiere de deploy în $Label."
     }
 
-    Write-Host "Deploy staging $Label:"
+    Write-Host "Deploy staging ${Label}:"
     Write-Host " - Local:  $LocalRoot"
     Write-Host " - Remote: $RemoteRoot"
     Write-Host " - Files:  $($files.Count)"
