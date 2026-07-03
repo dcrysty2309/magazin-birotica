@@ -70,7 +70,7 @@ if (-not $DryRun) {
     Write-Host "Smoke check staging:"
     $stamp = Get-Date -Format "yyyyMMddHHmmss"
     foreach ($path in @("/checkout/", "/checkout-test-cases/")) {
-        $url = "$TargetUrl$path?v=$stamp"
+        $url = "{0}{1}?v={2}" -f $TargetUrl.TrimEnd('/'), $path, $stamp
         $attempt = 0
         $lastError = $null
         while ($attempt -lt 3) {
