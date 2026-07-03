@@ -23,6 +23,9 @@ Completed:
 - The address modal in My Account must reuse the same field order, validation rules, and visual system as Checkout.
 - The address modal in My Account must reuse the same field order, validation rules, and visual system as Checkout, including the optional `Observații pentru livrare / curier` textarea.
 - The modal should use the current Checkout field layout without input icons.
+- My Account must use a single reusable modal for both `Adaugă adresă nouă` and `Editează adresă`; the only differences are the modal title, the initial field values, and the save action target.
+- Existing address cards in My Account must expose both `Editează` and `Șterge` actions in the top-right area of the card.
+- `Șterge` requires explicit confirmation and, after removal of the last address, the empty state must be shown instead of a blank card.
 - The main street field should be labeled `Adresă`, matching Checkout exactly.
 
 Important files:

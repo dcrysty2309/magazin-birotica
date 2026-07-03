@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'wp-content/themes/papetarie-storefront/**'
+      - 'wp-content/plugins/**'
       - 'tools/deploy-staging.ps1'
       - '.github/workflows/deploy-staging.yml'
   workflow_dispatch:

@@ -23,11 +23,6 @@ if (function_exists('WC') && WC() && WC()->cart && WC()->cart->is_empty()) {
 ?>
 <div class="pap-shell pap-checkout-page-shell">
   <div class="pap-checkout-shell">
-    <header class="pap-checkout-hero">
-      <h1><?php esc_html_e('Finalizează comanda', 'papetarie-storefront'); ?></h1>
-      <p><?php esc_html_e('Completează datele de livrare și confirmă comanda în pasul final.', 'papetarie-storefront'); ?></p>
-    </header>
-
     <?php $checkout_notices_html = function_exists('papetarie_storefront_get_checkout_notices_html') ? papetarie_storefront_get_checkout_notices_html() : ''; ?>
     <?php if ('' !== trim(wp_strip_all_tags($checkout_notices_html))) : ?>
       <div class="pap-checkout-notices woocommerce-notices-wrapper" role="status" aria-live="polite">

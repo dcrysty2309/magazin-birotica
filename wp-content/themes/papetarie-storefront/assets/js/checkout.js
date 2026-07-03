@@ -782,15 +782,132 @@
     }
 
     const guestMode = isLoggedIn ? 'summary' : getGuestShippingMode();
-    const shippingAddressState = guestMode === 'summary' ? 'complete' : 'active';
-    const shippingMethodsState = guestMode === 'summary' || isLoggedIn ? 'active' : 'disabled';
+    const hasConfirmedAuthAddress = hasMeaningfulAuthShippingSnapshot(authCurrentOrderSnapshot) && !authAddressFormMode;
+    const shippingAddressState = isLoggedIn
+      ? (hasConfirmedAuthAddress ? 'complete' : 'active')
+      : (guestMode === 'summary' ? 'complete' : 'active');
+    const shippingMethodsState = shippingAddressState === 'complete' ? 'active' : 'disabled';
     const billingState = isLoggedIn ? 'active' : 'disabled';
-    const paymentState = isLoggedIn ? 'active' : 'disabled';
+    const paymentState = shippingAddressState === 'complete' ? 'active' : 'disabled';
 
     setCheckoutStepState('shipping-address', shippingAddressState);
     setCheckoutStepState('shipping-methods', shippingMethodsState);
     setCheckoutStepState('address-summary', billingState);
     setCheckoutStepState('payment', paymentState);
+    syncPaymentMethodCards();
+    syncCheckoutSubmitState();
+  };
+
+  const hasConfirmedShippingAddress = () => {
+    if (!isLoggedIn) {
+      return getGuestShippingMode() === 'summary' && hasGuestShippingSnapshotData(getGuestShippingSnapshot());
+    }
+
+    return !authAddressFormMode && hasMeaningfulAuthShippingSnapshot(authCurrentOrderSnapshot);
+  };
+
+  const hasVisibleShippingMethodSelection = () => {
+    const $shippingMethodsSection = getForm().find('[data-pap-checkout-section="shipping-methods"]').first();
+    if (!$shippingMethodsSection.length) {
+      return true;
+    }
+
+    const $notice = $shippingMethodsSection.find('.pap-checkout-shipping-methods__notice').first();
+    if ($notice.length) {
+      return false;
+    }
+
+    const $methods = $shippingMethodsSection.find('.pap-checkout-shipping-method');
+    if (!$methods.length) {
+      return true;
+    }
+
+    return $shippingMethodsSection.find('input.shipping_method:checked').length > 0;
+  };
+
+  const hasVisiblePaymentMethodSelection = () => {
+    const $payment = getForm().find('#payment').first();
+    if (!$payment.length) {
+      return false;
+    }
+
+    const $notice = $payment.find('.pap-checkout-payment-methods__notice').first();
+    if ($notice.length) {
+      return false;
+    }
+
+    const $methods = $payment.find('input[name="payment_method"]');
+    if (!$methods.length) {
+      return false;
+    }
+
+    return $methods.filter(':checked').length > 0;
+  };
+
+  const getCheckoutSubmitBlockMessage = () => {
+    if (!hasConfirmedShippingAddress()) {
+      return 'Completează și confirmă adresa pentru a continua.';
+    }
+
+    if (!hasVisibleShippingMethodSelection()) {
+      return 'Selectează metoda de livrare.';
+    }
+
+    const $payment = getForm().find('#payment').first();
+    const hasPaymentMethods = $payment.find('input[name="payment_method"]').length > 0;
+
+    if (!hasPaymentMethods) {
+      return 'Nu există metode de plată active în WooCommerce pentru această comandă.';
+    }
+
+    if (!hasVisiblePaymentMethodSelection()) {
+      return 'Selectează o metodă de plată.';
+    }
+
+    return '';
+  };
+
+  const syncPaymentMethodCards = () => {
+    const $payment = getForm().find('#payment').first();
+    if (!$payment.length) {
+      return;
+    }
+
+    $payment.find('.pap-checkout-payment-method').each(function () {
+      const $item = $(this);
+      const $input = $item.find('input[name="payment_method"]').first();
+      $item.toggleClass('is-selected', $input.length ? $input.is(':checked') : false);
+    });
+  };
+
+  const syncCheckoutSubmitState = () => {
+    const $payment = getForm().find('#payment').first();
+    const $button = getForm().find('#place_order').first();
+    const $hint = getForm().find('[data-pap-checkout-submit-hint]').first();
+
+    if (!$payment.length || !$button.length) {
+      return;
+    }
+
+    const blockMessage = getCheckoutSubmitBlockMessage();
+    const isBlocked = blockMessage !== '';
+
+    $button
+      .prop('disabled', isBlocked)
+      .attr('aria-disabled', isBlocked ? 'true' : 'false')
+      .toggleClass('is-disabled', isBlocked);
+
+    $payment
+      .toggleClass('is-submit-blocked', isBlocked)
+      .toggleClass('is-submit-ready', !isBlocked);
+
+    if ($hint.length) {
+      if (isBlocked) {
+        $hint.text(blockMessage).removeAttr('hidden');
+      } else {
+        $hint.text('').attr('hidden', 'hidden');
+      }
+    }
   };
 
   const getGuestShippingMode = () => {
@@ -1466,7 +1583,7 @@
     const $head = $summary.find('.pap-checkout-address-card__head').first();
     const $titleCopy = $summary.find('.pap-checkout-address-card__title-copy').first();
     const $name = $summary.find('.pap-checkout-address-card__name').first();
-    const $action = $summary.find('.pap-checkout-address-card__action').first();
+    const $action = $summary.find('.pap-secondary-action').first();
 
     if (!lines.length) {
       if ($body.length) {
@@ -1811,7 +1928,7 @@
     const $head = $summary.find('.pap-checkout-address-card__head').first();
     const $titleCopy = $summary.find('.pap-checkout-address-card__title-copy').first();
     const $name = $summary.find('.pap-checkout-address-card__name').first();
-    const $action = $summary.find('.pap-checkout-address-card__action').first();
+    const $action = $summary.find('.pap-secondary-action').first();
 
     if (!lines.length) {
       authTemporarySummaryVisible = false;
@@ -2577,6 +2694,11 @@
       clearNativeInvalidState($field);
     });
 
+    $form.on('change', 'input[name^="shipping_method"], input[name="payment_method"]', function () {
+      syncPaymentMethodCards();
+      syncCheckoutSubmitState();
+    });
+
     $form.on('click', selectors.addressModalOpen, function (event) {
       event.preventDefault();
       openAddressModal(this);
@@ -2780,6 +2902,16 @@
       }
       resetGuestShippingState();
       syncAuthSelectedAddressFields();
+
+      if (!authAddressFormMode) {
+        const $authSummary = getAuthShipping().find(selectors.authShippingSummary).first();
+        if ($authSummary.length && $authSummary.is(':visible')) {
+          const summarySnapshot = getAuthShippingSummarySnapshotFromDom();
+          if (hasMeaningfulAuthShippingSnapshot(summarySnapshot)) {
+            setAuthCurrentOrderSnapshot(summarySnapshot, 'syncCheckoutState-summary');
+          }
+        }
+      }
     }
     syncCheckoutStepStates();
     syncDependentCitySelect('#billing_state');
@@ -2796,8 +2928,16 @@
       return;
     }
 
+    if (String($payment.attr('data-pap-step-state') || '').trim() === 'disabled') {
+      syncPaymentMethodCards();
+      syncCheckoutSubmitState();
+      return;
+    }
+
     const $checked = $payment.find('input[name="payment_method"]:checked').first();
     if ($checked.length) {
+      syncPaymentMethodCards();
+      syncCheckoutSubmitState();
       return;
     }
 
@@ -2805,6 +2945,9 @@
     if ($visible.length) {
       $visible.prop('checked', true).trigger('change');
     }
+
+    syncPaymentMethodCards();
+    syncCheckoutSubmitState();
   };
 
   const bootstrap = async () => {
@@ -2816,6 +2959,8 @@
     $(document.body).on('updated_checkout', () => {
       syncCheckoutState();
       syncPaymentMethodSelection();
+      syncPaymentMethodCards();
+      syncCheckoutSubmitState();
     });
     $(document.body).on('updated_checkout', () => {
       debugCheckout('body updated_checkout event', getPostcodeDebugState());
@@ -2831,6 +2976,8 @@
     $(bindFieldValidation);
     $(syncCheckoutState);
     syncPaymentMethodSelection();
+    syncPaymentMethodCards();
+    syncCheckoutSubmitState();
     requestInitialCheckoutRefresh('bootstrap');
     clearSessionExpiredNotice();
     window.setTimeout(clearSessionExpiredNotice, 250);

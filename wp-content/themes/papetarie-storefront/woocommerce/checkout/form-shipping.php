@@ -59,8 +59,9 @@ $show_form = !$shipping_address_is_summary;
     <div class="pap-checkout-card__head">
         <div class="pap-checkout-section-title-row">
             <span class="pap-checkout-section-badge" aria-hidden="true">1</span>
-            <h2><?php esc_html_e('Adresa de livrare', 'papetarie-storefront'); ?></h2>
+            <h3><?php esc_html_e('Adresa de livrare', 'papetarie-storefront'); ?></h3>
         </div>
+        <p class="pap-checkout-card__intro"><?php esc_html_e('Completează sau verifică datele de livrare.', 'papetarie-storefront'); ?></p>
     </div>
 
     <?php if ($is_guest_checkout) : ?>
@@ -112,7 +113,7 @@ $show_form = !$shipping_address_is_summary;
 
             <div class="pap-checkout-guest-shipping__actions pap-checkout-action-row" <?php echo $shipping_address_is_summary ? 'hidden' : ''; ?>>
                 <button type="button" class="button alt pap-cart-checkout pap-checkout-action pap-checkout-action--primary pap-checkout-guest-shipping__continue" data-pap-guest-shipping-continue>
-                    <?php esc_html_e('Continuă', 'papetarie-storefront'); ?>
+                    <?php esc_html_e('Confirmă', 'papetarie-storefront'); ?>
                 </button>
             </div>
 
@@ -173,7 +174,7 @@ $show_form = !$shipping_address_is_summary;
                         <?php esc_html_e('Înapoi la adrese', 'papetarie-storefront'); ?>
                     </button>
                     <button type="button" class="button alt pap-cart-checkout pap-checkout-action pap-checkout-action--primary pap-checkout-guest-shipping__continue" data-pap-auth-address-save>
-                        <?php esc_html_e('Continuă', 'papetarie-storefront'); ?>
+                        <?php esc_html_e('Confirmă', 'papetarie-storefront'); ?>
                     </button>
                 </div>
 

@@ -19,9 +19,7 @@ $capture_output = static function (callable $callback): string {
 $shipping_row_value = '';
 $shipping_row_label = '';
 $show_shipping_row = false;
-$show_tax_row = false;
 $shipping_total = 0.0;
-$tax_total = $cart ? (float) $cart->get_total_tax() : 0.0;
 
 if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? papetarie_storefront_cart_needs_shipping() : $cart->needs_shipping())) {
 	$show_shipping_row = true;
@@ -56,15 +54,12 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 	}
 }
 
-if ($cart && function_exists('wc_tax_enabled') && wc_tax_enabled()) {
-	$show_tax_row = true;
-}
 ?>
 
 <div class="pap-checkout-card pap-checkout-card--summary woocommerce-checkout-review-order-table" data-pap-checkout-section="order-summary">
 	<div class="pap-checkout-summary-header">
 		<div class="pap-checkout-summary-header__copy">
-			<h2><?php esc_html_e('Total comandă', 'papetarie-storefront'); ?></h2>
+			<h3><?php esc_html_e('Total comandă', 'papetarie-storefront'); ?></h3>
 			<p class="pap-checkout-summary-header__meta"><?php esc_html_e('Produsele sunt afișate în coloana principală, iar aici vezi doar totalurile finale.', 'papetarie-storefront'); ?></p>
 		</div>
 	</div>
@@ -114,13 +109,6 @@ if ($cart && function_exists('wc_tax_enabled') && wc_tax_enabled()) {
 			</div>
 		<?php endif; ?>
 
-		<?php if ($show_tax_row) : ?>
-			<div class="pap-checkout-summary-row tax-total">
-				<span><?php esc_html_e('TVA', 'papetarie-storefront'); ?></span>
-				<strong><?php echo wp_kses_post(wc_price(max(0.0, $tax_total))); ?></strong>
-			</div>
-		<?php endif; ?>
-
 		<?php do_action('woocommerce_review_order_before_order_total'); ?>
 
 		<?php ob_start(); wc_cart_totals_order_total_html(); $order_total_html = (string) ob_get_clean(); ?>
@@ -157,7 +145,9 @@ if ($cart && function_exists('wc_tax_enabled') && wc_tax_enabled()) {
 
 		<?php do_action('woocommerce_review_order_before_submit'); ?>
 
-		<?php echo apply_filters('woocommerce_order_button_html', '<button type="submit" class="button alt pap-cart-checkout pap-checkout-action pap-checkout-action--primary' . esc_attr(wc_wp_theme_get_element_class_name('button') ? ' ' . wc_wp_theme_get_element_class_name('button') : '') . '" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr($checkout_order_button_text) . '" data-value="' . esc_attr($checkout_order_button_text) . '">' . esc_html($checkout_order_button_text) . '</button>'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		<?php echo apply_filters('woocommerce_order_button_html', '<button type="submit" class="button alt pap-cart-checkout pap-checkout-action pap-checkout-action--primary is-disabled' . esc_attr(wc_wp_theme_get_element_class_name('button') ? ' ' . wc_wp_theme_get_element_class_name('button') : '') . '" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr($checkout_order_button_text) . '" data-value="' . esc_attr($checkout_order_button_text) . '" disabled="disabled" aria-disabled="true">' . esc_html($checkout_order_button_text) . '</button>'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+
+		<p class="pap-checkout-summary-actions__hint" data-pap-checkout-submit-hint hidden></p>
 
 		<?php do_action('woocommerce_review_order_after_submit'); ?>
 

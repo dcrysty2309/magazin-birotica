@@ -94,9 +94,10 @@ function papetarie_setup_test_gateway(string $gateway_id, array $settings): void
         $current_settings = [];
     }
 
-    $merged_settings = array_merge($current_settings, $settings, [
-        'enabled' => 'yes',
-    ]);
+    $merged_settings = array_merge($current_settings, $settings);
+    if (!array_key_exists('enabled', $settings)) {
+        $merged_settings['enabled'] = 'yes';
+    }
 
     update_option($option_key, $merged_settings);
 }
@@ -182,6 +183,12 @@ function papetarie_setup_test_shipping_zone(): void
             'tax_status' => 'none',
             'cost' => '15',
             'type' => 'order',
+        ],
+        'free_shipping' => [
+            'title' => 'Transport gratuit',
+            'requires' => 'min_amount',
+            'min_amount' => '150',
+            'ignore_discounts' => 'no',
         ],
     ];
 
@@ -295,13 +302,25 @@ function papetarie_setup_test_woocommerce_settings(): void
         'title' => 'Plată la livrare',
         'description' => 'Plătești când primești comanda.',
         'instructions' => 'Plătești la livrare.',
+        'enabled' => 'yes',
         'enable_for_methods' => [],
         'enable_for_virtual' => 'yes',
+    ]);
+    papetarie_setup_test_gateway('bt-ipay', [
+        'title' => 'BT iPay',
+        'description' => 'Plată securizată prin BT iPay.',
+        'paymentDescription' => 'Comanda {order_number} - {shop_name}',
+        'paymentFlow' => 'pay',
+        'enabledCardSave' => 'no',
+        'testMode' => 'yes',
+        'logPayload' => 'no',
+        'enabled' => 'yes',
     ]);
     papetarie_setup_test_gateway('bacs', [
         'title' => 'Transfer bancar',
         'description' => 'Plată prin transfer bancar.',
         'instructions' => 'Folosește numărul comenzii ca referință.',
+        'enabled' => 'no',
     ]);
     papetarie_setup_test_gateway('cheque', [
         'title' => 'Plată offline',
