@@ -59,6 +59,7 @@
   let authShippingEditSnapshotCache = null;
   let authShippingDraft = null;
   let authCurrentOrderSnapshot = null;
+  let initialCheckoutRefreshRequested = false;
   const postcodeSelectors = new Set(['#billing_postcode', '#shipping_postcode']);
   const addressPairs = [
     { state: '#billing_state', city: '#billing_city' },
@@ -214,6 +215,22 @@
     if (window.console && typeof window.console.log === 'function') {
       window.console.log('[checkout]', ...args);
     }
+  };
+
+  const requestInitialCheckoutRefresh = (reason = 'bootstrap') => {
+    if (initialCheckoutRefreshRequested) {
+      return;
+    }
+
+    initialCheckoutRefreshRequested = true;
+
+    window.setTimeout(() => {
+      debugCheckout('request initial update_checkout', {
+        reason,
+        state: getPostcodeDebugState(),
+      });
+      $(document.body).trigger('update_checkout');
+    }, 150);
   };
 
   const getActiveFieldDebugLabel = () => {
@@ -2790,6 +2807,7 @@
     });
     $(bindFieldValidation);
     $(syncCheckoutState);
+    requestInitialCheckoutRefresh('bootstrap');
     clearSessionExpiredNotice();
     window.setTimeout(clearSessionExpiredNotice, 250);
     window.setTimeout(clearSessionExpiredNotice, 1250);

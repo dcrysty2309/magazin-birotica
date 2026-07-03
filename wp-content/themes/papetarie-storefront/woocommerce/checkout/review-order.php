@@ -23,7 +23,7 @@ $show_tax_row = false;
 $shipping_total = 0.0;
 $tax_total = $cart ? (float) $cart->get_total_tax() : 0.0;
 
-if ($cart && $cart->needs_shipping()) {
+if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? papetarie_storefront_cart_needs_shipping() : $cart->needs_shipping())) {
 	$show_shipping_row = true;
 	$has_calculated_shipping = $cart->has_calculated_shipping();
 	$show_shipping = $cart->show_shipping();

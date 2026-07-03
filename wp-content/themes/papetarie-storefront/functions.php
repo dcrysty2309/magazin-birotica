@@ -928,7 +928,7 @@ function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
     }
 
     $packages = function_exists('WC') && WC() && WC()->shipping() ? WC()->shipping()->get_packages() : [];
-    $needs_shipping = WC()->cart->needs_shipping();
+    $needs_shipping = papetarie_storefront_cart_needs_shipping();
     $has_shipping_method = false;
     foreach ($packages as $package) {
         if (!empty($package['rates']) && is_array($package['rates'])) {
@@ -1032,6 +1032,27 @@ function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
     <?php
 
     return (string) ob_get_clean();
+}
+
+function papetarie_storefront_cart_needs_shipping(): bool
+{
+    if (!function_exists('WC') || !WC() || !WC()->cart) {
+        return false;
+    }
+
+    $cart = WC()->cart;
+    if ($cart->needs_shipping()) {
+        return true;
+    }
+
+    foreach ($cart->get_cart() as $cart_item) {
+        $cart_product = $cart_item['data'] ?? null;
+        if ($cart_product && is_object($cart_product) && method_exists($cart_product, 'needs_shipping') && $cart_product->needs_shipping()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function papetarie_storefront_render_checkout_shipping_methods_card(): void
@@ -3347,7 +3368,7 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
     $tax_total = $cart ? (float) $cart->get_total_tax() : 0.0;
     $is_checkout_blocked = papetarie_storefront_cart_warning_state()['type'] !== 'none' || papetarie_storefront_cart_has_stock_insufficient_items();
 
-    if ($cart && $needs_shipping) {
+    if ($cart && papetarie_storefront_cart_needs_shipping()) {
         $show_shipping_row = true;
 
         if (!$has_calculated_shipping || !$show_shipping) {
