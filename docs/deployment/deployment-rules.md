@@ -58,9 +58,10 @@ Pentru iterații de temă și checkout:
 1. verifici statusul local
 2. testezi local schimbările relevante
 3. deploy pe staging
-4. rulezi smoke checks
-5. testezi flow-ul afectat în UI
-6. documentezi dacă s-a schimbat procesul
+4. cureți cache-ul de pe staging sau validezi că hostul a revalida opcache-ul pentru fișierele noi
+5. rulezi smoke checks pe URL-urile afectate
+6. testezi flow-ul afectat în UI
+7. documentezi dacă s-a schimbat procesul
 
 ## 7.1. Ciclul oficial de QA pentru checkout
 
@@ -74,6 +75,9 @@ Pentru iterații de temă și checkout:
 - staging rămâne mediul oficial de validare finală până când scenariile relevante nu mai au observații.
 - dacă un scenariu schimbă comportamentul implementat, documentația și test cases trebuie actualizate în aceeași iterație.
 - dacă staging are comentarii QA active, acestea nu se pierd prin import de DB fără confirmare explicită.
+- dacă un deploy de cod pare că "nu a ajuns" pe staging, primul lucru de verificat este cache-ul/opcache-ul și nu git-ul;
+- un upload FTP reușit nu înseamnă automat că pagina live servește imediat fișierele noi;
+- pentru orice deploy de checkout, verificarea finală include un refresh forțat și un smoke-check pe `checkout` și `checkout-test-cases`.
 
 ## 8. Automatizare
 
@@ -122,3 +126,4 @@ Pentru iterații de temă și checkout:
   - documentația este sincronizată;
   - comentariile QA sunt păstrate și disponibile;
   - nu există debug temporar rămas în cod.
+  - cache-ul staging a fost validat / purgat după deploy, iar pagina live servește conținutul nou.

@@ -264,6 +264,8 @@ După deploy verifici minim:
 - fixture-urile de test modificate sunt resetate sau recreate
 - comentariile QA din `checkout-test-cases` rămân disponibile și neatinse dacă fac parte din backlog-ul activ
 - documentația aferentă este actualizată dacă au apărut conturi, parole, adrese sau reguli noi
+- dacă deploy-ul pare că nu a ajuns pe staging, verificarea inițială este cache/opcache/browser cache, nu repo-ul
+- un deploy de temă nu este considerat final până când pagina live servește efectiv schimbările așteptate
 
 Checklist-ul operațional detaliat este în:
 
@@ -279,6 +281,7 @@ Checklist-ul operațional detaliat este în:
 - performanța reală se validează doar după publicarea online
 - după orice deploy trebuie verificat că staging rămâne curat, coerent și testabil
 - dacă debug-ul temporar a fost folosit în dezvoltare, nu se publică pe staging
+- dacă staging servește încă markup vechi după upload, procedeul corect este cache purge / opcache refresh, nu re-upload orb
 
 ## 16. Regula de închidere a ciclului de deploy
 

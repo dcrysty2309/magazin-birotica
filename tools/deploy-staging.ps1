@@ -2,6 +2,7 @@ param(
     [string]$FtpHost = $env:STAGING_FTP_HOST,
     [string]$FtpUser = $env:STAGING_FTP_USER,
     [string]$FtpPassword = $env:STAGING_FTP_PASSWORD,
+    [string]$TargetUrl = "https://notix.ro",
     [string]$RemoteThemePath = "/wp-content/themes/papetarie-storefront",
     [string]$LocalThemePath = "wp-content/themes/papetarie-storefront",
     [switch]$DryRun
@@ -62,6 +63,21 @@ foreach ($file in $files) {
     & curl.exe --ssl-reqd --ftp-create-dirs --user "${FtpUser}:${FtpPassword}" -T $file.FullName $remoteUrl | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Upload eșuat pentru $relativePath"
+    }
+}
+
+if (-not $DryRun) {
+    Write-Host "Smoke check staging:"
+    $stamp = Get-Date -Format "yyyyMMddHHmmss"
+    foreach ($path in @("/checkout/", "/checkout-test-cases/")) {
+        $url = "$TargetUrl$path?v=$stamp"
+        try {
+            $response = Invoke-WebRequest -Uri $url -Method Get -TimeoutSec 120 -Headers @{ 'Cache-Control' = 'no-cache' }
+            Write-Host " - $path => $($response.StatusCode)"
+        }
+        catch {
+            throw "Smoke check eșuat pentru $path: $($_.Exception.Message)"
+        }
     }
 }
 
