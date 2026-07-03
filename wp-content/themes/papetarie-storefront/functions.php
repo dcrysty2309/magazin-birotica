@@ -3346,20 +3346,7 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
     $coupon_inline_error = papetarie_storefront_get_coupon_inline_error();
     $discount_total = $cart ? (float) $cart->get_discount_total() : 0.0;
     $has_discount = $discount_total > 0.0001;
-    $needs_shipping = false;
-    if ($cart) {
-        $needs_shipping = $cart->needs_shipping();
-
-        if (!$needs_shipping) {
-            foreach ($cart->get_cart() as $cart_item) {
-                $cart_product = $cart_item['data'] ?? null;
-                if ($cart_product && is_object($cart_product) && method_exists($cart_product, 'needs_shipping') && $cart_product->needs_shipping()) {
-                    $needs_shipping = true;
-                    break;
-                }
-            }
-        }
-    }
+    $needs_shipping = papetarie_storefront_cart_needs_shipping();
     $has_calculated_shipping = $cart ? $cart->has_calculated_shipping() : false;
     $show_shipping = $cart ? $cart->show_shipping() : false;
     $shipping_value_html = '';

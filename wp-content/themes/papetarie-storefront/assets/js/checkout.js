@@ -429,8 +429,8 @@
     setCheckoutFieldValue(getFieldBySelector(fields.last_name), address.last_name || '');
     setCheckoutFieldValue(getFieldBySelector(fields.company), address.company || '');
     setCheckoutFieldValue(getFieldBySelector(fields.phone), address.phone || '');
-    setCheckoutFieldValue(getFieldBySelector('#billing_state'), address.state || '');
-    setCheckoutFieldValue(getFieldBySelector('#billing_city'), address.city || '');
+    setSelectFieldByValueOrLabel(getFieldBySelector('#billing_state'), address.state || '', true);
+    setSelectFieldByValueOrLabel(getFieldBySelector('#billing_city'), address.city || '', true);
     setCheckoutFieldValue(getFieldBySelector('#billing_address_1'), address.address_1 || '');
     setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), address.postcode || '');
     setCheckoutFieldValue(getFieldBySelector(fields.postcode), address.postcode || '');
@@ -871,8 +871,8 @@
     const shippingAddress1 = getRawFieldValue('#shipping_address_1');
     const shippingPostcode = getRawFieldValue('#shipping_postcode');
 
-    setCheckoutFieldValue(getFieldBySelector('#billing_state'), shippingState || getRawFieldValue('#billing_state'));
-    setCheckoutFieldValue(getFieldBySelector('#billing_city'), shippingCity || getRawFieldValue('#billing_city'));
+    setSelectFieldByValueOrLabel(getFieldBySelector('#billing_state'), shippingState || getRawFieldValue('#billing_state'), true);
+    setSelectFieldByValueOrLabel(getFieldBySelector('#billing_city'), shippingCity || getRawFieldValue('#billing_city'), true);
     setCheckoutFieldValue(getFieldBySelector('#billing_address_1'), shippingAddress1 || getRawFieldValue('#billing_address_1'));
     setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), shippingPostcode || getRawFieldValue('#billing_postcode'));
   };
@@ -1055,8 +1055,8 @@
       setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), String(snapshot['#billing_last_name'] || '').trim());
       setCheckoutFieldValue(getFieldBySelector('#billing_phone'), String(snapshot['#billing_phone'] || '').trim());
       setCheckoutFieldValue(getFieldBySelector('#billing_email'), String(snapshot['#billing_email'] || '').trim());
-      setCheckoutFieldValue(getFieldBySelector('#billing_state'), shippingStateValue);
-      setCheckoutFieldValue(getFieldBySelector('#billing_city'), shippingCityValue);
+      setSelectFieldByValueOrLabel(getFieldBySelector('#billing_state'), shippingStateValue, true);
+      setSelectFieldByValueOrLabel(getFieldBySelector('#billing_city'), shippingCityValue, true);
       setCheckoutFieldValue(getFieldBySelector('#billing_address_1'), shippingAddress1Value);
       setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), shippingPostcodeValue);
       setSelectFieldByValueOrLabel(getFieldBySelector('#billing_country'), String(snapshot['#billing_country'] || 'RO').trim() || 'RO', true);
@@ -1312,8 +1312,9 @@
     setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), lastName);
     setCheckoutFieldValue(getFieldBySelector('#billing_phone'), phone);
     setCheckoutFieldValue(getFieldBySelector('#billing_email'), email);
-    setCheckoutFieldValue(getFieldBySelector('#billing_state'), countyLabel);
-    setCheckoutFieldValue(getFieldBySelector('#billing_city'), cityLabel);
+    setSelectFieldByLabel(getFieldBySelector('#billing_state'), countyLabel, true);
+    syncDependentCitySelect('#billing_state', false);
+    setSelectFieldByLabel(getFieldBySelector('#billing_city'), cityLabel, true);
     setCheckoutFieldValue(getFieldBySelector('#billing_address_1'), address1);
     setCheckoutFieldValue(getFieldBySelector('#shipping_address_1'), address1);
     setCheckoutFieldValue(getFieldBySelector('#shipping_postcode'), postcode);
@@ -1767,6 +1768,8 @@
       setCheckoutFieldValue(getFieldBySelector('#billing_last_name'), address.last_name || '');
       setCheckoutFieldValue(getFieldBySelector('#billing_phone'), address.phone || '');
       setCheckoutFieldValue(getFieldBySelector('#billing_email'), address.email || checkoutData.customerEmail || '');
+      setSelectFieldByValueOrLabel(getFieldBySelector('#billing_state'), address.state || '', true);
+      setSelectFieldByValueOrLabel(getFieldBySelector('#billing_city'), address.city || '', true);
       setCheckoutFieldValue(getFieldBySelector('#billing_postcode'), address.postcode || '');
       applySavedAddressToFields('shipping', address);
     });
@@ -2787,13 +2790,33 @@
 
   };
 
+  const syncPaymentMethodSelection = () => {
+    const $payment = getForm().find('#payment').first();
+    if (!$payment.length) {
+      return;
+    }
+
+    const $checked = $payment.find('input[name="payment_method"]:checked').first();
+    if ($checked.length) {
+      return;
+    }
+
+    const $visible = $payment.find('input[name="payment_method"]').filter(':visible').first();
+    if ($visible.length) {
+      $visible.prop('checked', true).trigger('change');
+    }
+  };
+
   const bootstrap = async () => {
     await loadCityData();
     bindPostcodeInputGuards();
     $(document.body).on('update_checkout', () => {
       debugCheckout('body update_checkout event', getPostcodeDebugState());
     });
-    $(document.body).on('updated_checkout', syncCheckoutState);
+    $(document.body).on('updated_checkout', () => {
+      syncCheckoutState();
+      syncPaymentMethodSelection();
+    });
     $(document.body).on('updated_checkout', () => {
       debugCheckout('body updated_checkout event', getPostcodeDebugState());
       clearSessionExpiredNotice();
@@ -2807,6 +2830,7 @@
     });
     $(bindFieldValidation);
     $(syncCheckoutState);
+    syncPaymentMethodSelection();
     requestInitialCheckoutRefresh('bootstrap');
     clearSessionExpiredNotice();
     window.setTimeout(clearSessionExpiredNotice, 250);

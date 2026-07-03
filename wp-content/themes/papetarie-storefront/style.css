@@ -8125,6 +8125,31 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-notices .woocommerce-inf
   margin: 0;
 }
 
+body.theme-papetarie.woocommerce-checkout .pap-checkout-notices .woocommerce-error {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px 16px 50px;
+  list-style: none;
+  border: 1px solid #f4c7c7;
+  border-radius: 0;
+  background: #fff6f6;
+  color: #17324d;
+  box-shadow: 0 10px 24px rgba(18, 39, 74, 0.05);
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-notices .woocommerce-error li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  line-height: 1.55;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-notices .woocommerce-error::before {
+  top: 16px;
+  left: 18px;
+  color: #b42318;
+}
+
 body.theme-papetarie.woocommerce-account:not(.logged-in) .woocommerce .woocommerce-notices-wrapper,
 body.theme-papetarie.woocommerce-account.woocommerce-lost-password .woocommerce .woocommerce-notices-wrapper,
 body.theme-papetarie.woocommerce-account.woocommerce-reset-password .woocommerce .woocommerce-notices-wrapper {
