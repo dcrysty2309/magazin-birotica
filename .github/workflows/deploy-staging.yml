@@ -13,6 +13,7 @@ on:
 jobs:
   deploy-staging:
     runs-on: windows-latest
+    environment: staging
 
     steps:
       - name: Checkout repository
@@ -25,4 +26,7 @@ jobs:
           STAGING_FTP_USER: ${{ secrets.STAGING_FTP_USER }}
           STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
         run: |
+          if ([string]::IsNullOrWhiteSpace($env:STAGING_FTP_HOST) -or [string]::IsNullOrWhiteSpace($env:STAGING_FTP_USER) -or [string]::IsNullOrWhiteSpace($env:STAGING_FTP_PASSWORD)) {
+            throw "Staging secrets are missing. Check the 'staging' environment secrets in GitHub Actions."
+          }
           powershell -ExecutionPolicy Bypass -File .\tools\deploy-staging.ps1
