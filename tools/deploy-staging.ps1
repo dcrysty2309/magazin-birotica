@@ -76,8 +76,20 @@ if (-not $DryRun) {
         while ($attempt -lt 3) {
             $attempt++
             try {
-                $response = Invoke-WebRequest -Uri $url -Method Get -TimeoutSec 120 -Headers @{ 'Cache-Control' = 'no-cache' }
-                Write-Host " - $path => $($response.StatusCode)"
+                $statusCode = & curl.exe -L --silent --show-error --output NUL --write-out "%{http_code}" --header "Cache-Control: no-cache" $url
+                if ($LASTEXITCODE -ne 0) {
+                    throw "curl.exe a returnat exit code $LASTEXITCODE."
+                }
+
+                if ([string]::IsNullOrWhiteSpace($statusCode)) {
+                    throw "curl.exe nu a returnat un status code."
+                }
+
+                if ($statusCode -notmatch '^[23][0-9]{2}$') {
+                    throw "Status HTTP neașteptat: $statusCode"
+                }
+
+                Write-Host " - $path => $statusCode"
                 $lastError = $null
                 break
             }
