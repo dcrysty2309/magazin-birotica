@@ -6284,6 +6284,139 @@ function papetarie_storefront_checkout_should_persist_address_to_account(): bool
     return $save_checkbox === '1';
 }
 
+function papetarie_storefront_checkout_account_meta_snapshot(): array
+{
+    if (!is_user_logged_in()) {
+        return [];
+    }
+
+    $user_id = get_current_user_id();
+    if ($user_id <= 0) {
+        return [];
+    }
+
+    $user = get_userdata($user_id);
+    $user_email = $user instanceof WP_User ? sanitize_email((string) $user->user_email) : '';
+
+    return [
+        'first_name' => sanitize_text_field((string) get_user_meta($user_id, 'first_name', true)),
+        'last_name' => sanitize_text_field((string) get_user_meta($user_id, 'last_name', true)),
+        'email' => $user_email,
+        'billing_first_name' => sanitize_text_field((string) get_user_meta($user_id, 'billing_first_name', true)),
+        'billing_last_name' => sanitize_text_field((string) get_user_meta($user_id, 'billing_last_name', true)),
+        'billing_email' => sanitize_email((string) get_user_meta($user_id, 'billing_email', true)),
+        'billing_phone' => sanitize_text_field((string) get_user_meta($user_id, 'billing_phone', true)),
+        'billing_country' => sanitize_text_field((string) get_user_meta($user_id, 'billing_country', true)),
+        'billing_state' => sanitize_text_field((string) get_user_meta($user_id, 'billing_state', true)),
+        'billing_city' => sanitize_text_field((string) get_user_meta($user_id, 'billing_city', true)),
+        'billing_postcode' => sanitize_text_field((string) get_user_meta($user_id, 'billing_postcode', true)),
+        'billing_address_1' => sanitize_text_field((string) get_user_meta($user_id, 'billing_address_1', true)),
+        'billing_address_2' => sanitize_text_field((string) get_user_meta($user_id, 'billing_address_2', true)),
+        'billing_company' => sanitize_text_field((string) get_user_meta($user_id, 'billing_company', true)),
+        'shipping_first_name' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_first_name', true)),
+        'shipping_last_name' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_last_name', true)),
+        'shipping_phone' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_phone', true)),
+        'shipping_country' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_country', true)),
+        'shipping_state' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_state', true)),
+        'shipping_city' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_city', true)),
+        'shipping_postcode' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_postcode', true)),
+        'shipping_address_1' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_address_1', true)),
+        'shipping_address_2' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_address_2', true)),
+        'shipping_company' => sanitize_text_field((string) get_user_meta($user_id, 'shipping_company', true)),
+    ];
+}
+
+function papetarie_storefront_checkout_snapshot_value(array $snapshot, array $keys, string $fallback = ''): string
+{
+    foreach ($keys as $key) {
+        if (!array_key_exists($key, $snapshot)) {
+            continue;
+        }
+
+        $value = trim((string) $snapshot[$key]);
+        if ($value !== '') {
+            return $value;
+        }
+    }
+
+    return trim($fallback);
+}
+
+function papetarie_storefront_checkout_normalize_account_snapshot(array $snapshot): array
+{
+    $fallback = papetarie_storefront_checkout_account_meta_snapshot();
+
+    $shipping_first_name = papetarie_storefront_checkout_snapshot_value($snapshot, ['#shipping_first_name', 'shipping_first_name'], (string) ($fallback['shipping_first_name'] ?? $fallback['billing_first_name'] ?? $fallback['first_name'] ?? ''));
+    $shipping_last_name = papetarie_storefront_checkout_snapshot_value($snapshot, ['#shipping_last_name', 'shipping_last_name'], (string) ($fallback['shipping_last_name'] ?? $fallback['billing_last_name'] ?? $fallback['last_name'] ?? ''));
+    $billing_first_name = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_first_name', 'billing_first_name'], $shipping_first_name !== '' ? $shipping_first_name : (string) ($fallback['billing_first_name'] ?? $fallback['first_name'] ?? ''));
+    $billing_last_name = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_last_name', 'billing_last_name'], $shipping_last_name !== '' ? $shipping_last_name : (string) ($fallback['billing_last_name'] ?? $fallback['last_name'] ?? ''));
+    $billing_phone = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_phone', 'billing_phone', '#shipping_phone', 'shipping_phone'], (string) ($fallback['billing_phone'] ?? $fallback['shipping_phone'] ?? ''));
+    $billing_email = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_email', 'billing_email'], (string) ($fallback['billing_email'] ?? $fallback['email'] ?? ''));
+    $billing_country = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_country', 'billing_country', '#shipping_country', 'shipping_country'], (string) ($fallback['billing_country'] ?? $fallback['shipping_country'] ?? 'RO'));
+    $billing_state = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_state', 'billing_state', '#shipping_state', 'shipping_state'], (string) ($fallback['billing_state'] ?? $fallback['shipping_state'] ?? ''));
+    $billing_city = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_city', 'billing_city', '#shipping_city', 'shipping_city'], (string) ($fallback['billing_city'] ?? $fallback['shipping_city'] ?? ''));
+    $billing_postcode = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_postcode', 'billing_postcode', 'postcode', '#shipping_postcode', 'shipping_postcode'], (string) ($fallback['billing_postcode'] ?? $fallback['shipping_postcode'] ?? ''));
+    $billing_address_1 = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_address_1', 'billing_address_1', '#shipping_address_1', 'shipping_address_1'], (string) ($fallback['billing_address_1'] ?? $fallback['shipping_address_1'] ?? ''));
+    $billing_address_2 = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_address_2', 'billing_address_2', '#shipping_address_2', 'shipping_address_2'], (string) ($fallback['billing_address_2'] ?? $fallback['shipping_address_2'] ?? ''));
+    $billing_company = papetarie_storefront_checkout_snapshot_value($snapshot, ['#billing_company', 'billing_company', '#shipping_company', 'shipping_company'], (string) ($fallback['billing_company'] ?? $fallback['shipping_company'] ?? ''));
+
+    return [
+        'first_name' => $billing_first_name,
+        'last_name' => $billing_last_name,
+        'email' => $billing_email,
+        'phone' => $billing_phone,
+        'country' => $billing_country !== '' ? $billing_country : 'RO',
+        'state' => $billing_state,
+        'city' => $billing_city,
+        'postcode' => $billing_postcode,
+        'address_1' => $billing_address_1,
+        'address_2' => $billing_address_2,
+        'company' => $billing_company,
+        'billing_first_name' => $billing_first_name,
+        'billing_last_name' => $billing_last_name,
+        'billing_email' => $billing_email,
+        'billing_phone' => $billing_phone,
+        'billing_country' => $billing_country !== '' ? $billing_country : 'RO',
+        'billing_state' => $billing_state,
+        'billing_city' => $billing_city,
+        'billing_postcode' => $billing_postcode,
+        'billing_address_1' => $billing_address_1,
+        'billing_address_2' => $billing_address_2,
+        'billing_company' => $billing_company,
+        'shipping_first_name' => $shipping_first_name !== '' ? $shipping_first_name : $billing_first_name,
+        'shipping_last_name' => $shipping_last_name !== '' ? $shipping_last_name : $billing_last_name,
+        'shipping_phone' => $billing_phone,
+        'shipping_country' => $billing_country !== '' ? $billing_country : 'RO',
+        'shipping_state' => $billing_state,
+        'shipping_city' => $billing_city,
+        'shipping_postcode' => $billing_postcode,
+        'shipping_address_1' => $billing_address_1,
+        'shipping_address_2' => $billing_address_2,
+        'shipping_company' => $billing_company,
+    ];
+}
+
+function papetarie_storefront_checkout_snapshot_has_required_account_fields(array $snapshot): bool
+{
+    $required = [
+        'billing_first_name',
+        'billing_last_name',
+        'billing_phone',
+        'billing_state',
+        'billing_city',
+        'billing_address_1',
+        'billing_postcode',
+    ];
+
+    foreach ($required as $key) {
+        if (trim((string) ($snapshot[$key] ?? '')) === '') {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function papetarie_storefront_checkout_capture_customer_snapshot(): void
 {
     if (!function_exists('WC') || !WC() || !(WC()->customer instanceof WC_Customer) || !is_user_logged_in()) {
@@ -6475,17 +6608,22 @@ function papetarie_storefront_checkout_persist_snapshot_to_account(array $snapsh
         return;
     }
 
-    $billing_first_name = sanitize_text_field((string) ($snapshot['#billing_first_name'] ?? $snapshot['billing_first_name'] ?? ''));
-    $billing_last_name = sanitize_text_field((string) ($snapshot['#billing_last_name'] ?? $snapshot['billing_last_name'] ?? ''));
-    $billing_email = sanitize_email((string) ($snapshot['#billing_email'] ?? $snapshot['billing_email'] ?? ''));
-    $billing_phone = sanitize_text_field((string) ($snapshot['#billing_phone'] ?? $snapshot['billing_phone'] ?? ''));
-    $billing_country = sanitize_text_field((string) ($snapshot['#billing_country'] ?? $snapshot['billing_country'] ?? 'RO'));
-    $billing_state = sanitize_text_field((string) ($snapshot['#billing_state'] ?? $snapshot['billing_state'] ?? $snapshot['#shipping_state'] ?? $snapshot['shipping_state'] ?? ''));
-    $billing_city = sanitize_text_field((string) ($snapshot['#billing_city'] ?? $snapshot['billing_city'] ?? $snapshot['#shipping_city'] ?? $snapshot['shipping_city'] ?? ''));
-    $billing_postcode = sanitize_text_field((string) ($snapshot['#billing_postcode'] ?? $snapshot['billing_postcode'] ?? $snapshot['postcode'] ?? $snapshot['#shipping_postcode'] ?? $snapshot['shipping_postcode'] ?? ''));
-    $billing_address_1 = sanitize_text_field((string) ($snapshot['#billing_address_1'] ?? $snapshot['billing_address_1'] ?? $snapshot['#shipping_address_1'] ?? $snapshot['shipping_address_1'] ?? ''));
-    $billing_address_2 = sanitize_text_field((string) ($snapshot['#billing_address_2'] ?? $snapshot['billing_address_2'] ?? $snapshot['#shipping_address_2'] ?? $snapshot['shipping_address_2'] ?? ''));
-    $billing_company = sanitize_text_field((string) ($snapshot['#billing_company'] ?? $snapshot['billing_company'] ?? $snapshot['#shipping_company'] ?? $snapshot['shipping_company'] ?? ''));
+    $normalized_snapshot = papetarie_storefront_checkout_normalize_account_snapshot($snapshot);
+    if (!papetarie_storefront_checkout_snapshot_has_required_account_fields($normalized_snapshot)) {
+        return;
+    }
+
+    $billing_first_name = sanitize_text_field((string) ($normalized_snapshot['billing_first_name'] ?? ''));
+    $billing_last_name = sanitize_text_field((string) ($normalized_snapshot['billing_last_name'] ?? ''));
+    $billing_email = sanitize_email((string) ($normalized_snapshot['billing_email'] ?? ''));
+    $billing_phone = sanitize_text_field((string) ($normalized_snapshot['billing_phone'] ?? ''));
+    $billing_country = sanitize_text_field((string) ($normalized_snapshot['billing_country'] ?? 'RO'));
+    $billing_state = sanitize_text_field((string) ($normalized_snapshot['billing_state'] ?? ''));
+    $billing_city = sanitize_text_field((string) ($normalized_snapshot['billing_city'] ?? ''));
+    $billing_postcode = sanitize_text_field((string) ($normalized_snapshot['billing_postcode'] ?? ''));
+    $billing_address_1 = sanitize_text_field((string) ($normalized_snapshot['billing_address_1'] ?? ''));
+    $billing_address_2 = sanitize_text_field((string) ($normalized_snapshot['billing_address_2'] ?? ''));
+    $billing_company = sanitize_text_field((string) ($normalized_snapshot['billing_company'] ?? ''));
 
     update_user_meta($user_id, 'first_name', $billing_first_name);
     update_user_meta($user_id, 'last_name', $billing_last_name);
@@ -6579,12 +6717,14 @@ function papetarie_storefront_checkout_save_address_for_future($order, array $da
         return;
     }
     $snapshot = [];
-    foreach (wp_unslash($_POST) as $key => $value) {
+    foreach ($data as $key => $value) {
         if (!is_string($key)) {
             continue;
         }
 
-        $snapshot['#' . ltrim($key, '#')] = is_string($value) ? $value : (string) $value;
+        $normalized_key = ltrim($key, '#');
+        $snapshot[$normalized_key] = is_scalar($value) ? (string) $value : '';
+        $snapshot['#' . $normalized_key] = $snapshot[$normalized_key];
     }
 
     papetarie_storefront_checkout_persist_snapshot_to_account($snapshot);
