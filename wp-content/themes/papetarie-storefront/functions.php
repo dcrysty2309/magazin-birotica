@@ -1134,10 +1134,10 @@ function papetarie_storefront_get_checkout_products_inline_html(): string
             class="button pap-cart-delete-modal-button pap-cart-delete-modal-button--secondary pap-checkout-products-toggle"
             data-checkout-products-toggle
             aria-expanded="false"
-            data-label-more="Arata mai mult +"
-            data-label-less="Arata mai putin -"
+            data-label-more="Arata mai mult"
+            data-label-less="Arata mai putin"
           >
-            Arata mai mult +
+            Arata mai mult
           </button>
         </div>
       <?php endif; ?>

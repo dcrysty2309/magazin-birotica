@@ -672,8 +672,8 @@
   const setProductsListState = (button, nextExpanded) => {
     const $button = $(button);
     const $card = $button.closest('.pap-checkout-card--shipping-methods, .pap-checkout-shipping-products');
-    const moreLabel = String($button.data('labelMore') || $button.attr('data-label-more') || 'Arata mai mult +');
-    const lessLabel = String($button.data('labelLess') || $button.attr('data-label-less') || 'Arata mai putin -');
+    const moreLabel = String($button.data('labelMore') || $button.attr('data-label-more') || 'Arata mai mult');
+    const lessLabel = String($button.data('labelLess') || $button.attr('data-label-less') || 'Arata mai putin');
     const $list = $card.find('.pap-checkout-product-list').first();
 
     $card.find('.pap-checkout-summary-item').each(function (index) {
