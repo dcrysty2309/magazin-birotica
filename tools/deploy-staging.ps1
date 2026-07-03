@@ -71,12 +71,26 @@ if (-not $DryRun) {
     $stamp = Get-Date -Format "yyyyMMddHHmmss"
     foreach ($path in @("/checkout/", "/checkout-test-cases/")) {
         $url = "$TargetUrl$path?v=$stamp"
-        try {
-            $response = Invoke-WebRequest -Uri $url -Method Get -TimeoutSec 120 -Headers @{ 'Cache-Control' = 'no-cache' }
-            Write-Host " - $path => $($response.StatusCode)"
+        $attempt = 0
+        $lastError = $null
+        while ($attempt -lt 3) {
+            $attempt++
+            try {
+                $response = Invoke-WebRequest -Uri $url -Method Get -TimeoutSec 120 -Headers @{ 'Cache-Control' = 'no-cache' }
+                Write-Host " - $path => $($response.StatusCode)"
+                $lastError = $null
+                break
+            }
+            catch {
+                $lastError = $_.Exception.Message
+                if ($attempt -lt 3) {
+                    Start-Sleep -Seconds 5
+                }
+            }
         }
-        catch {
-            throw "Smoke check eșuat pentru $path: $($_.Exception.Message)"
+
+        if ($lastError) {
+            throw "Smoke check eșuat pentru $path după 3 încercări: $lastError"
         }
     }
 }
