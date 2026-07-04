@@ -32,6 +32,7 @@ Scop:
 - nu se tratează staging ca mediu de producție;
 - staging trebuie să folosească aceleași conturi de test ca local.
 - staging trebuie să rămână fără debug temporar, fixture-uri invalide sau date de test nealiniate înainte de o nouă rundă QA.
+- dacă deploy-ul a fost făcut prin artifact, se verifică imediat că ZIP-ul a fost extras corect și că nu au rămas runner-e sau arhive pe server
 
 ## 1. Homepage
 

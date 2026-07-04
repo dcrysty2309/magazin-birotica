@@ -7,6 +7,10 @@ param(
     [string]$LocalThemePath = "wp-content/themes/papetarie-storefront",
     [string]$RemotePluginPath = "/wp-content/plugins",
     [string]$LocalPluginPath = "wp-content/plugins",
+    [string]$PackageZipPath = "",
+    [string]$RemotePackageZipFileName = "staging-package.zip",
+    [string]$RemotePackageRunnerFileName = "staging-package-deploy-runner.php",
+    [switch]$KeepRemoteRunner,
     [switch]$DryRun
 )
 
@@ -19,6 +23,7 @@ if ([string]::IsNullOrWhiteSpace($FtpHost) -or [string]::IsNullOrWhiteSpace($Ftp
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $localThemeRoot = Join-Path $repoRoot $LocalThemePath
 $localPluginRoot = Join-Path $repoRoot $LocalPluginPath
+$templateRoot = Join-Path $PSScriptRoot "templates"
 
 if (!(Test-Path -LiteralPath $localThemeRoot)) {
     throw "Tema locală nu există: $localThemeRoot"
@@ -85,8 +90,87 @@ function Upload-Tree {
     }
 }
 
-Upload-Tree -LocalRoot $localThemeRoot -RemoteRoot $RemoteThemePath -Label "theme"
-Upload-Tree -LocalRoot $localPluginRoot -RemoteRoot $RemotePluginPath -Label "plugins"
+function New-DeployToken {
+    $tokenBytes = New-Object byte[] 24
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($tokenBytes)
+    return ([System.BitConverter]::ToString($tokenBytes) -replace '-', '').ToLowerInvariant()
+}
+
+function Upload-SingleFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LocalPath,
+        [Parameter(Mandatory = $true)]
+        [string]$RemotePath,
+        [Parameter(Mandatory = $true)]
+        [string]$Label
+    )
+
+    if (!(Test-Path -LiteralPath $LocalPath)) {
+        throw "$Label local nu există: $LocalPath"
+    }
+
+    if ($DryRun) {
+        Write-Host "[DRY RUN] $Label -> ftp://$FtpHost$RemotePath"
+        return
+    }
+
+    Write-Host "Uploading $Label"
+    & curl.exe --ssl-reqd --ftp-create-dirs --user "${FtpUser}:${FtpPassword}" -T $LocalPath ("ftp://$FtpHost$RemotePath") | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Upload eșuat pentru $Label"
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($PackageZipPath)) {
+    Upload-Tree -LocalRoot $localThemeRoot -RemoteRoot $RemoteThemePath -Label "theme"
+    Upload-Tree -LocalRoot $localPluginRoot -RemoteRoot $RemotePluginPath -Label "plugins"
+}
+else {
+    $packageLocalPath = Join-Path $repoRoot $PackageZipPath
+    if (!(Test-Path -LiteralPath $packageLocalPath)) {
+        throw "Pachetul ZIP nu există: $packageLocalPath"
+    }
+
+    $packageTemplatePath = Join-Path $templateRoot "staging-package-deploy-runner.php.tpl"
+    if (!(Test-Path -LiteralPath $packageTemplatePath)) {
+        throw "Lipsește template-ul runner pentru pachet: $packageTemplatePath"
+    }
+
+    $syncToken = New-DeployToken
+    $runnerLocalPath = Join-Path $env:TEMP $RemotePackageRunnerFileName
+    $templateContents = Get-Content -LiteralPath $packageTemplatePath -Raw
+    $runnerContents = $templateContents.Replace('__PACKAGE_TOKEN__', $syncToken).Replace('__PACKAGE_ZIP_FILE__', $RemotePackageZipFileName)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($runnerLocalPath, $runnerContents, $utf8NoBom)
+
+    try {
+        Upload-SingleFile -LocalPath $packageLocalPath -RemotePath "/$RemotePackageZipFileName" -Label "package zip"
+        Upload-SingleFile -LocalPath $runnerLocalPath -RemotePath "/$RemotePackageRunnerFileName" -Label "package runner"
+
+        if (-not $DryRun) {
+            $encodedToken = [System.Uri]::EscapeDataString($syncToken)
+            $encodedZip = [System.Uri]::EscapeDataString($RemotePackageZipFileName)
+            $packageUrl = "$TargetUrl/$RemotePackageRunnerFileName?token=$encodedToken&zip=$encodedZip&cleanup_zip=1&cleanup_runner=1"
+
+            Write-Host "Running package extraction..."
+            $response = Invoke-RestMethod -Uri $packageUrl -Method Get -TimeoutSec 1200
+
+            if (-not $response.success) {
+                throw ("Pachetul ZIP a esuat la extragere: " + ($response.message | Out-String))
+            }
+
+            Write-Host "Package extraction finalizat."
+            Write-Host (" - ZIP:      " + $response.data.zip_file)
+            Write-Host (" - Import:   " + $response.data.import_seconds + " sec")
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $runnerLocalPath) {
+            Remove-Item -LiteralPath $runnerLocalPath -Force
+        }
+    }
+}
 
 if (-not $DryRun) {
     Write-Host "Smoke check staging:"

@@ -108,6 +108,34 @@ Script reutilizabil din repo:
 powershell -ExecutionPolicy Bypass -File .\tools\build-staging-package.ps1
 ```
 
+## 6.1. Fluxul recomandat pentru GitHub Actions
+
+Pentru deploy automat pe staging folosim un pachet arhivat, nu upload fișier-cu-fișier.
+
+Fluxul oficial este:
+
+1. job-ul de build creează `build/staging-package.zip`
+2. artifact-ul `staging-package` este încărcat în GitHub Actions
+3. job-ul de deploy descarcă artifact-ul
+4. `tools/deploy-staging.ps1` urcă pe FTP doar:
+   - ZIP-ul pachetului
+   - runner-ul de extracție
+5. runner-ul de pe staging dezarhivează pachetul direct în `public_html`
+6. la final, runner-ul și ZIP-ul sunt curățate
+
+Avantaje:
+
+- nu mai încărcăm mii de fișiere individual
+- deploy-ul este mai rapid și mai stabil
+- staging primește exact pachetul validat în build
+- timpul lung de upload FTP se mută într-o singură arhivă
+
+Scriptul folosit de workflow:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\deploy-staging.ps1 -PackageZipPath .\build\staging-package.zip
+```
+
 ## 7. Fișiere care NU trebuie publicate
 
 Nu urca niciodată:
@@ -258,6 +286,7 @@ După deploy verifici minim:
 - flow guest
 - flow user logat
 - flow adresă salvată
+- dacă deploy-ul a folosit artifact-ul, verifici că ZIP-ul a fost extras corect și că pagina live servește fișierele noi
 - order received
 - email de comandă
 - conturile de test afectate sunt restaurate la o stare cunoscută

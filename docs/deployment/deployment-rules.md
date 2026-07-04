@@ -63,6 +63,17 @@ Pentru iterații de temă și checkout:
 6. testezi flow-ul afectat în UI
 7. documentezi dacă s-a schimbat procesul
 
+### 7.1. Fluxul standard pe GitHub Actions pentru staging
+
+- workflow-ul de staging nu mai trebuie să urce mii de fișiere individual atunci când există un build de pachet;
+- job-ul de build produce `staging-package.zip`;
+- artifact-ul este descărcat de job-ul de deploy;
+- `tools/deploy-staging.ps1` primește opțiunea `-PackageZipPath` și urcă doar ZIP-ul și runner-ul de extracție;
+- staging dezarhivează pachetul direct în `public_html`;
+- după extracție, runner-ul și ZIP-ul sunt curățate;
+- pentru deploy manual local rămâne disponibil modul clasic FTP tree upload;
+- pentru GitHub Actions folosim preferabil fluxul cu artifact pentru a evita deploy-uri de ordinul orelor.
+
 ## 7.1. Ciclul oficial de QA pentru checkout
 
 - rulăm verificările relevante înainte de fiecare deploy pe staging;
@@ -82,13 +93,14 @@ Pentru iterații de temă și checkout:
 ## 8. Automatizare
 
 - Deploy-ul automat de temă rulează din GitHub Actions prin `.github/workflows/deploy-staging.yml`.
-- Workflow-ul pornește la `push` pe `main` doar când se schimbă tema `papetarie-storefront` sau scriptul de deploy.
+- Workflow-ul pornește la `push` pe `main` doar când se schimbă tema `papetarie-storefront`, scriptul de deploy sau workflow-ul de staging.
 - Workflow-ul poate fi pornit și manual din tab-ul Actions.
 - Conturile de test trebuie să rămână aliniate între local și staging.
 - Secrete necesare în GitHub:
   - `STAGING_FTP_HOST`
   - `STAGING_FTP_USER`
   - `STAGING_FTP_PASSWORD`
+  - dacă mediul este protejat prin environment rules, se folosesc și aprobările specificate în `staging`
 
 ## 9. Regula de întreținere
 
