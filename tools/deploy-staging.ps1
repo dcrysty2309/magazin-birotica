@@ -8,6 +8,7 @@ param(
     [string]$RemotePluginPath = "/wp-content/plugins",
     [string]$LocalPluginPath = "wp-content/plugins",
     [string]$PackageZipPath = "",
+    [string]$RemotePackageBasePath = "/wp-content/themes/papetarie-storefront/tools",
     [string]$RemotePackageZipFileName = "staging-package.zip",
     [string]$RemotePackageRunnerFileName = "staging-package-deploy-runner.php",
     [switch]$KeepRemoteRunner,
@@ -145,8 +146,11 @@ else {
     [System.IO.File]::WriteAllText($runnerLocalPath, $runnerContents, $utf8NoBom)
 
     try {
-        Upload-SingleFile -LocalPath $packageLocalPath -RemotePath "/$RemotePackageZipFileName" -Label "package zip"
-        Upload-SingleFile -LocalPath $runnerLocalPath -RemotePath "/$RemotePackageRunnerFileName" -Label "package runner"
+        $remoteRunnerPath = ($RemotePackageBasePath.TrimEnd('/') + '/' + $RemotePackageRunnerFileName)
+        $remoteZipPath = ($RemotePackageBasePath.TrimEnd('/') + '/' + $RemotePackageZipFileName)
+
+        Upload-SingleFile -LocalPath $packageLocalPath -RemotePath $remoteZipPath -Label "package zip"
+        Upload-SingleFile -LocalPath $runnerLocalPath -RemotePath $remoteRunnerPath -Label "package runner"
 
         if (-not $DryRun) {
             $encodedToken = [System.Uri]::EscapeDataString($syncToken)
@@ -157,7 +161,7 @@ else {
 
             Write-Host "Running package extraction..."
             while (-not $done) {
-                $packageUrl = "$TargetUrl/$RemotePackageRunnerFileName?token=$encodedToken&zip=$encodedZip&offset=$offset&batch=$batchSize&cleanup_zip=1&cleanup_runner=1"
+                $packageUrl = "$TargetUrl$remoteRunnerPath?token=$encodedToken&zip=$encodedZip&offset=$offset&batch=$batchSize&cleanup_zip=1&cleanup_runner=1"
                 $curlOutput = & curl.exe --silent --show-error --fail --location --max-time 1200 $packageUrl
                 if ($LASTEXITCODE -ne 0) {
                     throw "curl.exe a returnat exit code $LASTEXITCODE la extragerea pachetului."
@@ -189,6 +193,12 @@ else {
             Write-Host "Package extraction finalizat."
             Write-Host (" - ZIP:      " + $response.data.zip_file)
             Write-Host (" - Import:   " + $response.data.import_seconds + " sec")
+
+            if (-not $KeepRemoteRunner) {
+                Write-Host "Deleting remote runner/zip..."
+                & curl.exe --ssl-reqd --user "${FtpUser}:${FtpPassword}" -Q "DELE $remoteRunnerPath" "ftp://$FtpHost/" | Out-Null
+                & curl.exe --ssl-reqd --user "${FtpUser}:${FtpPassword}" -Q "DELE $remoteZipPath" "ftp://$FtpHost/" | Out-Null
+            }
         }
     }
     finally {

@@ -125,7 +125,7 @@ Fluxul oficial este:
 3. job-ul de deploy descarcă artifact-ul
 4. `tools/deploy-staging.ps1` urcă pe FTP doar:
    - ZIP-ul pachetului
-   - runner-ul de extracție
+   - runner-ul de extracție, plasat într-un path public al temei ca să fie sigur accesibil prin HTTP
 5. runner-ul de pe staging dezarhivează pachetul direct în `public_html` în batch-uri mici, ca să evite timeout-urile HTTP
 6. la final, runner-ul și ZIP-ul sunt curățate
 
