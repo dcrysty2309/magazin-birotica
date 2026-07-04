@@ -23,11 +23,9 @@ Environment țintă:
 
 ## B. Ce urcăm
 
-- WordPress runtime din [wordpress](/D:/proiecte/mag-pap/magazin-birotica/wordpress)
 - pluginurile necesare din [wp-content/plugins](/D:/proiecte/mag-pap/magazin-birotica/wp-content/plugins)
 - tema custom din [wp-content/themes/papetarie-storefront](/D:/proiecte/mag-pap/magazin-birotica/wp-content/themes/papetarie-storefront)
 - tema părinte `storefront` din [wordpress/wp-content/themes/storefront](/D:/proiecte/mag-pap/magazin-birotica/wordpress/wp-content/themes/storefront)
-- upload-urile din [wordpress/wp-content/uploads](/D:/proiecte/mag-pap/magazin-birotica/wordpress/wp-content/uploads)
 
 ## C. Ce NU urcăm
 
@@ -37,6 +35,7 @@ Environment țintă:
 - `tmp`
 - `tests`
 - `docs`
+- `wordpress/wp-content/uploads`
 - backup-uri locale
 - fișiere `.sql` lăsate în `public_html`
 - capturi și imagini de lucru din rădăcina repo-ului
@@ -51,6 +50,8 @@ Environment țintă:
 - import SQL în staging
 - search-replace URL local -> staging
 - dacă testarea a modificat adrese sau comenzi, rulează procedura de reset a datelor de test înainte de următorul ciclu de QA
+- dacă nu este cerut explicit, nu importăm DB automat la deploy
+- pașii manuali WooCommerce și de business sunt documentați în [staging-manual-steps.md](./staging-manual-steps.md)
 
 ## E. Configurare WordPress
 

@@ -82,25 +82,31 @@ După deploy trebuie verificat `WooCommerce > Status` pentru template-uri outdat
 
 ## 6. Fișiere care trebuie publicate în `public_html`
 
-Trebuie să existe în staging:
+În fluxul actual de staging publicăm doar codul care trebuie executat de site:
 
-- fișierele WordPress core
+- `wp-content/themes/papetarie-storefront`
+- `wp-content/themes/storefront`
+- `wp-content/plugins`
+
+Nu publicăm automat:
+
+- WordPress core complet
 - `wp-admin`
 - `wp-includes`
-- `wp-content/plugins`
-- `wp-content/themes/storefront`
-- `wp-content/themes/papetarie-storefront`
 - `wp-content/uploads`
+- cache
+- logs
+- DB
 
 Recomandare practică:
 
 1. se creează local un folder de tip `build/staging-package`
-2. în acel folder se copiază:
-   - conținutul din `wordpress/`
-   - pluginurile din `wp-content/plugins`
+2. în acel folder se copiază doar:
    - tema `papetarie-storefront`
-3. se suprascriu în pachet directoarele `wp-content/plugins` și `wp-content/themes/*` cu versiunile reale din repo
-4. se adaugă `uploads`
+   - tema `storefront`
+   - pluginurile necesare
+3. se urcă pachetul ca artifact
+4. staging extrage pachetul în `public_html`
 
 Script reutilizabil din repo:
 
@@ -287,6 +293,12 @@ După deploy verifici minim:
 - flow user logat
 - flow adresă salvată
 - dacă deploy-ul a folosit artifact-ul, verifici că ZIP-ul a fost extras corect și că pagina live servește fișierele noi
+
+## 15. Pași manuali de business
+
+Pașii manuali care nu trebuie automatizați prin deploy sunt documentați separat în:
+
+- [staging-manual-steps.md](./staging-manual-steps.md)
 - order received
 - email de comandă
 - conturile de test afectate sunt restaurate la o stare cunoscută

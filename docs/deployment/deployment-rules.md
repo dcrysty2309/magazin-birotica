@@ -102,6 +102,15 @@ Pentru iterații de temă și checkout:
   - `STAGING_FTP_PASSWORD`
   - dacă mediul este protejat prin environment rules, se folosesc și aprobările specificate în `staging`
 
+### 8.1. Regula de deploy cod-only
+
+- deploy-ul automat publică doar codul;
+- baza de date nu se importă automat;
+- uploads, cache și logs nu fac parte din pachetul automat;
+- orice configurare de business rămasă în DB se documentează în [staging-manual-steps.md](./staging-manual-steps.md);
+- dacă apare nevoie de resync DB, aceasta se tratează ca operațiune separată, cu aprobarea explicită a echipei;
+- staging este o copie funcțională pentru testare, nu un mirror forțat al localului.
+
 ## 9. Regula de întreținere
 
 - Dacă se schimbă procesul real de deploy, se actualizează acest fișier și documentația din `docs/deployment/` în aceeași iterație.
