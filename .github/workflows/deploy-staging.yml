@@ -1,5 +1,9 @@
 name: Deploy Staging Theme
 
+concurrency:
+  group: deploy-staging-main
+  cancel-in-progress: true
+
 on:
   push:
     branches:

@@ -97,6 +97,31 @@ function New-DeployToken {
     return ([System.BitConverter]::ToString($tokenBytes) -replace '-', '').ToLowerInvariant()
 }
 
+function New-DeployUrl {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BaseUrl,
+        [Parameter(Mandatory = $true)]
+        [string]$RelativePath,
+        [Parameter(Mandatory = $false)]
+        [hashtable]$QueryParameters = $null
+    )
+
+    $normalizedBaseUrl = $BaseUrl.Trim().TrimEnd('/')
+    $normalizedPath = '/' + $RelativePath.Trim().TrimStart('/')
+    $builder = [System.UriBuilder]::new($normalizedBaseUrl + $normalizedPath)
+
+    if ($QueryParameters -and $QueryParameters.Count -gt 0) {
+        $pairs = foreach ($key in $QueryParameters.Keys) {
+            $value = [string]$QueryParameters[$key]
+            '{0}={1}' -f [System.Uri]::EscapeDataString([string]$key), [System.Uri]::EscapeDataString($value)
+        }
+        $builder.Query = ($pairs -join '&')
+    }
+
+    return $builder.Uri.AbsoluteUri
+}
+
 function Upload-SingleFile {
     param(
         [Parameter(Mandatory = $true)]
@@ -161,8 +186,16 @@ else {
 
             Write-Host "Running package extraction..."
             while (-not $done) {
-                $packageUrl = "$TargetUrl$remoteRunnerPath?token=$encodedToken&zip=$encodedZip&offset=$offset&batch=$batchSize&cleanup_zip=1&cleanup_runner=1"
-                $curlOutput = & curl.exe --silent --show-error --fail --location --max-time 1200 $packageUrl
+                $packageUrl = New-DeployUrl -BaseUrl $TargetUrl -RelativePath $remoteRunnerPath -QueryParameters ([ordered]@{
+                    token = $encodedToken
+                    zip = $encodedZip
+                    offset = $offset
+                    batch = $batchSize
+                    cleanup_zip = 1
+                    cleanup_runner = 1
+                })
+                Write-Host " - package URL: $packageUrl"
+                $curlOutput = & curl.exe --silent --show-error --fail --location --max-time 1200 --url $packageUrl
                 if ($LASTEXITCODE -ne 0) {
                     throw "curl.exe a returnat exit code $LASTEXITCODE la extragerea pachetului."
                 }
@@ -212,13 +245,15 @@ if (-not $DryRun) {
     Write-Host "Smoke check staging:"
     $stamp = Get-Date -Format "yyyyMMddHHmmss"
     foreach ($path in @("/checkout/", "/checkout-test-cases/")) {
-        $url = "{0}{1}?v={2}" -f $TargetUrl.TrimEnd('/'), $path, $stamp
+        $url = New-DeployUrl -BaseUrl $TargetUrl -RelativePath $path -QueryParameters ([ordered]@{
+            v = $stamp
+        })
         $attempt = 0
         $lastError = $null
         while ($attempt -lt 3) {
             $attempt++
             try {
-                $statusCode = & curl.exe -L --silent --show-error --output NUL --write-out "%{http_code}" --header "Cache-Control: no-cache" $url
+                $statusCode = & curl.exe -L --silent --show-error --output NUL --write-out "%{http_code}" --header "Cache-Control: no-cache" --url $url
                 if ($LASTEXITCODE -ne 0) {
                     throw "curl.exe a returnat exit code $LASTEXITCODE."
                 }
