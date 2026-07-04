@@ -340,7 +340,7 @@ pap_seed_menu(
 $admin = get_user_by('login', 'admin');
 
 if ($admin instanceof WP_User) {
-    wp_set_password('Steauab23.', $admin->ID);
+    wp_set_password('admin', $admin->ID);
 }
 
 echo 'Seed completed.' . PHP_EOL;

@@ -169,6 +169,10 @@ $baseline = [
     ],
 ];
 
+$admin_login = 'admin';
+$admin_password = 'admin';
+$admin_display_name = 'Administrator';
+
 $requested_emails = [];
 if (PHP_SAPI === 'cli' && !empty($argv) && is_array($argv) && count($argv) > 1) {
     $requested_emails = array_values(array_filter(array_map(static function ($value): string {
@@ -259,6 +263,25 @@ foreach ($baseline as $email => $config) {
     if (array_key_exists('default', $config)) {
         update_user_meta($user_id, 'papetarie_default_address_id', $config['default']);
     }
+}
+
+$admin_user = get_user_by('login', $admin_login);
+if (!$admin_user instanceof WP_User) {
+    $admin_user_id = wp_create_user($admin_login, $admin_password, 'admin@example.com');
+    if (!is_wp_error($admin_user_id)) {
+        $admin_user = get_user_by('id', (int) $admin_user_id);
+    }
+}
+
+if ($admin_user instanceof WP_User) {
+    wp_set_password($admin_password, $admin_user->ID);
+    wp_update_user([
+        'ID' => $admin_user->ID,
+        'display_name' => $admin_display_name,
+        'first_name' => 'Administrator',
+        'last_name' => '',
+        'role' => 'administrator',
+    ]);
 }
 
 $wpdb->query("DELETE FROM {$wpdb->prefix}woocommerce_sessions");
