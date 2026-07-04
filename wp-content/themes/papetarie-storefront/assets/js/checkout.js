@@ -1062,6 +1062,27 @@
     debugCheckout('auth current order snapshot set', reason, authCurrentOrderSnapshot);
   };
 
+  const getPreferredAuthShippingSnapshot = () => {
+    if (hasMeaningfulAuthShippingSnapshot(authCurrentOrderSnapshot)) {
+      return authCurrentOrderSnapshot;
+    }
+
+    if (hasMeaningfulAuthShippingSnapshot(authShippingDraft)) {
+      return authShippingDraft;
+    }
+
+    if (hasMeaningfulAuthShippingSnapshot(authShippingEditSnapshotCache)) {
+      return authShippingEditSnapshotCache;
+    }
+
+    const summarySnapshot = getAuthShippingSummarySnapshotFromDom();
+    if (hasMeaningfulAuthShippingSnapshot(summarySnapshot)) {
+      return summarySnapshot;
+    }
+
+    return null;
+  };
+
   const getCheckoutStandardAddressSnapshot = () => {
     const snapshot = checkoutData.checkoutStandardAddressSnapshot;
     if (!snapshot || typeof snapshot !== 'object') {
@@ -2205,6 +2226,12 @@
     }
 
     if (authTemporarySummaryVisible) {
+      const preferredSnapshot = getPreferredAuthShippingSnapshot();
+      if (preferredSnapshot) {
+        hydrateAuthShippingFieldsFromSnapshot(preferredSnapshot);
+        authShippingDraft = normalizeCheckoutPostcodeSnapshot(preferredSnapshot);
+        setAuthCurrentOrderSnapshot(preferredSnapshot, 'syncAuthSelectedAddressFields-summary');
+      }
       setAuthShippingFormVisible(false);
       return;
     }
@@ -2858,6 +2885,15 @@
 
         hydrateSubmitAddressState();
 
+        if (isLoggedIn && isSummarySubmit && !validateAuthShippingFields(true)) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === 'function') {
+            event.stopImmediatePropagation();
+          }
+          return;
+        }
+
         if (!isSummarySubmit) {
           if (!isLoggedIn && guestMode === 'summary' && !validateGuestShippingFields(true)) {
             event.preventDefault();
@@ -2906,9 +2942,11 @@
       if (!authAddressFormMode) {
         const $authSummary = getAuthShipping().find(selectors.authShippingSummary).first();
         if ($authSummary.length && $authSummary.is(':visible')) {
-          const summarySnapshot = getAuthShippingSummarySnapshotFromDom();
-          if (hasMeaningfulAuthShippingSnapshot(summarySnapshot)) {
-            setAuthCurrentOrderSnapshot(summarySnapshot, 'syncCheckoutState-summary');
+          const preferredSnapshot = getPreferredAuthShippingSnapshot();
+          if (preferredSnapshot) {
+            hydrateAuthShippingFieldsFromSnapshot(preferredSnapshot);
+            authShippingDraft = normalizeCheckoutPostcodeSnapshot(preferredSnapshot);
+            setAuthCurrentOrderSnapshot(preferredSnapshot, 'syncCheckoutState-summary');
           }
         }
       }
