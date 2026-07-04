@@ -31,15 +31,6 @@ $cleanupZip = isset($_GET['cleanup_zip']) ? (string) $_GET['cleanup_zip'] === '1
 $cleanupRunner = isset($_GET['cleanup_runner']) ? (string) $_GET['cleanup_runner'] === '1' : true;
 $selfFile = basename(__FILE__);
 
-if (!file_exists($baseDir . DIRECTORY_SEPARATOR . 'wp-load.php')) {
-    package_respond(500, [
-        'success' => false,
-        'message' => 'wp-load.php nu a fost gasit in public_html.',
-    ]);
-}
-
-require_once $baseDir . DIRECTORY_SEPARATOR . 'wp-load.php';
-
 if (!class_exists('ZipArchive')) {
     package_respond(500, [
         'success' => false,
@@ -113,8 +104,6 @@ $result = [
     'data' => [
         'zip_file' => $zipFileName,
         'import_seconds' => microtime(true) - $importStartedAt,
-        'siteurl' => function_exists('get_option') ? get_option('siteurl') : null,
-        'home' => function_exists('get_option') ? get_option('home') : null,
         'cleanup_zip' => $cleanupZip,
         'cleanup_runner' => $cleanupRunner,
         'offset' => $offset,

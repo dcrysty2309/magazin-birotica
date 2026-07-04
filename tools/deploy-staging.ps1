@@ -152,7 +152,7 @@ else {
             $encodedToken = [System.Uri]::EscapeDataString($syncToken)
             $encodedZip = [System.Uri]::EscapeDataString($RemotePackageZipFileName)
             $offset = 0
-            $batchSize = 50
+            $batchSize = 20
             $done = $false
 
             Write-Host "Running package extraction..."
