@@ -69,7 +69,7 @@ Pentru iterații de temă și checkout:
 - job-ul de build produce `staging-package.zip`;
 - artifact-ul este descărcat de job-ul de deploy;
 - `tools/deploy-staging.ps1` primește opțiunea `-PackageZipPath` și urcă doar ZIP-ul și runner-ul de extracție;
-- staging dezarhivează pachetul direct în `public_html`;
+- staging dezarhivează pachetul direct în `public_html`, în batch-uri mici, pentru a evita timeout-urile;
 - după extracție, runner-ul și ZIP-ul sunt curățate;
 - pentru deploy manual local rămâne disponibil modul clasic FTP tree upload;
 - pentru GitHub Actions folosim preferabil fluxul cu artifact pentru a evita deploy-uri de ordinul orelor.

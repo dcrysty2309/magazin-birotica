@@ -120,7 +120,7 @@ Fluxul oficial este:
 4. `tools/deploy-staging.ps1` urcă pe FTP doar:
    - ZIP-ul pachetului
    - runner-ul de extracție
-5. runner-ul de pe staging dezarhivează pachetul direct în `public_html`
+5. runner-ul de pe staging dezarhivează pachetul direct în `public_html` în batch-uri mici, ca să evite timeout-urile HTTP
 6. la final, runner-ul și ZIP-ul sunt curățate
 
 Avantaje:

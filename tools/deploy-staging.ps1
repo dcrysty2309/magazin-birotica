@@ -151,13 +151,31 @@ else {
         if (-not $DryRun) {
             $encodedToken = [System.Uri]::EscapeDataString($syncToken)
             $encodedZip = [System.Uri]::EscapeDataString($RemotePackageZipFileName)
-            $packageUrl = "$TargetUrl/$RemotePackageRunnerFileName?token=$encodedToken&zip=$encodedZip&cleanup_zip=1&cleanup_runner=1"
+            $offset = 0
+            $batchSize = 50
+            $done = $false
 
             Write-Host "Running package extraction..."
-            $response = Invoke-RestMethod -Uri $packageUrl -Method Get -TimeoutSec 1200
+            while (-not $done) {
+                $packageUrl = "$TargetUrl/$RemotePackageRunnerFileName?token=$encodedToken&zip=$encodedZip&offset=$offset&batch=$batchSize&cleanup_zip=1&cleanup_runner=1"
+                $response = Invoke-RestMethod -Uri $packageUrl -Method Get -TimeoutSec 1200
 
-            if (-not $response.success) {
-                throw ("Pachetul ZIP a esuat la extragere: " + ($response.message | Out-String))
+                if (-not $response.success) {
+                    throw ("Pachetul ZIP a esuat la extragere: " + ($response.message | Out-String))
+                }
+
+                if ($response.data -and $response.data.next_offset -ne $null) {
+                    $offset = [int]$response.data.next_offset
+                }
+
+                if ($response.data -and $response.data.done -ne $null) {
+                    $done = [bool]$response.data.done
+                }
+                else {
+                    $done = $true
+                }
+
+                Write-Host (" - extracted: {0}/{1}" -f $response.data.processed_files, $response.data.total_files)
             }
 
             Write-Host "Package extraction finalizat."
