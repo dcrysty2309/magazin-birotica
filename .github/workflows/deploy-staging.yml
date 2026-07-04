@@ -7,7 +7,9 @@ on:
     paths:
       - 'wp-content/themes/papetarie-storefront/**'
       - 'wp-content/plugins/**'
+      - 'tools/build-staging-package.ps1'
       - 'tools/deploy-staging.ps1'
+      - 'tools/templates/staging-package-deploy-runner.php.tpl'
       - '.github/workflows/deploy-staging.yml'
   workflow_dispatch:
 
