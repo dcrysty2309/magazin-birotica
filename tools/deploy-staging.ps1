@@ -158,8 +158,16 @@ else {
             Write-Host "Running package extraction..."
             while (-not $done) {
                 $packageUrl = "$TargetUrl/$RemotePackageRunnerFileName?token=$encodedToken&zip=$encodedZip&offset=$offset&batch=$batchSize&cleanup_zip=1&cleanup_runner=1"
-                $response = Invoke-RestMethod -Uri $packageUrl -Method Get -TimeoutSec 1200
+                $curlOutput = & curl.exe --silent --show-error --fail --location --max-time 1200 $packageUrl
+                if ($LASTEXITCODE -ne 0) {
+                    throw "curl.exe a returnat exit code $LASTEXITCODE la extragerea pachetului."
+                }
 
+                if ([string]::IsNullOrWhiteSpace($curlOutput)) {
+                    throw "Runner-ul de pachet nu a returnat niciun răspuns."
+                }
+
+                $response = $curlOutput | ConvertFrom-Json
                 if (-not $response.success) {
                     throw ("Pachetul ZIP a esuat la extragere: " + ($response.message | Out-String))
                 }
