@@ -17,7 +17,6 @@ $capture_output = static function (callable $callback): string {
 };
 
 $shipping_row_value = '';
-$shipping_row_label = '';
 $show_shipping_row = false;
 $shipping_total = 0.0;
 
@@ -27,27 +26,11 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 	$show_shipping = $cart->show_shipping();
 
 	if (!$has_calculated_shipping || !$show_shipping) {
-		$shipping_row_label = __('Se calculează la checkout', 'papetarie-storefront');
+		$shipping_row_value = __('Se calculează la checkout', 'papetarie-storefront');
 	} else {
 		$shipping_total = (float) $cart->get_shipping_total();
 		if ($cart->display_prices_including_tax()) {
 			$shipping_total += (float) $cart->get_shipping_tax();
-		}
-
-		$packages = function_exists('WC') && WC()->shipping() ? WC()->shipping()->get_packages() : [];
-		foreach ($packages as $package_index => $package) {
-			$chosen_method = function_exists('wc_get_chosen_shipping_method_for_package') ? (string) wc_get_chosen_shipping_method_for_package($package_index, $package) : '';
-			if ($chosen_method === '' || empty($package['rates'][$chosen_method])) {
-				continue;
-			}
-
-			$rate = $package['rates'][$chosen_method];
-			$shipping_row_label = papetarie_storefront_shipping_method_label_text($rate);
-			break;
-		}
-
-		if ($shipping_row_label === '') {
-			$shipping_row_label = __('Livrare', 'papetarie-storefront');
 		}
 
 		$shipping_row_value = papetarie_storefront_shipping_method_price_text(max(0.0, $shipping_total));
@@ -56,35 +39,24 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 
 ?>
 
-<div class="pap-checkout-card pap-checkout-card--summary woocommerce-checkout-review-order-table" data-pap-checkout-section="order-summary">
+<div class="pap-cart-summary-card pap-checkout-summary-card woocommerce-checkout-review-order-table" data-pap-checkout-section="order-summary">
 	<div class="pap-checkout-summary-header">
 		<div class="pap-checkout-summary-header__copy">
-			<h3><?php esc_html_e('Total comandă', 'papetarie-storefront'); ?></h3>
-			<p class="pap-checkout-summary-header__meta"><?php esc_html_e('Produsele sunt afișate în coloana principală, iar aici vezi doar totalurile finale.', 'papetarie-storefront'); ?></p>
+			<h2 class="pap-cart-summary-title"><?php esc_html_e('Total comandă', 'papetarie-storefront'); ?></h2>
 		</div>
 	</div>
 
-	<div class="pap-checkout-summary-totals">
+	<div class="pap-cart-totals pap-checkout-summary-totals">
 		<?php ob_start(); wc_cart_totals_subtotal_html(); $subtotal_html = (string) ob_get_clean(); ?>
-		<div class="pap-checkout-summary-row cart-subtotal">
+		<div class="pap-cart-totals-row pap-checkout-summary-row cart-subtotal">
 			<span><?php esc_html_e('Subtotal', 'woocommerce'); ?></span>
 			<strong><?php echo wp_kses_post($subtotal_html); ?></strong>
 		</div>
 
-		<?php foreach (($cart ? $cart->get_coupons() : []) as $code => $coupon) : ?>
-			<?php
-			$coupon_label = $capture_output(static function () use ($coupon): void {
-				wc_cart_totals_coupon_label($coupon);
-			});
-			$coupon_value = $capture_output(static function () use ($coupon): void {
-				wc_cart_totals_coupon_html($coupon);
-			});
-			?>
-			<div class="pap-checkout-summary-row cart-discount coupon-<?php echo esc_attr(sanitize_title($code)); ?>">
-				<span><?php echo esc_html(wp_strip_all_tags($coupon_label)); ?></span>
-				<strong><?php echo wp_kses_post($coupon_value); ?></strong>
-			</div>
-		<?php endforeach; ?>
+		<?php
+		$applied_coupons = $cart ? (array) $cart->get_applied_coupons() : [];
+		$has_coupon_discount_rows = false;
+		?>
 
 		<?php foreach (($cart ? $cart->get_fees() : []) as $fee) : ?>
 			<?php
@@ -93,26 +65,57 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 				wc_cart_totals_fee_html($fee);
 			});
 			?>
-			<div class="pap-checkout-summary-row fee">
+			<div class="pap-cart-totals-row fee">
 				<span><?php echo $fee_name; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
 				<strong><?php echo wp_kses_post($fee_value); ?></strong>
 			</div>
 		<?php endforeach; ?>
 
 		<?php if ($show_shipping_row) : ?>
-			<div class="pap-checkout-summary-row cart-shipping">
-				<span><?php esc_html_e('Livrare', 'papetarie-storefront'); ?></span>
+			<div class="pap-cart-totals-row pap-cart-totals-row--shipping pap-checkout-summary-row cart-shipping">
+				<span><?php esc_html_e('Transport', 'papetarie-storefront'); ?></span>
 				<strong>
-					<span class="pap-checkout-summary-row__shipping-label"><?php echo esc_html($shipping_row_label); ?></span>
 					<span class="pap-checkout-summary-row__shipping-price"><?php echo wp_kses_post($shipping_row_value); ?></span>
 				</strong>
+			</div>
+		<?php endif; ?>
+
+		<?php foreach ($applied_coupons as $coupon_code) : ?>
+			<?php
+			$coupon_code = trim((string) $coupon_code);
+			if ($coupon_code === '' || !$cart) {
+				continue;
+			}
+
+			$coupon_discount_amount = (float) $cart->get_coupon_discount_amount($coupon_code);
+			if ($cart->display_prices_including_tax()) {
+				$coupon_discount_amount += (float) $cart->get_coupon_discount_tax($coupon_code);
+			}
+
+			if ($coupon_discount_amount <= 0.0001) {
+				continue;
+			}
+
+			$has_coupon_discount_rows = true;
+			?>
+			<div class="pap-cart-totals-row pap-cart-totals-row--discount pap-checkout-summary-row cart-discount coupon-<?php echo esc_attr(sanitize_title($coupon_code)); ?>" data-coupon-code="<?php echo esc_attr($coupon_code); ?>">
+				<span><?php echo esc_html(sprintf(__('Reducere (%s)', 'papetarie-storefront'), wc_format_coupon_code($coupon_code))); ?></span>
+				<strong><?php echo wp_kses_post(wc_price(0 - $coupon_discount_amount)); ?></strong>
+			</div>
+		<?php endforeach; ?>
+
+		<?php if (!$has_coupon_discount_rows && ((float) ($cart ? $cart->get_discount_total() : 0.0) > 0.0 || (float) ($cart ? $cart->get_discount_tax() : 0.0) > 0.0)) : ?>
+			<?php $discount_amount = max(0.0, (float) $cart->get_discount_total() + (float) $cart->get_discount_tax()); ?>
+			<div class="pap-cart-totals-row pap-cart-totals-row--discount pap-checkout-summary-row cart-discount cart-discount--summary">
+				<span><?php esc_html_e('Reducere', 'papetarie-storefront'); ?></span>
+				<strong><?php echo wp_kses_post(wc_price(0 - $discount_amount)); ?></strong>
 			</div>
 		<?php endif; ?>
 
 		<?php do_action('woocommerce_review_order_before_order_total'); ?>
 
 		<?php ob_start(); wc_cart_totals_order_total_html(); $order_total_html = (string) ob_get_clean(); ?>
-		<div class="pap-checkout-summary-row order-total">
+		<div class="pap-cart-totals-row pap-cart-totals-row--total pap-checkout-summary-row order-total">
 			<span><?php esc_html_e('Total', 'woocommerce'); ?></span>
 			<strong><?php echo wp_kses_post($order_total_html); ?></strong>
 		</div>
@@ -120,13 +123,17 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 		<?php do_action('woocommerce_review_order_after_order_total'); ?>
 	</div>
 
-	<div class="pap-checkout-summary-trust" aria-label="<?php esc_attr_e('Avantaje checkout', 'papetarie-storefront'); ?>">
-		<span><?php esc_html_e('Plată sigură', 'papetarie-storefront'); ?></span>
-		<span><?php esc_html_e('Livrare rapidă', 'papetarie-storefront'); ?></span>
-		<span><?php esc_html_e('Suport dedicat', 'papetarie-storefront'); ?></span>
-	</div>
-
 	<div class="pap-checkout-summary-actions">
+		<p class="pap-checkout-summary-security">
+			<span class="pap-checkout-summary-security__icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
+					<path d="M12 4.5 6.5 6.8v4.1c0 3.7 2.4 6.8 5.5 8.1 3.1-1.3 5.5-4.4 5.5-8.1V6.8L12 4.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+					<path d="M9.7 11.8 11.2 13.3 14.6 9.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</span>
+			<span class="pap-checkout-summary-security__text"><?php esc_html_e('Plată securizată · SSL 256-bit', 'papetarie-storefront'); ?></span>
+		</p>
+
 		<noscript>
 			<?php
 			printf(
@@ -146,8 +153,6 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 		<?php do_action('woocommerce_review_order_before_submit'); ?>
 
 		<?php echo apply_filters('woocommerce_order_button_html', '<button type="submit" class="button alt pap-cart-checkout pap-checkout-action pap-checkout-action--primary is-disabled' . esc_attr(wc_wp_theme_get_element_class_name('button') ? ' ' . wc_wp_theme_get_element_class_name('button') : '') . '" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr($checkout_order_button_text) . '" data-value="' . esc_attr($checkout_order_button_text) . '" disabled="disabled" aria-disabled="true">' . esc_html($checkout_order_button_text) . '</button>'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-
-		<p class="pap-checkout-summary-actions__hint" data-pap-checkout-submit-hint hidden></p>
 
 		<?php do_action('woocommerce_review_order_after_submit'); ?>
 

@@ -86,12 +86,19 @@ class Bt_Ipay_Gateway extends WC_Payment_Gateway {
 				)
 			);
 			return $response->get_result();
+		} catch ( \InvalidArgumentException $th ) {
+			( new Bt_Ipay_Logger() )->error( (string) $th );
+			throw new \Exception(
+				esc_html__( 'Plata cu cardul nu este configurată corect momentan. Verifică setările metodei de plată din administrare.', 'bt-ipay-payments' )
+			);
 		} catch ( ApiException $th ) {
 			( new Bt_Ipay_Logger() )->error( (string) $th );
 			throw new \Exception( esc_html__( 'Could not perform action, contact merchant for additional info', 'bt-ipay-payments' ) );
 		} catch ( \Throwable $th ) {
 			( new Bt_Ipay_Logger() )->error( (string) $th );
-			throw $th;
+			throw new \Exception(
+				esc_html__( 'Plata cu cardul nu este disponibilă momentan. Verifică setările metodei de plată sau încearcă plata la livrare.', 'bt-ipay-payments' )
+			);
 		}
 	}
 

@@ -29,13 +29,13 @@
     const script = document.currentScript;
     if (script && script.src) {
       try {
-        return new URL('../../data/ro-localities-by-county.json', script.src).toString();
+        return new URL('../../data/siruta-localities-by-county.json', script.src).toString();
       } catch (error) {
         // Fall back below.
       }
     }
 
-    return '/wp-content/themes/papetarie-storefront/data/ro-localities-by-county.json';
+    return '/wp-content/themes/papetarie-storefront/data/siruta-localities-by-county.json';
   };
 
   const loadCityData = async () => {

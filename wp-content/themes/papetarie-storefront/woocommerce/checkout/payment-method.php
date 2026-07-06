@@ -31,13 +31,13 @@ $payment_description = $is_cod_gateway
 	? __('Plătești curierului la primirea comenzii.', 'papetarie-storefront')
 	: __('Plată securizată prin BT iPay.', 'papetarie-storefront');
 
-$payment_meta = $is_cod_gateway
-	? __('Fără cost suplimentar', 'papetarie-storefront')
-	: __('Visa • Mastercard', 'papetarie-storefront');
+$payment_meta = '';
 
 $gateway_icon = $is_cod_gateway
-	? '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M4 7.5h10.5v6H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14.5 10h3.2L21 13.3V16.5h-6.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="7.5" cy="18" r="1.7" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="18" r="1.7" stroke="currentColor" stroke-width="1.6"/><path d="M4 10h3.2M4 12.6h2.3M4 15h1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
-	: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 9h17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M7 15.5h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M12 15.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+	? '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><rect x="3.5" y="6.6" width="12.8" height="10.8" rx="1.7" stroke="currentColor" stroke-width="1.2"/><path d="M6.3 9.1h7.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="17.8" cy="12.2" r="2.8" stroke="currentColor" stroke-width="1.2"/><path d="M17.8 11v2.4M16.6 12.2H19" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>'
+	: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="14" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 9h17" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M7 15.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M12 15.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
+
+$gateway_meta_visual = '';
 ?>
 <li class="wc_payment_method payment_method_<?php echo esc_attr($gateway->id); ?> pap-checkout-payment-method<?php echo checked($gateway->chosen, true, false) ? ' is-selected' : ''; ?>">
 	<input
@@ -62,7 +62,6 @@ $gateway_icon = $is_cod_gateway
 			</span>
 		</span>
 
-		<span class="pap-checkout-payment-method__meta"><?php echo esc_html($payment_meta); ?></span>
 	</label>
 
 	<?php if ($gateway->has_fields()) : ?>

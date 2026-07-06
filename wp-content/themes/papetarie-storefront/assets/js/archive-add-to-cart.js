@@ -249,25 +249,13 @@
     }, toast._papToastRemaining);
   }
 
-  function showCartToast(message) {
-    if (!document.body.classList.contains('woocommerce-cart')) {
-      return;
+  function hydrateCartToast(toast) {
+    if (!toast || toast._papToastHydrated) {
+      return toast;
     }
 
-    var host = ensureCartToastHost();
-    if (!host) {
-      return;
-    }
-
-    var toast = document.createElement('div');
-    toast.className = 'pap-toast pap-toast--cart pap-toast--success';
-    toast.setAttribute('data-cart-toast', 'true');
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
-    toast.innerHTML = '<span class="pap-toast__icon" aria-hidden="true">✓</span><span class="pap-toast__message" data-cart-toast-message></span><button type="button" class="pap-toast__close" data-cart-toast-close aria-label="Închide notificarea">×</button>';
-    host.appendChild(toast);
-
-    toast._papToastDuration = 3500;
+    toast._papToastHydrated = true;
+    toast._papToastDuration = Math.max(0, parseInt(toast.getAttribute('data-cart-toast-duration') || '3500', 10) || 3500);
     toast._papToastRemaining = toast._papToastDuration;
     toast._papToastShownAt = 0;
     toast._papToastPaused = false;
@@ -311,17 +299,62 @@
       scheduleCartToastHide(toast, toast._papToastRemaining);
     });
 
+    if (!toast.querySelector('[data-cart-toast-message]')) {
+      var fallbackMessage = toast.textContent || '';
+      var closeButton = toast.querySelector('[data-cart-toast-close]');
+      toast.textContent = '';
+      var messageNode = document.createElement('span');
+      messageNode.className = 'pap-toast__message';
+      messageNode.setAttribute('data-cart-toast-message', 'true');
+      messageNode.textContent = fallbackMessage;
+      if (closeButton) {
+        toast.appendChild(messageNode);
+        toast.appendChild(closeButton);
+      } else {
+        toast.appendChild(messageNode);
+      }
+    }
+
+    if (!toast.classList.contains('is-visible')) {
+      window.requestAnimationFrame(function () {
+        toast.classList.add('is-visible');
+      });
+    }
+
+    scheduleCartToastHide(toast, toast._papToastDuration);
+    return toast;
+  }
+
+  function initializeExistingCartToasts() {
+    Array.prototype.slice.call(document.querySelectorAll('[data-cart-toast]')).forEach(function (toast) {
+      hydrateCartToast(toast);
+    });
+  }
+
+  function showCartToast(message) {
+    if (!document.body.classList.contains('woocommerce-cart')) {
+      return;
+    }
+
+    var host = ensureCartToastHost();
+    if (!host) {
+      return;
+    }
+
+    var toast = document.createElement('div');
+    toast.className = 'pap-toast pap-toast--cart pap-toast--success';
+    toast.setAttribute('data-cart-toast', 'true');
+    toast.setAttribute('data-cart-toast-duration', '3500');
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.innerHTML = '<span class="pap-toast__icon" aria-hidden="true">✓</span><span class="pap-toast__message" data-cart-toast-message></span><button type="button" class="pap-toast__close" data-cart-toast-close aria-label="Închide notificarea">×</button>';
+    host.appendChild(toast);
+    hydrateCartToast(toast);
+
     var textNode = toast.querySelector('[data-cart-toast-message]');
     if (textNode) {
       textNode.textContent = message || '';
     }
-
-    requestAnimationFrame(function () {
-      toast.classList.add('is-visible');
-      toast._papToastPaused = false;
-    });
-
-    scheduleCartToastHide(toast, toast._papToastDuration);
   }
 
   window.papShowCartToast = window.papShowCartToast || showCartToast;
@@ -333,6 +366,7 @@
   }
 
   if (document.body.classList.contains('woocommerce-cart')) {
+    initializeExistingCartToasts();
     window.addEventListener('beforeunload', hideAllCartToasts);
   }
 

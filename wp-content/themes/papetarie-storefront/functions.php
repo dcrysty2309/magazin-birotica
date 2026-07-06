@@ -159,7 +159,7 @@ function papetarie_storefront_general_settings(array $settings): array
                 'id' => 'papetarie_minimum_order_amount',
                 'type' => 'number',
                 'default' => '50',
-                'desc' => __('Order subtotal after discounts, excluding shipping and taxes. Set in RON.', 'papetarie-storefront'),
+                'desc' => __('Order subtotal before discounts, excluding shipping and taxes. Set in RON.', 'papetarie-storefront'),
                 'desc_tip' => true,
                 'custom_attributes' => [
                     'min' => '0',
@@ -203,13 +203,63 @@ function papetarie_storefront_shipping_method_price_text(float $amount): string
     return trim(wp_strip_all_tags(html_entity_decode((string) wc_price(max(0.0, $amount)), ENT_QUOTES, 'UTF-8')));
 }
 
-function papetarie_storefront_cart_contents_total_after_discounts(): float
+function papetarie_storefront_cart_shipping_summary_data(): array
+{
+    $fallback_message = __('Transportul se calculează la checkout.', 'papetarie-storefront');
+
+    if (!function_exists('WC') || !WC()->cart || WC()->cart->is_empty()) {
+        return [
+            'available' => false,
+            'message' => '',
+            'value' => '',
+        ];
+    }
+
+    $cart = WC()->cart;
+
+    if (!($cart->needs_shipping() || $cart->show_shipping())) {
+        return [
+            'available' => false,
+            'message' => '',
+            'value' => '',
+        ];
+    }
+
+    $has_calculated_shipping = $cart->has_calculated_shipping();
+    $show_shipping = $cart->show_shipping();
+
+    if (!$has_calculated_shipping || !$show_shipping) {
+        return [
+            'available' => false,
+            'message' => $fallback_message,
+            'value' => '',
+        ];
+    }
+
+    $shipping_total = (float) $cart->get_shipping_total();
+    if ($cart->display_prices_including_tax()) {
+        $shipping_total += (float) $cart->get_shipping_tax();
+    }
+
+    $shipping_total = max(0.0, $shipping_total);
+
+    return [
+        'available' => true,
+        'message' => '',
+        // Sursa: totalul de shipping calculat de WooCommerce cart, derivat din zonele și metodele configurate în admin.
+        'value' => $shipping_total > 0.0
+            ? papetarie_storefront_shipping_method_price_text($shipping_total)
+            : __('Transport gratuit', 'papetarie-storefront'),
+    ];
+}
+
+function papetarie_storefront_cart_products_subtotal_before_discounts(): float
 {
     if (!function_exists('WC') || !WC()->cart) {
         return 0.0;
     }
 
-    return max(0.0, (float) WC()->cart->get_cart_contents_total());
+    return max(0.0, (float) WC()->cart->get_subtotal());
 }
 
 function papetarie_storefront_cart_has_unavailable_items(): bool
@@ -257,8 +307,24 @@ function papetarie_storefront_cart_has_stock_insufficient_items(): bool
 
 function papetarie_storefront_cart_minimum_order_remaining(): float
 {
-    $remaining = papetarie_storefront_minimum_order_amount() - papetarie_storefront_cart_contents_total_after_discounts();
+    $remaining = papetarie_storefront_minimum_order_amount() - papetarie_storefront_cart_products_subtotal_before_discounts();
     return $remaining > 0 ? $remaining : 0.0;
+}
+
+function papetarie_storefront_cart_minimum_order_data(): array
+{
+    $minimum = papetarie_storefront_minimum_order_amount();
+    $subtotal = papetarie_storefront_cart_products_subtotal_before_discounts();
+    $remaining = max(0.0, $minimum - $subtotal);
+    $blocked = $subtotal + 0.0001 < $minimum;
+
+    return [
+        'blocked' => $blocked,
+        'minimum' => $minimum,
+        'subtotal' => $subtotal,
+        'remaining' => $remaining,
+        'message' => $blocked ? papetarie_storefront_cart_minimum_order_message() : '',
+    ];
 }
 
 function papetarie_storefront_cart_minimum_order_message(): string
@@ -285,10 +351,12 @@ function papetarie_storefront_cart_warning_state(): array
         ];
     }
 
-    if (papetarie_storefront_cart_contents_total_after_discounts() + 0.0001 < papetarie_storefront_minimum_order_amount()) {
+    $minimum_order_data = papetarie_storefront_cart_minimum_order_data();
+
+    if (!empty($minimum_order_data['blocked'])) {
         return [
             'type' => 'minimum-order',
-            'message' => papetarie_storefront_cart_minimum_order_message(),
+            'message' => (string) $minimum_order_data['message'],
             'visible' => true,
         ];
     }
@@ -466,7 +534,7 @@ function papetarie_storefront_cart_blocked_by_minimum_order(): bool
         return false;
     }
 
-    return papetarie_storefront_cart_contents_total_after_discounts() + 0.0001 < papetarie_storefront_minimum_order_amount();
+    return !empty(papetarie_storefront_cart_minimum_order_data()['blocked']);
 }
 
 function papetarie_storefront_enforce_minimum_order_amount(): void
@@ -503,7 +571,10 @@ function papetarie_storefront_redirect_checkout_for_minimum_order(): void
     }
 
     papetarie_storefront_enforce_minimum_order_amount();
-    // Keep the checkout page visible; the notice is enough for now.
+    if (function_exists('wc_get_cart_url')) {
+        wp_safe_redirect(wc_get_cart_url());
+        exit;
+    }
 }
 add_action('template_redirect', 'papetarie_storefront_redirect_checkout_for_minimum_order', 20);
 
@@ -651,6 +722,7 @@ function papetarie_storefront_enqueue_cart_page_script(): void
         'papCartPage',
         [
             'ajaxUrl' => admin_url('admin-ajax.php'),
+            'minimumOrder' => papetarie_storefront_cart_minimum_order_data(),
             'messages' => [
                 'updateOverlay' => __('Coșul se actualizează...', 'papetarie-storefront'),
                 'removeOverlay' => __('Se elimină produsul...', 'papetarie-storefront'),
@@ -778,7 +850,7 @@ add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_checkout_scripts'
 
 function papetarie_storefront_checkout_title_filter(string $title, int $post_id = 0): string
 {
-    if (!papetarie_storefront_is_checkout_like_page()) {
+    if (!papetarie_storefront_is_checkout_or_order_received_page()) {
         return $title;
     }
 
@@ -797,7 +869,7 @@ add_filter('the_title', 'papetarie_storefront_checkout_title_filter', 10, 2);
 
 function papetarie_storefront_hide_checkout_page_title(bool $show_title): bool
 {
-    if (!papetarie_storefront_is_checkout_like_page()) {
+    if (!papetarie_storefront_is_checkout_or_order_received_page()) {
         return $show_title;
     }
 
@@ -812,8 +884,20 @@ function papetarie_storefront_checkout_notice_hooks(): void
     }
 
     remove_action('woocommerce_before_checkout_form', 'woocommerce_output_all_notices', 10);
+    papetarie_storefront_clear_checkout_success_notices();
 }
 add_action('wp', 'papetarie_storefront_checkout_notice_hooks', 20);
+
+function papetarie_storefront_remove_checkout_privacy_policy_text(string $text, string $type = ''): string
+{
+    if ($type !== 'checkout' || !function_exists('is_checkout') || !is_checkout()) {
+        return $text;
+    }
+
+    return '';
+}
+
+add_filter('woocommerce_get_privacy_policy_text', 'papetarie_storefront_remove_checkout_privacy_policy_text', 20, 2);
 
 function papetarie_storefront_get_checkout_notices_html(): string
 {
@@ -821,10 +905,65 @@ function papetarie_storefront_get_checkout_notices_html(): string
         return '';
     }
 
-    ob_start();
-    wc_print_notices();
-    $html = trim((string) ob_get_clean());
+    papetarie_storefront_clear_orphaned_cart_notices();
+    papetarie_storefront_clear_checkout_success_notices();
 
+    $notices = function_exists('wc_get_notices') ? wc_get_notices() : [];
+    if (!is_array($notices) || empty($notices)) {
+        return '';
+    }
+
+    $notice_types = apply_filters('woocommerce_notice_types', ['error', 'success', 'notice']);
+    $filtered_html = [];
+    $has_visible_notice = false;
+
+    foreach ($notice_types as $notice_type) {
+        if ($notice_type === 'success') {
+            continue;
+        }
+
+        if (empty($notices[$notice_type]) || !is_array($notices[$notice_type])) {
+            continue;
+        }
+
+        $messages = [];
+        $filtered_notices = [];
+
+        foreach ($notices[$notice_type] as $notice) {
+            if (!is_array($notice) || empty($notice['notice'])) {
+                $filtered_notices[] = $notice;
+                $messages[] = is_array($notice) ? (string) ($notice['notice'] ?? '') : (string) $notice;
+                continue;
+            }
+
+            $message = trim(wp_strip_all_tags((string) $notice['notice']));
+            if (papetarie_storefront_is_checkout_coupon_success_notice($message)) {
+                continue;
+            }
+
+            $filtered_notices[] = $notice;
+            $messages[] = $notice['notice'];
+        }
+
+        if (empty($filtered_notices)) {
+            continue;
+        }
+
+        $has_visible_notice = true;
+        ob_start();
+        wc_get_template(
+            "notices/{$notice_type}.php",
+            [
+                'messages' => array_filter($messages),
+                'notices' => array_filter($filtered_notices),
+            ]
+        );
+        $filtered_html[] = (string) ob_get_clean();
+    }
+
+    wc_clear_notices();
+
+    $html = trim(implode('', $filtered_html));
     if ($html !== '') {
         $html = preg_replace(
             '#<ul[^>]*class="[^"]*woocommerce-error[^"]*"[^>]*>.*?(Sesiunea ta a expirat\.(?:\s*<a[^>]*>Înapoi la magazin</a>)?).*?</ul>#is',
@@ -833,8 +972,257 @@ function papetarie_storefront_get_checkout_notices_html(): string
         ) ?? $html;
     }
 
-    return '' !== trim(wp_strip_all_tags($html)) ? $html : '';
+    return $has_visible_notice && '' !== trim(wp_strip_all_tags($html)) ? $html : '';
 }
+
+function papetarie_storefront_is_checkout_coupon_success_notice(string $notice): bool
+{
+    $normalized_notice = strtolower(remove_accents(trim(wp_strip_all_tags($notice))));
+
+    if ($normalized_notice === '') {
+        return false;
+    }
+
+    $has_coupon_reference = strpos($normalized_notice, 'coupon') !== false
+        || strpos($normalized_notice, 'cupon') !== false
+        || strpos($normalized_notice, 'codul promotional') !== false
+        || strpos($normalized_notice, 'cod promotional') !== false
+        || strpos($normalized_notice, 'codul promo') !== false;
+    $has_applied_reference = strpos($normalized_notice, 'applied') !== false || strpos($normalized_notice, 'aplicat') !== false;
+    $has_success_reference = strpos($normalized_notice, 'success') !== false || strpos($normalized_notice, 'succes') !== false;
+
+    return $has_coupon_reference && $has_applied_reference && $has_success_reference;
+}
+
+function papetarie_storefront_clear_checkout_coupon_success_notices(): void
+{
+    papetarie_storefront_clear_checkout_success_notices();
+}
+
+function papetarie_storefront_clear_checkout_success_notices(): void
+{
+    if (!function_exists('WC') || !WC() || !WC()->session) {
+        return;
+    }
+
+    $all_notices = WC()->session->get('wc_notices', []);
+    if (!is_array($all_notices) || empty($all_notices['success']) || !is_array($all_notices['success'])) {
+        return;
+    }
+
+    $filtered_success_notices = [];
+    foreach ($all_notices['success'] as $notice) {
+        if (!is_array($notice) || empty($notice['notice'])) {
+            $filtered_success_notices[] = $notice;
+            continue;
+        }
+
+        $notice_text = trim(wp_strip_all_tags((string) $notice['notice']));
+        if (papetarie_storefront_is_checkout_coupon_success_notice($notice_text)) {
+            continue;
+        }
+
+        $filtered_success_notices[] = $notice;
+    }
+
+    if (empty($filtered_success_notices)) {
+        unset($all_notices['success']);
+    } else {
+        $all_notices['success'] = array_values($filtered_success_notices);
+    }
+
+    WC()->session->set('wc_notices', empty($all_notices) ? null : $all_notices);
+}
+
+function papetarie_storefront_is_coupon_flash_notice(string $notice): bool
+{
+    $normalized_notice = strtolower(remove_accents(trim(wp_strip_all_tags($notice))));
+
+    if ($normalized_notice === '') {
+        return false;
+    }
+
+    $has_coupon_reference = strpos($normalized_notice, 'coupon') !== false
+        || strpos($normalized_notice, 'cupon') !== false
+        || strpos($normalized_notice, 'codul promotional') !== false
+        || strpos($normalized_notice, 'cod promotional') !== false
+        || strpos($normalized_notice, 'codul promo') !== false;
+
+    return $has_coupon_reference;
+}
+
+function papetarie_storefront_queue_cart_coupon_toast(string $message, string $type = 'success'): void
+{
+    if (!function_exists('WC') || !WC() || !WC()->session) {
+        return;
+    }
+
+    $message = trim(wp_strip_all_tags($message));
+    if ($message === '') {
+        return;
+    }
+
+    $toast_type = in_array($type, ['success', 'error', 'info', 'warning'], true) ? $type : 'success';
+    WC()->session->set('pap_cart_coupon_toast', [
+        'message' => $message,
+        'type' => $toast_type,
+    ]);
+}
+
+function papetarie_storefront_queue_coupon_action_toast_from_notice(string $notice, string $type): void
+{
+    $message = trim(wp_strip_all_tags($notice));
+    if ($message === '' || !papetarie_storefront_is_coupon_flash_notice($message)) {
+        return;
+    }
+
+    if (in_array($type, ['success', 'error', 'info', 'warning'], true)) {
+        papetarie_storefront_queue_cart_coupon_toast(
+            $type === 'success' ? __('Codul tău promoțional a fost activat cu succes', 'papetarie-storefront') : __('Codul tău promoțional a fost eliminat', 'papetarie-storefront'),
+            $type
+        );
+    }
+}
+
+function papetarie_storefront_consume_cart_coupon_toast(): array
+{
+    if (!function_exists('WC') || !WC() || !WC()->session) {
+        return [
+            'message' => '',
+            'type' => 'success',
+        ];
+    }
+
+    $toast = WC()->session->get('pap_cart_coupon_toast', []);
+    if (!is_array($toast)) {
+        $toast = [];
+    }
+
+    if (empty($toast['message'])) {
+        $toast = papetarie_storefront_populate_coupon_toast_from_wc_notices();
+    }
+
+    WC()->session->set('pap_cart_coupon_toast', []);
+
+    return [
+        'message' => isset($toast['message']) ? trim((string) $toast['message']) : '',
+        'type' => isset($toast['type']) ? sanitize_key((string) $toast['type']) : 'success',
+    ];
+}
+
+function papetarie_storefront_populate_coupon_toast_from_wc_notices(): array
+{
+    if (!function_exists('WC') || !WC() || !WC()->session) {
+        return [];
+    }
+
+    $all_notices = WC()->session->get('wc_notices', []);
+    if (!is_array($all_notices) || empty($all_notices['success']) || !is_array($all_notices['success'])) {
+        return [];
+    }
+
+    $toast = [];
+    $filtered_success_notices = [];
+
+    foreach ($all_notices['success'] as $notice) {
+        if (!is_array($notice) || empty($notice['notice'])) {
+            $filtered_success_notices[] = $notice;
+            continue;
+        }
+
+        $notice_text = trim(wp_strip_all_tags((string) $notice['notice']));
+        $normalized_notice = strtolower(remove_accents($notice_text));
+        $is_coupon_notice = papetarie_storefront_is_coupon_flash_notice($notice_text)
+            && (
+                strpos($normalized_notice, 'applied successfully') !== false
+                || strpos($normalized_notice, 'removed successfully') !== false
+                || strpos($normalized_notice, 'a fost aplicat cu succes') !== false
+                || strpos($normalized_notice, 'a fost eliminat') !== false
+                || strpos($normalized_notice, 'a fost sters') !== false
+            );
+
+        if (!$is_coupon_notice) {
+            $filtered_success_notices[] = $notice;
+            continue;
+        }
+
+        if ($toast === []) {
+            $toast = [
+                'message' => (
+                    strpos($normalized_notice, 'removed') !== false
+                    || strpos($normalized_notice, 'eliminat') !== false
+                    || strpos($normalized_notice, 'sters') !== false
+                )
+                    ? __('Codul tău promoțional a fost eliminat', 'papetarie-storefront')
+                    : __('Codul tău promoțional a fost activat cu succes', 'papetarie-storefront'),
+                'type' => 'success',
+            ];
+        }
+    }
+
+    if ($toast === []) {
+        return [];
+    }
+
+    if (empty($filtered_success_notices)) {
+        unset($all_notices['success']);
+    } else {
+        $all_notices['success'] = array_values($filtered_success_notices);
+    }
+
+    WC()->session->set('wc_notices', empty($all_notices) ? null : $all_notices);
+    WC()->session->set('pap_cart_coupon_toast', $toast);
+
+    return $toast;
+}
+
+function papetarie_storefront_render_cart_coupon_toast_html(): string
+{
+    $toast = papetarie_storefront_consume_cart_coupon_toast();
+    $message = trim((string) ($toast['message'] ?? ''));
+
+    if ($message === '') {
+        return '';
+    }
+
+    $notice_type = in_array(($toast['type'] ?? 'success'), ['success', 'error', 'info', 'warning'], true) ? (string) $toast['type'] : 'success';
+    $icon = $notice_type === 'error'
+        ? '!'
+        : '✓';
+
+    ob_start();
+    ?>
+    <div class="pap-toast-host pap-toast-host--cart" data-cart-toast-host>
+      <div class="pap-toast pap-toast--cart pap-toast--<?php echo esc_attr($notice_type); ?> is-visible" data-cart-toast data-cart-toast-duration="3500" role="status" aria-live="polite">
+        <span class="pap-toast__icon" aria-hidden="true"><?php echo esc_html($icon); ?></span>
+        <span class="pap-toast__message" data-cart-toast-message><?php echo esc_html($message); ?></span>
+        <button type="button" class="pap-toast__close" data-cart-toast-close aria-label="<?php esc_attr_e('Închide notificarea', 'papetarie-storefront'); ?>">×</button>
+      </div>
+    </div>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
+function papetarie_storefront_capture_coupon_applied_toast(string $coupon_code): void
+{
+    if (trim($coupon_code) === '') {
+        return;
+    }
+
+    papetarie_storefront_queue_cart_coupon_toast(__('Codul tău promoțional a fost activat cu succes', 'papetarie-storefront'), 'success');
+}
+add_action('woocommerce_applied_coupon', 'papetarie_storefront_capture_coupon_applied_toast', 20, 1);
+
+function papetarie_storefront_capture_coupon_removed_toast(string $coupon_code): void
+{
+    if (trim($coupon_code) === '') {
+        return;
+    }
+
+    papetarie_storefront_queue_cart_coupon_toast(__('Codul tău promoțional a fost eliminat', 'papetarie-storefront'), 'success');
+}
+add_action('woocommerce_removed_coupon', 'papetarie_storefront_capture_coupon_removed_toast', 20, 1);
 
 function papetarie_storefront_disable_checkout_coupon_form(): void
 {
@@ -1307,10 +1695,18 @@ function papetarie_storefront_checkout_guest_shipping_snapshot(): array
         '#billing_email',
         '#shipping_address_1',
         '#shipping_address_2',
+        'city',
+        'state',
         '#shipping_city',
         '#shipping_state',
+        'billing_city',
+        'billing_state',
+        'shipping_city',
+        'shipping_state',
         'postcode',
         '#shipping_postcode',
+        'billing_postcode',
+        'shipping_postcode',
         '#order_comments',
     ];
 
@@ -1323,9 +1719,23 @@ function papetarie_storefront_checkout_guest_shipping_snapshot(): array
         $snapshot[$key] = trim($value);
     }
 
+    $city = trim((string) ($snapshot['city'] ?? $snapshot['#shipping_city'] ?? $snapshot['billing_city'] ?? $snapshot['shipping_city'] ?? ''));
+    $state = trim((string) ($snapshot['state'] ?? $snapshot['#shipping_state'] ?? $snapshot['billing_state'] ?? $snapshot['shipping_state'] ?? ''));
     $postcode = trim((string) ($snapshot['#shipping_postcode'] ?? $snapshot['postcode'] ?? ''));
+    $snapshot['city'] = $city;
+    $snapshot['state'] = $state;
+    $snapshot['#billing_city'] = $city;
+    $snapshot['#billing_state'] = $state;
+    $snapshot['#shipping_city'] = $city;
+    $snapshot['#shipping_state'] = $state;
+    $snapshot['billing_city'] = $city;
+    $snapshot['billing_state'] = $state;
+    $snapshot['shipping_city'] = $city;
+    $snapshot['shipping_state'] = $state;
     $snapshot['postcode'] = $postcode;
     $snapshot['#shipping_postcode'] = $postcode;
+    $snapshot['billing_postcode'] = $postcode;
+    $snapshot['shipping_postcode'] = $postcode;
 
     return $snapshot;
 }
@@ -1344,15 +1754,15 @@ function papetarie_storefront_checkout_guest_shipping_summary_lines(): array
     $email = ($snapshot['#billing_email'] ?? '') ?: trim((string) $checkout->get_value('billing_email'));
     $address_1 = ($snapshot['#shipping_address_1'] ?? '') ?: trim((string) $checkout->get_value('shipping_address_1'));
     $address_2 = ($snapshot['#shipping_address_2'] ?? '') ?: trim((string) $checkout->get_value('shipping_address_2'));
-    $city = ($snapshot['#shipping_city'] ?? '') ?: trim((string) $checkout->get_value('shipping_city'));
-    $state = ($snapshot['#shipping_state'] ?? '') ?: trim((string) $checkout->get_value('shipping_state'));
-    $postcode = ($snapshot['#shipping_postcode'] ?? '') ?: trim((string) $checkout->get_value('shipping_postcode'));
+    $city = ($snapshot['city'] ?? '') ?: ($snapshot['#shipping_city'] ?? '') ?: ($snapshot['billing_city'] ?? '') ?: trim((string) $checkout->get_value('shipping_city')) ?: trim((string) $checkout->get_value('billing_city'));
+    $state = ($snapshot['state'] ?? '') ?: ($snapshot['#shipping_state'] ?? '') ?: ($snapshot['billing_state'] ?? '') ?: trim((string) $checkout->get_value('shipping_state')) ?: trim((string) $checkout->get_value('billing_state'));
+    $postcode = ($snapshot['postcode'] ?? '') ?: ($snapshot['#shipping_postcode'] ?? '') ?: ($snapshot['billing_postcode'] ?? '') ?: trim((string) $checkout->get_value('shipping_postcode')) ?: trim((string) $checkout->get_value('billing_postcode'));
     $order_comments = ($snapshot['#order_comments'] ?? '') ?: trim((string) $checkout->get_value('order_comments'));
 
     $lines = [];
     $full_name = trim($first_name . ' ' . $last_name);
     $address_line = trim(implode(', ', array_filter([$address_1, $address_2])));
-    $city_line = trim(implode(', ', array_filter([$city, $state, $postcode])));
+    $city_line = papetarie_storefront_checkout_build_location_line($city, $state, $postcode);
 
     if ($full_name !== '') {
         $lines[] = $full_name;
@@ -1421,6 +1831,32 @@ function papetarie_storefront_checkout_standard_address_snapshot(): array
     }
 
     if (function_exists('is_user_logged_in') && is_user_logged_in()) {
+        $current_order_snapshot = papetarie_storefront_checkout_guest_shipping_snapshot();
+        if (is_array($current_order_snapshot) && !empty($current_order_snapshot)) {
+            return [
+                'billing_first_name' => trim((string) ($current_order_snapshot['#billing_first_name'] ?? '')),
+                'billing_last_name' => trim((string) ($current_order_snapshot['#billing_last_name'] ?? '')),
+                'billing_email' => trim((string) ($current_order_snapshot['#billing_email'] ?? '')),
+                'billing_phone' => trim((string) ($current_order_snapshot['#billing_phone'] ?? '')),
+                'billing_country' => 'RO',
+                'billing_state' => trim((string) ($current_order_snapshot['#shipping_state'] ?? $current_order_snapshot['#billing_state'] ?? '')),
+                'billing_city' => trim((string) ($current_order_snapshot['#shipping_city'] ?? $current_order_snapshot['#billing_city'] ?? '')),
+                'billing_postcode' => trim((string) ($current_order_snapshot['postcode'] ?? $current_order_snapshot['#shipping_postcode'] ?? $current_order_snapshot['#billing_postcode'] ?? '')),
+                'billing_address_1' => trim((string) ($current_order_snapshot['#shipping_address_1'] ?? $current_order_snapshot['#billing_address_1'] ?? '')),
+                'billing_address_2' => trim((string) ($current_order_snapshot['#shipping_address_2'] ?? $current_order_snapshot['#billing_address_2'] ?? '')),
+                'shipping_first_name' => trim((string) ($current_order_snapshot['#billing_first_name'] ?? '')),
+                'shipping_last_name' => trim((string) ($current_order_snapshot['#billing_last_name'] ?? '')),
+                'shipping_phone' => trim((string) ($current_order_snapshot['#billing_phone'] ?? '')),
+                'shipping_country' => 'RO',
+                'shipping_state' => trim((string) ($current_order_snapshot['#shipping_state'] ?? $current_order_snapshot['#billing_state'] ?? '')),
+                'shipping_city' => trim((string) ($current_order_snapshot['#shipping_city'] ?? $current_order_snapshot['#billing_city'] ?? '')),
+                'shipping_postcode' => trim((string) ($current_order_snapshot['postcode'] ?? $current_order_snapshot['#shipping_postcode'] ?? $current_order_snapshot['#billing_postcode'] ?? '')),
+                'shipping_address_1' => trim((string) ($current_order_snapshot['#shipping_address_1'] ?? $current_order_snapshot['#billing_address_1'] ?? '')),
+                'shipping_address_2' => trim((string) ($current_order_snapshot['#shipping_address_2'] ?? $current_order_snapshot['#billing_address_2'] ?? '')),
+                'order_comments' => trim((string) ($current_order_snapshot['#order_comments'] ?? '')),
+            ];
+        }
+
         $account_snapshot = papetarie_storefront_checkout_standard_account_address_snapshot();
         if (!empty($account_snapshot)) {
             return [
@@ -1528,11 +1964,11 @@ function papetarie_storefront_checkout_standard_account_address_lines(): array
         (string) ($snapshot['address_1'] ?? ''),
         (string) ($snapshot['address_2'] ?? ''),
     ])));
-    $location_line = trim(implode(', ', array_filter([
+    $location_line = papetarie_storefront_checkout_build_location_line(
         (string) ($snapshot['city'] ?? ''),
         (string) ($snapshot['state'] ?? ''),
-        (string) ($snapshot['postcode'] ?? ''),
-    ])));
+        (string) ($snapshot['postcode'] ?? '')
+    );
 
     $lines = [];
     if ($full_name !== '') {
@@ -1624,6 +2060,79 @@ function papetarie_storefront_checkout_address_card_icon_svg(string $kind): stri
     ];
 
     return $icons[$kind] ?? $icons['location'];
+}
+
+function papetarie_storefront_checkout_normalize_location_parts(array $parts): array
+{
+    $normalized_parts = [];
+
+    foreach ($parts as $index => $part) {
+        $value = trim((string) $part);
+        if ($value === '') {
+            continue;
+        }
+
+        $compact_value = preg_replace('/\s+/', ' ', $value);
+        $compact_value = is_string($compact_value) ? trim($compact_value) : $value;
+        if ($compact_value === '') {
+            continue;
+        }
+
+        if (preg_match('/^[0-9]{6}$/', preg_replace('/\s+/', '', $compact_value))) {
+            $has_later_postcode = false;
+            foreach (array_slice($parts, $index + 1) as $later_part) {
+                $later_value = trim((string) $later_part);
+                if ($later_value === '') {
+                    continue;
+                }
+
+                if (preg_match('/^[0-9]{6}$/', preg_replace('/\s+/', '', $later_value))) {
+                    $has_later_postcode = true;
+                    break;
+                }
+            }
+
+            if ($has_later_postcode) {
+                continue;
+            }
+        }
+
+        $normalized_key = strtolower((string) remove_accents($compact_value));
+        $already_added = false;
+        foreach ($normalized_parts as $existing_part) {
+            $existing_key = strtolower((string) remove_accents((string) $existing_part));
+            if ($existing_key === $normalized_key) {
+                $already_added = true;
+                break;
+            }
+        }
+
+        if ($already_added) {
+            continue;
+        }
+
+        $normalized_parts[] = $compact_value;
+    }
+
+    return $normalized_parts;
+}
+
+function papetarie_storefront_checkout_build_location_line(string $city, string $state, string $postcode): string
+{
+    $city = trim($city);
+    $state = trim($state);
+    $postcode = trim($postcode);
+
+    if ($state !== '' && preg_match('/^[0-9]{6}$/', preg_replace('/\s+/', '', $state))) {
+        if ($postcode === '' || $postcode === $state) {
+            $postcode = $state;
+        }
+        $state = '';
+    }
+
+    $parts = papetarie_storefront_checkout_normalize_location_parts([$city, $state, $postcode]);
+
+    return trim(implode(', ', $parts));
 }
 
 function papetarie_storefront_get_checkout_guest_shipping_summary_html(): string
@@ -2274,7 +2783,22 @@ function papetarie_storefront_stock_status_options(): array
 
 function papetarie_storefront_romania_counties(): array
 {
-    return [
+    static $counties = null;
+
+    if (null !== $counties) {
+        return $counties;
+    }
+
+    $dataset_path = get_stylesheet_directory() . '/data/siruta-counties.json';
+    if (file_exists($dataset_path)) {
+        $decoded = json_decode((string) file_get_contents($dataset_path), true);
+        if (is_array($decoded) && $decoded !== []) {
+            $counties = $decoded;
+            return $counties;
+        }
+    }
+
+    $counties = [
         'AB' => __('Alba', 'papetarie-storefront'),
         'AR' => __('Arad', 'papetarie-storefront'),
         'AG' => __('Argeș', 'papetarie-storefront'),
@@ -2318,6 +2842,8 @@ function papetarie_storefront_romania_counties(): array
         'VL' => __('Vâlcea', 'papetarie-storefront'),
         'VN' => __('Vrancea', 'papetarie-storefront'),
     ];
+
+    return $counties;
 }
 
 function papetarie_storefront_romania_cities(): array
@@ -2341,7 +2867,7 @@ function papetarie_storefront_romania_localities_by_county(): array
         return $localities_by_county;
     }
 
-    $dataset_path = get_stylesheet_directory() . '/data/ro-localities-by-county.json';
+    $dataset_path = get_stylesheet_directory() . '/data/siruta-localities-by-county.json';
     if (!file_exists($dataset_path)) {
         $localities_by_county = [];
         return $localities_by_county;
@@ -2362,12 +2888,43 @@ function papetarie_storefront_romania_localities_by_county(): array
             $county_localities = [];
         }
 
-        $county_localities = array_values(array_filter(array_map(
-            static fn ($city): string => trim((string) $city),
-            $county_localities
-        ), static fn (string $city): bool => $city !== ''));
+        $normalized_localities = [];
 
-        $ordered[$county_code] = array_values(array_unique($county_localities));
+        foreach ($county_localities as $city) {
+            $raw_city = (string) $city;
+            $city = papetarie_storefront_normalize_locality_label($raw_city);
+            $city_key = papetarie_storefront_normalize_locality_key($city);
+            if ($city === '' || $city_key === '') {
+                continue;
+            }
+
+            $is_prefixed = papetarie_storefront_locality_has_prefix($raw_city);
+            if (!isset($normalized_localities[$city_key])) {
+                $normalized_localities[$city_key] = [
+                    'label' => $city,
+                    'prefixed' => $is_prefixed,
+                ];
+                continue;
+            }
+
+            if (!empty($normalized_localities[$city_key]['prefixed']) && !$is_prefixed) {
+                $normalized_localities[$city_key] = [
+                    'label' => $city,
+                    'prefixed' => false,
+                ];
+            }
+        }
+
+        $county_localities = array_map(
+            static fn (array $entry): string => (string) ($entry['label'] ?? ''),
+            array_values($normalized_localities)
+        );
+        $county_localities = array_values(array_filter($county_localities, static fn (string $city): bool => $city !== ''));
+        usort($county_localities, static function (string $left, string $right): int {
+            return strcmp(papetarie_storefront_normalize_locality_key($left), papetarie_storefront_normalize_locality_key($right));
+        });
+
+        $ordered[$county_code] = $county_localities;
     }
 
     $localities_by_county = $ordered;
@@ -2420,10 +2977,70 @@ function papetarie_storefront_checkout_city_options_for_county(string $county_co
 
 function papetarie_storefront_normalize_city_key(string $city): string
 {
-    $city = trim(preg_replace('/\s+/', ' ', $city));
-    $city = strtolower(remove_accents($city));
+    $city = papetarie_storefront_normalize_locality_key($city);
 
     return $city;
+}
+
+function papetarie_storefront_locality_has_prefix(string $locality): bool
+{
+    $locality = trim(preg_replace('/\s+/', ' ', $locality));
+    $locality = str_replace(['Ţ', 'ţ', 'Ş', 'ş'], ['Ț', 'ț', 'Ș', 'ș'], $locality);
+    $locality = strtolower(remove_accents($locality));
+    $locality = preg_replace('/[^a-z0-9]+/u', ' ', $locality) ?? $locality;
+    $locality = trim(preg_replace('/\s+/', ' ', $locality) ?? $locality);
+
+    foreach (['judetul ', 'municipiul ', 'orasul ', 'oras ', 'comuna ', 'satul ', 'sectorul '] as $prefix) {
+        if (strpos($locality, $prefix) === 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function papetarie_storefront_normalize_locality_label(string $locality, bool $title_case = true): string
+{
+    $locality = trim(preg_replace('/\s+/', ' ', $locality));
+    $locality = str_replace(['Ţ', 'ţ', 'Ş', 'ş'], ['Ț', 'ț', 'Ș', 'ș'], $locality);
+    $locality = preg_replace(
+        '/^(JUDEȚUL|JUDEŢUL|JUDETUL|MUNICIPIUL|ORAȘUL|ORAŞUL|ORASUL|ORAȘ|ORAŞ|ORAS|COMUNA|SATUL|SECTORUL)\s+/iu',
+        '',
+        $locality
+    ) ?? $locality;
+    $locality = trim($locality);
+
+    if ($locality === '') {
+        return '';
+    }
+
+    if (function_exists('mb_convert_case') && $title_case) {
+        $locality = mb_convert_case($locality, MB_CASE_TITLE, 'UTF-8');
+    } elseif ($title_case) {
+        $locality = ucwords(strtolower($locality));
+    }
+
+    if (strcasecmp(remove_accents($locality), 'bucuresti') === 0) {
+        return 'București';
+    }
+
+    return $locality;
+}
+
+function papetarie_storefront_normalize_locality_key(string $locality): string
+{
+    $locality = trim(preg_replace('/\s+/', ' ', $locality));
+    $locality = str_replace(['Ţ', 'ţ', 'Ş', 'ş'], ['Ț', 'ț', 'Ș', 'ș'], $locality);
+    $locality = strtolower(remove_accents($locality));
+    $locality = preg_replace(
+        '/^(judetul|municipiul|orasul|oras|comuna|satul|sectorul)\s+/u',
+        '',
+        $locality
+    ) ?? $locality;
+    $locality = preg_replace('/[^a-z0-9]+/u', ' ', $locality) ?? $locality;
+    $locality = trim(preg_replace('/\s+/', ' ', $locality) ?? $locality);
+
+    return $locality;
 }
 
 function papetarie_storefront_country_options(): array
@@ -3413,35 +4030,13 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
 {
     $cart = function_exists('WC') && WC()->cart ? WC()->cart : null;
     $checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : home_url('/checkout/');
-    $coupon_codes = $cart ? $cart->get_applied_coupons() : [];
+    $coupon_codes = $cart ? array_values((array) $cart->get_applied_coupons()) : [];
     $coupon_inline_error = papetarie_storefront_get_coupon_inline_error();
-    $discount_total = $cart ? (float) $cart->get_discount_total() : 0.0;
-    $has_discount = $discount_total > 0.0001;
-    $needs_shipping = papetarie_storefront_cart_needs_shipping();
-    $has_calculated_shipping = $cart ? $cart->has_calculated_shipping() : false;
-    $show_shipping = $cart ? $cart->show_shipping() : false;
-    $shipping_value_html = '';
-    $show_shipping_row = false;
-    $is_checkout_blocked = papetarie_storefront_cart_warning_state()['type'] !== 'none' || papetarie_storefront_cart_has_stock_insufficient_items();
-
-    if ($cart && papetarie_storefront_cart_needs_shipping()) {
-        $show_shipping_row = true;
-
-        if (!$has_calculated_shipping || !$show_shipping) {
-            $shipping_value_html = '<span class="pap-cart-totals-row__note">' . esc_html__('Se calculează la checkout', 'papetarie-storefront') . '</span>';
-        } else {
-            $shipping_total = (float) $cart->get_shipping_total();
-            if ($cart->display_prices_including_tax()) {
-                $shipping_total += (float) $cart->get_shipping_tax();
-            }
-
-            if ($shipping_total <= 0.0001) {
-                $shipping_value_html = wp_kses_post('<span class="pap-cart-totals-row__note">' . esc_html__('Transport gratuit', 'papetarie-storefront') . '</span>');
-            } else {
-                $shipping_value_html = esc_html(papetarie_storefront_shipping_method_price_text($shipping_total));
-            }
-        }
-    }
+    $minimum_order_data = papetarie_storefront_cart_minimum_order_data();
+    $is_checkout_blocked = !empty($minimum_order_data['blocked']) || papetarie_storefront_cart_warning_state()['type'] !== 'none' || papetarie_storefront_cart_has_stock_insufficient_items();
+    $shipping_summary = papetarie_storefront_cart_shipping_summary_data();
+    $show_shipping_row = !empty($shipping_summary['available']) || !empty($shipping_summary['message']);
+    $has_coupon_discount_rows = false;
 
     ob_start();
     ?>
@@ -3453,16 +4048,49 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
           <span><?php esc_html_e('Subtotal', 'papetarie-storefront'); ?></span>
           <strong data-cart-summary-subtotal><?php echo $cart ? wp_kses_post($cart->get_cart_subtotal()) : '—'; ?></strong>
         </div>
-        <?php if ($has_discount) : ?>
-          <div class="pap-cart-totals-row pap-cart-totals-row--discount">
-            <span><?php esc_html_e('Reducere', 'papetarie-storefront'); ?></span>
-            <strong data-cart-summary-discount><?php echo wp_kses_post('-' . wc_price($discount_total)); ?></strong>
-          </div>
-        <?php endif; ?>
+
         <?php if ($show_shipping_row) : ?>
           <div class="pap-cart-totals-row pap-cart-totals-row--shipping">
             <span><?php esc_html_e('Transport', 'papetarie-storefront'); ?></span>
-            <strong data-cart-summary-shipping><?php echo wp_kses_post($shipping_value_html); ?></strong>
+            <strong data-cart-summary-shipping>
+              <?php if (!empty($shipping_summary['available'])) : ?>
+                <?php echo esc_html((string) $shipping_summary['value']); ?>
+              <?php else : ?>
+                <span class="pap-cart-totals-row__note"><?php echo esc_html((string) $shipping_summary['message']); ?></span>
+              <?php endif; ?>
+            </strong>
+          </div>
+        <?php endif; ?>
+
+        <?php foreach ($coupon_codes as $coupon_code) : ?>
+          <?php
+          $coupon_code = trim((string) $coupon_code);
+          if ($coupon_code === '' || !$cart) {
+              continue;
+          }
+
+          $coupon_discount_amount = (float) $cart->get_coupon_discount_amount($coupon_code);
+          if ($cart->display_prices_including_tax()) {
+              $coupon_discount_amount += (float) $cart->get_coupon_discount_tax($coupon_code);
+          }
+
+          if ($coupon_discount_amount <= 0.0001) {
+              continue;
+          }
+
+          $has_coupon_discount_rows = true;
+          ?>
+          <div class="pap-cart-totals-row pap-cart-totals-row--discount coupon-<?php echo esc_attr(sanitize_title($coupon_code)); ?>" data-coupon-code="<?php echo esc_attr($coupon_code); ?>">
+            <span><?php echo esc_html(sprintf(__('Reducere (%s)', 'papetarie-storefront'), wc_format_coupon_code($coupon_code))); ?></span>
+            <strong data-cart-summary-discount><?php echo wp_kses_post(wc_price(0 - $coupon_discount_amount)); ?></strong>
+          </div>
+        <?php endforeach; ?>
+
+        <?php if (!$has_coupon_discount_rows && $cart && ((float) $cart->get_discount_total() > 0.0001 || (float) $cart->get_discount_tax() > 0.0001)) : ?>
+          <?php $discount_amount = max(0.0, (float) $cart->get_discount_total() + (float) $cart->get_discount_tax()); ?>
+          <div class="pap-cart-totals-row pap-cart-totals-row--discount cart-discount--summary">
+            <span><?php esc_html_e('Reducere', 'papetarie-storefront'); ?></span>
+            <strong data-cart-summary-discount><?php echo wp_kses_post(wc_price(0 - $discount_amount)); ?></strong>
           </div>
         <?php endif; ?>
       </div>
@@ -3542,6 +4170,7 @@ function papetarie_storefront_render_cart_summary_html(string $notice_html = '')
         class="pap-cart-checkout<?php echo $is_checkout_blocked ? ' is-disabled' : ''; ?>"
         href="<?php echo esc_url($checkout_url); ?>"
         data-cart-checkout
+        data-cart-minimum-order-blocked="<?php echo esc_attr(!empty($minimum_order_data['blocked']) ? '1' : '0'); ?>"
         aria-disabled="<?php echo esc_attr($is_checkout_blocked ? 'true' : 'false'); ?>"
         tabindex="<?php echo esc_attr($is_checkout_blocked ? '-1' : '0'); ?>"
       >

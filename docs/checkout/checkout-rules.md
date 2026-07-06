@@ -48,7 +48,10 @@ Reguli:
 - Nu există buton `Adaugă adresă nouă` în checkout.
 - După salvare, UI-ul trece în summary card view.
 - Summary card-ul trebuie să reflecte exact datele care ajung în comandă.
+- Snapshot-ul curent de checkout trebuie să includă mereu localitatea, județul și codul poștal; la refresh summary card-ul se rehidratează din acest snapshot, nu dintr-un fallback parțial din cont.
 - Dacă salvarea sau validarea eșuează, mesajul de eroare apare sus, imediat sub titlul secțiunii sau deasupra primului câmp, nu sub butoanele de acțiune.
+- Dacă backend-ul întoarce mai multe mesaje pentru aceeași problemă sau pentru același câmp, UI-ul păstrează un singur mesaj canonic, prietenos pentru utilizator; mesajele tehnice duplicate sunt eliminate înainte de afișare.
+- Pentru erorile backend, afișarea standard este un singur banner unitar, nu o listă de mesaje tehnice și prietenoase pentru aceeași cauză.
 - Ordinea câmpurilor în formularul de adresă este: Prenume, Nume, Email, Telefon, Județ, Localitate, Adresă, Cod poștal, Observații pentru livrare / curier.
 - Nu există câmp separat pentru `Bloc / Scară / Etaj / Apartament`; aceste detalii intră în Adresă sau în Observații pentru livrare / curier.
 - Observațiile pentru livrare / curier nu se afișează în summary card, dar trebuie să rămână disponibile în checkout session și în datele comenzii.
@@ -164,3 +167,24 @@ Orice task de checkout trebuie să se încheie cu:
 - Pentru magazinul curent, shipping-ul de bază este `Flat rate`, iar `Free shipping` este configurat la pragul de 150 lei.
 - Card payment rămâne out of scope până când Phase 1 este PASS complet.
 - Dacă shipping sau payment nu sunt configurate, UI-ul afișează mesaje clare de business, nu valori simulate.
+
+## 13. Sursa canonică pentru județe și localități (eMAG normalizat)
+
+- Rezumatul final și regulile de curățare a soluțiilor vechi sunt documentate în `docs/checkout/localities-source-of-truth.md`.
+- Checkout-ul și My Account citesc aceeași sursă canonică pentru România: `wp-content/themes/papetarie-storefront/data/siruta-localities-by-county.json`.
+- Conținutul acestui fișier este generat din cele două exporturi eMAG din repo:
+  - `romania-localitati-emag-recovered.csv`
+  - `romania-localitati-emag-rest-de-judete.csv`
+- Dataset-ul este normalizat înainte de afișare și reprezintă varianta oficială a site-ului.
+- Nu se mai citesc alte surse paralele pentru județe/localități în UI:
+  - nu se mai folosește o listă separată legacy;
+  - nu se mai amestecă SIRUTA vechi cu exportul eMAG;
+  - nu se mai completează dropdown-urile din fallback-uri din cont sau din sesiuni vechi.
+- Numele localităților sunt deduplicate după normalizare fără diacritice, fără diferențe de casing și fără prefixele de tip `Oraș`, `Municipiul`, `Comuna` sau `Satul`.
+- Ordinea afișată în dropdown-uri este alfabetică după forma canonică.
+- Pentru verificări comparative cu un export eMAG, folosește comanda:
+  - `python3 wp-content/themes/papetarie-storefront/tools/compare-siruta-with-emag.py --emag /cale/catre/export-emag.csv`
+- Pentru validarea dataset-ului generat, folosește:
+  - `python3 wp-content/themes/papetarie-storefront/tools/validate-siruta.py`
+- Pentru rebuild-ul dataset-ului canonic, folosește:
+  - `python3 wp-content/themes/papetarie-storefront/tools/import-siruta.py`

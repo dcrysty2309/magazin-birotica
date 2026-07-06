@@ -178,3 +178,22 @@ Reguli aplicate:
 - cand utilizatorul cere citirea comentariilor, ele se citesc de pe staging;
 - comentariile colectate se transforma in lista de probleme si apoi in taskuri concrete;
 - comentariile QA active de pe staging nu se suprascriu prin import de DB fara confirmare explicita.
+
+## 2026-07-05 - Județe și localități canonice din eMAG normalizat
+
+Decizie:
+
+- Checkout-ul și My Account folosesc dataset-ul eMAG normalizat ca sursă canonică pentru județe și localități.
+
+Motiv:
+
+- elimină duplicatele de tip `Oraș ...`;
+- păstrează o singură formă canonică per localitate;
+- permite comparația repetabilă cu un export eMAG.
+
+Reguli aplicate:
+
+- generatorul oficial este `wp-content/themes/papetarie-storefront/tools/import-siruta.py`;
+- validarea de bază este `wp-content/themes/papetarie-storefront/tools/validate-siruta.py`;
+- comparația cu un export eMAG se face cu `wp-content/themes/papetarie-storefront/tools/compare-siruta-with-emag.py`.
+- Checkout-ul și My Account nu mai citesc alte liste locale sau fallback-uri pentru județe/localități; JSON-ul generat este singura sursă canonică folosită în UI.

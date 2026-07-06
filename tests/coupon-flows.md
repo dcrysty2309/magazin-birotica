@@ -237,6 +237,30 @@ Steps:
 Expected:
 - spacing, rows, and controls remain stable.
 
+## CT-025 Cart coupon toast
+
+Steps:
+- apply `test10` in Cart;
+- remove `test10` in Cart.
+
+Expected:
+- a small floating toast appears in the top-right corner;
+- the toast auto-hides after a few seconds;
+- the toast text clearly confirms apply/remove, for example:
+  - `Codul tău promoțional a fost activat cu succes`
+  - `Codul tău promoțional a fost eliminat`
+- no trailing ellipsis or stale WooCommerce copy appears.
+
+## CT-026 Checkout stays clean after cart coupon
+
+Steps:
+- apply `test10` in Cart;
+- navigate to Checkout.
+
+Expected:
+- the Checkout page does not show the big WooCommerce success banner;
+- only the checkout summary content remains visible.
+
 ## Release audit quick pass
 
 Use this as the first manual verification block before release:
@@ -260,3 +284,7 @@ Use this as the first manual verification block before release:
   - pass when `test10` survives `Ctrl+Shift+R` with the same cart totals.
 - CT-009 Close browser and reopen
   - pass when the Woo session restores the applied coupon and the cart summary reconstructs correctly.
+- CT-025 Cart coupon toast
+  - pass when coupon apply/remove is confirmed by the floating top-right toast and it auto-hides.
+- CT-026 Checkout stays clean after cart coupon
+  - pass when Checkout does not render the old Woo success banner after applying a coupon in Cart.

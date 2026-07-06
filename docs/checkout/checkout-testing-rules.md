@@ -20,6 +20,8 @@
 
 Indexul vizual este organizat in doua grupe: Pasul 1 (adresa) si Phase 1 (shipping + payment).
 
+Rezumatul final pentru source of truth al județelor/localităților este în `docs/checkout/localities-source-of-truth.md`.
+
 Pentru referinta rapida a tuturor cazurilor, foloseste indexul vizual:
 
 - `http://localhost:8080/checkout-test-cases/`
@@ -30,6 +32,11 @@ Pentru referinta rapida a tuturor cazurilor, foloseste indexul vizual:
 - pentru verificarea finala pe QA, acelasi index trebuie folosit impreuna cu staging;
 - comentariile salvate in Preview sunt persistate in WordPress, in CPT-ul intern `pap_checkout_comment`, si se reincarca la fiecare redeschidere a Preview-ului;
 - cazurile cu observatii apar si in lista compacta de pe index, iar cazurile cu comentarii deschise primesc un marcaj vizual discret in tabel.
+- județele și localitățile trebuie să provină din dataset-ul canonic eMAG-normalizat și pot fi comparate cu un export eMAG prin:
+  - `python3 wp-content/themes/papetarie-storefront/tools/compare-siruta-with-emag.py --emag /cale/catre/export-emag.csv`
+- validarea dataset-ului canonic se face cu:
+  - `python3 wp-content/themes/papetarie-storefront/tools/validate-siruta.py`
+- checkout-ul și My Account trebuie testate doar cu dataset-ul canonic generat din cele două exporturi eMAG din repo; nu se acceptă fallback-uri locale, liste legacy sau surse paralele de localități.
 
 Pentru guest:
 
@@ -52,6 +59,9 @@ Pentru guest:
 - Validarile frontend existente trebuie sa continue sa functioneze.
 - Mesajele de eroare trebuie sa ramana consistente cu restul aplicatiei.
 - Validarile backend trebuie verificate separat de cele frontend.
+- Dacă backend-ul trimite mai multe mesaje pentru aceeași cauză, testul trebuie să confirme că UI afișează un singur mesaj canonic, prietenos, nu tehnic + traducere în paralel.
+- Dacă apar simultan mai multe erori din câmpuri diferite, ele se afișează în ordine, dar fiecare câmp/cauză are un singur mesaj.
+- După confirmarea adresei și refresh, summary-ul trebuie să păstreze localitatea, județul și codul poștal exact așa cum au fost confirmate în checkout.
 
 ## 4. Reguli pentru butoane
 
@@ -90,6 +100,7 @@ Pentru guest:
 - Formularul de adresa din My Account trebuie sa foloseasca aceeasi ordine si aceleasi campuri ca formularul din checkout.
 - Checkout-ul nu mai afiseaza un address book cu mai multe adrese salvate.
 - Daca exista date legacy cu `address_2`, ele se trateaza doar ca backward compatibility si nu mai apar ca input separat in UI.
+- La testare, dropdown-urile de județ și localitate trebuie să pornească din dataset-ul canonic eMAG-normalizat; dacă o localitate lipsește din UI, se consideră bug de date, nu se completează manual în altă sursă.
 
 ## 5. Reguli pentru screenshot-uri
 

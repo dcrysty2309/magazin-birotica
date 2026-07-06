@@ -280,7 +280,7 @@ function papetarie_setup_test_woocommerce_settings(): void
     update_option('woocommerce_specific_ship_to_countries', ['RO']);
     update_option('woocommerce_default_customer_address', 'base');
     update_option('woocommerce_enable_reviews', 'yes');
-    update_option('papetarie_minimum_order_amount', '0');
+    update_option('papetarie_minimum_order_amount', '50');
 
     $flat_rate_settings = get_option('woocommerce_flat_rate_1_settings', []);
     if (!is_array($flat_rate_settings)) {

@@ -4,6 +4,7 @@
   var config = window.papCartPage || {};
   var updateOverlayText = (config.messages && config.messages.updateOverlay) || 'Coșul se actualizează...';
   var removeOverlayText = (config.messages && config.messages.removeOverlay) || 'Se elimină produsul...';
+  var minimumOrderData = config.minimumOrder || {};
   var page = document.querySelector('[data-cart-page]');
   var shell = document.querySelector('[data-cart-page-shell]');
   var overlay = document.querySelector('[data-cart-loading-overlay]');
@@ -394,6 +395,14 @@
     cartAlert.setAttribute('data-cart-alert-state', cartAlertBaseState);
 
     if (cartAlertBaseState === 'none' || !cartAlertBaseMessage) {
+      if (minimumOrderData && minimumOrderData.blocked && minimumOrderData.message) {
+        cartAlert.setAttribute('data-cart-alert-state', 'minimum-order');
+        cartAlert.hidden = false;
+        cartAlert.setAttribute('aria-hidden', 'false');
+        cartAlertText.innerHTML = minimumOrderData.message;
+        return;
+      }
+
       cartAlert.hidden = true;
       cartAlert.setAttribute('aria-hidden', 'true');
       cartAlertText.innerHTML = '';
@@ -425,7 +434,7 @@
     var dirty = isCartDirty();
     var unavailable = hasUnavailableItems();
     var stockIssue = hasStockInsufficientItems();
-    var minimumOrder = cartAlertBaseState === 'minimum-order';
+    var minimumOrder = Boolean((minimumOrderData && minimumOrderData.blocked) || cartAlertBaseState === 'minimum-order');
     setUpdateButtonState(dirty);
     setCartAlertState(dirty);
     setCheckoutState({
@@ -858,7 +867,10 @@
       return;
     }
 
-    if (link.classList.contains('is-disabled')) {
+    var minimumBlocked = String(link.getAttribute('data-cart-minimum-order-blocked') || '0') === '1'
+      || Boolean(minimumOrderData && minimumOrderData.blocked);
+
+    if (link.classList.contains('is-disabled') || String(link.getAttribute('aria-disabled') || 'false') === 'true' || minimumBlocked) {
       event.preventDefault();
     }
   }

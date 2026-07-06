@@ -14,6 +14,7 @@ Acesta este standardul oficial pentru Phase 1 - transport real și plată rambur
 - Shipping-ul trebuie configurat în WooCommerce Admin prin zone și metode reale.
 - Pentru România trebuie să existe cel puțin o zonă activă cu o metodă disponibilă pentru test.
 - Configurația de bază pentru Phase 1 este: `Flat rate` pentru livrare standard și `Free shipping` la pragul de 150 lei, ambele gestionate din WooCommerce Admin.
+- În Cart Summary, costul de transport se citește din totalul de shipping calculat de WooCommerce (`WC()->cart`), adică din metoda activă rezolvată prin shipping zones / shipping methods configurate în admin.
 - Dacă WooCommerce nu returnează metode de transport pentru adresa curentă, checkout-ul afișează un mesaj clar de business.
 - Dacă adresa este incompletă, UI-ul explică faptul că trebuie completată adresa pentru a calcula transportul.
 - Dacă transportul este gratuit și este configurat în WooCommerce, UI-ul afișează metoda reală și eticheta `Transport gratuit`, nu un cost inventat de tip `0.00 lei`.

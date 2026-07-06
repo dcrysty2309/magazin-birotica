@@ -37,6 +37,25 @@
     postcode: 'Introdu un cod poștal valid.',
   };
 
+  const friendlyErrorMessagesByField = {
+    billing_first_name: 'Completează prenumele.',
+    billing_last_name: 'Completează numele.',
+    billing_email: 'Introdu emailul.',
+    billing_phone: 'Introdu telefonul.',
+    billing_state: 'Alege județul.',
+    billing_city: 'Completează localitatea de livrare.',
+    billing_address_1: 'Completează adresa.',
+    billing_postcode: 'Completează codul poștal.',
+    shipping_first_name: 'Completează prenumele de livrare.',
+    shipping_last_name: 'Completează numele de livrare.',
+    shipping_email: 'Introdu emailul de livrare.',
+    shipping_phone: 'Introdu telefonul de livrare.',
+    shipping_state: 'Alege județul de livrare.',
+    shipping_city: 'Completează localitatea de livrare.',
+    shipping_address_1: 'Completează adresa de livrare.',
+    shipping_postcode: 'Completează codul poștal de livrare.',
+  };
+
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phonePattern = /^[0-9+\s().-]{6,}$/;
   const postcodePattern = /^[0-9]{6}$/;
@@ -95,13 +114,13 @@
     const script = document.currentScript;
     if (script && script.src) {
       try {
-        return new URL('../../data/ro-localities-by-county.json', script.src).toString();
+        return new URL('../../data/siruta-localities-by-county.json', script.src).toString();
       } catch (error) {
         // Fall back below.
       }
     }
 
-    return '/wp-content/themes/papetarie-storefront/data/ro-localities-by-county.json';
+    return '/wp-content/themes/papetarie-storefront/data/siruta-localities-by-county.json';
   };
 
   const loadCityData = async () => {
@@ -140,6 +159,52 @@
     document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; max-age=2592000; samesite=lax`;
   };
 
+  const normalizeCheckoutLocationParts = (parts) => {
+    const normalized = [];
+
+    parts.forEach((part, index) => {
+      const value = String(part || '').trim().replace(/\s+/g, ' ');
+      if (!value) {
+        return;
+      }
+
+      const stripped = value.replace(/\s+/g, '');
+      if (/^[0-9]{6}$/.test(stripped)) {
+        const laterHasPostcode = parts.slice(index + 1).some((laterPart) => {
+          const laterValue = String(laterPart || '').trim().replace(/\s+/g, '');
+          return /^[0-9]{6}$/.test(laterValue);
+        });
+
+        if (laterHasPostcode) {
+          return;
+        }
+      }
+
+      if (normalized.some((existing) => existing.toLowerCase() === value.toLowerCase())) {
+        return;
+      }
+
+      normalized.push(value);
+    });
+
+    return normalized;
+  };
+
+  const buildCheckoutLocationLine = (city, state, postcode) => {
+    let normalizedCity = String(city || '').trim();
+    let normalizedState = String(state || '').trim();
+    let normalizedPostcode = String(postcode || '').trim();
+
+    if (/^[0-9]{6}$/.test(normalizedState.replace(/\s+/g, ''))) {
+      if (!normalizedPostcode || normalizedPostcode === normalizedState) {
+        normalizedPostcode = normalizedState;
+      }
+      normalizedState = '';
+    }
+
+    return normalizeCheckoutLocationParts([normalizedCity, normalizedState, normalizedPostcode]).join(', ').trim();
+  };
+
   const getSnapshotField = () => getForm().find('[data-pap-guest-shipping-snapshot]').first();
 
   const normalizeCheckoutPostcodeSnapshot = (snapshot) => {
@@ -147,6 +212,22 @@
       return {};
     }
 
+    const city = String(
+      snapshot.city
+      || snapshot.shipping_city
+      || snapshot['#shipping_city']
+      || snapshot.billing_city
+      || snapshot['#billing_city']
+      || ''
+    ).trim();
+    const state = String(
+      snapshot.state
+      || snapshot.shipping_state
+      || snapshot['#shipping_state']
+      || snapshot.billing_state
+      || snapshot['#billing_state']
+      || ''
+    ).trim();
     const postcode = String(
       snapshot.postcode
       || snapshot.shipping_postcode
@@ -158,6 +239,16 @@
 
     return {
       ...snapshot,
+      city,
+      state,
+      shipping_city: String(snapshot.shipping_city || snapshot['#shipping_city'] || city).trim(),
+      billing_city: String(snapshot.billing_city || snapshot['#billing_city'] || city).trim(),
+      '#shipping_city': String(snapshot['#shipping_city'] || city).trim(),
+      '#billing_city': String(snapshot['#billing_city'] || city).trim(),
+      shipping_state: String(snapshot.shipping_state || snapshot['#shipping_state'] || state).trim(),
+      billing_state: String(snapshot.billing_state || snapshot['#billing_state'] || state).trim(),
+      '#shipping_state': String(snapshot['#shipping_state'] || state).trim(),
+      '#billing_state': String(snapshot['#billing_state'] || state).trim(),
       postcode,
       shipping_postcode: String(snapshot.shipping_postcode || snapshot['#shipping_postcode'] || postcode).trim(),
       billing_postcode: String(snapshot.billing_postcode || snapshot['#billing_postcode'] || postcode).trim(),
@@ -321,6 +412,114 @@
     });
   };
 
+  const normalizeCheckoutErrorMessage = (text, fieldId = '') => {
+    const normalizedText = String(text || '').replace(/\s+/g, ' ').trim();
+    const normalizedFieldId = String(fieldId || '').trim().toLowerCase();
+
+    if (friendlyErrorMessagesByField[normalizedFieldId]) {
+      return friendlyErrorMessagesByField[normalizedFieldId];
+    }
+
+    if (normalizedText.toLowerCase().includes('is a required field')) {
+      if (normalizedFieldId.includes('email')) {
+        return 'Introdu emailul.';
+      }
+      if (normalizedFieldId.includes('phone')) {
+        return 'Introdu telefonul.';
+      }
+      if (normalizedFieldId.includes('postcode')) {
+        return 'Completează codul poștal.';
+      }
+      if (normalizedFieldId.includes('city')) {
+        return 'Completează localitatea de livrare.';
+      }
+      if (normalizedFieldId.includes('state')) {
+        return 'Alege județul.';
+      }
+      if (normalizedFieldId.includes('first_name')) {
+        return normalizedFieldId.startsWith('shipping_') ? 'Completează prenumele de livrare.' : 'Completează prenumele.';
+      }
+      if (normalizedFieldId.includes('last_name')) {
+        return normalizedFieldId.startsWith('shipping_') ? 'Completează numele de livrare.' : 'Completează numele.';
+      }
+      if (normalizedFieldId.includes('address_1')) {
+        return normalizedFieldId.startsWith('shipping_') ? 'Completează adresa de livrare.' : 'Completează adresa.';
+      }
+    }
+
+    if (normalizedText.toLowerCase() === 'user is required and cannot be empty.') {
+      return 'Selectează o metodă de plată.';
+    }
+
+    if (normalizedText.toLowerCase() === 'completează orașul.') {
+      return 'Completează localitatea de livrare.';
+    }
+
+    if (normalizedText.toLowerCase() === 'alege județul de livrare.') {
+      return 'Alege județul de livrare.';
+    }
+
+    return normalizedText;
+  };
+
+  const normalizeCheckoutErrorNotices = () => {
+    const $notices = $('ul.woocommerce-error').filter(':visible');
+    if (!$notices.length) {
+      return;
+    }
+
+    $notices.each(function () {
+      const $notice = $(this);
+      if ($notice.data('papNormalizedErrors')) {
+        return;
+      }
+
+      const seen = new Set();
+      const rows = [];
+
+      $notice.children('li').each(function () {
+        const $li = $(this);
+        const $link = $li.find('a[href^="#"]').first();
+        const fieldId = $li.data('id') || ($link.length ? String($link.attr('href') || '').replace(/^#/, '') : '');
+        const message = normalizeCheckoutErrorMessage($li.text(), fieldId);
+        const dedupeKey = String(message || '').toLowerCase();
+
+        if (!message || seen.has(dedupeKey)) {
+          return;
+        }
+
+        seen.add(dedupeKey);
+        rows.push({ fieldId, message, href: fieldId ? `#${fieldId}` : '' });
+      });
+
+      if (!rows.length) {
+        return;
+      }
+
+      const html = rows.map((row) => {
+        if (row.href) {
+          return `<li data-id="${row.fieldId}"><a href="${row.href}">${row.message}</a></li>`;
+        }
+
+        return `<li>${row.message}</li>`;
+      }).join('');
+
+      $notice
+        .addClass('pap-checkout-error-notice pap-auth-notice pap-auth-notice--error')
+        .attr({ role: 'alert', 'aria-live': 'assertive', 'aria-atomic': 'true' })
+        .html(`
+          <span class="pap-auth-notice-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm1 5v7h-2V7h2Zm0 9v2h-2v-2h2Z" fill="currentColor"/></svg>
+          </span>
+          <div class="pap-auth-notice-copy">
+            <ul class="pap-checkout-error-notice__list">${html}</ul>
+          </div>
+        `);
+
+      $notice.data('papNormalizedErrors', true);
+    });
+  };
+
   const shouldShowValidation = () => getForm().data('papSubmitted') === true;
 
   const markFieldTouched = ($field) => {
@@ -361,6 +560,23 @@
     return getForm().find(selector).first();
   };
 
+  const syncSelectPlaceholderState = ($field) => {
+    if (!$field.length || !$field.is('select')) {
+      return;
+    }
+
+    const hasValue = String($field.val() || '').trim() !== '';
+    $field
+      .toggleClass('is-placeholder', !hasValue)
+      .toggleClass('has-value', hasValue);
+  };
+
+  const syncAllSelectPlaceholderStates = () => {
+    getForm().find('select').each(function () {
+      syncSelectPlaceholderState($(this));
+    });
+  };
+
   const getAddressById = (addressId) => {
     const key = String(addressId || '');
     if (!key || !Object.prototype.hasOwnProperty.call(savedAddressesById, key)) {
@@ -398,6 +614,7 @@
 
     const nextValue = value === null || typeof value === 'undefined' ? '' : String(value);
     $field.val(nextValue);
+    syncSelectPlaceholderState($field);
     clearFieldError($field);
   };
 
@@ -557,6 +774,8 @@
         $cityField.val('');
       }
     }
+
+    syncSelectPlaceholderState($cityField);
 
     if (syncChange) {
       runProgrammaticFieldSync(() => {
@@ -763,14 +982,18 @@
 
     const $body = $section.find('.pap-checkout-step__body').first();
       if ($body.length) {
+        const shouldDisableControls = normalizedState === 'disabled' && step !== 'payment';
         $body.find('input, select, textarea, button').each(function () {
           const $control = $(this);
           if ($control.is('[type="hidden"]')) {
             return;
-        }
+          }
 
-        $control.prop('disabled', normalizedState === 'disabled');
-        $control.attr('aria-disabled', normalizedState === 'disabled' ? 'true' : 'false');
+          if (shouldDisableControls) {
+            $control.prop('disabled', true).attr('aria-disabled', 'true');
+          } else {
+            $control.prop('disabled', false).attr('aria-disabled', 'false');
+          }
         });
       $body.removeAttr('hidden').attr('aria-hidden', 'false');
     }
@@ -964,8 +1187,16 @@
     '#billing_email': getGuestShippingFieldValue('#billing_email'),
     '#shipping_address_1': getGuestShippingFieldValue('#shipping_address_1'),
     '#shipping_address_2': getGuestShippingFieldValue('#shipping_address_2'),
-    '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
-    '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
+    city: getGuestShippingFieldValue('#shipping_city') || getGuestShippingFieldValue('#billing_city'),
+    state: getGuestShippingFieldValue('#shipping_state') || getGuestShippingFieldValue('#billing_state'),
+    '#billing_city': getGuestShippingFieldValue('#billing_city') || getGuestShippingFieldValue('#shipping_city'),
+    '#billing_state': getGuestShippingFieldValue('#billing_state') || getGuestShippingFieldValue('#shipping_state'),
+    '#shipping_city': getGuestShippingFieldValue('#shipping_city') || getGuestShippingFieldValue('#billing_city'),
+    '#shipping_state': getGuestShippingFieldValue('#shipping_state') || getGuestShippingFieldValue('#billing_state'),
+    billing_city: getGuestShippingFieldValue('#billing_city') || getGuestShippingFieldValue('#shipping_city'),
+    billing_state: getGuestShippingFieldValue('#billing_state') || getGuestShippingFieldValue('#shipping_state'),
+    shipping_city: getGuestShippingFieldValue('#shipping_city') || getGuestShippingFieldValue('#billing_city'),
+    shipping_state: getGuestShippingFieldValue('#shipping_state') || getGuestShippingFieldValue('#billing_state'),
     postcode: getGuestShippingFieldValue('#shipping_postcode'),
     '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
     shipping_postcode: getGuestShippingFieldValue('#shipping_postcode'),
@@ -1004,8 +1235,16 @@
       || String(snapshot['#billing_last_name'] || '').trim()
       || String(snapshot['#billing_phone'] || '').trim()
       || String(snapshot['#billing_email'] || '').trim()
+      || String(snapshot.city || '').trim()
+      || String(snapshot.state || '').trim()
+      || String(snapshot['#billing_city'] || '').trim()
+      || String(snapshot['#billing_state'] || '').trim()
       || String(snapshot['#shipping_state'] || '').trim()
       || String(snapshot['#shipping_city'] || '').trim()
+      || String(snapshot.billing_state || '').trim()
+      || String(snapshot.billing_city || '').trim()
+      || String(snapshot.shipping_state || '').trim()
+      || String(snapshot.shipping_city || '').trim()
       || String(snapshot['#shipping_address_1'] || '').trim()
       || String(snapshot['#shipping_address_2'] || '').trim()
       || String(snapshot.postcode || '').trim()
@@ -1030,17 +1269,21 @@
     '#shipping_country': getGuestShippingFieldValue('#shipping_country'),
     '#shipping_address_1': getGuestShippingFieldValue('#shipping_address_1'),
     '#shipping_address_2': getGuestShippingFieldValue('#shipping_address_2'),
-    '#shipping_city': getGuestShippingFieldValue('#shipping_city'),
-    '#shipping_state': getGuestShippingFieldValue('#shipping_state'),
+    city: getGuestShippingFieldValue('#shipping_city') || getGuestShippingFieldValue('#billing_city'),
+    state: getGuestShippingFieldValue('#shipping_state') || getGuestShippingFieldValue('#billing_state'),
+    '#billing_city': getGuestShippingFieldValue('#billing_city') || getGuestShippingFieldValue('#shipping_city'),
+    '#billing_state': getGuestShippingFieldValue('#billing_state') || getGuestShippingFieldValue('#shipping_state'),
+    '#shipping_city': getGuestShippingFieldValue('#shipping_city') || getGuestShippingFieldValue('#billing_city'),
+    '#shipping_state': getGuestShippingFieldValue('#shipping_state') || getGuestShippingFieldValue('#billing_state'),
     postcode: getGuestShippingFieldValue('#shipping_postcode') || getGuestShippingFieldValue('#billing_postcode'),
     '#billing_postcode': getGuestShippingFieldValue('#billing_postcode') || getGuestShippingFieldValue('#shipping_postcode'),
     '#shipping_postcode': getGuestShippingFieldValue('#shipping_postcode'),
     billing_postcode: getGuestShippingFieldValue('#billing_postcode') || getGuestShippingFieldValue('#shipping_postcode'),
     shipping_postcode: getGuestShippingFieldValue('#shipping_postcode'),
-    billing_state: getGuestShippingFieldValue('#billing_state'),
-    shipping_state: getGuestShippingFieldValue('#shipping_state'),
-    billing_city: getGuestShippingFieldValue('#billing_city'),
-    shipping_city: getGuestShippingFieldValue('#shipping_city'),
+    billing_state: getGuestShippingFieldValue('#billing_state') || getGuestShippingFieldValue('#shipping_state'),
+    shipping_state: getGuestShippingFieldValue('#shipping_state') || getGuestShippingFieldValue('#billing_state'),
+    billing_city: getGuestShippingFieldValue('#billing_city') || getGuestShippingFieldValue('#shipping_city'),
+    shipping_city: getGuestShippingFieldValue('#shipping_city') || getGuestShippingFieldValue('#billing_city'),
     billing_address_1: getGuestShippingFieldValue('#billing_address_1'),
     shipping_address_1: getGuestShippingFieldValue('#shipping_address_1'),
     '#order_comments': getGuestShippingFieldValue('#order_comments'),
@@ -1059,6 +1302,7 @@
     }
 
     authCurrentOrderSnapshot = normalizeCheckoutPostcodeSnapshot(snapshot);
+    setCookieValue('pap_checkout_shipping_snapshot', JSON.stringify(authCurrentOrderSnapshot));
     debugCheckout('auth current order snapshot set', reason, authCurrentOrderSnapshot);
   };
 
@@ -1131,6 +1375,8 @@
       || String(snapshot.billing_phone || '').trim()
       || String(snapshot['#billing_email'] || '').trim()
       || String(snapshot.billing_email || '').trim()
+      || String(snapshot.city || '').trim()
+      || String(snapshot.state || '').trim()
       || String(snapshot['#shipping_state'] || '').trim()
       || String(snapshot.shipping_state || '').trim()
       || String(snapshot.billing_state || '').trim()
@@ -1225,19 +1471,23 @@
     const email = String(data['#billing_email'] || '').trim();
     const shippingAddress1 = String(data['#shipping_address_1'] || '').trim();
     const shippingAddress2 = String(data['#shipping_address_2'] || '').trim();
-    const shippingCity = String(data['#shipping_city'] || '').trim();
-    const shippingState = String(data['#shipping_state'] || '').trim();
+    const shippingCity = String(data.city || data['#shipping_city'] || data.shipping_city || data.billing_city || '').trim();
+    const shippingState = String(data.state || data['#shipping_state'] || data.shipping_state || data.billing_state || '').trim();
     const shippingPostcode = String(data.postcode || data['#shipping_postcode'] || data.shipping_postcode || '').trim();
     const billingAddress1 = String(data['#billing_address_1'] || '').trim();
     const billingAddress2 = String(data['#billing_address_2'] || '').trim();
-    const billingCity = String(data['#billing_city'] || '').trim();
-    const billingState = String(data['#billing_state'] || '').trim();
+    const billingCity = String(data.billing_city || data['#billing_city'] || shippingCity || '').trim();
+    const billingState = String(data.billing_state || data['#billing_state'] || shippingState || '').trim();
     const billingPostcode = String(data.billing_postcode || data['#billing_postcode'] || shippingPostcode || '').trim();
     const orderComments = String(data['#order_comments'] || '').trim();
 
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
     const streetLine = [shippingAddress1 || billingAddress1, shippingAddress2 || billingAddress2].filter(Boolean).join(', ').trim();
-    const cityLine = [shippingCity || billingCity, shippingState || billingState, shippingPostcode || billingPostcode].filter(Boolean).join(', ').trim();
+    const cityLine = buildCheckoutLocationLine(
+      shippingCity || billingCity,
+      shippingState || billingState,
+      shippingPostcode || billingPostcode,
+    );
 
     const lines = [];
 
@@ -1332,16 +1582,18 @@
       '#shipping_country': String(getRawFieldValue('#shipping_country') || 'RO').trim() || 'RO',
       '#shipping_address_1': String(summaryLines[0] || getRawFieldValue('#shipping_address_1') || '').trim(),
       '#shipping_address_2': String(getRawFieldValue('#shipping_address_2') || '').trim(),
-      '#shipping_city': summaryCity || String(getRawFieldValue('#shipping_city') || '').trim(),
-      '#shipping_state': summaryState || String(getRawFieldValue('#shipping_state') || '').trim(),
+      city: summaryCity || String(getRawFieldValue('#shipping_city') || getRawFieldValue('#billing_city') || '').trim(),
+      state: summaryState || String(getRawFieldValue('#shipping_state') || getRawFieldValue('#billing_state') || '').trim(),
+      '#shipping_city': summaryCity || String(getRawFieldValue('#shipping_city') || getRawFieldValue('#billing_city') || '').trim(),
+      '#shipping_state': summaryState || String(getRawFieldValue('#shipping_state') || getRawFieldValue('#billing_state') || '').trim(),
       postcode: summaryPostcode || String(getRawFieldValue('#shipping_postcode') || getRawFieldValue('#billing_postcode') || '').trim(),
       '#shipping_postcode': summaryPostcode || String(getRawFieldValue('#shipping_postcode') || getRawFieldValue('#billing_postcode') || '').trim(),
       shipping_postcode: summaryPostcode || String(getRawFieldValue('#shipping_postcode') || getRawFieldValue('#billing_postcode') || '').trim(),
       billing_postcode: summaryPostcode || String(getRawFieldValue('#billing_postcode') || getRawFieldValue('#shipping_postcode') || '').trim(),
-      billing_state: summaryState || String(getRawFieldValue('#billing_state') || '').trim(),
-      shipping_state: summaryState || String(getRawFieldValue('#shipping_state') || '').trim(),
-      billing_city: summaryCity || String(getRawFieldValue('#billing_city') || '').trim(),
-      shipping_city: summaryCity || String(getRawFieldValue('#shipping_city') || '').trim(),
+      billing_state: summaryState || String(getRawFieldValue('#billing_state') || getRawFieldValue('#shipping_state') || '').trim(),
+      shipping_state: summaryState || String(getRawFieldValue('#shipping_state') || getRawFieldValue('#billing_state') || '').trim(),
+      billing_city: summaryCity || String(getRawFieldValue('#billing_city') || getRawFieldValue('#shipping_city') || '').trim(),
+      shipping_city: summaryCity || String(getRawFieldValue('#shipping_city') || getRawFieldValue('#billing_city') || '').trim(),
       billing_address_1: String(getRawFieldValue('#billing_address_1') || summaryLines[0] || '').trim(),
       shipping_address_1: String(getRawFieldValue('#shipping_address_1') || summaryLines[0] || '').trim(),
       '#order_comments': String(getRawFieldValue('#order_comments') || '').trim(),
@@ -1415,6 +1667,7 @@
     }
 
     setCheckoutFieldValue($field, findSelectOptionValueByMatch($field, targetValue));
+    syncSelectPlaceholderState($field);
 
     if (triggerChange) {
       runProgrammaticFieldSync(() => {
@@ -1434,8 +1687,8 @@
     const phone = String(snapshot['#billing_phone'] || '').trim();
     const email = String(snapshot['#billing_email'] || '').trim();
     const address1 = String(snapshot['#shipping_address_1'] || '').trim();
-    const countyLabel = String(snapshot['#shipping_state'] || '').trim();
-    const cityLabel = String(snapshot['#shipping_city'] || '').trim();
+    const countyLabel = String(snapshot.state || snapshot['#shipping_state'] || snapshot.shipping_state || snapshot.billing_state || '').trim();
+    const cityLabel = String(snapshot.city || snapshot['#shipping_city'] || snapshot.shipping_city || snapshot.billing_city || '').trim();
     const postcode = String(
       snapshot.postcode
       || snapshot['#shipping_postcode']
@@ -1470,6 +1723,8 @@
       || getGuestShippingFieldValue('#billing_last_name')
       || getGuestShippingFieldValue('#billing_phone')
       || getGuestShippingFieldValue('#billing_email')
+      || getGuestShippingFieldValue('#billing_state')
+      || getGuestShippingFieldValue('#billing_city')
       || getGuestShippingFieldValue('#shipping_state')
       || getGuestShippingFieldValue('#shipping_city')
       || getGuestShippingFieldValue('#shipping_address_1')
@@ -1486,15 +1741,15 @@
     const email = getGuestShippingFieldValue('#billing_email', useCache ? 'cache' : 'dom');
     const address1 = getGuestShippingFieldValue('#shipping_address_1', useCache ? 'cache' : 'dom');
     const address2 = getGuestShippingFieldValue('#shipping_address_2', useCache ? 'cache' : 'dom');
-    const city = getGuestShippingFieldValue('#shipping_city', useCache ? 'cache' : 'dom');
-    const state = getGuestShippingFieldValue('#shipping_state', useCache ? 'cache' : 'dom');
+    const city = getGuestShippingFieldValue('#shipping_city', useCache ? 'cache' : 'dom') || getGuestShippingFieldValue('#billing_city', useCache ? 'cache' : 'dom');
+    const state = getGuestShippingFieldValue('#shipping_state', useCache ? 'cache' : 'dom') || getGuestShippingFieldValue('#billing_state', useCache ? 'cache' : 'dom');
     const postcode = getGuestShippingFieldValue('#shipping_postcode', useCache ? 'cache' : 'dom');
     const orderComments = getGuestShippingFieldValue('#order_comments', useCache ? 'cache' : 'dom');
 
     const lines = [];
     const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
     const streetLine = [address1, address2].filter(Boolean).join(', ').trim();
-    const locationLine = [city, state, postcode].filter(Boolean).join(', ').trim();
+    const locationLine = buildCheckoutLocationLine(city, state, postcode);
 
     if (fullName) {
       lines.push(fullName);
@@ -1812,11 +2067,11 @@
 
     if (!$notice.length) {
       const noticeHtml = [
-        '<div class="pap-checkout-auth-shipping__notice pap-auth-notice wc-block-components-notice-banner is-error pap-auth-notice--error" data-pap-auth-address-notice role="alert" aria-live="assertive" aria-atomic="true">',
-        '  <span class="pap-auth-notice-icon wc-block-components-notice-banner__icon" aria-hidden="true">',
+        '<div class="pap-checkout-auth-shipping__notice pap-auth-notice pap-auth-notice--error" data-pap-auth-address-notice role="alert" aria-live="assertive" aria-atomic="true">',
+        '  <span class="pap-auth-notice-icon" aria-hidden="true">',
         '    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20Zm1 5v7h-2V7h2Zm0 9v2h-2v-2h2Z" fill="currentColor"/></svg>',
         '  </span>',
-        '  <div class="pap-auth-notice-copy wc-block-components-notice-banner__content" data-pap-auth-address-notice-copy></div>',
+        '  <div class="pap-auth-notice-copy" data-pap-auth-address-notice-copy></div>',
         '</div>',
       ].join('');
 
@@ -2094,7 +2349,7 @@
       return String($matchedOption.length ? $matchedOption.text() : targetState).trim() || targetState;
     })();
     const streetLine = [address.address_1, address.address_2].filter(Boolean).join(', ').trim();
-    const locationLine = [address.city, stateLabel, address.postcode].filter(Boolean).join(', ').trim();
+    const locationLine = buildCheckoutLocationLine(address.city, stateLabel, address.postcode);
     const hasMultipleAddresses = getAuthAddressCount() > 1;
 
     const $option = $('<button>', {
@@ -2604,6 +2859,8 @@
         captureAndPersistGuestShippingSummaryCache();
       }
 
+      syncSelectPlaceholderState($field);
+
       if (getForm().data('papSubmitted') === true) {
         validateField($field);
       }
@@ -2999,27 +3256,34 @@
       syncPaymentMethodSelection();
       syncPaymentMethodCards();
       syncCheckoutSubmitState();
+      syncAllSelectPlaceholderStates();
     });
     $(document.body).on('updated_checkout', () => {
       debugCheckout('body updated_checkout event', getPostcodeDebugState());
       clearSessionExpiredNotice();
+      normalizeCheckoutErrorNotices();
     });
     $(document.body).on('checkout_error', () => {
       setAuthShippingBusy(false);
       debugCheckout('body checkout_error event', getPostcodeDebugState());
+      normalizeCheckoutErrorNotices();
     });
     $(window).on('resize', () => {
       syncAuthShippingActionWidths();
     });
     $(bindFieldValidation);
     $(syncCheckoutState);
+    syncAllSelectPlaceholderStates();
     syncPaymentMethodSelection();
     syncPaymentMethodCards();
     syncCheckoutSubmitState();
     requestInitialCheckoutRefresh('bootstrap');
     clearSessionExpiredNotice();
+    normalizeCheckoutErrorNotices();
     window.setTimeout(clearSessionExpiredNotice, 250);
     window.setTimeout(clearSessionExpiredNotice, 1250);
+    window.setTimeout(normalizeCheckoutErrorNotices, 250);
+    window.setTimeout(normalizeCheckoutErrorNotices, 1250);
   };
 
   if (document.readyState === 'loading') {

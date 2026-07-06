@@ -4,11 +4,13 @@ defined('ABSPATH') || exit;
 
 $cart = function_exists('WC') && WC()->cart ? WC()->cart->get_cart() : [];
 $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
+$cart_coupon_toast_html = function_exists('papetarie_storefront_render_cart_coupon_toast_html') ? papetarie_storefront_render_cart_coupon_toast_html() : '';
 
 do_action('woocommerce_before_cart');
 ?>
 
 <div class="pap-cart-page" data-cart-page>
+  <?php echo wp_kses_post($cart_coupon_toast_html); ?>
   <div class="pap-shell pap-cart-page-shell" data-cart-page-shell>
     <div class="pap-cart-layout">
       <section class="pap-cart-main" aria-label="<?php esc_attr_e('Produse din coș', 'papetarie-storefront'); ?>">
