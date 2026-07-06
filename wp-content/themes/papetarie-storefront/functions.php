@@ -89,6 +89,13 @@ function papetarie_storefront_enqueue_styles(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_styles');
 
+function papetarie_storefront_dequeue_legacy_child_style(): void
+{
+    wp_dequeue_style('storefront-child-style');
+    wp_deregister_style('storefront-child-style');
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_legacy_child_style', 40);
+
 function papetarie_storefront_force_utf8_charset(string $charset): string
 {
     return 'UTF-8';
