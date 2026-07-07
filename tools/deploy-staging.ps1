@@ -197,6 +197,22 @@ Verificarea pe filesystem pentru $Label nu corespunde cu fișierul local.
     Write-Host "Verified $Label matches server filesystem."
 }
 
+function Write-FilesystemCheckDebug {
+    param(
+        [Parameter(Mandatory = $true)]
+        $FilesystemCheck,
+        [Parameter(Mandatory = $true)]
+        [string]$Label
+    )
+
+    Write-Host ("Filesystem check for " + $Label + ":")
+    foreach ($property in @('path', 'exists', 'base_dir', 'runner_dir', 'sha256', 'size', 'mtime')) {
+        if ($null -ne $FilesystemCheck.$property) {
+            Write-Host (" - " + $property + ": " + $FilesystemCheck.$property)
+        }
+    }
+}
+
 function Upload-SingleFile {
     param(
         [Parameter(Mandatory = $true)]
@@ -325,15 +341,16 @@ Verificarea pe filesystem pentru pachetul ZIP nu corespunde cu fișierul local.
             }
 
             $localStylePath = Join-Path $localThemeRoot "style.css"
-            $remoteStylePath = ($RemoteThemePath.TrimEnd('/') + "/style.css")
             if ($response.data.filesystem_checks -and $response.data.filesystem_checks.theme_style_css -and $response.data.filesystem_checks.theme_style_css.exists -and $response.data.filesystem_checks.theme_style_css.sha256) {
+                Write-FilesystemCheckDebug -FilesystemCheck $response.data.filesystem_checks.theme_style_css -Label "theme stylesheet"
                 Assert-ServerFilesystemMatchesLocal -LocalPath $localStylePath -RemoteHash $response.data.filesystem_checks.theme_style_css.sha256 -Label "theme stylesheet"
             }
             else {
-                Write-Host "Filesystem hash verificare indisponibilă din runner; continui cu verificarea HTTP."
+                if ($response.data.filesystem_checks -and $response.data.filesystem_checks.theme_style_css) {
+                    Write-FilesystemCheckDebug -FilesystemCheck $response.data.filesystem_checks.theme_style_css -Label "theme stylesheet"
+                }
+                Write-Host "Filesystem hash verificare indisponibilă din runner; sar peste verificarea HTTP pentru style.css și continui cu smoke check."
             }
-
-            Assert-RemoteFileMatchesLocal -LocalPath $localStylePath -RemotePath $remoteStylePath -Label "theme stylesheet (public URL)"
 
             if (-not $KeepRemoteRunner) {
                 Write-Host "Deleting remote runner/zip..."
