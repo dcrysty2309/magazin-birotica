@@ -301,6 +301,10 @@ else {
             Write-Host "Package extraction finalizat."
             Write-Host (" - ZIP:      " + $response.data.zip_file)
             Write-Host (" - Import:   " + $response.data.import_seconds + " sec")
+            if ($response.data.opcache_reset) {
+                Write-Host (" - OPCache available: " + $response.data.opcache_reset.available)
+                Write-Host (" - OPCache reset:     " + $response.data.opcache_reset.result)
+            }
 
             $localPackagePath = Join-Path $repoRoot $PackageZipPath
             if ($response.data.zip_checks -and $response.data.zip_checks.package_zip -and $response.data.zip_checks.package_zip.exists -and $response.data.zip_checks.package_zip.sha256) {

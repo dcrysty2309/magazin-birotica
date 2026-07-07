@@ -81,6 +81,14 @@ for ($index = $offset; $index < $limit; $index++) {
 $importStartedAt = microtime(true);
 $extractOk = true;
 if ($files !== []) {
+    foreach ($files as $entry) {
+        $normalizedEntry = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $entry);
+        $targetPath = $baseDir . DIRECTORY_SEPARATOR . $normalizedEntry;
+        if (file_exists($targetPath) && is_file($targetPath)) {
+            @unlink($targetPath);
+        }
+    }
+
     $extractOk = $archive->extractTo($baseDir, $files);
 }
 $archive->close();
@@ -100,6 +108,10 @@ $nextOffset = $offset + count($files);
 $done = $nextOffset >= $totalFiles;
 $filesystemChecks = [];
 $zipChecks = [];
+$opcacheReset = [
+    'available' => function_exists('opcache_reset'),
+    'result' => null,
+];
 
 if (is_readable($zipPath)) {
     $zipChecks['package_zip'] = [
@@ -118,10 +130,16 @@ else {
 }
 
 if ($done) {
+    if ($opcacheReset['available']) {
+        $opcacheReset['result'] = opcache_reset();
+    }
+
     $stylePath = $baseDir . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . 'papetarie-storefront' . DIRECTORY_SEPARATOR . 'style.css';
     $filesystemChecks['theme_style_css'] = [
         'path' => $stylePath,
         'exists' => file_exists($stylePath),
+        'base_dir' => $baseDir,
+        'runner_dir' => __DIR__,
     ];
 
     if (is_readable($stylePath)) {
@@ -146,6 +164,7 @@ $result = [
         'done' => $done,
         'zip_checks' => $zipChecks,
         'filesystem_checks' => $filesystemChecks,
+        'opcache_reset' => $opcacheReset,
     ],
 ];
 

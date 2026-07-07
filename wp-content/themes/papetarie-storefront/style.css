@@ -72,11 +72,6 @@ body.theme-papetarie {
   flex-direction: column;
 }
 
-/* TEMP: deploy smoke test - remove after verification */
-body.theme-papetarie {
-  background: red !important;
-}
-
 body.theme-papetarie .hentry {
   margin: 0;
 }
