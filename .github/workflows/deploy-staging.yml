@@ -10,50 +10,20 @@ on:
       - main
     paths:
       - 'wp-content/themes/papetarie-storefront/**'
-      - 'wp-content/plugins/**'
-      - 'tools/build-staging-package.ps1'
       - 'tools/deploy-staging.ps1'
-      - 'tools/templates/staging-package-deploy-runner.php.tpl'
       - '.github/workflows/deploy-staging.yml'
   workflow_dispatch:
 
 jobs:
-  build-package:
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build staging package
-        shell: powershell
-        run: |
-          powershell -ExecutionPolicy Bypass -File .\tools\build-staging-package.ps1
-
-      - name: Upload staging package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: staging-package
-          path: build/staging-package.zip
-          if-no-files-found: error
-          retention-days: 1
-
   deploy-staging:
     runs-on: windows-latest
-    needs: build-package
     environment: staging
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download staging package artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: staging-package
-          path: build
-
-      - name: Deploy staging package to server
+      - name: Deploy staging theme to server
         shell: powershell
         env:
           STAGING_FTP_HOST: ${{ secrets.STAGING_FTP_HOST }}
@@ -63,4 +33,4 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:STAGING_FTP_HOST) -or [string]::IsNullOrWhiteSpace($env:STAGING_FTP_USER) -or [string]::IsNullOrWhiteSpace($env:STAGING_FTP_PASSWORD)) {
             throw "Staging secrets are missing. Check the 'staging' environment secrets in GitHub Actions."
           }
-          powershell -ExecutionPolicy Bypass -File .\tools\deploy-staging.ps1 -PackageZipPath .\build\staging-package.zip
+          powershell -ExecutionPolicy Bypass -File .\tools\deploy-staging.ps1 -SkipPlugins

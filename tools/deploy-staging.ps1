@@ -11,6 +11,7 @@ param(
     [string]$RemotePackageBasePath = "/wp-content/themes/papetarie-storefront/tools",
     [string]$RemotePackageZipFileName = "staging-package.zip",
     [string]$RemotePackageRunnerFileName = "staging-package-deploy-runner.php",
+    [switch]$SkipPlugins,
     [switch]$KeepRemoteRunner,
     [switch]$DryRun
 )
@@ -241,7 +242,15 @@ function Upload-SingleFile {
 
 if ([string]::IsNullOrWhiteSpace($PackageZipPath)) {
     Upload-Tree -LocalRoot $localThemeRoot -RemoteRoot $RemoteThemePath -Label "theme"
-    Upload-Tree -LocalRoot $localPluginRoot -RemoteRoot $RemotePluginPath -Label "plugins"
+
+    if (-not $SkipPlugins) {
+        Upload-Tree -LocalRoot $localPluginRoot -RemoteRoot $RemotePluginPath -Label "plugins"
+    }
+
+    if (-not $DryRun) {
+        $localStylePath = Join-Path $localThemeRoot "style.css"
+        Assert-RemoteFileMatchesLocal -LocalPath $localStylePath -RemotePath ($RemoteThemePath.TrimEnd('/') + '/style.css') -Label "theme stylesheet"
+    }
 }
 else {
     $packageLocalPath = Join-Path $repoRoot $PackageZipPath
