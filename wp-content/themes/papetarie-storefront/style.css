@@ -5883,6 +5883,11 @@ body.pap-checkout-cases-preview-open {
   }
 }
 
+/* Codex deploy probe: temporary live-verification style */
+body {
+  background: red !important;
+}
+
 @media (max-width: 1080px) {
   body.theme-papetarie .pap-checkout-cases-page .pap-checkout-cases-hero,
   body.theme-papetarie .pap-checkout-cases-page .pap-checkout-cases-layout {
