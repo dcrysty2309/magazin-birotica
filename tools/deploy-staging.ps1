@@ -122,6 +122,54 @@ function New-DeployUrl {
     return $builder.Uri.AbsoluteUri
 }
 
+function Assert-RemoteFileMatchesLocal {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LocalPath,
+        [Parameter(Mandatory = $true)]
+        [string]$RemotePath,
+        [Parameter(Mandatory = $true)]
+        [string]$Label
+    )
+
+    if (!(Test-Path -LiteralPath $LocalPath)) {
+        throw "Nu pot verifica $Label deoarece lipsește fișierul local: $LocalPath"
+    }
+
+    $localHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $LocalPath).Hash
+    $probeUrl = New-DeployUrl -BaseUrl $TargetUrl -RelativePath $RemotePath -QueryParameters ([ordered]@{
+        probe = New-DeployToken
+        v = (Get-Date -Format 'yyyyMMddHHmmss')
+    })
+
+    $tempPath = Join-Path $env:TEMP ("deploy-verify-" + [System.IO.Path]::GetRandomFileName())
+
+    try {
+        & curl.exe --silent --show-error --fail --location --output $tempPath --url $probeUrl
+        if ($LASTEXITCODE -ne 0) {
+            throw "Verificarea remote pentru $Label a eșuat (curl exit code $LASTEXITCODE)."
+        }
+
+        $remoteHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $tempPath).Hash
+        if ($localHash -ne $remoteHash) {
+            throw @"
+Verificarea remote pentru $Label nu corespunde cu fișierul local.
+ - Local:  $LocalPath
+ - Remote: $probeUrl
+ - Local SHA256:  $localHash
+ - Remote SHA256: $remoteHash
+"@
+        }
+
+        Write-Host "Verified $Label matches live content."
+    }
+    finally {
+        if (Test-Path -LiteralPath $tempPath) {
+            Remove-Item -LiteralPath $tempPath -Force
+        }
+    }
+}
+
 function Upload-SingleFile {
     param(
         [Parameter(Mandatory = $true)]
@@ -226,6 +274,10 @@ else {
             Write-Host "Package extraction finalizat."
             Write-Host (" - ZIP:      " + $response.data.zip_file)
             Write-Host (" - Import:   " + $response.data.import_seconds + " sec")
+
+            $localStylePath = Join-Path $localThemeRoot "style.css"
+            $remoteStylePath = ($RemoteThemePath.TrimEnd('/') + "/style.css")
+            Assert-RemoteFileMatchesLocal -LocalPath $localStylePath -RemotePath $remoteStylePath -Label "theme stylesheet"
 
             if (-not $KeepRemoteRunner) {
                 Write-Host "Deleting remote runner/zip..."
