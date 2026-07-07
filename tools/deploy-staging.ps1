@@ -170,6 +170,33 @@ Verificarea remote pentru $Label nu corespunde cu fișierul local.
     }
 }
 
+function Assert-ServerFilesystemMatchesLocal {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LocalPath,
+        [Parameter(Mandatory = $true)]
+        [string]$RemoteHash,
+        [Parameter(Mandatory = $true)]
+        [string]$Label
+    )
+
+    if (!(Test-Path -LiteralPath $LocalPath)) {
+        throw "Nu pot verifica $Label deoarece lipsește fișierul local: $LocalPath"
+    }
+
+    $localHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $LocalPath).Hash
+    if ($localHash -ne $RemoteHash) {
+        throw @"
+Verificarea pe filesystem pentru $Label nu corespunde cu fișierul local.
+ - Local:  $LocalPath
+ - Local SHA256:  $localHash
+ - Server SHA256: $RemoteHash
+"@
+    }
+
+    Write-Host "Verified $Label matches server filesystem."
+}
+
 function Upload-SingleFile {
     param(
         [Parameter(Mandatory = $true)]
@@ -277,7 +304,14 @@ else {
 
             $localStylePath = Join-Path $localThemeRoot "style.css"
             $remoteStylePath = ($RemoteThemePath.TrimEnd('/') + "/style.css")
-            Assert-RemoteFileMatchesLocal -LocalPath $localStylePath -RemotePath $remoteStylePath -Label "theme stylesheet"
+            if ($response.data.filesystem_checks -and $response.data.filesystem_checks.theme_style_css -and $response.data.filesystem_checks.theme_style_css.exists -and $response.data.filesystem_checks.theme_style_css.sha256) {
+                Assert-ServerFilesystemMatchesLocal -LocalPath $localStylePath -RemoteHash $response.data.filesystem_checks.theme_style_css.sha256 -Label "theme stylesheet"
+            }
+            else {
+                Write-Host "Filesystem hash verificare indisponibilă din runner; continui cu verificarea HTTP."
+            }
+
+            Assert-RemoteFileMatchesLocal -LocalPath $localStylePath -RemotePath $remoteStylePath -Label "theme stylesheet (public URL)"
 
             if (-not $KeepRemoteRunner) {
                 Write-Host "Deleting remote runner/zip..."

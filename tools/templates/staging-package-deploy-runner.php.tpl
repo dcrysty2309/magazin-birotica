@@ -98,6 +98,21 @@ clearstatcache(true);
 
 $nextOffset = $offset + count($files);
 $done = $nextOffset >= $totalFiles;
+$filesystemChecks = [];
+
+if ($done) {
+    $stylePath = $baseDir . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . 'papetarie-storefront' . DIRECTORY_SEPARATOR . 'style.css';
+    $filesystemChecks['theme_style_css'] = [
+        'path' => $stylePath,
+        'exists' => file_exists($stylePath),
+    ];
+
+    if (is_readable($stylePath)) {
+        $filesystemChecks['theme_style_css']['sha256'] = strtoupper(hash_file('sha256', $stylePath));
+        $filesystemChecks['theme_style_css']['size'] = filesize($stylePath);
+        $filesystemChecks['theme_style_css']['mtime'] = filemtime($stylePath);
+    }
+}
 
 $result = [
     'success' => true,
@@ -112,6 +127,7 @@ $result = [
         'total_files' => $totalFiles,
         'processed_files' => count($files),
         'done' => $done,
+        'filesystem_checks' => $filesystemChecks,
     ],
 ];
 
