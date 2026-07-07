@@ -40,22 +40,25 @@ Reset-Directory -Path $packageRoot
 $packageWpContent = Join-Path $packageRoot "wp-content"
 $packageThemes = Join-Path $packageWpContent "themes"
 $packagePlugins = Join-Path $packageWpContent "plugins"
+$customPluginWhitelist = @(
+    # Add custom plugins here only when staging should receive them from Git.
+)
 
 New-Item -ItemType Directory -Path $packageWpContent -Force | Out-Null
 New-Item -ItemType Directory -Path $packageThemes -Force | Out-Null
-New-Item -ItemType Directory -Path $packagePlugins -Force | Out-Null
-
-$wordpressStorefront = Join-Path $wordpressRoot "wp-content\themes\storefront"
-
-if (Test-Path -LiteralPath $wordpressStorefront) {
-    Copy-Item -LiteralPath $wordpressStorefront -Destination $packageThemes -Recurse -Force
-}
-
-Copy-Item -LiteralPath (Join-Path $rootWpContent "plugins") -Destination $packageWpContent -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $rootWpContent "themes\papetarie-storefront") -Destination $packageThemes -Recurse -Force
 
-if (Test-Path -LiteralPath (Join-Path $rootWpContent "themes\papetarie-store")) {
-    Copy-Item -LiteralPath (Join-Path $rootWpContent "themes\papetarie-store") -Destination $packageThemes -Recurse -Force
+if ($customPluginWhitelist.Count -gt 0) {
+    New-Item -ItemType Directory -Path $packagePlugins -Force | Out-Null
+
+    foreach ($pluginSlug in $customPluginWhitelist) {
+        $pluginSource = Join-Path $rootWpContent ("plugins\" + $pluginSlug)
+        if (!(Test-Path -LiteralPath $pluginSource)) {
+            throw "Pluginul custom definit pentru deploy nu exista: $pluginSource"
+        }
+
+        Copy-Item -LiteralPath $pluginSource -Destination $packagePlugins -Recurse -Force
+    }
 }
 
 foreach ($path in @(
