@@ -99,6 +99,23 @@ clearstatcache(true);
 $nextOffset = $offset + count($files);
 $done = $nextOffset >= $totalFiles;
 $filesystemChecks = [];
+$zipChecks = [];
+
+if (is_readable($zipPath)) {
+    $zipChecks['package_zip'] = [
+        'path' => $zipPath,
+        'exists' => true,
+        'sha256' => strtoupper(hash_file('sha256', $zipPath)),
+        'size' => filesize($zipPath),
+        'mtime' => filemtime($zipPath),
+    ];
+}
+else {
+    $zipChecks['package_zip'] = [
+        'path' => $zipPath,
+        'exists' => false,
+    ];
+}
 
 if ($done) {
     $stylePath = $baseDir . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . 'papetarie-storefront' . DIRECTORY_SEPARATOR . 'style.css';
@@ -127,6 +144,7 @@ $result = [
         'total_files' => $totalFiles,
         'processed_files' => count($files),
         'done' => $done,
+        'zip_checks' => $zipChecks,
         'filesystem_checks' => $filesystemChecks,
     ],
 ];

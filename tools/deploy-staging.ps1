@@ -302,6 +302,24 @@ else {
             Write-Host (" - ZIP:      " + $response.data.zip_file)
             Write-Host (" - Import:   " + $response.data.import_seconds + " sec")
 
+            $localPackagePath = Join-Path $repoRoot $PackageZipPath
+            if ($response.data.zip_checks -and $response.data.zip_checks.package_zip -and $response.data.zip_checks.package_zip.exists -and $response.data.zip_checks.package_zip.sha256) {
+                $localPackageHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $localPackagePath).Hash
+                if ($localPackageHash -ne $response.data.zip_checks.package_zip.sha256) {
+                    throw @"
+Verificarea pe filesystem pentru pachetul ZIP nu corespunde cu fișierul local.
+ - Local:  $localPackagePath
+ - Local SHA256:  $localPackageHash
+ - Server SHA256: $($response.data.zip_checks.package_zip.sha256)
+"@
+                }
+
+                Write-Host "Verified package ZIP matches server filesystem."
+            }
+            else {
+                Write-Host "Filesystem hash verificare indisponibilă pentru ZIP; continui cu verificarea style.css."
+            }
+
             $localStylePath = Join-Path $localThemeRoot "style.css"
             $remoteStylePath = ($RemoteThemePath.TrimEnd('/') + "/style.css")
             if ($response.data.filesystem_checks -and $response.data.filesystem_checks.theme_style_css -and $response.data.filesystem_checks.theme_style_css.exists -and $response.data.filesystem_checks.theme_style_css.sha256) {
