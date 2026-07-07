@@ -22,9 +22,10 @@ if (!isset($_GET['token']) || !hash_equals($expectedToken, (string) $_GET['token
     ]);
 }
 
-$baseDir = __DIR__;
+$packageDir = __DIR__;
+$baseDir = dirname(__DIR__, 4);
 $zipFileName = basename((string) ($_GET['zip'] ?? $defaultZipFile));
-$zipPath = $baseDir . DIRECTORY_SEPARATOR . $zipFileName;
+$zipPath = $packageDir . DIRECTORY_SEPARATOR . $zipFileName;
 $batchSize = max(1, (int) ($_GET['batch'] ?? 120));
 $offset = max(0, (int) ($_GET['offset'] ?? 0));
 $cleanupZip = isset($_GET['cleanup_zip']) ? (string) $_GET['cleanup_zip'] === '1' : true;
