@@ -1240,27 +1240,17 @@
       return false;
     }
 
-    return Boolean(
-      String(snapshot['#billing_first_name'] || '').trim()
-      || String(snapshot['#billing_last_name'] || '').trim()
-      || String(snapshot['#billing_phone'] || '').trim()
-      || String(snapshot['#billing_email'] || '').trim()
-      || String(snapshot.city || '').trim()
-      || String(snapshot.state || '').trim()
-      || String(snapshot['#billing_city'] || '').trim()
-      || String(snapshot['#billing_state'] || '').trim()
-      || String(snapshot['#shipping_state'] || '').trim()
-      || String(snapshot['#shipping_city'] || '').trim()
-      || String(snapshot.billing_state || '').trim()
-      || String(snapshot.billing_city || '').trim()
-      || String(snapshot.shipping_state || '').trim()
-      || String(snapshot.shipping_city || '').trim()
-      || String(snapshot['#shipping_address_1'] || '').trim()
-      || String(snapshot['#shipping_address_2'] || '').trim()
-      || String(snapshot.postcode || '').trim()
-      || String(snapshot['#shipping_postcode'] || '').trim()
-      || String(snapshot.shipping_postcode || '').trim()
-    );
+    const data = normalizeCheckoutPostcodeSnapshot(snapshot);
+    const firstName = String(data['#billing_first_name'] || '').trim();
+    const lastName = String(data['#billing_last_name'] || '').trim();
+    const phone = String(data['#billing_phone'] || '').trim();
+    const email = String(data['#billing_email'] || '').trim();
+    const state = String(data.state || '').trim();
+    const city = String(data.city || '').trim();
+    const address1 = String(data['#shipping_address_1'] || '').trim();
+    const postcode = String(data.postcode || '').trim();
+
+    return Boolean(firstName && lastName && phone && email && state && city && address1 && postcode);
   };
 
   const captureAndPersistGuestShippingSummaryCache = () => {
@@ -2942,41 +2932,49 @@
   };
 
   const hydrateSubmitAddressState = () => {
-    if (isLoggedIn) {
-      const confirmedSnapshot = getPreferredConfirmedAuthShippingSnapshot();
-      if (confirmedSnapshot) {
-        debugCheckout('hydrate submit from preferred confirmed auth snapshot', confirmedSnapshot);
-        hydrateAuthShippingFieldsFromSnapshot(confirmedSnapshot);
+    try {
+      if (isLoggedIn) {
+        const confirmedSnapshot = getPreferredConfirmedAuthShippingSnapshot();
+        if (confirmedSnapshot) {
+          debugCheckout('hydrate submit from preferred confirmed auth snapshot', confirmedSnapshot);
+          hydrateAuthShippingFieldsFromSnapshot(confirmedSnapshot);
+          return;
+        }
+
+        if (hasMeaningfulAuthShippingSnapshot(authShippingDraft)) {
+          debugCheckout('hydrate submit from auth draft', authShippingDraft);
+          hydrateAuthShippingFieldsFromSnapshot(authShippingDraft);
+          return;
+        }
+
+        if (hasMeaningfulAuthShippingSnapshot(authShippingEditSnapshotCache)) {
+          debugCheckout('hydrate submit from auth edit cache', authShippingEditSnapshotCache);
+          hydrateAuthShippingFieldsFromSnapshot(authShippingEditSnapshotCache);
+          return;
+        }
+
+        const summarySnapshot = getAuthShippingSummarySnapshotFromDom();
+        if (hasMeaningfulAuthShippingSnapshot(summarySnapshot)) {
+          debugCheckout('hydrate submit from auth summary dom snapshot', summarySnapshot);
+          authShippingDraft = summarySnapshot;
+          authCurrentOrderSnapshot = summarySnapshot;
+          hydrateAuthShippingFieldsFromSnapshot(summarySnapshot);
+        }
+
         return;
       }
 
-      if (hasMeaningfulAuthShippingSnapshot(authShippingDraft)) {
-        debugCheckout('hydrate submit from auth draft', authShippingDraft);
-        hydrateAuthShippingFieldsFromSnapshot(authShippingDraft);
-        return;
+      const guestSnapshot = normalizeCheckoutPostcodeSnapshot(getGuestShippingSnapshot() || guestShippingSummaryCache || captureGuestShippingSummaryCache());
+      if (hasGuestShippingSnapshotData(guestSnapshot)) {
+        debugCheckout('hydrate submit from guest snapshot', guestSnapshot);
+        hydrateGuestShippingFields(guestSnapshot);
       }
-
-      if (hasMeaningfulAuthShippingSnapshot(authShippingEditSnapshotCache)) {
-        debugCheckout('hydrate submit from auth edit cache', authShippingEditSnapshotCache);
-        hydrateAuthShippingFieldsFromSnapshot(authShippingEditSnapshotCache);
-        return;
-      }
-
-      const summarySnapshot = getAuthShippingSummarySnapshotFromDom();
-      if (hasMeaningfulAuthShippingSnapshot(summarySnapshot)) {
-        debugCheckout('hydrate submit from auth summary dom snapshot', summarySnapshot);
-        authShippingDraft = summarySnapshot;
-        authCurrentOrderSnapshot = summarySnapshot;
-        hydrateAuthShippingFieldsFromSnapshot(summarySnapshot);
-      }
-
-      return;
-    }
-
-    const guestSnapshot = normalizeCheckoutPostcodeSnapshot(getGuestShippingSnapshot() || guestShippingSummaryCache || captureGuestShippingSummaryCache());
-    if (hasGuestShippingSnapshotData(guestSnapshot)) {
-      debugCheckout('hydrate submit from guest snapshot', guestSnapshot);
-      hydrateGuestShippingFields(guestSnapshot);
+    } finally {
+      // The shipping_first_name/shipping_last_name hidden fields are never touched by the
+      // hydration paths above (WooCommerce still validates them server-side), so guarantee
+      // they mirror the billing name right before submit, regardless of which branch ran.
+      setCheckoutFieldValue(getFieldBySelector('#shipping_first_name'), getRawFieldValue('#billing_first_name'));
+      setCheckoutFieldValue(getFieldBySelector('#shipping_last_name'), getRawFieldValue('#billing_last_name'));
     }
   };
 
