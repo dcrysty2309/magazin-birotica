@@ -1085,6 +1085,17 @@
         }
       });
     }
+
+    var authParam = new URLSearchParams(window.location.search).get('pap_auth');
+    if ((authParam === 'login' || authParam === 'lost-password') && window.papOpenAuthModal) {
+      window.papOpenAuthModal(null, authParam);
+
+      if (window.history && window.history.replaceState) {
+        var cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('pap_auth');
+        window.history.replaceState(null, '', cleanUrl.toString());
+      }
+    }
   });
 
   window.papOpenAuthModal = openAuthModal;
