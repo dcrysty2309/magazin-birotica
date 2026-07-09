@@ -98,8 +98,8 @@ $show_form = !$shipping_address_is_summary;
                     <input type="hidden" name="billing_city" value="<?php echo esc_attr($checkout->get_value('billing_city') ?: $checkout->get_value('shipping_city')); ?>">
                     <input type="hidden" name="billing_address_1" value="<?php echo esc_attr($checkout->get_value('billing_address_1') ?: $checkout->get_value('shipping_address_1')); ?>">
                     <input type="hidden" name="billing_postcode" value="<?php echo esc_attr($checkout->get_value('billing_postcode') ?: $checkout->get_value('shipping_postcode')); ?>">
-                    <input type="hidden" name="shipping_first_name" value="<?php echo esc_attr($checkout->get_value('shipping_first_name') ?: $checkout->get_value('billing_first_name')); ?>">
-                    <input type="hidden" name="shipping_last_name" value="<?php echo esc_attr($checkout->get_value('shipping_last_name') ?: $checkout->get_value('billing_last_name')); ?>">
+                    <input type="hidden" id="shipping_first_name" name="shipping_first_name" value="<?php echo esc_attr($checkout->get_value('shipping_first_name') ?: $checkout->get_value('billing_first_name')); ?>">
+                    <input type="hidden" id="shipping_last_name" name="shipping_last_name" value="<?php echo esc_attr($checkout->get_value('shipping_last_name') ?: $checkout->get_value('billing_last_name')); ?>">
                     <input type="hidden" name="ship_to_different_address" value="1">
                     <input type="hidden" name="pap_guest_shipping_snapshot" value="" data-pap-guest-shipping-snapshot>
                     <input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
@@ -162,8 +162,8 @@ $show_form = !$shipping_address_is_summary;
                     <input type="hidden" name="billing_city" value="<?php echo esc_attr($checkout->get_value('billing_city') ?: $checkout->get_value('shipping_city')); ?>">
                     <input type="hidden" name="billing_address_1" value="<?php echo esc_attr($checkout->get_value('billing_address_1') ?: $checkout->get_value('shipping_address_1')); ?>">
                     <input type="hidden" name="billing_postcode" value="<?php echo esc_attr($checkout->get_value('billing_postcode') ?: $checkout->get_value('shipping_postcode')); ?>">
-                    <input type="hidden" name="shipping_first_name" value="<?php echo esc_attr($checkout->get_value('shipping_first_name') ?: $checkout->get_value('billing_first_name')); ?>">
-                    <input type="hidden" name="shipping_last_name" value="<?php echo esc_attr($checkout->get_value('shipping_last_name') ?: $checkout->get_value('billing_last_name')); ?>">
+                    <input type="hidden" id="shipping_first_name" name="shipping_first_name" value="<?php echo esc_attr($checkout->get_value('shipping_first_name') ?: $checkout->get_value('billing_first_name')); ?>">
+                    <input type="hidden" id="shipping_last_name" name="shipping_last_name" value="<?php echo esc_attr($checkout->get_value('shipping_last_name') ?: $checkout->get_value('billing_last_name')); ?>">
                     <input type="hidden" name="ship_to_different_address" value="1">
                     <input type="hidden" name="billing_country" value="<?php echo esc_attr($checkout->get_value('billing_country') ?: 'RO'); ?>">
                     <input type="hidden" name="shipping_country" value="<?php echo esc_attr($checkout->get_value('shipping_country') ?: 'RO'); ?>">
