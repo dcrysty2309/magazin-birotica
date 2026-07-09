@@ -98,49 +98,23 @@ Nu publicăm automat:
 - logs
 - DB
 
-Recomandare practică:
+## 6.1. Flux activ de deploy staging: upload direct FTP, doar tema copil
 
-1. se creează local un folder de tip `build/staging-package`
-2. în acel folder se copiază doar:
-   - tema `papetarie-storefront`
-   - tema `storefront`
-   - pluginurile necesare
-3. se urcă pachetul ca artifact
-4. staging extrage pachetul în `public_html`
-
-Script reutilizabil din repo:
+`tools/deploy-staging.ps1` este activ și este singurul script de deploy folosit în prezent. Urcă direct pe FTP, fișier cu fișier, doar `wp-content/themes/papetarie-storefront` (tema copil, ~85 de fișiere după excluderi). Rulare manuală, tipic cu `-SkipPlugins`:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\build-staging-package.ps1
+pwsh -File tools/deploy-staging.ps1 -SkipPlugins -DryRun
+pwsh -File tools/deploy-staging.ps1 -SkipPlugins
 ```
 
-## 6.1. Fluxul recomandat pentru GitHub Actions
+Scriptul include verificare automată: după upload, re-preia `style.css` de pe `notix.ro` printr-un URL cu query param unic (anti-cache) și compară hash-ul SHA256 cu fișierul local, apoi rulează un smoke check pe `/checkout/` și `/checkout-test-cases/`.
 
-Pentru deploy automat pe staging folosim un pachet arhivat, nu upload fișier-cu-fișier.
+Ce rămâne în afara acestui flux, intenționat, deocamdată:
 
-Fluxul oficial este:
-
-1. job-ul de build creează `build/staging-package.zip`
-2. artifact-ul `staging-package` este încărcat în GitHub Actions
-3. job-ul de deploy descarcă artifact-ul
-4. `tools/deploy-staging.ps1` urcă pe FTP doar:
-   - ZIP-ul pachetului
-   - runner-ul de extracție, plasat într-un path public al temei ca să fie sigur accesibil prin HTTP
-5. runner-ul de pe staging dezarhivează pachetul direct în `public_html` în batch-uri mici, ca să evite timeout-urile HTTP
-6. la final, runner-ul și ZIP-ul sunt curățate
-
-Avantaje:
-
-- nu mai încărcăm mii de fișiere individual
-- deploy-ul este mai rapid și mai stabil
-- staging primește exact pachetul validat în build
-- timpul lung de upload FTP se mută într-o singură arhivă
-
-Scriptul folosit de workflow:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\deploy-staging.ps1 -PackageZipPath .\build\staging-package.zip
-```
+- **pluginurile** (`wp-content/plugins`, ~11.800 de fișiere) — prea multe pentru upload file-by-file; nu sunt incluse implicit (`-SkipPlugins`), se urcă manual doar când chiar se schimbă;
+- **tema părinte `storefront`** — statică, rar modificată;
+- **`tools/build-staging-package.ps1`, `tools/sync-staging.ps1`, `tools/sync-staging-db.ps1`, `tools/prepare-sync-package.ps1`** — varianta cu pachet ZIP + runner PHP server-side care le folosea a cauzat majoritatea problemelor istorice (cale de extragere greșită, timeout-uri, verificare nesigură) și rămân dezactivate; nu se reactivează fără o decizie explicită;
+- **workflow-ul GitHub Actions** (`.github/workflows/deploy-staging.yml`) — a fost șters; reactivarea automatizării CI e o decizie separată, ulterioară, după ce fluxul manual e validat.
 
 ## 7. Fișiere care NU trebuie publicate
 
@@ -338,22 +312,8 @@ Checklist-ul operațional detaliat este în:
 
 Scriptul complet pentru sync este:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\sync-staging.ps1 -SourceEnvironment office-local -ExportDatabase -Label checkout-sync
-```
+`tools/sync-staging.ps1` este legacy și dezactivat (aruncă eroare la rulare). Nu îl mai folosim pentru staging.
 
-Scriptul de DB-only este:
+Scriptul de DB-only, `tools/sync-staging-db.ps1`, este de asemenea legacy și dezactivat. Nu îl mai folosim pentru staging.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\sync-staging-db.ps1 -SqlFile database\exports\latest-office-local.sql
-```
-
-Aceste scripturi:
-
-- urcÄƒ tema pe staging;
-- urcÄƒ temporar dump-ul SQL;
-- ruleazÄƒ importul controlat Ã®n baza staging;
-- fac search-replace pentru `http://localhost:8080` -> `https://notix.ro`;
-- fac flush la permalinks;
-- ruleazÄƒ smoke checks pe `checkout` È™i `checkout-test-cases`;
-- È™terg artefactele temporare de pe server.
+Când erau active, aceste scripturi urcau tema pe staging, urcau temporar dump-ul SQL, rulau importul controlat în baza staging, făceau search-replace pentru `http://localhost:8080` -> `https://notix.ro`, flush la permalinks și smoke checks pe `checkout` și `checkout-test-cases`, apoi ștergeau artefactele temporare de pe server. Pentru deploy de cod folosim în schimb fluxul activ din secțiunea 6.1.

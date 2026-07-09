@@ -63,16 +63,12 @@ Pentru iterații de temă și checkout:
 6. testezi flow-ul afectat în UI
 7. documentezi dacă s-a schimbat procesul
 
-### 7.1. Fluxul standard pe GitHub Actions pentru staging
+### 7.1. Fluxul activ de staging
 
-- workflow-ul de staging nu mai trebuie să urce mii de fișiere individual atunci când există un build de pachet;
-- job-ul de build produce `staging-package.zip`;
-- artifact-ul este descărcat de job-ul de deploy;
-- `tools/deploy-staging.ps1` primește opțiunea `-PackageZipPath` și urcă doar ZIP-ul și runner-ul de extracție;
-- staging dezarhivează pachetul direct în `public_html`, în batch-uri mici, pentru a evita timeout-urile;
-- după extracție, runner-ul și ZIP-ul sunt curățate;
-- pentru deploy manual local rămâne disponibil modul clasic FTP tree upload;
-- pentru GitHub Actions folosim preferabil fluxul cu artifact pentru a evita deploy-uri de ordinul orelor.
+- `tools/deploy-staging.ps1` este activ și este scriptul oficial de deploy — upload FTP direct, fișier cu fișier, doar pentru tema `papetarie-storefront` (`-SkipPlugins` implicit în uz manual);
+- `tools/build-staging-package.ps1`, `tools/sync-staging.ps1` și `tools/sync-staging-db.ps1` rămân legacy și dezactivate (aruncă eroare la rulare) — foloseau pachet ZIP + runner PHP server-side, sursa majorității bug-urilor istorice (cale de extragere greșită, timeout-uri, verificare nesigură);
+- workflow-ul GitHub Actions din `.github/workflows/deploy-staging.yml` a fost eliminat; reactivarea CI e o decizie separată, ulterioară;
+- orice reactivare a scripturilor legacy sau a CI trebuie decisă explicit, nu presupusă implicit din acest document.
 
 ## 7.1. Ciclul oficial de QA pentru checkout
 
@@ -92,15 +88,10 @@ Pentru iterații de temă și checkout:
 
 ## 8. Automatizare
 
-- Deploy-ul automat de temă rulează din GitHub Actions prin `.github/workflows/deploy-staging.yml`.
-- Workflow-ul pornește la `push` pe `main` doar când se schimbă tema `papetarie-storefront`, scriptul de deploy sau workflow-ul de staging.
-- Workflow-ul poate fi pornit și manual din tab-ul Actions.
+- Deploy-ul de temă se face manual, rulând `tools/deploy-staging.ps1 -SkipPlugins` (cu `-DryRun` întâi, ca verificare).
+- Nu există în prezent un workflow CI activ pentru deploy staging — `.github/workflows/deploy-staging.yml` a fost eliminat. Reactivarea lui e o decizie separată, ulterioară.
+- Scripturile legacy de sync/pachet (`build-staging-package.ps1`, `sync-staging.ps1`, `sync-staging-db.ps1`, `prepare-sync-package.ps1`) rămân dezactivate.
 - Conturile de test trebuie să rămână aliniate între local și staging.
-- Secrete necesare în GitHub:
-  - `STAGING_FTP_HOST`
-  - `STAGING_FTP_USER`
-  - `STAGING_FTP_PASSWORD`
-  - dacă mediul este protejat prin environment rules, se folosesc și aprobările specificate în `staging`
 
 ### 8.1. Regula de deploy cod-only
 
@@ -116,11 +107,11 @@ Pentru iterații de temă și checkout:
 - Dacă se schimbă procesul real de deploy, se actualizează acest fișier și documentația din `docs/deployment/` în aceeași iterație.
 - Sincronizarea între `HOME-LOCAL`, `OFFICE-LOCAL` și `STAGING` urmează obligatoriu regulile din [environment-sync-rules.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/environment-sync-rules.md).
 - 
-## 10. Scripturi oficiale pentru sync complet
+## 10. Scripturi de deploy — stare curentă
 
-- Pentru sync de DB local -> staging folosim [sync-staging-db.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging-db.ps1).
-- Pentru sync complet `tema + DB + smoke check` folosim [sync-staging.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging.ps1).
-- Nu lÄƒsÄƒm dump-uri SQL sau runner-e PHP Ã®n `public_html` dupÄƒ sincronizare.
+- `tools/deploy-staging.ps1` este **activ** (deploy tema copil prin FTP direct).
+- `tools/build-staging-package.ps1`, `tools/sync-staging.ps1`, `tools/sync-staging-db.ps1` și `tools/prepare-sync-package.ps1` sunt **dezactivate**.
+- Nu reactivăm scripturile dezactivate pentru staging fără o decizie explicită și un nou design de deploy.
 ## 11. Strategie de propagare a datelor
 
 - Pentru a decide cand sincronizam DB complet si cand lasam staging-ul neschimbat pe continut, folosim [data-sync-strategy.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/data-sync-strategy.md).

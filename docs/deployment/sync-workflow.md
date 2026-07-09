@@ -206,18 +206,21 @@ Este terminat doar când există:
 - manifest;
 - test de verificare.
 
-## 11. Scripturi oficiale
+## 11. Scripturi legacy și scripturi active
 
-Pentru acest proces folosim:
+Scripturi active:
 
-- [export-sync-db.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/export-sync-db.ps1)
-- [new-sync-manifest.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/new-sync-manifest.ps1)
+- [export-sync-db.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/export-sync-db.ps1) — export local / manifest.
+- [new-sync-manifest.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/new-sync-manifest.ps1) — export local / manifest.
+- [prepare-sync-package.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/prepare-sync-package.ps1) — export local / manifest.
+- [deploy-staging.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/deploy-staging.ps1) — deploy de cod (tema copil) prin FTP direct; nu face parte din sync-ul de DB descris în acest document, e documentat separat în [deployment-guide.md](./deployment-guide.md#61-flux-activ-de-deploy-staging-upload-direct-ftp-doar-tema-copil).
+- [data-sync-strategy.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/data-sync-strategy.md)
+
+Scripturi legacy retrase, care nu mai trebuie rulate:
+
 - [build-staging-package.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/build-staging-package.ps1)
-- [deploy-staging.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/deploy-staging.ps1)
-- [prepare-sync-package.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/prepare-sync-package.ps1)
 - [sync-staging-db.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging-db.ps1)
 - [sync-staging.ps1](/D:/proiecte/mag-pap/magazin-birotica/tools/sync-staging.ps1)
-- [data-sync-strategy.md](/D:/proiecte/mag-pap/magazin-birotica/docs/deployment/data-sync-strategy.md)
 
 ## 12. Confirmare pentru business config
 
