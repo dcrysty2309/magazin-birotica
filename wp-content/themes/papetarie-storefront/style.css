@@ -3213,36 +3213,6 @@ body.tax-product_cat .pap-header-catmenu-panel {
   margin-left: 0;
 }
 
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-panel {
-  padding: 32px 24px 24px;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-form {
-  margin-bottom: 14px;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-social {
-  gap: 14px;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-social-footer {
-  margin-top: 10px;
-  gap: 4px;
-  justify-content: center;
-  text-align: center;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-social-prefix,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-social-switch {
-  font-size: 13px;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-form-links {
-  justify-content: center;
-  flex-wrap: wrap;
-  text-align: center;
-}
-
 .pap-auth-input-field {
   position: relative;
   display: block;
@@ -8399,11 +8369,7 @@ body.theme-papetarie.woocommerce-account .page-header {
   padding: 0 !important;
 }
 
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-visual-image {
-  display: none;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-visual {
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-visual {
   background: transparent;
   background-image: none;
   border: 0;
@@ -8411,17 +8377,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login 
   color: #17324d;
 }
 
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-visual,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-visual,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-visual {
-  background: transparent;
-  background-image: none;
-  border: 0;
-  box-shadow: none;
-  color: #17324d;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-visual::before {
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-visual::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -8429,49 +8385,13 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login 
   pointer-events: none;
 }
 
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-visual::before,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-visual::before,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-visual::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: transparent;
-  pointer-events: none;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-panel {
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-panel {
   backdrop-filter: blur(0);
   background: #fff;
   border: 1px solid #d9e2ec;
   box-shadow: 0 10px 24px rgba(18, 39, 74, 0.05);
   padding: 28px;
   border-radius: 0;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-panel,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-panel,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-panel {
-  backdrop-filter: blur(0);
-  background: #fff;
-  border: 1px solid #d9e2ec;
-  box-shadow: 0 10px 24px rgba(18, 39, 74, 0.05);
-  padding: 28px;
-  border-radius: 0;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-card,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-inline .pap-auth-card {
-  padding: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  border-radius: 0;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-tabs {
-  background: transparent;
-  border: 0;
-  padding: 0;
 }
 
 body.theme-papetarie .related.products ul.products {
@@ -13609,20 +13529,6 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-footer {
   white-space: nowrap;
 }
 
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-visual h2 {
-  font-weight: 700;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-visual h2,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-visual h2 {
-  margin: 0;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-form,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-form {
-  margin-bottom: 0;
-}
-
 .pap-auth-intro,
 .pap-auth-panel-head p,
 .pap-auth-card-intro,
@@ -13735,9 +13641,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-benefits {
   overflow: hidden;
 }
 
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-visual-image,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-visual-image,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-visual-image {
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-visual-image {
   margin-top: 0;
   border: 0;
   background: transparent;
@@ -13747,9 +13651,7 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
   align-self: flex-start;
 }
 
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-visual-image img,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-visual-image img,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-visual-image img {
+body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-password .pap-auth-visual-image img {
   object-fit: contain;
 }
 
@@ -13860,24 +13762,6 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-p
   line-height: 1.25;
   color: #17324d;
   margin: 0 0 16px;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password .pap-auth-panel .pap-auth-card--single > h2,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--lost-password-confirmation .pap-auth-panel .pap-auth-card--single > h2 {
-  font-size: var(--pap-page-title-size);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #17324d;
-  margin: 0 0 12px;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--login .pap-auth-card--login > h2 {
-  font-size: var(--pap-page-title-size);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: 0;
 }
 
 .pap-auth-card-intro,
@@ -14378,10 +14262,6 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .show-password-input:fo
   white-space: nowrap;
 }
 
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-modal .pap-auth-form-links {
-  margin-top: 10px;
-}
-
 .pap-auth-tab,
 .pap-auth-inline-switch,
 .pap-auth-social-button,
@@ -14652,14 +14532,6 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-form-meta > a
 .pap-auth-social-switch:visited {
   color: #1E4F99;
   text-decoration: none;
-}
-
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-social-footer .pap-auth-social-switch,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-social-footer .pap-auth-social-switch:hover,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-social-footer .pap-auth-social-switch:focus-visible,
-body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-social-footer .pap-auth-social-switch:visited {
-  text-decoration: none;
-  border-bottom: 0;
 }
 
 .pap-auth-form-links-label {

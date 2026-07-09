@@ -5386,6 +5386,32 @@ function papetarie_storefront_handle_auth_activation_request(): void
 }
 add_action('template_redirect', 'papetarie_storefront_handle_auth_activation_request', 5);
 
+function papetarie_storefront_redirect_guest_account_page(): void
+{
+    if (is_admin() || is_user_logged_in()) {
+        return;
+    }
+
+    if (!function_exists('is_account_page') || !is_account_page()) {
+        return;
+    }
+
+    $is_lost_password = function_exists('is_lost_password_page') && is_lost_password_page();
+    $is_reset_step = $is_lost_password && (
+        (!empty($_GET['key']) && !empty($_GET['login']))
+        || !empty($_GET['show-reset-form'])
+    );
+
+    if ($is_reset_step) {
+        return;
+    }
+
+    $view = $is_lost_password ? 'lost-password' : 'login';
+    wp_safe_redirect(add_query_arg('pap_auth', $view, home_url('/')));
+    exit;
+}
+add_action('template_redirect', 'papetarie_storefront_redirect_guest_account_page', 10);
+
 function papetarie_storefront_block_unconfirmed_authentication($user, $username = '', $password = '')
 {
     if (is_wp_error($user) || !$user instanceof WP_User) {
