@@ -23,9 +23,9 @@ Environment țintă:
 
 ## B. Ce urcăm
 
-- pluginurile necesare din [wp-content/plugins](/D:/proiecte/mag-pap/magazin-birotica/wp-content/plugins)
-- tema custom din [wp-content/themes/papetarie-storefront](/D:/proiecte/mag-pap/magazin-birotica/wp-content/themes/papetarie-storefront)
-- tema părinte `storefront` din [wordpress/wp-content/themes/storefront](/D:/proiecte/mag-pap/magazin-birotica/wordpress/wp-content/themes/storefront)
+- pluginurile necesare din [wp-content/plugins](../../wp-content/plugins)
+- tema custom din [wp-content/themes/papetarie-storefront](../../wp-content/themes/papetarie-storefront)
+- tema părinte `storefront` din [wordpress/wp-content/themes/storefront](../../wordpress/wp-content/themes/storefront)
 
 ## C. Ce NU urcăm
 
