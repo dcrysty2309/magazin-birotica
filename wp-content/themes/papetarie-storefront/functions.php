@@ -3168,16 +3168,30 @@ function papetarie_storefront_is_checkout_like_page(): bool
  * form (sometimes still frozen in its "submitting" overlay) instead of
  * re-checking the server, where the cart is already empty. `no-store`
  * opts the page out of bfcache so Back always forces a fresh request.
+ *
+ * A raw header() call isn't enough: WC_Cache_Helper::prevent_caching()
+ * hooks `wp_headers` at priority 5 and explicitly strips `no-store` for
+ * logged-out visitors (to keep bfcache available storefront-wide), which
+ * runs after template_redirect and overwrites it. Hook the same filter at
+ * a later priority instead, exactly as that method's own docblock suggests.
  */
-function papetarie_storefront_prevent_checkout_bfcache(): void
+function papetarie_storefront_prevent_checkout_bfcache(array $headers): array
 {
-    if (headers_sent() || !papetarie_storefront_is_checkout_like_page()) {
-        return;
+    if (!papetarie_storefront_is_checkout_like_page() || !isset($headers['Cache-Control'])) {
+        return $headers;
     }
 
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    $directives = preg_split('/\s*,\s*/', trim((string) $headers['Cache-Control'])) ?: [];
+
+    if (!in_array('no-store', $directives, true)) {
+        $directives[] = 'no-store';
+    }
+
+    $headers['Cache-Control'] = implode(', ', array_unique($directives));
+
+    return $headers;
 }
-add_action('template_redirect', 'papetarie_storefront_prevent_checkout_bfcache', 5);
+add_filter('wp_headers', 'papetarie_storefront_prevent_checkout_bfcache', 20);
 
 function papetarie_storefront_is_checkout_or_order_received_page(): bool
 {
