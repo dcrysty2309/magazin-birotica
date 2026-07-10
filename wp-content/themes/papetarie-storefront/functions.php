@@ -5044,6 +5044,32 @@ function papetarie_storefront_render_checkout_form_field(string $key, array $fie
     );
 }
 
+/**
+ * Logged-in checkout shows the account's email as a read-only field instead
+ * of an editable input. The account email is also the login identifier, and
+ * letting it be edited here (even behind the "save address" checkbox) meant
+ * a checkbox labelled as being about the address could silently change what
+ * email a customer logs in with. Changing the login email now only happens
+ * from the dedicated "Detalii cont" account page.
+ */
+function papetarie_storefront_render_checkout_account_email_field(string $email): string
+{
+    return sprintf(
+        '<fieldset class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide pap-form-row pap-checkout-readonly-row">
+            <label>%1$s</label>
+            <div class="pap-checkout-readonly-field">%2$s</div>
+            <p class="pap-checkout-readonly-field__hint">%3$s <a href="%4$s">%5$s</a></p>
+            <input type="hidden" id="billing_email" name="billing_email" value="%6$s" />
+        </fieldset>',
+        esc_html__('Email', 'papetarie-storefront'),
+        esc_html($email),
+        esc_html__('Emailul contului tău.', 'papetarie-storefront'),
+        esc_url(function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('edit-account') : ''),
+        esc_html__('Îl schimbi din Contul meu', 'papetarie-storefront'),
+        esc_attr($email)
+    );
+}
+
 function papetarie_storefront_password_toggle_icon(): string
 {
     return '
@@ -7127,6 +7153,17 @@ function papetarie_storefront_checkout_sync_customer_from_posted_data(array $pos
     $billing_first_name = sanitize_text_field((string) ($posted_data['billing_first_name'] ?? $posted_data['shipping_first_name'] ?? ''));
     $billing_last_name = sanitize_text_field((string) ($posted_data['billing_last_name'] ?? $posted_data['shipping_last_name'] ?? ''));
     $billing_email = sanitize_email((string) ($posted_data['billing_email'] ?? ''));
+    if (is_user_logged_in()) {
+        // Checkout no longer offers an editable email field for logged-in
+        // customers (see papetarie_storefront_render_checkout_account_email_field)
+        // — the login email only changes from the account page. Ignore
+        // whatever was posted and always sync from the real account email,
+        // so nothing downstream can drift from it.
+        $current_user = wp_get_current_user();
+        if ($current_user instanceof WP_User && $current_user->exists()) {
+            $billing_email = sanitize_email((string) $current_user->user_email);
+        }
+    }
     $billing_phone = sanitize_text_field((string) ($posted_data['billing_phone'] ?? $posted_data['shipping_phone'] ?? ''));
     $billing_country = strtoupper(sanitize_text_field((string) ($posted_data['billing_country'] ?? $posted_data['shipping_country'] ?? 'RO')));
     if ($billing_country === '') {
@@ -7609,7 +7646,13 @@ function papetarie_storefront_checkout_persist_snapshot_to_account(array $snapsh
 
     $billing_first_name = sanitize_text_field((string) ($normalized_snapshot['billing_first_name'] ?? ''));
     $billing_last_name = sanitize_text_field((string) ($normalized_snapshot['billing_last_name'] ?? ''));
-    $billing_email = sanitize_email((string) ($normalized_snapshot['billing_email'] ?? ''));
+    // Checkout no longer offers an editable email field — the login email
+    // only changes from the account page, never as a side effect of saving
+    // the address. Always use the account's real, current email here.
+    $current_account_user = get_user_by('id', $user_id);
+    $billing_email = $current_account_user instanceof WP_User
+        ? sanitize_email((string) $current_account_user->user_email)
+        : sanitize_email((string) ($normalized_snapshot['billing_email'] ?? ''));
     $billing_phone = sanitize_text_field((string) ($normalized_snapshot['billing_phone'] ?? ''));
     $billing_country = sanitize_text_field((string) ($normalized_snapshot['billing_country'] ?? 'RO'));
     $billing_state = sanitize_text_field((string) ($normalized_snapshot['billing_state'] ?? ''));

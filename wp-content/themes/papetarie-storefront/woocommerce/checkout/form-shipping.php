@@ -135,7 +135,7 @@ $show_form = !$shipping_address_is_summary;
                     </div>
 
                     <div class="pap-form-row pap-form-row--split">
-                        <?php echo $render_billing_field('billing_email'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                        <?php echo function_exists('papetarie_storefront_render_checkout_account_email_field') ? papetarie_storefront_render_checkout_account_email_field((string) wp_get_current_user()->user_email) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                         <?php echo $render_billing_field('billing_phone'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     </div>
 

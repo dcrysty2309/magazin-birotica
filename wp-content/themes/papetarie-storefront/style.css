@@ -13543,6 +13543,38 @@ body.theme-papetarie .pap-auth-modal table:not(.has-background) tbody tr:nth-chi
   box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.12);
 }
 
+.pap-checkout-readonly-field {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--pap-input-height);
+  max-height: var(--pap-input-height);
+  height: var(--pap-input-height);
+  padding: 11px 16px;
+  border: 1px solid #e3e9f1;
+  background: #f4f7fb;
+  color: #5f7290;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.pap-checkout-readonly-field__hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #8697b0;
+}
+
+.pap-checkout-readonly-field__hint a {
+  color: #1e4f99;
+  text-decoration: none;
+}
+
+.pap-checkout-readonly-field__hint a:hover,
+.pap-checkout-readonly-field__hint a:focus-visible {
+  text-decoration: underline;
+}
+
 .pap-form-row .pap-auth-input-field .input-text,
 .pap-form-row .pap-auth-input-field .woocommerce-Input,
 .pap-form-row .pap-auth-input-field select,
