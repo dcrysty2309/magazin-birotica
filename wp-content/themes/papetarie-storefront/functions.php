@@ -1662,6 +1662,30 @@ function papetarie_storefront_checkout_shipping_address_mode(): string
     return 'edit';
 }
 
+/**
+ * These two cookies are guest-checkout state only. Clear them on logout so a
+ * later guest visitor on the same browser never inherits the previous
+ * account's address data (belt-and-suspenders on top of the JS-side fix that
+ * stops the logged-in flow from writing to them in the first place).
+ */
+function papetarie_storefront_clear_guest_checkout_cookies_on_logout(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    $expire = time() - YEAR_IN_SECONDS;
+    $cookie_args = [
+        'expires' => $expire,
+        'path' => COOKIEPATH ?: '/',
+        'domain' => COOKIE_DOMAIN ?: '',
+    ];
+
+    setcookie('pap_checkout_shipping_mode', '', $cookie_args);
+    setcookie('pap_checkout_shipping_snapshot', '', $cookie_args);
+}
+add_action('wp_logout', 'papetarie_storefront_clear_guest_checkout_cookies_on_logout');
+
 function papetarie_storefront_checkout_guest_shipping_snapshot(): array
 {
     if (
