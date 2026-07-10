@@ -1827,6 +1827,25 @@ function papetarie_storefront_checkout_guest_shipping_summary_lines(): array
     return $lines;
 }
 
+/**
+ * A decoded snapshot array (from the guest cookie or the address book) can be
+ * structurally non-empty — every expected key present — while every value is
+ * an empty string, e.g. after resetGuestShippingState() serializes a blank
+ * snapshot. `empty($array)` doesn't catch that, so callers that treat a
+ * structurally-present snapshot as "real data" end up overriding a complete,
+ * genuinely saved account address with fifteen blank fields.
+ */
+function papetarie_storefront_checkout_snapshot_has_values(array $snapshot): bool
+{
+    foreach ($snapshot as $value) {
+        if (is_string($value) && trim($value) !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function papetarie_storefront_checkout_standard_address_snapshot(): array
 {
     if (
@@ -1840,7 +1859,7 @@ function papetarie_storefront_checkout_standard_address_snapshot(): array
     ) {
         $temporary_snapshot = papetarie_storefront_address_book_checkout_temporary_snapshot();
 
-        if (is_array($temporary_snapshot) && !empty($temporary_snapshot)) {
+        if (is_array($temporary_snapshot) && papetarie_storefront_checkout_snapshot_has_values($temporary_snapshot)) {
             return [
                 'billing_first_name' => trim((string) ($temporary_snapshot['#billing_first_name'] ?? '')),
                 'billing_last_name' => trim((string) ($temporary_snapshot['#billing_last_name'] ?? '')),
@@ -1868,7 +1887,7 @@ function papetarie_storefront_checkout_standard_address_snapshot(): array
 
     if (function_exists('is_user_logged_in') && is_user_logged_in()) {
         $current_order_snapshot = papetarie_storefront_checkout_guest_shipping_snapshot();
-        if (is_array($current_order_snapshot) && !empty($current_order_snapshot)) {
+        if (is_array($current_order_snapshot) && papetarie_storefront_checkout_snapshot_has_values($current_order_snapshot)) {
             return [
                 'billing_first_name' => trim((string) ($current_order_snapshot['#billing_first_name'] ?? '')),
                 'billing_last_name' => trim((string) ($current_order_snapshot['#billing_last_name'] ?? '')),
@@ -2520,9 +2539,31 @@ function papetarie_storefront_filter_checkout_payment_gateways(array $gateways):
 }
 add_filter('woocommerce_available_payment_gateways', 'papetarie_storefront_filter_checkout_payment_gateways', 20);
 
+/**
+ * Both flat_rate and free_shipping are configured on the same zone, so once
+ * the cart clears the free-shipping threshold WooCommerce hands back both
+ * as valid options — showing "15 lei" and "Transport gratuit" side by side
+ * and letting the customer pick, which reads as a bug, not a choice. Once
+ * free shipping qualifies, it should be the only option.
+ */
 function papetarie_storefront_filter_checkout_shipping_rates(array $rates, array $package): array
 {
-    return $rates;
+    $has_free_shipping = false;
+
+    foreach ($rates as $rate) {
+        if ($rate instanceof WC_Shipping_Rate && 'free_shipping' === $rate->get_method_id()) {
+            $has_free_shipping = true;
+            break;
+        }
+    }
+
+    if (!$has_free_shipping) {
+        return $rates;
+    }
+
+    return array_filter($rates, static function ($rate): bool {
+        return !($rate instanceof WC_Shipping_Rate && 'flat_rate' === $rate->get_method_id());
+    });
 }
 add_filter('woocommerce_package_rates', 'papetarie_storefront_filter_checkout_shipping_rates', 20, 2);
 
@@ -3120,6 +3161,23 @@ function papetarie_storefront_is_checkout_like_page(): bool
 
     return str_contains($content, 'woocommerce-checkout');
 }
+
+/**
+ * Without this, browsers can restore the checkout page from the
+ * back/forward cache after a successful order — showing the old, filled-in
+ * form (sometimes still frozen in its "submitting" overlay) instead of
+ * re-checking the server, where the cart is already empty. `no-store`
+ * opts the page out of bfcache so Back always forces a fresh request.
+ */
+function papetarie_storefront_prevent_checkout_bfcache(): void
+{
+    if (headers_sent() || !papetarie_storefront_is_checkout_like_page()) {
+        return;
+    }
+
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+}
+add_action('template_redirect', 'papetarie_storefront_prevent_checkout_bfcache', 5);
 
 function papetarie_storefront_is_checkout_or_order_received_page(): bool
 {
