@@ -890,6 +890,11 @@ function papetarie_storefront_checkout_notice_hooks(): void
         return;
     }
 
+    // WC_Shortcode_Checkout::output() fires this hook before form-checkout.php
+    // even loads, so it prints (and clears) notices ahead of the theme's own
+    // filtered renderer below — has to be suppressed too, or cart-added/removed
+    // messages leak straight onto checkout unfiltered.
+    remove_action('woocommerce_before_checkout_form_cart_notices', 'woocommerce_output_all_notices', 10);
     remove_action('woocommerce_before_checkout_form', 'woocommerce_output_all_notices', 10);
     papetarie_storefront_clear_checkout_success_notices();
 }
