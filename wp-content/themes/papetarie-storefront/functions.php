@@ -7223,6 +7223,34 @@ function papetarie_storefront_checkout_should_persist_address_to_account(): bool
     return $save_checkbox === '1';
 }
 
+/**
+ * Belt-and-suspenders on top of the capture/restore snapshot dance above:
+ * WooCommerce's own WC_Checkout::process_customer() unconditionally writes
+ * every posted billing and shipping field straight to the logged-in
+ * customer's account on every order placement, regardless of the "update my
+ * account" checkbox — that write happens whether or not the session-based
+ * capture/restore around it succeeds. Block it directly at the source when
+ * the checkbox wasn't checked, so an account never gets overwritten even if
+ * the snapshot state above is ever missing or stale.
+ */
+function papetarie_storefront_checkout_should_update_customer_data(bool $should_update, $checkout): bool
+{
+    // New-account registration during this same checkout: no "update my
+    // account" checkbox exists for that flow (it only renders for an
+    // already-logged-in customer), and there's no prior saved address to
+    // protect, so let WooCommerce save the just-entered details normally.
+    if (!empty($_POST['createaccount']) || (function_exists('WC') && WC() && WC()->checkout()->is_registration_required())) {
+        return $should_update;
+    }
+
+    if (!is_user_logged_in()) {
+        return $should_update;
+    }
+
+    return papetarie_storefront_checkout_should_persist_address_to_account();
+}
+add_filter('woocommerce_checkout_update_customer_data', 'papetarie_storefront_checkout_should_update_customer_data', 10, 2);
+
 function papetarie_storefront_checkout_account_meta_snapshot(): array
 {
     if (!is_user_logged_in()) {
@@ -7383,32 +7411,39 @@ function papetarie_storefront_checkout_capture_customer_snapshot(): void
         }
     }
 
-    $customer = WC()->customer;
+    // Read straight from user meta (the real, persisted account data) — NOT
+    // from $customer->get_billing_*()/get_shipping_*(). WC()->customer is a
+    // session-persisted, in-memory object that the theme's own
+    // sync_customer_from_request() actively mutates on every debounced
+    // update_order_review call while the user is still typing, long before
+    // they submit anything. Reading from it here would "capture" whatever
+    // was last typed instead of the account's actual original values.
+    $user_id = get_current_user_id();
     $snapshot = [
-        'first_name' => (string) get_user_meta(get_current_user_id(), 'first_name', true),
-        'last_name' => (string) get_user_meta(get_current_user_id(), 'last_name', true),
+        'first_name' => (string) get_user_meta($user_id, 'first_name', true),
+        'last_name' => (string) get_user_meta($user_id, 'last_name', true),
         'user_email' => (string) wp_get_current_user()->user_email,
-        'billing_first_name' => (string) $customer->get_billing_first_name(),
-        'billing_last_name' => (string) $customer->get_billing_last_name(),
-        'billing_email' => (string) $customer->get_billing_email(),
-        'billing_phone' => (string) $customer->get_billing_phone(),
-        'billing_country' => (string) $customer->get_billing_country(),
-        'billing_state' => (string) $customer->get_billing_state(),
-        'billing_city' => (string) $customer->get_billing_city(),
-        'billing_postcode' => (string) $customer->get_billing_postcode(),
-        'billing_address_1' => (string) $customer->get_billing_address_1(),
-        'billing_address_2' => (string) $customer->get_billing_address_2(),
-        'billing_company' => (string) $customer->get_billing_company(),
-        'shipping_first_name' => (string) $customer->get_shipping_first_name(),
-        'shipping_last_name' => (string) $customer->get_shipping_last_name(),
-        'shipping_phone' => (string) $customer->get_shipping_phone(),
-        'shipping_country' => (string) $customer->get_shipping_country(),
-        'shipping_state' => (string) $customer->get_shipping_state(),
-        'shipping_city' => (string) $customer->get_shipping_city(),
-        'shipping_postcode' => (string) $customer->get_shipping_postcode(),
-        'shipping_address_1' => (string) $customer->get_shipping_address_1(),
-        'shipping_address_2' => (string) $customer->get_shipping_address_2(),
-        'shipping_company' => (string) $customer->get_shipping_company(),
+        'billing_first_name' => (string) get_user_meta($user_id, 'billing_first_name', true),
+        'billing_last_name' => (string) get_user_meta($user_id, 'billing_last_name', true),
+        'billing_email' => (string) get_user_meta($user_id, 'billing_email', true),
+        'billing_phone' => (string) get_user_meta($user_id, 'billing_phone', true),
+        'billing_country' => (string) get_user_meta($user_id, 'billing_country', true),
+        'billing_state' => (string) get_user_meta($user_id, 'billing_state', true),
+        'billing_city' => (string) get_user_meta($user_id, 'billing_city', true),
+        'billing_postcode' => (string) get_user_meta($user_id, 'billing_postcode', true),
+        'billing_address_1' => (string) get_user_meta($user_id, 'billing_address_1', true),
+        'billing_address_2' => (string) get_user_meta($user_id, 'billing_address_2', true),
+        'billing_company' => (string) get_user_meta($user_id, 'billing_company', true),
+        'shipping_first_name' => (string) get_user_meta($user_id, 'shipping_first_name', true),
+        'shipping_last_name' => (string) get_user_meta($user_id, 'shipping_last_name', true),
+        'shipping_phone' => (string) get_user_meta($user_id, 'shipping_phone', true),
+        'shipping_country' => (string) get_user_meta($user_id, 'shipping_country', true),
+        'shipping_state' => (string) get_user_meta($user_id, 'shipping_state', true),
+        'shipping_city' => (string) get_user_meta($user_id, 'shipping_city', true),
+        'shipping_postcode' => (string) get_user_meta($user_id, 'shipping_postcode', true),
+        'shipping_address_1' => (string) get_user_meta($user_id, 'shipping_address_1', true),
+        'shipping_address_2' => (string) get_user_meta($user_id, 'shipping_address_2', true),
+        'shipping_company' => (string) get_user_meta($user_id, 'shipping_company', true),
     ];
 
     foreach ($snapshot as $key => $value) {
