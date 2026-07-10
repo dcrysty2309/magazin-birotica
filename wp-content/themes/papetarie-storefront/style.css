@@ -7426,10 +7426,60 @@ input:-webkit-autofill:active,
 textarea:-webkit-autofill,
 textarea:-webkit-autofill:hover,
 textarea:-webkit-autofill:focus,
-textarea:-webkit-autofill:active {
-  -webkit-box-shadow: none !important;
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--pap-ink) !important;
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  transition: background-color 9999s ease-out 0s, color 9999s ease-out 0s;
+}
+
+/*
+ * Chrome renders a filled-gray background plus a thick native ring on
+ * fields it considers autofill-eligible, on top of whatever :focus style
+ * the site defines — reads as "disabled" rather than "focused". Force one
+ * clean, consistent focus treatment (border color only, no ring, no fill)
+ * on every text-like field site-wide, autofilled or not.
+ */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="search"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+textarea,
+select {
+  outline: none !important;
   box-shadow: none !important;
-  transition: background-color 9999s ease-out 0s;
+  background-color: #fff !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="search"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus,
+input[type="text"]:focus-visible,
+input[type="email"]:focus-visible,
+input[type="tel"]:focus-visible,
+input[type="search"]:focus-visible,
+input[type="password"]:focus-visible,
+input[type="number"]:focus-visible,
+input[type="url"]:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: #fff !important;
+  border-color: var(--pap-navy) !important;
 }
 body.theme-papetarie .pap-product-card,
 body.theme-papetarie .pap-product-thumb,
