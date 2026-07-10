@@ -1397,7 +1397,6 @@
     }
 
     authCurrentOrderSnapshot = normalizeCheckoutPostcodeSnapshot(snapshot);
-    setCookieValue('pap_checkout_shipping_snapshot', JSON.stringify(authCurrentOrderSnapshot));
     debugCheckout('auth current order snapshot set', reason, authCurrentOrderSnapshot);
   };
 
@@ -2557,7 +2556,6 @@
       const initialSnapshot = normalizeCheckoutPostcodeSnapshot(getAuthShippingInitialSnapshot());
       authShippingEditSnapshotCache = initialSnapshot;
       authShippingDraft = initialSnapshot;
-      setCookieValue('pap_checkout_shipping_mode', 'edit');
       if (shouldClear) {
         clearAuthAddressForm();
         authShippingDraft = captureAuthShippingSnapshot();
@@ -2572,9 +2570,6 @@
       if (shouldRestore && authShippingEditSnapshotCache) {
         hydrateAuthShippingFieldsFromSnapshot(authShippingEditSnapshotCache);
         authShippingDraft = authShippingEditSnapshotCache;
-      }
-      if (showSummary) {
-        setCookieValue('pap_checkout_shipping_mode', 'summary');
       }
     }
 
@@ -3377,7 +3372,6 @@
           authShippingDraft = authShippingSnapshot;
           setCheckboxFieldState(getFieldBySelector(selectors.authAddressSaveCheckbox), false);
           setAuthCurrentOrderSnapshot(authShippingSnapshot, 'auth-save-success');
-          setCookieValue('pap_checkout_shipping_mode', 'summary');
           setAuthAddressNotice('');
           setAuthShippingFormVisible(false);
           setAuthShippingBusy(false);
@@ -3469,11 +3463,8 @@
         debugCheckout('syncCheckoutState rehydrate auth draft', authShippingDraft);
         hydrateAuthShippingFieldsFromSnapshot(authShippingDraft);
       }
-      if (getAuthAddressCount() > 0) {
-        setCookieValue('pap_checkout_shipping_mode', getCookieValue('pap_checkout_shipping_mode') || 'summary');
-      } else {
-        setCookieValue('pap_checkout_shipping_mode', 'edit');
-      }
+      // Guest-scoped cookies (mode + snapshot) must never carry auth state —
+      // reset them on every sync while logged in.
       resetGuestShippingState();
       syncAuthSelectedAddressFields();
 
