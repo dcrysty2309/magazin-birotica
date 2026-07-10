@@ -3141,7 +3141,6 @@
         validateField($field);
       }
 
-      captureAndPersistGuestShippingSummaryCache();
       clearFieldError($field);
       clearNativeInvalidState($field);
     });
