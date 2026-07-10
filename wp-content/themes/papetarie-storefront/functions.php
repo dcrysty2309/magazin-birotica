@@ -7571,6 +7571,26 @@ add_action('woocommerce_before_checkout_process', 'papetarie_storefront_checkout
 add_action('woocommerce_checkout_order_processed', 'papetarie_storefront_checkout_restore_customer_snapshot', 20);
 add_action('shutdown', 'papetarie_storefront_checkout_restore_customer_snapshot', 1);
 
+/**
+ * The address-book "Modifică" -> "Confirmă" flow stores the edited address
+ * in a WC session "temporary snapshot" so the summary card can reflect it
+ * instantly without a page reload — and papetarie_storefront_checkout_
+ * standard_address_snapshot() prefers that temporary snapshot over the
+ * account's real saved address. That snapshot has no expiry of its own, so
+ * without this, it kept being served as the checkout summary for every
+ * later order placed in the same browser session, even though the account
+ * record itself was correctly left untouched. Clear it once the order this
+ * edit belonged to has actually been placed, so the next checkout starts
+ * fresh from the real account address again.
+ */
+function papetarie_storefront_checkout_clear_temporary_address_after_order(): void
+{
+    if (function_exists('papetarie_storefront_address_book_checkout_clear_temporary_state')) {
+        papetarie_storefront_address_book_checkout_clear_temporary_state();
+    }
+}
+add_action('woocommerce_checkout_order_processed', 'papetarie_storefront_checkout_clear_temporary_address_after_order', 20);
+
 function papetarie_storefront_checkout_persist_snapshot_to_account(array $snapshot): void
 {
     if (!is_user_logged_in() || !function_exists('WC') || !WC() || !(WC()->customer instanceof WC_Customer)) {
