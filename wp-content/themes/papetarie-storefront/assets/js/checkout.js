@@ -79,6 +79,7 @@
   let authShippingDraft = null;
   let authCurrentOrderSnapshot = null;
   let initialCheckoutRefreshRequested = false;
+  let pendingFocusFieldRestore = null;
   const postcodeSelectors = new Set(['#billing_postcode', '#shipping_postcode']);
   const addressPairs = [
     { state: '#billing_state', city: '#billing_city' },
@@ -558,6 +559,100 @@
 
   const getFieldBySelector = (selector) => {
     return getForm().find(selector).first();
+  };
+
+  const isCheckoutFieldFocusedWithin = ($container) => {
+    const active = document.activeElement;
+    return !!(
+      $container &&
+      $container.length &&
+      active &&
+      $.contains($container.get(0), active) &&
+      $(active).is(selectors.field)
+    );
+  };
+
+  // WooCommerce's AJAX checkout refresh replaces whole sections of the form
+  // (see the `woocommerce_update_order_review_fragments` fragments) via
+  // `replaceWith()`, which silently drops focus (and reverts in-progress
+  // edits to stale server-rendered values) if the user is mid-edit in one of
+  // the replaced fields. Skip re-rendering the shipping-address fragment
+  // specifically while the user is actively focused inside it — every other
+  // fragment (totals, shipping methods, payment) keeps updating live.
+  const installShippingAddressFragmentGuard = () => {
+    $.ajaxPrefilter((options) => {
+      if (!options.url || options.url.toString().indexOf('update_order_review') === -1) {
+        return;
+      }
+
+      const originalSuccess = options.success;
+      options.success = function (data) {
+        if (data && data.fragments) {
+          Object.keys(data.fragments).forEach((fragmentKey) => {
+            if (
+              fragmentKey.indexOf('shipping-address') !== -1 &&
+              isCheckoutFieldFocusedWithin(getForm().find(fragmentKey))
+            ) {
+              delete data.fragments[fragmentKey];
+            }
+          });
+        }
+
+        if (typeof originalSuccess === 'function') {
+          originalSuccess.apply(this, arguments);
+        }
+      };
+    });
+  };
+
+  // Capture the focused field right before the request fires, then restore
+  // it once the new markup lands — a safety net for the fragments the guard
+  // above doesn't cover (shipping methods, payment, order summary).
+  const captureFocusedCheckoutField = () => {
+    const active = document.activeElement;
+    const $form = getForm();
+
+    if (!active || !active.id || !$form.length || !$.contains($form.get(0), active) || !$(active).is(selectors.field)) {
+      pendingFocusFieldRestore = null;
+      return;
+    }
+
+    pendingFocusFieldRestore = {
+      id: active.id,
+      selectionStart: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+      selectionEnd: typeof active.selectionEnd === 'number' ? active.selectionEnd : null,
+    };
+  };
+
+  const restoreFocusedCheckoutField = () => {
+    if (!pendingFocusFieldRestore) {
+      return;
+    }
+
+    const { id, selectionStart, selectionEnd } = pendingFocusFieldRestore;
+    pendingFocusFieldRestore = null;
+
+    // Only step in if focus was actually dropped (the bug signature). If the
+    // user has since clicked or tabbed somewhere else on purpose, leave it alone.
+    if (document.activeElement && document.activeElement !== document.body) {
+      return;
+    }
+
+    const $field = getFieldBySelector(`#${id}`);
+    if (!$field.length) {
+      return;
+    }
+
+    const field = $field.get(0);
+    field.focus({ preventScroll: true });
+
+    if (selectionStart !== null && typeof field.setSelectionRange === 'function') {
+      try {
+        field.setSelectionRange(selectionStart, selectionEnd);
+      } catch (error) {
+        // Some field types (e.g. select) don't support selection ranges.
+      }
+    }
   };
 
   const syncSelectPlaceholderState = ($field) => {
@@ -3431,10 +3526,13 @@
   const bootstrap = async () => {
     await loadCityData();
     bindPostcodeInputGuards();
+    installShippingAddressFragmentGuard();
     $(document.body).on('update_checkout', () => {
+      captureFocusedCheckoutField();
       debugCheckout('body update_checkout event', getPostcodeDebugState());
     });
     $(document.body).on('updated_checkout', () => {
+      restoreFocusedCheckoutField();
       syncCheckoutState();
       syncPaymentMethodSelection();
       syncPaymentMethodCards();

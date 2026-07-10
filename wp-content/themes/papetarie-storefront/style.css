@@ -10231,12 +10231,16 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields textarea::p
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.is-placeholder,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.is-placeholder ~ .select2-container .select2-selection__rendered {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.is-placeholder ~ .select2-container .select2-selection__rendered,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.is-placeholder,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.is-placeholder ~ .select2-container .select2-selection__rendered {
   color: var(--pap-placeholder);
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.has-value,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.has-value ~ .select2-container .select2-selection__rendered {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.has-value ~ .select2-container .select2-selection__rendered,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.has-value,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.has-value ~ .select2-container .select2-selection__rendered {
   color: #17324d;
 }
 
