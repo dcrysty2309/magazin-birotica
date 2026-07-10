@@ -1074,6 +1074,22 @@
     });
   });
 
+  // This page's markup was rendered while the visitor was logged out (this
+  // script only loads for that branch — see the enqueue gate in PHP), so a
+  // logged-in-elsewhere user can end up here via a duplicated tab or a
+  // back/forward restore serving that earlier, cacheable anonymous HTML.
+  // Re-check the real auth state and patch the header in place if it's
+  // actually logged in now.
+  window.addEventListener('pageshow', function () {
+    fetchCurrentUserState()
+      .then(function (payload) {
+        if (payload && payload.auth_state && payload.auth_state.is_logged_in) {
+          applyCurrentUserPayload(payload);
+        }
+      })
+      .catch(function () {});
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
     var hash = window.location.hash.replace('#', '');
     initAllAuthRoots();
