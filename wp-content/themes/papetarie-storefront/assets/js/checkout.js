@@ -2545,7 +2545,10 @@
     const hasSummaryData = getAuthShippingSummaryLines().length > 0;
     const shouldClear = options.clear === true;
     const shouldRestore = options.restore === true;
-    const showSummary = !visible && (authTemporarySummaryVisible || hasSummaryData);
+    // Never show the summary panel without real data behind it — a stale
+    // authTemporarySummaryVisible flag (e.g. from an initial-load snapshot
+    // that turned out empty) must fall back to the form, not an empty card.
+    const showSummary = !visible && hasSummaryData;
     const showList = false;
 
     if (visible) {
@@ -2579,7 +2582,7 @@
     setVisibilityState($form, visible, 'grid');
     setVisibilityState($list, showList, 'grid');
     setVisibilityState($summary, showSummary, 'grid');
-    setVisibilityState($shipping.find(selectors.authAddressCancel).first(), visible && (authTemporarySummaryVisible || hasSummaryData), 'inline-flex');
+    setVisibilityState($shipping.find(selectors.authAddressCancel).first(), visible && hasSummaryData, 'inline-flex');
     $shipping.attr('data-pap-auth-temporary-mode', showSummary ? 'summary' : (visible ? 'form' : 'list'));
 
     if (showSummary && !shouldRestore) {
