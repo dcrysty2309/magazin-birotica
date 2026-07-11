@@ -35,8 +35,6 @@ function pap_my_account_seed_user(string $email, string $password, string $displ
         'role' => 'customer',
     ]);
 
-    update_user_meta($user->ID, 'papetarie_wishlist', []);
-
     return get_user_by('id', $user->ID);
 }
 

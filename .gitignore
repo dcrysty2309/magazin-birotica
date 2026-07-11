@@ -7,3 +7,5 @@ database/wordpress-staging.sql
 database/exports/
 tmp/
 docs/deployment/manifests/*.md
+wordpress/wp-content/uploads/wc-logs/
+__pycache__/

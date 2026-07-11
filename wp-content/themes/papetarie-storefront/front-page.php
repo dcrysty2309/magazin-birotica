@@ -392,28 +392,18 @@ get_header();
                     ? wp_get_attachment_image($product_image_id, 'medium', false, ['loading' => 'lazy', 'alt' => $product_name])
                     : '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
             }
-            $product_subtitle = wp_strip_all_tags($product->get_short_description());
-            if ($product_subtitle === '') {
-                $product_subtitle = wp_strip_all_tags($product->get_attribute('pa_subtitlu'));
-            }
-            if ($product_subtitle === '') {
-                $product_subtitle = wp_strip_all_tags($product->get_attribute('subtitlu'));
-            }
-            if ($product_subtitle === '') {
-                $product_subtitle = wp_strip_all_tags($product->get_attribute('dimensiune'));
-            }
-            if ($product_subtitle === '') {
-                $product_subtitle = __('Produs recomandat pentru birou și școală', 'papetarie-storefront');
-            }
-            $product_subtitle = wp_trim_words($product_subtitle, 8, '');
+            $product_category = papetarie_storefront_get_product_primary_category($product);
             ?>
             <article class="pap-product-card">
-              <?php echo papetarie_storefront_wishlist_button_html($product_id, 'home'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+              <?php echo papetarie_storefront_render_product_badges_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <div class="pap-product-thumb">
                 <?php echo $product_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               </div>
+              <?php if ($product_category !== '') : ?>
+                <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
+              <?php endif; ?>
               <h3><?php echo esc_html($product_name); ?></h3>
-              <p><?php echo esc_html($product_subtitle); ?></p>
+              <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <div class="pap-product-meta">
                 <strong class="pap-price"><?php echo wp_kses_post($product->get_price_html()); ?></strong>
                 <div class="pap-product-actions">
@@ -424,7 +414,8 @@ get_header();
                     data-product-url="<?php echo esc_url($product_url); ?>"
                     aria-label="<?php esc_attr_e('Adaugă în coș', 'papetarie-storefront'); ?>"
                   >
-                    <span class="pap-product-action-icon"><?php echo papetarie_storefront_icon('cart'); ?></span>
+                    <span class="pap-product-action-icon"><?php echo papetarie_storefront_icon('bag'); ?></span>
+                    <span class="pap-product-action-label"><?php esc_html_e('Adaugă', 'papetarie-storefront'); ?></span>
                   </button>
                 </div>
               </div>
@@ -495,7 +486,6 @@ get_header();
           <?php foreach ($offer_products as $offer) : ?>
             <article class="pap-product-card pap-product-card--offer">
               <span class="pap-offer-badge">-<?php echo esc_html((string) $offer['discount']); ?>%</span>
-              <?php echo papetarie_storefront_wishlist_button_html((int) $offer['id'], 'home'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <a class="pap-offer-link" href="<?php echo esc_url($offer['url']); ?>" aria-label="<?php echo esc_attr($offer['name']); ?>">
                 <div class="pap-product-thumb">
                   <?php echo $offer['image']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
