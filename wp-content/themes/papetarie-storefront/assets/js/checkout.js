@@ -80,6 +80,7 @@
   let authCurrentOrderSnapshot = null;
   let initialCheckoutRefreshRequested = false;
   let pendingFocusFieldRestore = null;
+  let isProductsListExpanded = false;
   const postcodeSelectors = new Set(['#billing_postcode', '#shipping_postcode']);
   const addressPairs = [
     { state: '#billing_state', city: '#billing_city' },
@@ -1057,13 +1058,13 @@
   const toggleProductsList = (button) => {
     const $button = $(button);
     const expanded = $button.attr('aria-expanded') === 'true';
-    setProductsListState(button, !expanded);
+    isProductsListExpanded = !expanded;
+    setProductsListState(button, isProductsListExpanded);
   };
 
   const syncProductsLists = () => {
     $(selectors.productsToggle).each(function () {
-      const $button = $(this);
-      setProductsListState(this, $button.attr('aria-expanded') === 'true');
+      setProductsListState(this, isProductsListExpanded);
     });
   };
 
@@ -1090,7 +1091,7 @@
         const shouldDisableControls = normalizedState === 'disabled' && step !== 'payment';
         $body.find('input, select, textarea, button').each(function () {
           const $control = $(this);
-          if ($control.is('[type="hidden"]')) {
+          if ($control.is('[type="hidden"], [data-checkout-products-toggle]')) {
             return;
           }
 
