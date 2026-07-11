@@ -43,6 +43,7 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 	<div class="pap-checkout-summary-header">
 		<div class="pap-checkout-summary-header__copy">
 			<h2 class="pap-cart-summary-title"><?php esc_html_e('Total comandă', 'papetarie-storefront'); ?></h2>
+			<p class="pap-checkout-summary-subtitle"><?php esc_html_e('Sumar comandă curentă', 'papetarie-storefront'); ?></p>
 		</div>
 	</div>
 

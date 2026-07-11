@@ -1353,11 +1353,14 @@ function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
       <div class="pap-checkout-card__head">
         <div class="pap-checkout-section-title-row">
           <span class="pap-checkout-section-badge" aria-hidden="true">2</span>
-          <h3><?php esc_html_e('Tip de livrare', 'papetarie-storefront'); ?></h3>
+          <div class="pap-checkout-section-title-col">
+            <h3><?php esc_html_e('Tip de livrare', 'papetarie-storefront'); ?></h3>
+            <p class="pap-checkout-card__intro"><?php esc_html_e('Verifică metoda de livrare și costul transportului.', 'papetarie-storefront'); ?></p>
+          </div>
         </div>
-        <p class="pap-checkout-card__intro"><?php esc_html_e('Verifică metoda de livrare și costul transportului.', 'papetarie-storefront'); ?></p>
       </div>
 
+      <div class="pap-checkout-card__body">
       <div class="pap-checkout-step__body"<?php echo $body_hidden_attr; ?>>
         <?php if ($shipping_notice !== '') : ?>
           <div class="woocommerce-info pap-checkout-shipping-methods__notice" role="status">
@@ -1483,6 +1486,7 @@ function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
         <?php endif; ?>
 
       <?php echo papetarie_storefront_get_checkout_products_inline_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
       </div>
     </section>
     <?php
