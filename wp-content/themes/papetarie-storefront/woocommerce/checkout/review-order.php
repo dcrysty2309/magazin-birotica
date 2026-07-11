@@ -47,6 +47,7 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 		</div>
 	</div>
 
+	<div class="pap-checkout-summary-card__body">
 	<div class="pap-cart-totals pap-checkout-summary-totals">
 		<?php ob_start(); wc_cart_totals_subtotal_html(); $subtotal_html = (string) ob_get_clean(); ?>
 		<div class="pap-cart-totals-row pap-checkout-summary-row cart-subtotal">
@@ -127,9 +128,9 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 	<div class="pap-checkout-summary-actions">
 		<p class="pap-checkout-summary-security">
 			<span class="pap-checkout-summary-security__icon" aria-hidden="true">
-				<svg viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
-					<path d="M12 4.5 6.5 6.8v4.1c0 3.7 2.4 6.8 5.5 8.1 3.1-1.3 5.5-4.4 5.5-8.1V6.8L12 4.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
-					<path d="M9.7 11.8 11.2 13.3 14.6 9.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">
+					<rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+					<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
 				</svg>
 			</span>
 			<span class="pap-checkout-summary-security__text"><?php esc_html_e('Plată securizată · SSL 256-bit', 'papetarie-storefront'); ?></span>
@@ -158,6 +159,7 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 		<?php do_action('woocommerce_review_order_after_submit'); ?>
 
 		<?php wp_nonce_field('woocommerce-process_checkout', 'woocommerce-process-checkout-nonce'); ?>
+	</div>
 	</div>
 
 </div>
