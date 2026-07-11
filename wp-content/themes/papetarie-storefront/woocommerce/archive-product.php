@@ -66,9 +66,10 @@ get_header();
     <?php
     if (function_exists('woocommerce_breadcrumb')) {
         woocommerce_breadcrumb([
-            'delimiter' => '<span class="pap-breadcrumb-delimiter" aria-hidden="true">/</span>',
+            'delimiter' => '<span class="pap-breadcrumb-delimiter" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>',
             'wrap_before' => '<nav class="woocommerce-breadcrumb pap-breadcrumbs-nav">',
             'wrap_after' => '</nav>',
+            'home' => __('Acasă', 'papetarie-storefront'),
         ]);
     }
     ?>
@@ -227,21 +228,7 @@ get_header();
             $product_name = $product->get_name();
             $product_url = $product->get_permalink();
             $product_image_id = $product->get_image_id();
-            $product_subtitle = wp_strip_all_tags($product->get_short_description());
-
-            if ($product_subtitle === '') {
-                $product_subtitle = wp_strip_all_tags($product->get_attribute('pa_subtitlu'));
-            }
-
-            if ($product_subtitle === '') {
-                $product_subtitle = wp_strip_all_tags($product->get_attribute('subtitlu'));
-            }
-
-            if ($product_subtitle === '') {
-                $product_subtitle = __('Produs util pentru birou și școală.', 'papetarie-storefront');
-            }
-
-            $product_subtitle = wp_trim_words($product_subtitle, 9, '');
+            $product_category = papetarie_storefront_get_product_primary_category($product);
 
             if ($product_image_id) {
                 $product_image = wp_get_attachment_image($product_image_id, 'woocommerce_thumbnail', false, [
@@ -258,14 +245,17 @@ get_header();
             $action_class = $can_add_to_cart && $product->is_type('simple') ? 'add_to_cart_button ajax_add_to_cart' : '';
             ?>
             <article class="pap-product-card pap-product-card--archive">
-              <?php echo papetarie_storefront_wishlist_button_html($product->get_id(), 'archive'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+              <?php echo papetarie_storefront_render_product_badges_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <a class="pap-product-card-link" href="<?php echo esc_url($product_url); ?>">
                 <div class="pap-product-thumb pap-product-thumb--archive">
                   <?php echo $product_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </div>
                 <div class="pap-product-copy">
+                  <?php if ($product_category !== '') : ?>
+                    <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
+                  <?php endif; ?>
                   <h2><?php echo esc_html($product_name); ?></h2>
-                  <p><?php echo esc_html($product_subtitle); ?></p>
+                  <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                 </div>
               </a>
               <div class="pap-product-meta pap-product-meta--archive">
@@ -280,7 +270,7 @@ get_header();
                       data-product-url="<?php echo esc_url($product_url); ?>"
                       data-product_sku="<?php echo esc_attr($product->get_sku()); ?>"
                     >
-                      <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('cart'); ?></span>
+                      <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('bag'); ?></span>
                     </button>
                   <?php else : ?>
                     <a
@@ -288,7 +278,7 @@ get_header();
                       href="<?php echo esc_url($action_url); ?>"
                       aria-label="<?php echo esc_attr($action_text); ?>"
                     >
-                      <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('cart'); ?></span>
+                      <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('bag'); ?></span>
                     </a>
                   <?php endif; ?>
                 </div>

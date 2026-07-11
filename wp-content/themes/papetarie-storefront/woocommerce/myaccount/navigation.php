@@ -28,7 +28,6 @@ $account_menu_icons = function_exists('papetarie_storefront_account_menu_icon_ma
     : [
         'dashboard' => 'sidebar-home',
         'orders' => 'sidebar-orders',
-        'favorite' => 'sidebar-favorite',
         'edit-address' => 'sidebar-address',
         'edit-account' => 'sidebar-details',
         'customer-logout' => 'sidebar-logout',

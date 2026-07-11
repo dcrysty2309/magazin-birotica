@@ -29,7 +29,7 @@ foreach ($recent_orders as $recent_order) {
 <div class="pap-account-page pap-account-page--dashboard">
   <?php papetarie_storefront_render_account_page_head(
       sprintf(__('Bun venit, %s!', 'papetarie-storefront'), wp_strip_all_tags($user->display_name ?: $user->user_email)),
-      __('De aici poți gestiona comenzile, adresele și produsele favorite.', 'papetarie-storefront')
+      __('De aici poți gestiona comenzile și adresele.', 'papetarie-storefront')
   ); ?>
 
   <section class="pap-account-stat-grid" aria-label="<?php esc_attr_e('Statistici cont', 'papetarie-storefront'); ?>">
