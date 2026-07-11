@@ -16,11 +16,14 @@ $step_state = function_exists('papetarie_storefront_checkout_step_state') ? pape
   <div class="pap-checkout-card__head">
     <div class="pap-checkout-section-title-row">
       <span class="pap-checkout-section-badge" aria-hidden="true">3</span>
-      <h3><?php esc_html_e('Alege metoda de plată', 'papetarie-storefront'); ?></h3>
+      <div class="pap-checkout-section-title-col">
+        <h3><?php esc_html_e('Alege metoda de plată', 'papetarie-storefront'); ?></h3>
+        <p class="pap-checkout-card__intro"><?php esc_html_e('Alege metoda de plată pentru comandă.', 'papetarie-storefront'); ?></p>
+      </div>
     </div>
-    <p class="pap-checkout-card__intro"><?php esc_html_e('Alege metoda de plată pentru comandă.', 'papetarie-storefront'); ?></p>
   </div>
 
+  <div class="pap-checkout-card__body">
   <div class="pap-checkout-step__body" aria-hidden="false">
   <?php if (WC()->cart && WC()->cart->needs_payment()) : ?>
     <ul class="wc_payment_methods payment_methods methods pap-checkout-payment-methods">
@@ -42,6 +45,7 @@ $step_state = function_exists('papetarie_storefront_checkout_step_state') ? pape
       <?php endif; ?>
     </ul>
   <?php endif; ?>
+  </div>
   </div>
 </section>
 <?php
