@@ -21,42 +21,107 @@ if (is_wp_error($archive_action_url) || !$archive_action_url) {
 $current_stock_status = isset($_GET['stock_status']) ? sanitize_key(wp_unslash($_GET['stock_status'])) : 'all';
 $stock_status_options = function_exists('papetarie_storefront_stock_status_options') ? papetarie_storefront_stock_status_options() : [];
 $current_orderby = isset($_GET['orderby']) ? sanitize_key(wp_unslash($_GET['orderby'])) : '';
-$price_ranges = function_exists('papetarie_storefront_price_ranges') ? papetarie_storefront_price_ranges() : [];
-$selected_price_ranges = function_exists('papetarie_storefront_get_selected_price_range_keys') ? papetarie_storefront_get_selected_price_range_keys() : [];
-$custom_price_filter = function_exists('papetarie_storefront_get_custom_price_filter') ? papetarie_storefront_get_custom_price_filter() : ['min' => null, 'max' => null, 'active' => false, 'valid' => false];
+$sort_options = [
+    'price' => __('Preț crescător', 'papetarie-storefront'),
+    'price-desc' => __('Preț descrescător', 'papetarie-storefront'),
+];
+$active_orderby = isset($sort_options[$current_orderby]) ? $current_orderby : 'price';
+$price_ranges = function_exists('papetarie_storefront_price_ranges') ? papetarie_storefront_price_ranges($current_term) : [];
+$selected_price_ranges = function_exists('papetarie_storefront_get_selected_price_range_keys') ? papetarie_storefront_get_selected_price_range_keys($current_term) : [];
 $price_range_counts = function_exists('papetarie_storefront_get_price_range_counts') ? papetarie_storefront_get_price_range_counts($current_term) : [];
-$custom_price_min = isset($custom_price_filter['min']) && $custom_price_filter['min'] !== null ? (float) $custom_price_filter['min'] : '';
-$custom_price_max = isset($custom_price_filter['max']) && $custom_price_filter['max'] !== null ? (float) $custom_price_filter['max'] : '';
+$has_meaningful_price_filter = count(array_filter($price_range_counts, static fn (int $count): bool => $count > 0)) >= 2;
+$stock_status_counts = function_exists('papetarie_storefront_get_stock_status_counts') ? papetarie_storefront_get_stock_status_counts($current_term) : [];
+$selected_subcategories = isset($_GET['product_cat_child']) ? array_map('sanitize_key', (array) wp_unslash($_GET['product_cat_child'])) : [];
+$selected_brands = function_exists('papetarie_storefront_get_selected_brands') ? papetarie_storefront_get_selected_brands() : [];
 
-$categories_tree = papetarie_storefront_get_mega_menu_categories();
-$current_parent_category = null;
-$current_child_terms = [];
+$has_active_filters = !empty($selected_subcategories)
+    || $current_stock_status !== 'all'
+    || !empty($selected_price_ranges)
+    || !empty($selected_brands);
 
-foreach ($categories_tree as $category) {
-    if ($current_term && ((int) $category['term_id'] === $term_id)) {
-        $current_parent_category = $category;
-        $current_child_terms = $category['children'];
-        break;
-    }
+$subcategory_terms = [];
 
-    foreach ($category['children'] as $child) {
-        if ($current_term && ((int) $child['term_id'] === $term_id)) {
-            $current_parent_category = $category;
-            $current_child_terms = $category['children'];
-            break 2;
+if ($term_id > 0) {
+    $direct_children = get_terms([
+        'taxonomy' => 'product_cat',
+        'hide_empty' => false,
+        'parent' => $term_id,
+    ]);
+
+    if (!is_wp_error($direct_children)) {
+        foreach (papetarie_storefront_sort_terms($direct_children) as $child_term) {
+            $subcategory_terms[] = [
+                'term_id' => $child_term->term_id,
+                'slug' => $child_term->slug,
+                'name' => $child_term->name,
+                'count' => (int) $child_term->count,
+            ];
         }
     }
 }
 
-$cover_image_id = $current_term ? (int) get_term_meta($term_id, 'thumbnail_id', true) : 0;
-$archive_cover_image_url = '';
+$brand_terms = [];
 
-if ($cover_image_id > 0) {
-    $archive_cover_image_url = (string) wp_get_attachment_image_url($cover_image_id, 'full');
+if (taxonomy_exists('product_brand')) {
+    $brand_term_objects = get_terms([
+        'taxonomy' => 'product_brand',
+        'hide_empty' => false,
+    ]);
+
+    if (!is_wp_error($brand_term_objects)) {
+        foreach ($brand_term_objects as $brand_term_object) {
+            $brand_terms[] = [
+                'slug' => $brand_term_object->slug,
+                'name' => $brand_term_object->name,
+                'count' => (int) $brand_term_object->count,
+            ];
+        }
+    }
 }
 
-if ($archive_cover_image_url === '') {
-    $archive_cover_image_url = get_stylesheet_directory_uri() . '/assets/images/category-cover-fallback.png';
+$active_filter_chips = [];
+
+foreach ($selected_subcategories as $selected_slug) {
+    foreach ($subcategory_terms as $subcategory_term) {
+        if ($subcategory_term['slug'] === $selected_slug) {
+            $active_filter_chips[] = [
+                'label' => $subcategory_term['name'],
+                'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['product_cat_child' => $selected_slug]),
+            ];
+            break;
+        }
+    }
+}
+
+if ($current_stock_status !== 'all') {
+    $active_filter_chips[] = [
+        'label' => $stock_status_options[$current_stock_status] ?? $current_stock_status,
+        'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['stock_status' => null]),
+    ];
+}
+
+foreach ($selected_price_ranges as $selected_range_key) {
+    foreach ($price_ranges as $range) {
+        if ($range['key'] === $selected_range_key) {
+            $active_filter_chips[] = [
+                'label' => $range['label'],
+                'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['price_range' => $selected_range_key]),
+            ];
+            break;
+        }
+    }
+}
+
+foreach ($selected_brands as $selected_brand_slug) {
+    foreach ($brand_terms as $brand_term) {
+        if ($brand_term['slug'] === $selected_brand_slug) {
+            $active_filter_chips[] = [
+                'label' => $brand_term['name'],
+                'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['brand' => $selected_brand_slug]),
+            ];
+            break;
+        }
+    }
 }
 
 get_header();
@@ -75,116 +140,176 @@ get_header();
     ?>
   </div>
 
-  <section class="pap-shell pap-archive-hero">
-    <div class="pap-archive-hero-inner pap-archive-hero--cover" style="<?php echo esc_attr('--pap-archive-hero-image: url(' . $archive_cover_image_url . ');'); ?>">
-      <div class="pap-archive-hero-copy">
-        <h1><?php echo esc_html($archive_title); ?></h1>
-        <p class="pap-archive-description">
-          <?php
-          if ($archive_description) {
-              echo esc_html($archive_description);
-          } else {
-              esc_html_e('Selecția noastră de produse pentru această categorie.', 'papetarie-storefront');
-          }
-          ?>
-        </p>
+  <section class="pap-shell pap-archive-titlebar">
+    <div class="pap-archive-titlebar-inner">
+      <div class="pap-archive-titlebar-head">
+        <div class="pap-archive-titlebar-copy">
+          <h1><?php echo esc_html($archive_title); ?></h1>
+          <p><?php echo esc_html(sprintf(_n('%d produs', '%d produse', $product_count, 'papetarie-storefront'), $product_count)); ?></p>
+        </div>
       </div>
+
+      <?php if (!$is_empty_archive) : ?>
+        <div class="pap-archive-titlebar-controls">
+          <button type="button" class="pap-archive-filter-toggle" data-archive-filter-toggle aria-expanded="false" aria-controls="pap-archive-sidebar">
+            <span class="pap-archive-filter-toggle-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('filter'); ?></span>
+            <?php esc_html_e('Filtrează', 'papetarie-storefront'); ?>
+          </button>
+
+          <div class="pap-archive-toolbar-ordering" data-sort-dropdown>
+            <button type="button" class="pap-archive-sort-trigger" data-sort-trigger aria-haspopup="true" aria-expanded="false">
+              <span class="pap-archive-sort-static-label"><?php esc_html_e('Sortează:', 'papetarie-storefront'); ?></span>
+              <span class="pap-archive-sort-value"><?php echo esc_html($sort_options[$active_orderby]); ?></span>
+              <span class="pap-archive-sort-chevron" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron-down'); ?></span>
+            </button>
+            <div class="pap-archive-sort-menu" data-sort-menu hidden>
+              <?php foreach ($sort_options as $sort_key => $sort_label) : ?>
+                <a
+                  href="<?php echo esc_url(papetarie_storefront_filter_sort_url($archive_action_url, $sort_key)); ?>"
+                  class="pap-archive-sort-option<?php echo $sort_key === $active_orderby ? ' is-active' : ''; ?>"
+                >
+                  <?php echo esc_html($sort_label); ?>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </div>
+      <?php endif; ?>
     </div>
   </section>
 
+  <?php if (!$is_empty_archive && $active_filter_chips) : ?>
+    <section class="pap-shell pap-active-filters-bar-wrap">
+      <div class="pap-active-filters-bar">
+        <span class="pap-active-filters-label"><?php esc_html_e('Filtre active', 'papetarie-storefront'); ?></span>
+        <span class="pap-active-filters-badge"><?php echo esc_html((string) count($active_filter_chips)); ?></span>
+        <span class="pap-active-filters-divider" aria-hidden="true"></span>
+        <?php foreach ($active_filter_chips as $chip_index => $chip) : ?>
+          <a
+            href="<?php echo esc_url($chip['url']); ?>"
+            class="pap-filter-chip<?php echo $chip_index >= 5 ? ' pap-filter-chip--overflow' : ''; ?>"
+            <?php echo $chip_index >= 5 ? 'hidden' : ''; ?>
+          >
+            <?php echo esc_html($chip['label']); ?>
+            <span class="pap-filter-chip-remove" aria-hidden="true">&times;</span>
+          </a>
+        <?php endforeach; ?>
+        <?php if (count($active_filter_chips) > 5) : ?>
+          <button type="button" class="pap-active-filters-more" data-filters-more>
+            <?php echo esc_html(sprintf(
+                /* translators: %d: number of hidden active filter chips */
+                __('+%d mai multe', 'papetarie-storefront'),
+                count($active_filter_chips) - 5
+            )); ?>
+          </button>
+        <?php endif; ?>
+        <span class="pap-active-filters-spacer"></span>
+        <a href="<?php echo esc_url($archive_action_url); ?>" class="pap-active-filters-clear">
+          <span aria-hidden="true">&times;</span>
+          <?php esc_html_e('Șterge toate', 'papetarie-storefront'); ?>
+        </a>
+      </div>
+    </section>
+  <?php endif; ?>
+
   <section class="pap-shell pap-archive-layout">
-    <aside class="pap-archive-sidebar">
-      <div class="pap-archive-sidebar-box">
-        <?php if (!$is_empty_archive) : ?>
-          <div class="pap-archive-sidebar-filters">
-            <div class="pap-archive-sidebar-head">
-              <h2><?php esc_html_e('Filtre', 'papetarie-storefront'); ?></h2>
+    <aside class="pap-archive-sidebar" id="pap-archive-sidebar">
+      <?php if (!$is_empty_archive) : ?>
+        <?php if ($has_active_filters) : ?>
+          <a href="<?php echo esc_url($archive_action_url); ?>" class="pap-sidebar-clear-all">
+            <span><?php esc_html_e('Șterge toate filtrele', 'papetarie-storefront'); ?></span>
+            <span class="pap-sidebar-clear-all-icon" aria-hidden="true">&times;</span>
+          </a>
+        <?php endif; ?>
+        <form class="pap-archive-filter-form" method="get" action="<?php echo esc_url($archive_action_url); ?>">
+          <?php if ($current_orderby !== '') : ?>
+            <input type="hidden" name="orderby" value="<?php echo esc_attr($current_orderby); ?>">
+          <?php endif; ?>
+          <input type="hidden" name="paged" value="1">
+
+          <?php if ($subcategory_terms) : ?>
+            <div class="pap-filter-card">
+              <div class="pap-archive-filter-section-title">
+                <span><?php esc_html_e('Subcategorie', 'papetarie-storefront'); ?></span>
+              </div>
+              <div class="pap-archive-filter-body pap-archive-filter-checklist">
+                <?php foreach ($subcategory_terms as $subcategory_term) : ?>
+                  <?php $is_checked = in_array($subcategory_term['slug'], $selected_subcategories, true); ?>
+                  <label class="pap-archive-check-option">
+                    <input type="checkbox" class="pap-checkbox-input" name="product_cat_child[]" value="<?php echo esc_attr($subcategory_term['slug']); ?>" <?php checked($is_checked); ?>>
+                    <span class="pap-archive-check-label"><?php echo esc_html($subcategory_term['name']); ?></span>
+                    <span class="pap-archive-check-count">(<?php echo esc_html((string) $subcategory_term['count']); ?>)</span>
+                  </label>
+                <?php endforeach; ?>
+              </div>
             </div>
+          <?php endif; ?>
 
-            <form class="pap-archive-filter-form" method="get" action="<?php echo esc_url($archive_action_url); ?>">
-              <?php if ($current_orderby !== '') : ?>
-                <input type="hidden" name="orderby" value="<?php echo esc_attr($current_orderby); ?>">
-              <?php endif; ?>
-              <input type="hidden" name="paged" value="1">
-
-              <div class="pap-archive-filter-group">
-                <label><?php esc_html_e('Preț', 'papetarie-storefront'); ?></label>
-                <div class="pap-archive-price-options" role="group" aria-label="<?php esc_attr_e('Intervale de preț', 'papetarie-storefront'); ?>">
-                  <?php foreach ($price_ranges as $price_range) : ?>
-                    <?php
-                    $range_key = (string) $price_range['key'];
-                    $range_count = isset($price_range_counts[$range_key]) ? (int) $price_range_counts[$range_key] : 0;
-                    $is_disabled = $range_count === 0;
-                    $is_checked = in_array($range_key, $selected_price_ranges, true);
-                    ?>
-                    <label class="pap-archive-price-option<?php echo $is_checked ? ' is-selected' : ''; ?><?php echo $is_disabled ? ' is-disabled' : ''; ?>">
-                      <input
-                        type="checkbox"
-                        name="price_range[]"
-                        value="<?php echo esc_attr($range_key); ?>"
-                        <?php checked($is_checked); ?>
-                        <?php disabled($is_disabled); ?>
-                      >
-                      <span class="pap-archive-price-option-label"><?php echo esc_html($price_range['label']); ?></span>
-                      <span class="pap-archive-price-option-count"><?php echo esc_html(sprintf('(%d)', $range_count)); ?></span>
-                    </label>
-                  <?php endforeach; ?>
-                </div>
+          <?php if ($has_meaningful_price_filter) : ?>
+            <div class="pap-filter-card">
+              <div class="pap-archive-filter-section-title">
+                <span><?php esc_html_e('Preț', 'papetarie-storefront'); ?></span>
               </div>
-
-              <div class="pap-archive-filter-group">
-                <label><?php esc_html_e('Interval personalizat', 'papetarie-storefront'); ?></label>
-                <div class="pap-archive-price-custom">
-                  <label>
-                    <span><?php esc_html_e('Min', 'papetarie-storefront'); ?></span>
-                    <input
-                      type="number"
-                      name="custom_price_min"
-                      min="0"
-                      step="0.01"
-                      inputmode="decimal"
-                      value="<?php echo esc_attr($custom_price_min); ?>"
-                      data-custom-price-min
-                    >
+              <div class="pap-archive-filter-body pap-archive-filter-checklist">
+                <?php foreach ($price_ranges as $range) : ?>
+                  <?php $is_checked = in_array($range['key'], $selected_price_ranges, true); ?>
+                  <label class="pap-archive-check-option">
+                    <input type="checkbox" class="pap-checkbox-input" name="price_range[]" value="<?php echo esc_attr($range['key']); ?>" <?php checked($is_checked); ?>>
+                    <span class="pap-archive-check-label"><?php echo esc_html($range['label']); ?></span>
+                    <?php if (!empty($price_range_counts[$range['key']])) : ?>
+                      <span class="pap-archive-check-count">(<?php echo esc_html((string) $price_range_counts[$range['key']]); ?>)</span>
+                    <?php endif; ?>
                   </label>
-                  <label>
-                    <span><?php esc_html_e('Max', 'papetarie-storefront'); ?></span>
-                    <input
-                      type="number"
-                      name="custom_price_max"
-                      min="0"
-                      step="0.01"
-                      inputmode="decimal"
-                      value="<?php echo esc_attr($custom_price_max); ?>"
-                      data-custom-price-max
-                    >
-                  </label>
-                </div>
+                <?php endforeach; ?>
               </div>
+            </div>
+          <?php endif; ?>
 
-              <?php if (!empty($custom_price_filter['active']) && empty($custom_price_filter['valid'])) : ?>
-                <p class="pap-archive-filter-note" role="alert"><?php esc_html_e('Intervalul personalizat trebuie să aibă valori numerice pozitive și Min mai mic sau egal cu Max.', 'papetarie-storefront'); ?></p>
-              <?php endif; ?>
-
-              <div class="pap-archive-filter-group">
-                <label for="pap-filter-stock-status"><?php esc_html_e('Disponibilitate', 'papetarie-storefront'); ?></label>
-                <select id="pap-filter-stock-status" name="stock_status">
-                  <option value="all"<?php selected($current_stock_status, 'all'); ?>><?php esc_html_e('Toate', 'papetarie-storefront'); ?></option>
-                  <?php foreach ($stock_status_options as $stock_status_key => $stock_status_label) : ?>
-                    <option value="<?php echo esc_attr($stock_status_key); ?>"<?php selected($current_stock_status, $stock_status_key); ?>>
-                      <?php echo esc_html($stock_status_label); ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-
-              <div class="pap-archive-filter-actions">
-                <button type="submit"><?php esc_html_e('Aplică filtrele', 'papetarie-storefront'); ?></button>
-                <a href="<?php echo esc_url($archive_action_url); ?>"><?php esc_html_e('Resetează', 'papetarie-storefront'); ?></a>
-              </div>
-            </form>
+          <div class="pap-filter-card">
+            <div class="pap-archive-filter-section-title">
+              <span><?php esc_html_e('Disponibilitate', 'papetarie-storefront'); ?></span>
+            </div>
+            <div class="pap-archive-filter-body pap-archive-filter-checklist pap-archive-filter-checklist--radio">
+              <label class="pap-archive-radio-option">
+                <input type="radio" class="pap-radio-input" name="stock_status" value="all" <?php checked($current_stock_status, 'all'); ?>>
+                <span class="pap-archive-check-label"><?php esc_html_e('Toate produsele', 'papetarie-storefront'); ?></span>
+              </label>
+              <?php foreach ($stock_status_options as $stock_status_key => $stock_status_label) : ?>
+                <label class="pap-archive-radio-option">
+                  <input type="radio" class="pap-radio-input" name="stock_status" value="<?php echo esc_attr($stock_status_key); ?>" <?php checked($current_stock_status, $stock_status_key); ?>>
+                  <span class="pap-archive-check-label"><?php echo esc_html($stock_status_label); ?></span>
+                  <span class="pap-archive-check-count"><?php echo esc_html((string) ($stock_status_counts[$stock_status_key] ?? 0)); ?></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
           </div>
-        <?php else : ?>
+
+          <?php if ($brand_terms) : ?>
+            <div class="pap-filter-card">
+              <div class="pap-archive-filter-section-title">
+                <span><?php esc_html_e('Brand', 'papetarie-storefront'); ?></span>
+              </div>
+              <div class="pap-archive-filter-body pap-archive-filter-checklist">
+                <?php foreach ($brand_terms as $brand_term) : ?>
+                  <?php $is_checked = in_array($brand_term['slug'], $selected_brands, true); ?>
+                  <label class="pap-archive-check-option">
+                    <input type="checkbox" class="pap-checkbox-input" name="brand[]" value="<?php echo esc_attr($brand_term['slug']); ?>" <?php checked($is_checked); ?>>
+                    <span class="pap-archive-check-label"><?php echo esc_html($brand_term['name']); ?></span>
+                    <span class="pap-archive-check-count">(<?php echo esc_html((string) $brand_term['count']); ?>)</span>
+                  </label>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endif; ?>
+        </form>
+
+        <div class="pap-sidebar-promo">
+          <a href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/')); ?>">
+            <img src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/sidebar-oferta-zilei.png'); ?>" alt="<?php esc_attr_e('Oferta zilei — Papetărie & birou până la -20% extra', 'papetarie-storefront'); ?>" loading="lazy">
+          </a>
+        </div>
+      <?php else : ?>
+        <div class="pap-archive-sidebar-box">
           <div class="pap-archive-sidebar-empty">
             <div class="pap-archive-sidebar-empty-panel">
               <span class="pap-archive-sidebar-empty-icon" aria-hidden="true">
@@ -197,21 +322,13 @@ get_header();
               <p><?php esc_html_e('În această categorie urmează să adăugăm produse potrivite. Revino curând pentru selecția completă.', 'papetarie-storefront'); ?></p>
             </div>
           </div>
-        <?php endif; ?>
-      </div>
+        </div>
+      <?php endif; ?>
     </aside>
 
     <div class="pap-archive-content" id="pap-archive-products">
       <?php if (woocommerce_product_loop()) : ?>
-        <div class="pap-archive-toolbar">
-          <div class="pap-archive-toolbar-ordering">
-            <?php if (function_exists('woocommerce_catalog_ordering')) : ?>
-              <?php woocommerce_catalog_ordering(); ?>
-            <?php endif; ?>
-          </div>
-        </div>
-
-        <div class="pap-archive-grid">
+        <div class="pap-archive-grid" data-archive-grid>
           <?php while (have_posts()) : ?>
             <?php the_post(); ?>
             <?php
@@ -225,71 +342,12 @@ get_header();
                 continue;
             }
 
-            $product_name = $product->get_name();
-            $product_url = $product->get_permalink();
-            $product_image_id = $product->get_image_id();
-            $product_category = papetarie_storefront_get_product_primary_category($product);
-
-            if ($product_image_id) {
-                $product_image = wp_get_attachment_image($product_image_id, 'woocommerce_thumbnail', false, [
-                    'loading' => 'lazy',
-                    'alt' => $product_name,
-                ]);
-            } else {
-                $product_image = '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
-            }
-
-            $can_add_to_cart = $product->is_purchasable() && $product->is_in_stock();
-            $action_url = $can_add_to_cart ? $product->add_to_cart_url() : $product_url;
-            $action_text = $can_add_to_cart ? $product->add_to_cart_text() : __('Vezi produsul', 'papetarie-storefront');
-            $action_class = $can_add_to_cart && $product->is_type('simple') ? 'add_to_cart_button ajax_add_to_cart' : '';
+            papetarie_storefront_render_product_card($product, 'archive');
             ?>
-            <article class="pap-product-card pap-product-card--archive">
-              <?php echo papetarie_storefront_render_product_badges_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-              <a class="pap-product-card-link" href="<?php echo esc_url($product_url); ?>">
-                <div class="pap-product-thumb pap-product-thumb--archive">
-                  <?php echo $product_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                </div>
-                <div class="pap-product-copy">
-                  <?php if ($product_category !== '') : ?>
-                    <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
-                  <?php endif; ?>
-                  <h2><?php echo esc_html($product_name); ?></h2>
-                  <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-                </div>
-              </a>
-              <div class="pap-product-meta pap-product-meta--archive">
-                <strong class="pap-price"><?php echo wp_kses_post($product->get_price_html()); ?></strong>
-                <div class="pap-product-actions">
-                  <?php if ($can_add_to_cart && $product->is_type('simple')) : ?>
-                    <button
-                      type="button"
-                      class="pap-home-add-to-cart <?php echo esc_attr($action_class); ?>"
-                      aria-label="<?php echo esc_attr($action_text); ?>"
-                      data-product-id="<?php echo esc_attr($product->get_id()); ?>"
-                      data-product-url="<?php echo esc_url($product_url); ?>"
-                      data-product_sku="<?php echo esc_attr($product->get_sku()); ?>"
-                    >
-                      <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('bag'); ?></span>
-                    </button>
-                  <?php else : ?>
-                    <a
-                      class="pap-home-add-to-cart"
-                      href="<?php echo esc_url($action_url); ?>"
-                      aria-label="<?php echo esc_attr($action_text); ?>"
-                    >
-                      <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('bag'); ?></span>
-                    </a>
-                  <?php endif; ?>
-                </div>
-              </div>
-            </article>
           <?php endwhile; ?>
         </div>
 
-        <div class="pap-archive-pagination">
-          <?php woocommerce_pagination(); ?>
-        </div>
+        <?php woocommerce_pagination(); ?>
 
       <?php else : ?>
         <div class="pap-archive-empty">
@@ -313,5 +371,97 @@ get_header();
     </div>
   </section>
 </main>
+<script>
+  (function () {
+    var filterToggle = document.querySelector('[data-archive-filter-toggle]');
+    var sidebar = document.getElementById('pap-archive-sidebar');
+
+    if (filterToggle && sidebar) {
+      filterToggle.addEventListener('click', function () {
+        var isOpen = sidebar.classList.toggle('is-open');
+        filterToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    }
+
+    var sortDropdown = document.querySelector('[data-sort-dropdown]');
+
+    if (sortDropdown) {
+      var sortTrigger = sortDropdown.querySelector('[data-sort-trigger]');
+      var sortMenu = sortDropdown.querySelector('[data-sort-menu]');
+
+      function closeSortMenu() {
+        sortMenu.hidden = true;
+        sortTrigger.setAttribute('aria-expanded', 'false');
+        sortDropdown.removeAttribute('data-open');
+      }
+
+      function openSortMenu() {
+        sortMenu.hidden = false;
+        sortTrigger.setAttribute('aria-expanded', 'true');
+        sortDropdown.setAttribute('data-open', '');
+      }
+
+      sortTrigger.addEventListener('click', function (event) {
+        event.stopPropagation();
+
+        if (sortMenu.hidden) {
+          openSortMenu();
+        } else {
+          closeSortMenu();
+        }
+      });
+
+      document.addEventListener('click', function (event) {
+        if (!sortDropdown.contains(event.target)) {
+          closeSortMenu();
+        }
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          closeSortMenu();
+        }
+      });
+    }
+
+    var filterForm = document.querySelector('.pap-archive-filter-form');
+
+    function submitFilter() {
+      if (!filterForm) {
+        return;
+      }
+      if (filterForm.requestSubmit) {
+        filterForm.requestSubmit();
+      } else {
+        filterForm.submit();
+      }
+    }
+
+    if (filterForm) {
+      var autoSubmitInputs = Array.prototype.slice.call(
+        filterForm.querySelectorAll('input[type="checkbox"], input[type="radio"]')
+      );
+
+      autoSubmitInputs.forEach(function (input) {
+        input.addEventListener('change', submitFilter);
+      });
+    }
+
+    var moreFiltersButton = document.querySelector('[data-filters-more]');
+
+    if (moreFiltersButton) {
+      moreFiltersButton.addEventListener('click', function () {
+        var hiddenChips = Array.prototype.slice.call(
+          document.querySelectorAll('.pap-filter-chip--overflow[hidden]')
+        );
+        hiddenChips.forEach(function (chip) {
+          chip.removeAttribute('hidden');
+        });
+        moreFiltersButton.remove();
+      });
+    }
+
+  })();
+</script>
 <?php
 get_footer();

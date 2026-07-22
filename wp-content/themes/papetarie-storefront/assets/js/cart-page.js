@@ -881,11 +881,31 @@
     }
 
     var card = slider.querySelector('.pap-product-card');
-    var amount = card ? card.offsetWidth + 16 : 260;
-    slider.scrollBy({
-      left: direction * amount * 2,
-      behavior: 'smooth'
-    });
+    if (!card) {
+      return;
+    }
+
+    var gap = parseFloat(getComputedStyle(slider.querySelector('.pap-product-grid') || slider).columnGap) || 0;
+    var amount = card.getBoundingClientRect().width + gap;
+    var maxScroll = slider.scrollWidth - slider.clientWidth;
+    var maxIndex = Math.max(0, Math.round(maxScroll / amount));
+    var currentIndex = Math.round(slider.scrollLeft / amount);
+    var targetIndex = currentIndex + direction;
+
+    if (targetIndex > maxIndex) {
+      slider.scrollLeft = 0;
+      slider.scrollTo({ left: Math.min(amount, maxScroll), behavior: 'smooth' });
+      return;
+    }
+
+    if (targetIndex < 0) {
+      slider.scrollLeft = maxScroll;
+      slider.scrollTo({ left: Math.max(maxScroll - amount, 0), behavior: 'smooth' });
+      return;
+    }
+
+    var target = targetIndex >= maxIndex ? maxScroll : targetIndex * amount;
+    slider.scrollTo({ left: target, behavior: 'smooth' });
   }
 
   function initHorizontalSliderShell(shell) {

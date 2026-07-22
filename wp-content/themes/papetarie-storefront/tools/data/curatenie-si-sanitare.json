@@ -1,0 +1,888 @@
+{
+  "top_level_slug": "curatenie-si-sanitare",
+  "subcategories": {
+    "Bureți": {
+      "slug": "bureti",
+      "products": [
+        {
+          "name": "Burete Flex Scrub Scotch-Brite",
+          "price": 22.48,
+          "obs": "Nou"
+        },
+        {
+          "name": "Burete vase Rainbow Expertto, 5 buc/set",
+          "price": 2.35,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Burete vase sârmă, 3 buc/set",
+          "price": 1.98,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Burete ergonomic Confort Delicat Colors Scotch-Brite, 2 buc/set",
+          "price": 20.86
+        },
+        {
+          "name": "Burete clasic de vase Scotch-Brite",
+          "price": 9.66
+        },
+        {
+          "name": "Burete protecție unghii Scotch-Brite, 1 buc",
+          "price": 9.66
+        },
+        {
+          "name": "Burete curățare plite de sticlă Scotch-Brite",
+          "price": 16.83
+        }
+      ]
+    },
+    "Lavete": {
+      "slug": "lavete",
+      "products": [
+        {
+          "name": "Lavete uz general Maxi Scotch-Brite™, 10 buc/set",
+          "price": 26.48,
+          "obs": "Nou"
+        },
+        {
+          "name": "Lavetă BBC, 40 × 40 cm, 10 buc/set",
+          "price": 6.88,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Lavete universale, 3 buc/set",
+          "price": 1.74,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Lavetă uz general Roll Max Scotch-Brite, rolă",
+          "price": 27.31
+        },
+        {
+          "name": "Lavete uz general Scotch-Brite, 3 buc/set",
+          "price": 8.68
+        },
+        {
+          "name": "Lavete umede Scotch-Brite, 3 buc/set",
+          "price": 15.23
+        },
+        {
+          "name": "Lavetă absorbantă 3 straturi Scotch-Brite, 3 buc/set",
+          "price": 10.62
+        },
+        {
+          "name": "Lavetă geamuri Scotch-Brite",
+          "price": 15.7
+        },
+        {
+          "name": "Lavetă microfibră Durable, 20 × 20 cm",
+          "price": 31.99,
+          "obs": "Ultimele produse în gamă"
+        },
+        {
+          "name": "Lavete verzi WypAll Kimberly-Clark, 50 buc/cutie, 6 cutii/set",
+          "price": 866.85
+        },
+        {
+          "name": "Lavete microfibră Kimberly-Clark WypAll, 6 buc/pachet",
+          "price": 121.59
+        },
+        {
+          "name": "Lavete Kimberly-Clark WypAll X50, 50 buc/set",
+          "price": 61.48
+        },
+        {
+          "name": "Lavete Kimberly-Clark Kimtech Wettask DS, 1 strat",
+          "price": 88.87
+        }
+      ]
+    },
+    "Prosoape de hârtie și dispensere": {
+      "slug": "prosoape-de-hartie-si-dispensere",
+      "products": [
+        {
+          "name": "Șervețele faciale la cutie Pariss, 150 buc/cutie, 2 straturi",
+          "price": 3.83,
+          "obs": "Nou"
+        },
+        {
+          "name": "Dispenser rolă prosop autocut Lucart Identity, alb",
+          "price": 77.41
+        },
+        {
+          "name": "Dispenser rolă prosop derulare centrală Lucart L-ONE MAXI",
+          "price": 147.9
+        },
+        {
+          "name": "Dispenser șervețele masă Lucart L-ONE, negru",
+          "price": 67.06
+        },
+        {
+          "name": "Prosoape pliate V 150 Lucart Strong, 2 str, 25 × 23 cm, 150 buc",
+          "price": 100.24
+        },
+        {
+          "name": "Prosoape pliate V2 Lucart Easy, 2 str, 21 × 21 cm, 190 buc",
+          "price": 101.46
+        },
+        {
+          "name": "Prosoape pliate V2 Lucart EcoNatural, 2 str, 21 × 21 cm",
+          "price": 108.13
+        },
+        {
+          "name": "Rolă hârtie industrială Lucart EcoNatural 3800 JOINT, 3 straturi",
+          "price": 76.03
+        },
+        {
+          "name": "Rolă hârtie industrială Lucart EcoNatural 800, 2 str, 210 m",
+          "price": 52.99
+        },
+        {
+          "name": "Rolă hârtie industrială Lucart SKYTECH 3.1000 XL, 3 straturi",
+          "price": 116.92
+        },
+        {
+          "name": "Rolă hârtie industrială Lucart Strong MULTI-USE, 2 str, albă",
+          "price": 43.87
+        },
+        {
+          "name": "Rolă hârtie industrială Lucart Strong Multiuse 1.800, 2 straturi",
+          "price": 45.13
+        },
+        {
+          "name": "Rolă hârtie industrială Lucart Strong Multiuse Blue 3.500, 3 straturi",
+          "price": 66.54
+        },
+        {
+          "name": "Rolă medicală Lucart Strong 50, 2 str, albă, 50 cm × 50 m",
+          "price": 19.6
+        },
+        {
+          "name": "Rolă prosop autocut Lucart Eco 150 ID, 2 str, albă, 150 m/rolă, 6 role",
+          "price": 246.49
+        },
+        {
+          "name": "Rolă prosop autocut Lucart EcoNatural 155 ID, 2 str, 155 m",
+          "price": 197.77
+        },
+        {
+          "name": "Rolă prosop autocut Lucart Strong 250 ID, 1 strat, albă, 250 m",
+          "price": 272.41
+        },
+        {
+          "name": "Rolă prosop Cleanit 1000, 2 str, albă, 147 m/rolă",
+          "price": 13.19
+        },
+        {
+          "name": "Rolă prosop Cleanit 700, 2 str, albă, 100 m/rolă",
+          "price": 8.55
+        },
+        {
+          "name": "Rolă prosop derulare centrală Lucart EcoNatural L-ONE",
+          "price": 106.33
+        },
+        {
+          "name": "Rolă prosop derulare centrală Lucart Strong 19 CF, 2 str, albă",
+          "price": 64.37
+        },
+        {
+          "name": "Rolă prosop derulare centrală Lucart Strong L-ONE MAXI",
+          "price": 145.65
+        },
+        {
+          "name": "Rolă prosop derulare centrală Lucart Strong L-ONE MAXI, variantă",
+          "price": 158.36
+        },
+        {
+          "name": "Șervețele masă pliate Lucart EcoNatural 216 TN, 2 str, 16,4 cm",
+          "price": 185.99
+        },
+        {
+          "name": "Șervețele masă pliate Lucart Strong 216 TI, 2 str, 16,4 cm",
+          "price": 199.41
+        },
+        {
+          "name": "Șervețele umede copii Picollino, 72 buc/set",
+          "price": 2.45,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Șervețele faciale Gala, 150 buc/cutie, 2 straturi",
+          "price": 4.74,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Șervețele umede obiecte sanitare Expertto, 72 buc/set",
+          "price": 6.23,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Șervețele umede/uscate Durable, 10 buc/set",
+          "price": 21.43
+        },
+        {
+          "name": "Prosop hârtie alb, 2 straturi, 100 m",
+          "price": 8.56,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Prosop rolă matic Scott, alb, 1 strat, 305 m, 6 role/bax",
+          "price": 858.93
+        },
+        {
+          "name": "Lavetă L10 derulare centrală Food & Hygiene, 1 strat",
+          "price": 430.09
+        },
+        {
+          "name": "Rezervă prosoape în rolă Kimberly-Clark L10 Food & Hygiene",
+          "price": 572.27
+        },
+        {
+          "name": "Rolă derulare centrală Kimberly-Clark WypAll",
+          "price": 218.79
+        },
+        {
+          "name": "Rolă prosop autocut Kimberly-Clark Scott Control, 1 strat",
+          "price": 893.03
+        },
+        {
+          "name": "Dispenser Kimberly-Clark Aquarius, pentru prosoape în rolă",
+          "price": 410.37
+        },
+        {
+          "name": "Dispenser mobil Kimberly-Clark Wettask, pentru lavete",
+          "price": 255.23
+        },
+        {
+          "name": "Dispenser Stativ Mobil Kimberly-Clark",
+          "price": 645.34
+        },
+        {
+          "name": "Dispenser Kimberly-Clark WypAll Reach, negru",
+          "price": 212.04
+        }
+      ]
+    },
+    "Hârtie igienică și dispensere": {
+      "slug": "hartie-igienica-si-dispensere",
+      "products": [
+        {
+          "name": "Dispenser hârtie igienică autocut Lucart Identity, alb",
+          "price": 39.17
+        },
+        {
+          "name": "Hârtie igienică autocut Lucart ECO 900 ID, 2 str, albă",
+          "price": 223.26
+        },
+        {
+          "name": "Hârtie igienică autocut Lucart EcoNatural 900 ID, 2 straturi",
+          "price": 179.88
+        },
+        {
+          "name": "Hârtie igienică Lucart Eco 19 J, 2 str, albă, 120 m/rolă, 12 role",
+          "price": 68.83
+        },
+        {
+          "name": "Hârtie igienică Lucart EcoNatural 10, 2 str, 10 role",
+          "price": 9.27
+        },
+        {
+          "name": "Hârtie igienică Lucart Strong 8.3, 3 str, albă, 29 m/rolă, 8 role",
+          "price": 20.15
+        },
+        {
+          "name": "Hârtie igienică 3 straturi, 10 role, parfumată",
+          "price": 7.65,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Rolă industrială albastră WypAll L20, 2 straturi, 190 m",
+          "price": 208.65
+        },
+        {
+          "name": "Hârtie igienică Kimberly-Clark Jumbo, 1 strat, 525 m",
+          "price": 306.19
+        },
+        {
+          "name": "Rolă hârtie igienică derulare centrală Kimberly-Clark, 2 straturi",
+          "price": 468.91
+        },
+        {
+          "name": "Rolă hârtie igienică derulare centrală Kimberly-Clark, 2 straturi",
+          "price": 368.12
+        },
+        {
+          "name": "ârtie igienică Scott, 2 straturi, 42 m/rolă, 8 role/set",
+          "price": 43.1
+        },
+        {
+          "name": "Hârtie igienică Kimberly-Clark Hostess Bulk Pack, albă, 250 buc",
+          "price": 397.89
+        },
+        {
+          "name": "Dispenser acoperitoare colac toaletă Kimberly-Clark",
+          "price": 199.57
+        },
+        {
+          "name": "Acoperitor colac toaletă Kimberly-Clark, hârtie cerată",
+          "price": 838.43
+        },
+        {
+          "name": "Dispenser hârtie igienică rolă mică Kimberly-Clark Aquarius",
+          "price": 203.98
+        },
+        {
+          "name": "Dispenser Electronic Kimberly-Clark",
+          "price": 853.81
+        },
+        {
+          "name": "Dispenser hârtie igienică derulare centrală Kimberly-Clark",
+          "price": 157.39
+        },
+        {
+          "name": "Dispenser hârtie igienică pliată Kimberly-Clark Aquarius",
+          "price": 76.44
+        },
+        {
+          "name": "Dispenser hârtie toaletă Roll Control Aquarius Kimberly-Clark",
+          "price": 225.45
+        },
+        {
+          "name": "Dispenser Kimberly-Clark Aquarius, alb, pentru hârtie igienică",
+          "price": 305.13
+        }
+      ]
+    },
+    "Săpunuri și dispensere": {
+      "slug": "sapunuri-si-dispensere",
+      "products": [
+        {
+          "name": "Dispenser săpun Lucart Identity",
+          "price": 86.52
+        },
+        {
+          "name": "Săpun spumă Lucart, alb, aromă migdale, 1000 ml",
+          "price": 26.67
+        },
+        {
+          "name": "Gel de duș Dermomed, cu dispenser, 1 L",
+          "price": 13.59
+        },
+        {
+          "name": "Săpun cremă Dermomed, cu pompiță, 1 L",
+          "price": 10.92
+        },
+        {
+          "name": "Rezervă cremă de săpun Dermomed, 1 L",
+          "price": 9.73
+        },
+        {
+          "name": "Săpun cremă Dermomed, 5 L",
+          "price": 57.12
+        },
+        {
+          "name": "Săpun spumă de lux Kimberly-Clark, alb, 1 L",
+          "price": 77.93
+        },
+        {
+          "name": "Săpun spumă de lux Kimberly-Clark, roz, 1 L",
+          "price": 83.77
+        },
+        {
+          "name": "Săpun spumă utilizare frecventă Scott Control, 1,2 L, 4 rezerve",
+          "price": 589.73
+        },
+        {
+          "name": "Dispenser Electronic Kimberly-Clark Professional, pentru săpun/spumă",
+          "price": 767.53
+        },
+        {
+          "name": "Dozator săpun și spumă Kimberly-Clark Aquarius, alb, 1 L",
+          "price": 76.44
+        },
+        {
+          "name": "Săpun lichid Luxor Sanitec, 1000 ml",
+          "price": 14.14,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Săpun lichid Bio Green Power Sanitec, 1000 ml",
+          "price": 24.66
+        },
+        {
+          "name": "Săpun lichid Green Aloe Sanitec, 5000 ml",
+          "price": 54.31
+        },
+        {
+          "name": "Săpun lichid PH neutru Sanitec, 5000 ml",
+          "price": 45.84,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Săpun lichid industrial Lavamani Sanitec, 1000 ml",
+          "price": 38.09
+        }
+      ]
+    },
+    "Detergenți de vase și geamuri": {
+      "slug": "detergenti-de-vase-si-geamuri",
+      "products": [
+        {
+          "name": "Detergent vase Piatti Sanitec, 1000 ml",
+          "price": 10.47
+        },
+        {
+          "name": "Detergent vase Neopol Sanitec, 1000 ml",
+          "price": 15.28
+        },
+        {
+          "name": "Detergent vase Neopol Sanitec, 5000 ml",
+          "price": 57.72
+        },
+        {
+          "name": "Detergent vase Piatti Sanitec, 5000 ml",
+          "price": 34.62
+        },
+        {
+          "name": "Detergent geamuri Vetri, cu pulverizator, 750 ml",
+          "price": 10.47,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Detergent geamuri Vetri Sanitec, 5000 ml",
+          "price": 50.92
+        }
+      ]
+    },
+    "Soluții diverse pentru curățenie": {
+      "slug": "solutii-diverse-pentru-curatenie",
+      "products": [
+        {
+          "name": "Detergent cu perie împotriva petelor & mirosurilor Dr. Beckmann, pentru tapițerie",
+          "price": 18.9,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Detergent cu perie pentru covoare Dr. Beckmann, 650 ml",
+          "price": 20.49,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Detergent de rufe benzi-foi Dr. Beckmann Magic Leaves, 25 spălări",
+          "price": 19.13,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Înălbitor pudră pentru perdele, 2 spălări/pachet",
+          "price": 5.49,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Pastile decalcifiere aparate cafea Dr. Beckmann, 6 buc",
+          "price": 11.12,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție decalcifiere Dr. Beckmann, 250 ml",
+          "price": 11.91,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție îndepărtare pete fructe, legume & băuturi Dr. Beckmann",
+          "price": 9.0,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție îndepărtare pete grăsimi & sosuri Dr. Beckmann",
+          "price": 9.0,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție îndepărtare pete natură & cosmetice Dr. Beckmann, 50 ml",
+          "price": 9.0,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție îndepărtare pete pix & cerneală Dr. Beckmann, 50 ml",
+          "price": 9.0,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție îndepărtare pete rugină & deodorant Dr. Beckmann, 50 ml",
+          "price": 9.0,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție pentru curățat frigiderul Dr. Beckmann, 250 ml",
+          "price": 16.5,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție pentru îndepărtare pete & transpirație Dr. Beckmann",
+          "price": 13.5,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție pentru îngrijirea mașinii de spălat Dr. Beckmann, 250 ml",
+          "price": 14.13,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Super înălbitor pentru rufe, 2 spălări/pachet",
+          "price": 5.49,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Detergent detartrant WC gel Sanitec, 700 ml",
+          "price": 15.41
+        },
+        {
+          "name": "Balsam rufe Softdet, 5000 ml",
+          "price": 48.09
+        },
+        {
+          "name": "Detergent degresant universal ultraconcentrat, 5000 ml",
+          "price": 73.56
+        },
+        {
+          "name": "Detergent pardoseli alcalin Matic Extra, 5000 ml",
+          "price": 145.96
+        },
+        {
+          "name": "Detergent pardoseli cu efect de lustruire Brill Lux, 5000 ml",
+          "price": 120.93
+        },
+        {
+          "name": "Detergent pardoseli degresant pe bază de amoniac, 1000 ml",
+          "price": 15.23
+        },
+        {
+          "name": "Detergent pardoseli degresant pe bază de amoniac, 5000 ml",
+          "price": 90.53
+        },
+        {
+          "name": "Detergent pardoseli detartrant pe bază de acid clorhidric, 5000 ml",
+          "price": 130.65
+        },
+        {
+          "name": "Detergent pardoseli pe bază de alcool cu uscare rapidă, 1000 ml",
+          "price": 13.36
+        },
+        {
+          "name": "Detergent pardoseli pe bază de alcool cu uscare rapidă, 5000 ml",
+          "price": 57.28
+        },
+        {
+          "name": "Detergent pentru curățarea plitelor cu inducție",
+          "price": 15.06
+        },
+        {
+          "name": "Detergent pentru suprafețe din piele Leather S4, 500 ml",
+          "price": 19.88
+        },
+        {
+          "name": "Dezinfectant pentru suprafețe Multi Activ, 750 ml",
+          "price": 16.12
+        },
+        {
+          "name": "Detergent parchet Sanitec, 1000 ml",
+          "price": 20.37
+        },
+        {
+          "name": "Detergent parchet cu ceară Sanitec, 5000 g",
+          "price": 82.04
+        },
+        {
+          "name": "Detergent pardoseli Igienic Sanitec, 1000 ml",
+          "price": 12.1,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție mobilă cu pulverizator Sanitec, 500 ml",
+          "price": 17.2
+        },
+        {
+          "name": "Soluție curățat suprafețe universale cu pulverizator, 750 ml",
+          "price": 14.0
+        },
+        {
+          "name": "Detergent pardoseli Igienic Sanitec, 5000 ml",
+          "price": 37.17,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție anticalcar parfumată cu pulverizator, 750 ml",
+          "price": 18.27
+        },
+        {
+          "name": "Soluție de scos diverse pete cu pulverizator, 500 ml",
+          "price": 22.27
+        },
+        {
+          "name": "Soluție curățat suprafețe bucătărie, cu pulverizator, 750 ml",
+          "price": 11.88
+        },
+        {
+          "name": "Soluție curățat suprafețe metalice, cu pulverizator, 750 ml",
+          "price": 20.42
+        },
+        {
+          "name": "Soluție scos pete cerneală Deink, cu pulverizator, 750 ml",
+          "price": 17.96
+        },
+        {
+          "name": "Soluție anticalcar Igienikal, cu pulverizator, 750 ml",
+          "price": 12.91,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Soluție curățat cuptoare Fornonet, cu pulverizator, 750 ml",
+          "price": 20.37
+        },
+        {
+          "name": "Detergent lichid pentru rufe Lavatrice Sanitec, 5000 g",
+          "price": 79.21
+        },
+        {
+          "name": "Spray pentru curățare industrială 3M, 500 ml",
+          "price": 165.75
+        },
+        {
+          "name": "Sită pentru pișoare din silicon, parfumată",
+          "price": 14.34
+        },
+        {
+          "name": "Pastile odorizante pentru pișoar, 100 buc/cutie",
+          "price": 21.46,
+          "obs": "Preț de la"
+        }
+      ]
+    },
+    "Mănuși menaj": {
+      "slug": "manusi-menaj",
+      "products": [
+        {
+          "name": "Mănuși bucătărie Scotch-Brite, M",
+          "price": 8.18
+        },
+        {
+          "name": "Mănuși super rezistente Scotch-Brite, M",
+          "price": 12.3
+        }
+      ]
+    },
+    "Mături și mopuri": {
+      "slug": "maturi-si-mopuri",
+      "products": [
+        {
+          "name": "Mătură de interior Scotch-Brite, cu mâner metalic",
+          "price": 32.22
+        },
+        {
+          "name": "Mătură de exterior Scotch-Brite, cu mâner metalic",
+          "price": 30.69
+        },
+        {
+          "name": "Făraș cu perie Scotch-Brite",
+          "price": 15.58
+        },
+        {
+          "name": "Mop bumbac Scotch-Brite, 25 cm",
+          "price": 12.66
+        },
+        {
+          "name": "Mop PVA Premium Scotch-Brite, cu mâner",
+          "price": 89.88
+        },
+        {
+          "name": "Rezervă mop PVA Premium Scotch-Brite",
+          "price": 28.72
+        },
+        {
+          "name": "Mătură de interior Roma, fără coadă, diverse culori",
+          "price": 3.58,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Mătură stradală Perind 7046, 600, fără coadă, cu bucșă metal",
+          "price": 27.88
+        },
+        {
+          "name": "Coadă din lemn pentru mop/mătură",
+          "price": 1.88,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Set găleată plastic + storcător pentru mop, 10 L, roșie",
+          "price": 6.96,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Rezervă mop din bumbac, 200 g",
+          "price": 2.93,
+          "obs": "Preț de la"
+        }
+      ]
+    },
+    "Accesorii menaj": {
+      "slug": "accesorii-menaj",
+      "products": [
+        {
+          "name": "Saci menaj, 35 L (50 × 60), 7 microni, 50 buc/rolă",
+          "price": 2.61,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Saci menaj LDPE, 35 L (50 × 70), 22 microni, 15 buc/rolă",
+          "price": 2.13,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Saci menaj LDPE, 60 L (60 × 80), 24 microni, 15 buc/rolă",
+          "price": 3.19,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Saci menajeri, 60 L, 20 buc/rolă, negru",
+          "price": 2.38,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Saci menajeri, 120 L, 10 buc/rolă, negru",
+          "price": 3.06,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Saci menaj LDPE, 120 L (70 × 110), 30 microni, 10 buc/rolă",
+          "price": 4.4,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Saci menaj LDPE, 240 L (115 × 130), 30 microni, 10 buc/rolă",
+          "price": 7.91,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Coș cu capac batant, alb, 35 L",
+          "price": 25.5,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Racletă pentru podea, 55 cm",
+          "price": 7.2,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Set toaletă Lion, alb",
+          "price": 3.85,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Coș inox colectare selectivă Eko Prestige, 45 L",
+          "price": 304.12
+        },
+        {
+          "name": "Coș inox colectare selectivă Eko Square Prestige, 60 L",
+          "price": 370.93
+        },
+        {
+          "name": "Coș inox colectare selectivă, 2 compartimente, 2 × 35 L",
+          "price": 629.95
+        },
+        {
+          "name": "Coș inox colectare selectivă, 2 compartimente, cu găleată",
+          "price": 718.77
+        },
+        {
+          "name": "Coș inox colectare selectivă, 3 compartimente, 3 × 25 L",
+          "price": 651.33
+        },
+        {
+          "name": "Coș inox colectare selectivă, 3 compartimente, cu găleată",
+          "price": 778.88
+        },
+        {
+          "name": "Stație colectare selectivă Eko Station, 3 × 60 L",
+          "price": 1020.29
+        },
+        {
+          "name": "Stație colectare selectivă Eko Station, 4 × 60 L",
+          "price": 1275.39
+        },
+        {
+          "name": "Stație colectare selectivă Eko Star Station, 2 × 60 L",
+          "price": 1351.31
+        },
+        {
+          "name": "Stație colectare selectivă Eko Star Station, 3 × 60 L",
+          "price": 1716.21
+        },
+        {
+          "name": "Stație colectare selectivă Eko Star Station, 4 × 60 L",
+          "price": 2043.62
+        },
+        {
+          "name": "Găleată interioară, plastic, rotundă, 30 L",
+          "price": 31.84
+        },
+        {
+          "name": "Găleată interioară, inox, pătrată, 48 L",
+          "price": 150.55
+        },
+        {
+          "name": "Găleată interioară, inox, rotundă, 45 L",
+          "price": 157.57
+        },
+        {
+          "name": "Suport plastic pentru sac, 2 buc/set",
+          "price": 5.41
+        },
+        {
+          "name": "Set conectori pentru coșuri inox, 2 buc/set",
+          "price": 26.56
+        }
+      ]
+    },
+    "Sanitare": {
+      "slug": "sanitare",
+      "products": [
+        {
+          "name": "Mănuși de unică folosință din nitril, albastre, nepudrate",
+          "price": 20.4,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Mănuși fără pudră din vinil, 100 buc/cutie",
+          "price": 8.44,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Mănuși nitril negre, 100 buc/cutie",
+          "price": 21.97,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Mănuși latex ușor pudrate, 100 buc/set",
+          "price": 21.19,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Botoșei din polietilenă de unică folosință AP17, 100 buc/set",
+          "price": 6.66,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Capelină din polipropilenă de unică folosință, albastră, 100 buc/set",
+          "price": 9.3,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Capelină din polipropilenă de unică folosință, albă, 100 buc/set",
+          "price": 9.3,
+          "obs": "Preț de la"
+        }
+      ]
+    }
+  }
+}

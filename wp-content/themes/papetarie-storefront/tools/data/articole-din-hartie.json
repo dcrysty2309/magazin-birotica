@@ -1,0 +1,294 @@
+{
+  "top_level": "Articole din hârtie",
+  "top_level_slug": "articole-din-hartie",
+  "subcategories": {
+    "Hârtie copiator": {
+      "slug": "hartie-copiator",
+      "products": [
+        {
+          "name": "Hârtie copiator Xerox Business, A4, 80 g, 500 coli/top",
+          "price": 17.81
+        },
+        {
+          "name": "Hârtie copiator Xerox Business, A3, 80 g, 500 coli/top",
+          "price": 36.85
+        },
+        {
+          "name": "Hârtie copiator Xerox Recycled, A4, 80 g, 500 coli/top",
+          "price": 26.95
+        },
+        {
+          "name": "Hârtie copiator Xerox Recycled, A3, 80 g, 500 coli/top",
+          "price": 29.34
+        },
+        {
+          "name": "Hârtie Color Printing, A4, 120 g, 250 coli/top",
+          "price": 32.59
+        },
+        {
+          "name": "Hârtie Color Printing, A3, 120 g, 250 coli/top",
+          "price": 65.19
+        },
+        {
+          "name": "Carton Color Printing, A4, 160 g, 250 coli/top",
+          "price": 45.5
+        },
+        {
+          "name": "Carton Color Printing, A3, 160 g, 250 coli/top",
+          "price": 90.97
+        },
+        {
+          "name": "Hârtie Xerox Colotech, A4, 90 g, 500 coli/top",
+          "price": 63.25
+        },
+        {
+          "name": "Hârtie Xerox Colotech, A3, 90 g, 500 coli/top",
+          "price": 126.09
+        },
+        {
+          "name": "Hârtie Xerox Colotech, A4, 100 g, 500 coli/top",
+          "price": 70.14
+        },
+        {
+          "name": "Hârtie Xerox Colotech, A3, 100 g, 500 coli/top",
+          "price": 140.26
+        },
+        {
+          "name": "Carton Xerox Colotech, A4, 160 g, 250 coli/top",
+          "price": 67.88
+        },
+        {
+          "name": "Carton Xerox Colotech, A3, 160 g, 250 coli/top",
+          "price": 135.85
+        },
+        {
+          "name": "Carton Xerox Colotech, A4, 200 g, 250 coli/top",
+          "price": 81.99
+        },
+        {
+          "name": "Carton Xerox Colotech, A3, 200 g, 250 coli/top",
+          "price": 168.98
+        },
+        {
+          "name": "Carton Xerox Colotech, A4, 250 g, 250 coli/top",
+          "price": 105.29
+        },
+        {
+          "name": "Carton Xerox Colotech, A3, 250 g, 250 coli/top",
+          "price": 216.71
+        },
+        {
+          "name": "Carton Xerox Colotech, A4, 280 g, 150 coli/top",
+          "price": 71.63
+        },
+        {
+          "name": "Carton Xerox Colotech, A3, 280 g, 150 coli/top",
+          "price": 147.3
+        }
+      ]
+    },
+    "Hârtie color": {
+      "slug": "hartie-color",
+      "products": [
+        {
+          "name": "Hârtie Clairefontaine color intens, A4, 80 g, 500 coli/top",
+          "price": 47.07
+        },
+        {
+          "name": "Hârtie Clairefontaine color pal, A4, 80 g, 500 coli/top",
+          "price": 42.5
+        },
+        {
+          "name": "Hârtie Clairefontaine color intens, A3, 80 g, 500 coli/top",
+          "price": 92.49
+        },
+        {
+          "name": "Hârtie Clairefontaine color intens fluo, A4, 80 g, 500 coli/top",
+          "price": 64.25
+        },
+        {
+          "name": "Carton Clairefontaine, A4, 160 g, 250 coli/top",
+          "price": 64.45
+        },
+        {
+          "name": "Carton Clairefontaine color intens, A4, 160 g, 250 coli/top",
+          "price": 51.14
+        },
+        {
+          "name": "Carton Clairefontaine color intens, A3, 160 g, 250 coli/top",
+          "price": 99.58
+        },
+        {
+          "name": "Carton Clairefontaine color pal, A3, 160 g, 250 coli/top",
+          "price": 88.43
+        },
+        {
+          "name": "Carton Xerox color pal, A4, 160 g, 250 coli/top",
+          "price": 48.66
+        },
+        {
+          "name": "Hârtie Xerox color intens, A4, 80 g, 500 coli/top",
+          "price": 48.11
+        }
+      ]
+    },
+    "Hârtie specială": {
+      "slug": "hartie-speciala",
+      "products": [
+        {
+          "name": "Carton color Aperta – Set 5 culori, A4, 160 g, 30 coli/set",
+          "price": 7.16
+        },
+        {
+          "name": "Hârtie color Aperta – Set 5 culori, A4, 80 g, 50 coli/set",
+          "price": 5.98
+        },
+        {
+          "name": "Foi albe, liniatură franceză, duble multiperforate, A4, 90 g",
+          "price": 22.77
+        },
+        {
+          "name": "Mapă cu foi liniatură franceză, vernil, A5+, 1 mapă",
+          "price": 8.1,
+          "obs": "17 × 22 cm"
+        },
+        {
+          "name": "Hârtie calc Clairefontaine, A4, 90/95 g, 12 coli/plic",
+          "price": 16.21
+        },
+        {
+          "name": "Bloc hârtie sugativă Clairefontaine, 16 × 21 cm, 100 g, 10 file/bloc",
+          "price": 6.14
+        }
+      ]
+    },
+    "Post-it/Sticky notes": {
+      "slug": "post-it-sticky-notes",
+      "products": [
+        {
+          "name": "Notes adeziv Post-it 3M, 51 × 76 mm, 100 file × 12 buc",
+          "price": 51.5
+        },
+        {
+          "name": "Notes adeziv Post-it neon, 76 × 76 mm, 100 file",
+          "price": 8.47
+        },
+        {
+          "name": "Notes adeziv cub Post-it 3M, 76 × 76 mm, 450 file",
+          "price": 28.45,
+          "obs": "neon"
+        },
+        {
+          "name": "Notes adeziv mini cub Post-it 3M, 51 × 51 mm, 400 file",
+          "price": 17.65
+        },
+        {
+          "name": "Cub notițe adezive Post-it Canary Yellow, 51 × 38 mm, 300 file",
+          "price": 7.19
+        },
+        {
+          "name": "Notes adeziv Post-it Canary Yellow, 76 × 127 mm, 100 file",
+          "price": 7.54
+        },
+        {
+          "name": "Cub notițe adezive Post-it formă, 70 × 70 mm, 225 file",
+          "price": 29.84,
+          "obs": "forme"
+        },
+        {
+          "name": "Dispenser notițe adezive Super Sticky Z PRO, 76 × 76 mm, 1 buc",
+          "price": 65.5
+        },
+        {
+          "name": "Cub notițe adezive Post-it, 76 × 76 mm, 450 file",
+          "price": 29.86,
+          "obs": "100% PEFC"
+        },
+        {
+          "name": "Notes adeziv cub Post-it 3M, 76 × 76 mm, 450 file",
+          "price": 28.45
+        },
+        {
+          "name": "Rezervă cub color Forster, 400 file",
+          "price": 4.72
+        },
+        {
+          "name": "Rezervă cub color Ubers, 9 × 9 cm, 500 file",
+          "price": 6.5
+        },
+        {
+          "name": "Rezervă cub alb Forster, 400 file",
+          "price": 4.09
+        },
+        {
+          "name": "Rezervă cub alb Ubers, 9 × 9 cm, 500 file",
+          "price": 6.89
+        },
+        {
+          "name": "Cub notițe adezive Info Notes, 70 × 70 mm, 200 file",
+          "price": 10.53
+        },
+        {
+          "name": "Notes adeziv Nature Info, 75 × 75 mm, 16 × 100 file",
+          "price": 46.12
+        },
+        {
+          "name": "Notes adeziv Info Notes, 50 × 75 mm, 100 file",
+          "price": 1.62
+        },
+        {
+          "name": "Notes adeziv Info Notes, 75 × 75 mm, 100 file",
+          "price": 15.42
+        },
+        {
+          "name": "Notes adeziv Info Notes, 75 × 125 mm, 100 file",
+          "price": 2.73
+        },
+        {
+          "name": "Notes adeziv liniat Info Notes, 100 × 100 mm, 100 file",
+          "price": 5.2
+        },
+        {
+          "name": "Notes adeziv Harmony, 12 × 40 × 50 mm, 12 × 100 file",
+          "price": 9.05
+        },
+        {
+          "name": "Cub notițe adezive Info Notes, 75 × 75 mm, 450 file",
+          "price": 11.57
+        },
+        {
+          "name": "Notes adeziv Spring Info Notes, 75 × 75 mm, 100 file",
+          "price": 26.46
+        },
+        {
+          "name": "Notes adeziv Spring Info Notes, 12 × 40 × 50 mm, 12 × 100 file",
+          "price": 11.56
+        },
+        {
+          "name": "Notes adeziv Info Notes briliant, 75 × 75 mm, 80 file",
+          "price": 1.98
+        },
+        {
+          "name": "Notes adeziv cub briliant, 50 × 50 mm, 240 file",
+          "price": 7.15
+        },
+        {
+          "name": "Notes adeziv Harmony, 125 × 75 mm, 100 file",
+          "price": 32.41
+        },
+        {
+          "name": "Notes adeziv Tartan, 51 × 76 mm, 100 file",
+          "price": 21.06
+        },
+        {
+          "name": "Notes adeziv Tartan neon, 76 × 76 mm, 100 file × 6 buc",
+          "price": 24.79
+        },
+        {
+          "name": "Notes adeziv Tartan neon, 76 × 127 mm, 100 file",
+          "price": 6.53
+        }
+      ]
+    }
+  }
+}

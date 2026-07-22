@@ -104,7 +104,7 @@ if ('modal' !== $context) {
 
             <div class="pap-auth-form-meta pap-auth-form-meta--login">
               <label class="woocommerce-form__label woocommerce-form__label-for-checkbox woocommerce-form-login__rememberme">
-                <input class="woocommerce-form__input woocommerce-form__input-checkbox" name="rememberme" type="checkbox" id="<?php echo esc_attr($id_prefix . 'rememberme'); ?>" value="forever" />
+                <input class="woocommerce-form__input woocommerce-form__input-checkbox pap-checkbox-input" name="rememberme" type="checkbox" id="<?php echo esc_attr($id_prefix . 'rememberme'); ?>" value="forever" />
                 <span><?php esc_html_e('Ține-mă minte', 'papetarie-storefront'); ?></span>
               </label>
               <?php if ('modal' === $context) : ?>
@@ -238,7 +238,7 @@ if ('modal' !== $context) {
               </div>
 
               <label class="pap-auth-terms">
-                <input type="checkbox" name="agree_terms" value="1" required aria-required="true">
+                <input type="checkbox" class="pap-checkbox-input" name="agree_terms" value="1" required aria-required="true">
                 <span>
                   <?php esc_html_e('Sunt de acord cu', 'papetarie-storefront'); ?>
                   <a href="<?php echo esc_url(function_exists('get_privacy_policy_url') ? get_privacy_policy_url() : home_url('/privacy-policy/')); ?>" target="_blank" rel="noopener noreferrer">

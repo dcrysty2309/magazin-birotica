@@ -47,214 +47,69 @@ $showcase_category_positions = [
     'capsatoare-si-perforatoare' => '70% center',
 ];
 
-$featured_product_images = [
-    584 => $asset_base . '/product-notebook-a5.png',
-    586 => $asset_base . '/product-pens-blue.png',
-    588 => $asset_base . '/product-calculator.png',
-    589 => $asset_base . '/product-binders-a4.png',
-    591 => $asset_base . '/product-sticky-notes.png',
-    593 => $asset_base . '/product-mesh-organizer.png',
-    595 => $asset_base . '/product-highlighters.png',
-    597 => $asset_base . '/product-scissors.png',
-    598 => $asset_base . '/product-clipboard.png',
-    599 => $asset_base . '/product-correction-tape.png',
-    600 => $asset_base . '/product-paper-ream.png',
-    601 => $asset_base . '/product-glue-stick.png',
-];
-
 $products = function_exists('wc_get_products') ? wc_get_products([
     'status' => 'publish',
-    'limit' => 12,
+    'limit' => 8,
     'featured' => true,
     'orderby' => 'menu_order',
     'order' => 'ASC',
 ]) : [];
 
-$offer_products = [];
-if (function_exists('wc_get_products') && function_exists('wc_get_product_ids_on_sale')) {
-    $sale_product_ids = wc_get_product_ids_on_sale();
-    if (!empty($sale_product_ids)) {
-        $sale_products = wc_get_products([
-            'status' => 'publish',
-            'limit' => 8,
-            'include' => $sale_product_ids,
-            'orderby' => 'date',
-            'order' => 'DESC',
-        ]);
+if (function_exists('wc_get_products') && count($products) < 8) {
+    $featured_ids = array_map(static function ($product) {
+        return $product instanceof WC_Product ? $product->get_id() : 0;
+    }, $products);
 
-        foreach ($sale_products as $product) {
-            if (!$product instanceof WC_Product) {
-                continue;
-            }
-
-            $regular_price = (float) $product->get_regular_price();
-            $sale_price = (float) $product->get_sale_price();
-            if ($regular_price <= 0 || $sale_price <= 0 || $sale_price >= $regular_price) {
-                continue;
-            }
-
-            $discount = (int) round((1 - ($sale_price / $regular_price)) * 100);
-            if ($discount <= 0) {
-                continue;
-            }
-
-            $product_name = $product->get_name();
-            $product_id = $product->get_id();
-            $product_url = $product->get_permalink();
-            $product_image_id = $product->get_image_id();
-            if (isset($featured_product_images[$product_id])) {
-                $product_image = '<img src="' . esc_url($featured_product_images[$product_id]) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
-            } else {
-                $product_image = $product_image_id
-                    ? wp_get_attachment_image($product_image_id, 'medium', false, ['loading' => 'lazy', 'alt' => $product_name])
-                    : '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
-            }
-
-            $product_subtitle = wp_strip_all_tags($product->get_short_description());
-            if ($product_subtitle === '') {
-                $product_subtitle = wp_strip_all_tags($product->get_attribute('pa_subtitlu'));
-            }
-            if ($product_subtitle === '') {
-                $product_subtitle = wp_strip_all_tags($product->get_attribute('subtitlu'));
-            }
-            if ($product_subtitle === '') {
-                $product_subtitle = wp_strip_all_tags($product->get_attribute('dimensiune'));
-            }
-            if ($product_subtitle === '') {
-                $product_subtitle = __('Produs în ofertă pentru birou și școală', 'papetarie-storefront');
-            }
-
-            $offer_products[] = [
-                'id' => $product_id,
-                'name' => $product_name,
-                'url' => $product_url,
-                'image' => $product_image,
-                'subtitle' => wp_trim_words($product_subtitle, 8, ''),
-                'price_html' => wc_price($sale_price),
-                'old_price_html' => wc_price($regular_price),
-                'discount' => $discount,
-            ];
-        }
-    }
-}
-
-if (empty($offer_products) && function_exists('wc_get_products')) {
-    $fallback_offer_products = wc_get_products([
+    $supplemental_products = wc_get_products([
         'status' => 'publish',
-        'limit' => 8,
-        'featured' => true,
-        'orderby' => 'menu_order',
-        'order' => 'ASC',
+        'limit' => 8 - count($products),
+        'exclude' => $featured_ids,
+        'orderby' => 'date',
+        'order' => 'DESC',
     ]);
 
-    if (empty($fallback_offer_products)) {
-        $fallback_offer_products = wc_get_products([
-            'status' => 'publish',
-            'limit' => 8,
-            'orderby' => 'date',
-            'order' => 'DESC',
-        ]);
-    }
-
-    foreach ($fallback_offer_products as $product) {
-        if (!$product instanceof WC_Product) {
-            continue;
-        }
-
-        $regular_price = (float) $product->get_regular_price();
-        if ($regular_price <= 0) {
-            $regular_price = (float) $product->get_price();
-        }
-        if ($regular_price <= 0) {
-            continue;
-        }
-
-        $product_name = $product->get_name();
-        $product_id = $product->get_id();
-        $product_url = $product->get_permalink();
-        $product_image_id = $product->get_image_id();
-        if (isset($featured_product_images[$product_id])) {
-            $product_image = '<img src="' . esc_url($featured_product_images[$product_id]) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
-        } else {
-            $product_image = $product_image_id
-                ? wp_get_attachment_image($product_image_id, 'medium', false, ['loading' => 'lazy', 'alt' => $product_name])
-                : '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
-        }
-
-        $product_subtitle = wp_strip_all_tags($product->get_short_description());
-        if ($product_subtitle === '') {
-            $product_subtitle = wp_strip_all_tags($product->get_attribute('pa_subtitlu'));
-        }
-        if ($product_subtitle === '') {
-            $product_subtitle = wp_strip_all_tags($product->get_attribute('subtitlu'));
-        }
-        if ($product_subtitle === '') {
-            $product_subtitle = wp_strip_all_tags($product->get_attribute('dimensiune'));
-        }
-        if ($product_subtitle === '') {
-            $product_subtitle = __('Produs pentru birou și școală', 'papetarie-storefront');
-        }
-
-        $offer_products[] = [
-            'id' => $product_id,
-            'name' => $product_name,
-            'url' => $product_url,
-            'image' => $product_image,
-            'subtitle' => wp_trim_words($product_subtitle, 8, ''),
-            'price_html' => wc_price($regular_price * 0.8),
-            'old_price_html' => wc_price($regular_price),
-            'discount' => 20,
-        ];
-    }
+    $products = array_merge($products, $supplemental_products);
 }
-
-$trust_features = [
-    [
-        'icon' => 'truck-outline',
-        'title' => 'Livrare rapida',
-        'copy' => 'In 24-48h oriunde in tara',
-    ],
-    [
-        'icon' => 'truck-outline',
-        'title' => 'Transport gratuit',
-        'copy' => 'La comenzi de la 300 RON',
-    ],
-    [
-        'icon' => 'lock-outline',
-        'title' => 'Plata securizata',
-        'copy' => '100% sigur si protejat',
-    ],
-    [
-        'icon' => 'headset-outline',
-        'title' => 'Suport dedicat',
-        'copy' => 'Suntem aici sa te ajutam',
-    ],
-];
 
 $package_offers = [
     [
         'slug' => 'office',
-        'title' => 'Kit birou esential',
+        'title' => 'Kit Angajat Nou',
+        'subtitle' => 'Perfect pentru prima zi la birou',
+        'badge' => ['label' => 'Recomandat', 'class' => 'is-featured'],
         'items' => ['5 caiete A4', '10 pixuri albastre', 'Sticky notes', 'Corector banda'],
-        'price' => '39.90 lei',
-        'old_price' => '64.60 lei',
-        'image' => $asset_base . '/package-office-photo.png',
+        'included_count' => 10,
+        'icons' => ['paper', 'pen', 'file-lines-outline', 'organize'],
+        'price' => '149,99 lei',
+        'old_price' => '220,00 lei',
+        'discount' => '−70 lei',
+        'image' => $asset_base . '/package-office-photo-v2.jpg',
     ],
     [
         'slug' => 'student',
-        'title' => 'Kit elev esential',
+        'title' => 'Kit Școlar Complet',
+        'subtitle' => 'Tot ce are nevoie un elev',
+        'badge' => ['label' => 'Cel mai popular', 'class' => 'is-popular'],
         'items' => ['3 caiete A4', '12 markere colorate', 'Penar echipat', 'Lipici solid'],
-        'price' => '59.90 lei',
-        'old_price' => '78.40 lei',
-        'image' => $asset_base . '/package-student-photo.png',
+        'included_count' => 8,
+        'icons' => ['school', 'pen', 'paper'],
+        'price' => '89,99 lei',
+        'old_price' => '130,00 lei',
+        'discount' => '−40 lei',
+        'image' => $asset_base . '/package-student-photo-v2.jpg',
     ],
     [
         'slug' => 'archive',
-        'title' => 'Kit arhivare',
+        'title' => 'Kit Birou Premium',
+        'subtitle' => 'Productivitate la superlativ',
+        'badge' => ['label' => 'Premium', 'class' => 'is-premium'],
         'items' => ['4 bibliorafturi', 'Separatoare color', 'Etichete autoadezive', 'Folii protectoare'],
-        'price' => '69.90 lei',
-        'old_price' => '92.60 lei',
-        'image' => $asset_base . '/package-archive-photo.png',
+        'included_count' => 12,
+        'icons' => ['archive', 'organize', 'briefcase-outline', 'tag'],
+        'price' => '249,99 lei',
+        'old_price' => '370,00 lei',
+        'discount' => '−120 lei',
+        'image' => $asset_base . '/package-archive-photo-v2.jpg',
     ],
 ];
 
@@ -262,7 +117,8 @@ get_header();
 ?>
 <main id="primary" class="site-main pap-homepage">
   <section class="pap-showcase" data-showcase>
-    <div class="pap-shell pap-showcase-grid">
+    <div class="pap-shell">
+    <div class="pap-showcase-grid">
       <aside class="pap-showcase-nav" aria-label="<?php esc_attr_e('Categorii produse', 'papetarie-storefront'); ?>">
         <div class="pap-showcase-nav-list">
           <?php foreach ($showcase_categories as $category) : ?>
@@ -360,178 +216,139 @@ get_header();
         </div>
       </div>
     </div>
+    </div>
   </section>
 
-  <?php if (!empty($products)) : ?>
-  <section id="featured-products" class="pap-shell pap-featured">
-    <div class="pap-section-head pap-section-head-soft pap-section-head-featured">
-      <h2><?php esc_html_e('Produse recomandate', 'papetarie-storefront'); ?></h2>
-      <p><?php esc_html_e('Selecție de produse utile pentru birou, școală și organizare de zi cu zi.', 'papetarie-storefront'); ?></p>
-    </div>
-
-    <div class="pap-featured-slider-shell">
-      <button class="pap-featured-nav pap-featured-nav-prev" type="button" aria-label="<?php esc_attr_e('Produse anterioare', 'papetarie-storefront'); ?>" data-featured-prev>
-        <span class="pap-featured-nav-icon pap-featured-nav-icon-prev" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-      </button>
-      <div class="pap-featured-slider" data-featured-slider>
-        <div class="pap-product-grid">
-          <?php foreach ($products as $product) : ?>
-            <?php
-            if (!$product instanceof WC_Product) {
-                continue;
-            }
-
-            $product_name = $product->get_name();
-            $product_id = $product->get_id();
-            $product_url = $product->get_permalink();
-            $product_image_id = $product->get_image_id();
-            if (isset($featured_product_images[$product_id])) {
-                $product_image = '<img src="' . esc_url($featured_product_images[$product_id]) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
-            } else {
-                $product_image = $product_image_id
-                    ? wp_get_attachment_image($product_image_id, 'medium', false, ['loading' => 'lazy', 'alt' => $product_name])
-                    : '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
-            }
-            $product_category = papetarie_storefront_get_product_primary_category($product);
-            ?>
-            <article class="pap-product-card">
-              <?php echo papetarie_storefront_render_product_badges_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-              <div class="pap-product-thumb">
-                <?php echo $product_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-              </div>
-              <?php if ($product_category !== '') : ?>
-                <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
-              <?php endif; ?>
-              <h3><?php echo esc_html($product_name); ?></h3>
-              <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-              <div class="pap-product-meta">
-                <strong class="pap-price"><?php echo wp_kses_post($product->get_price_html()); ?></strong>
-                <div class="pap-product-actions">
-                  <button
-                    class="pap-home-add-to-cart"
-                    type="button"
-                    data-product-id="<?php echo esc_attr((string) $product_id); ?>"
-                    data-product-url="<?php echo esc_url($product_url); ?>"
-                    aria-label="<?php esc_attr_e('Adaugă în coș', 'papetarie-storefront'); ?>"
-                  >
-                    <span class="pap-product-action-icon"><?php echo papetarie_storefront_icon('bag'); ?></span>
-                    <span class="pap-product-action-label"><?php esc_html_e('Adaugă', 'papetarie-storefront'); ?></span>
-                  </button>
-                </div>
-              </div>
-            </article>
-          <?php endforeach; ?>
+  <section class="pap-header-benefits">
+    <div class="pap-shell">
+      <div class="pap-header-benefits-inner">
+        <div class="pap-header-benefit-item">
+          <span class="pap-header-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('benefit-delivery'); ?></span>
+          <span><?php esc_html_e('Livrare 24-48h', 'papetarie-storefront'); ?></span>
+        </div>
+        <div class="pap-header-benefit-item">
+          <span class="pap-header-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('benefit-payment'); ?></span>
+          <span><?php esc_html_e('Plată securizată', 'papetarie-storefront'); ?></span>
+        </div>
+        <div class="pap-header-benefit-item">
+          <span class="pap-header-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('benefit-support'); ?></span>
+          <span><?php esc_html_e('Suport dedicat', 'papetarie-storefront'); ?></span>
+        </div>
+        <div class="pap-header-benefit-item">
+          <span class="pap-header-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('benefit-returns'); ?></span>
+          <span><?php esc_html_e('Retur 30 zile', 'papetarie-storefront'); ?></span>
         </div>
       </div>
-      <button class="pap-featured-nav pap-featured-nav-next" type="button" aria-label="<?php esc_attr_e('Produse următoare', 'papetarie-storefront'); ?>" data-featured-next>
-        <span class="pap-featured-nav-icon pap-featured-nav-icon-next" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-      </button>
     </div>
   </section>
-  <?php endif; ?>
+
+  <?php
+  if (!empty($products) && function_exists('papetarie_storefront_render_product_slider_section')) {
+      echo papetarie_storefront_render_product_slider_section(
+          __('Produse populare', 'papetarie-storefront'),
+          '',
+          $products,
+          $shop_url,
+          ['pap-shell', 'pap-product-slider--four-cols'],
+          'featured-products'
+      ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+  }
+  ?>
+
+  <section class="pap-shell pap-industries" id="industries">
+    <div class="pap-industries-grid">
+      <div class="pap-industries-hero">
+        <span class="pap-industries-hero-label"><?php esc_html_e('Industrii', 'papetarie-storefront'); ?></span>
+        <h2><?php esc_html_e('Găsește mai rapid', 'papetarie-storefront'); ?><br><?php esc_html_e('produsele potrivite', 'papetarie-storefront'); ?></h2>
+        <p><?php esc_html_e('Am organizat produsele în funcție de tipul afacerii tale pentru a economisi timp.', 'papetarie-storefront'); ?></p>
+      </div>
+      <div class="pap-industries-cards">
+        <a class="pap-industries-card" href="<?php echo esc_url($shop_url); ?>" style="background-image: linear-gradient(0deg, rgba(13,46,97,0.78) 0%, rgba(13,46,97,0.1) 55%, rgba(13,46,97,0) 100%), url('<?php echo esc_url($asset_base . '/industries-schools-v2.jpg'); ?>');">
+          <strong class="pap-industries-card-title"><?php esc_html_e('Școli & Universități', 'papetarie-storefront'); ?></strong>
+          <span class="pap-industries-card-count"><?php esc_html_e('800+ produse', 'papetarie-storefront'); ?></span>
+          <span class="pap-industries-card-arrow" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+        </a>
+        <a class="pap-industries-card" href="<?php echo esc_url($shop_url); ?>" style="background-image: linear-gradient(0deg, rgba(13,46,97,0.78) 0%, rgba(13,46,97,0.1) 55%, rgba(13,46,97,0) 100%), url('<?php echo esc_url($asset_base . '/industries-offices-v2.jpg'); ?>');">
+          <strong class="pap-industries-card-title"><?php esc_html_e('Birouri corporate', 'papetarie-storefront'); ?></strong>
+          <span class="pap-industries-card-count"><?php esc_html_e('1.200+ produse', 'papetarie-storefront'); ?></span>
+          <span class="pap-industries-card-arrow" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+        </a>
+      </div>
+    </div>
+  </section>
 
   <section class="pap-shell pap-packages" id="recommended-packages">
-    <div class="pap-packages-head">
-      <div class="pap-section-head pap-section-head-packages">
-        <h2><?php esc_html_e('Pachete recomandate', 'papetarie-storefront'); ?></h2>
-      </div>
-      <p class="pap-packages-subtitle"><?php esc_html_e('Selecție de pachete utile pentru birou, școală și organizare de zi cu zi.', 'papetarie-storefront'); ?></p>
-    </div>
+    <div class="pap-packages__card">
+      <div class="pap-packages__gradient-bar" aria-hidden="true"></div>
+      <div class="pap-packages__card-body">
+        <div class="pap-packages-head">
+          <span class="pap-packages-accent" aria-hidden="true"></span>
+          <h2><?php esc_html_e('Recomandate pentru tine', 'papetarie-storefront'); ?></h2>
+        </div>
 
-    <div class="pap-packages-grid">
-      <?php foreach ($package_offers as $package) : ?>
-        <article class="pap-package-card pap-package-card--<?php echo esc_attr($package['slug']); ?>">
-          <div class="pap-package-copy">
-            <h3><?php echo esc_html($package['title']); ?></h3>
-            <ul class="pap-package-list">
-              <?php foreach ($package['items'] as $item) : ?>
-                <li><?php echo esc_html($item); ?></li>
-              <?php endforeach; ?>
-            </ul>
-            <div class="pap-package-pricing">
-              <strong class="pap-package-price"><?php echo esc_html($package['price']); ?></strong>
-              <span class="pap-package-old-price"><?php echo esc_html($package['old_price']); ?></span>
-            </div>
-            <a class="pap-package-button" href="<?php echo esc_url($shop_url); ?>">
-              <?php esc_html_e('Adaugă în coș', 'papetarie-storefront'); ?>
-            </a>
-          </div>
+        <div class="pap-packages-grid">
+          <?php foreach ($package_offers as $package) : ?>
+            <article class="pap-package-card pap-package-card--<?php echo esc_attr($package['slug']); ?>">
+              <div class="pap-package-photo">
+                <img
+                  class="pap-package-photo-image"
+                  src="<?php echo esc_url($package['image']); ?>"
+                  alt=""
+                  loading="lazy"
+                >
+                <?php if (!empty($package['badge'])) : ?>
+                  <span class="pap-package-badge pap-package-badge--<?php echo esc_attr($package['badge']['class']); ?>"><?php echo esc_html($package['badge']['label']); ?></span>
+                <?php endif; ?>
+              </div>
 
-          <div class="pap-package-art" aria-hidden="true">
-            <img
-              class="pap-package-art-image"
-              src="<?php echo esc_url($package['image']); ?>"
-              alt=""
-              loading="lazy"
-            >
-          </div>
-        </article>
-      <?php endforeach; ?>
-    </div>
-  </section>
+              <div class="pap-package-body">
+                <h3><?php echo esc_html($package['title']); ?></h3>
+                <p class="pap-package-subtitle"><?php echo esc_html($package['subtitle']); ?></p>
 
-  <?php if (!empty($offer_products)) : ?>
-  <section id="special-offers" class="pap-shell pap-featured pap-offers">
-    <div class="pap-section-head pap-section-head-soft pap-section-head-featured">
-      <h2><?php esc_html_e('Oferte speciale', 'papetarie-storefront'); ?></h2>
-      <p><?php esc_html_e('Produse selectate cu reducere de 20% pentru birou, școală și organizare de zi cu zi.', 'papetarie-storefront'); ?></p>
-    </div>
+                <div class="pap-package-meta">
+                  <p class="pap-package-count"><strong><?php echo esc_html((string) $package['included_count']); ?></strong> <?php esc_html_e('produse incluse', 'papetarie-storefront'); ?></p>
 
-    <div class="pap-featured-slider-shell pap-offers-slider-shell">
-      <button class="pap-featured-nav pap-featured-nav-prev" type="button" aria-label="<?php esc_attr_e('Oferte anterioare', 'papetarie-storefront'); ?>" data-offers-prev>
-        <i class="fa-solid fa-angle-left pap-featured-nav-icon" aria-hidden="true"></i>
-      </button>
-      <div class="pap-featured-slider pap-offers-slider" data-offers-slider>
-        <div class="pap-product-grid pap-offers-grid">
-          <?php foreach ($offer_products as $offer) : ?>
-            <article class="pap-product-card pap-product-card--offer">
-              <span class="pap-offer-badge">-<?php echo esc_html((string) $offer['discount']); ?>%</span>
-              <a class="pap-offer-link" href="<?php echo esc_url($offer['url']); ?>" aria-label="<?php echo esc_attr($offer['name']); ?>">
-                <div class="pap-product-thumb">
-                  <?php echo $offer['image']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                  <div class="pap-package-avatars" aria-hidden="true">
+                    <?php foreach ($package['icons'] as $icon_name) : ?>
+                      <span class="pap-package-avatar"><?php echo papetarie_storefront_icon($icon_name); ?></span>
+                    <?php endforeach; ?>
+                    <?php if ($package['included_count'] > count($package['icons'])) : ?>
+                      <span class="pap-package-avatar pap-package-avatar--more">+<?php echo esc_html((string) ($package['included_count'] - count($package['icons']))); ?></span>
+                    <?php endif; ?>
+                  </div>
                 </div>
-              </a>
-              <h3><?php echo esc_html($offer['name']); ?></h3>
-              <p><?php echo esc_html($offer['subtitle']); ?></p>
-              <div class="pap-product-meta pap-offer-meta">
-                <div class="pap-offer-prices">
-                  <strong class="pap-price pap-offer-price"><?php echo wp_kses_post($offer['price_html']); ?></strong>
-                  <span class="pap-offer-old-price"><?php echo wp_kses_post($offer['old_price_html']); ?></span>
-                </div>
-                <div class="pap-product-actions">
-                  <button
-                    class="pap-home-add-to-cart"
-                    type="button"
-                    data-product-id="<?php echo esc_attr((string) $offer['id']); ?>"
-                    data-product-url="<?php echo esc_url($offer['url']); ?>"
-                    aria-label="<?php esc_attr_e('Adaugă în coș', 'papetarie-storefront'); ?>"
-                  >
-                    <span class="pap-product-action-icon"><?php echo papetarie_storefront_icon('cart'); ?></span>
-                  </button>
+
+                <div class="pap-package-footer">
+                  <div class="pap-package-pricing">
+                    <strong class="pap-package-price"><?php echo esc_html($package['price']); ?></strong>
+                    <span class="pap-package-pricing-sub">
+                      <span class="pap-package-old-price"><?php echo esc_html($package['old_price']); ?></span>
+                      <span class="pap-package-discount"><?php echo esc_html($package['discount']); ?></span>
+                    </span>
+                  </div>
+
+                  <a class="pap-home-add-to-cart pap-package-button" href="<?php echo esc_url($shop_url); ?>">
+                    <span class="pap-product-action-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('bag'); ?></span>
+                    <span class="pap-product-action-label"><?php esc_html_e('Adaugă în coș', 'papetarie-storefront'); ?></span>
+                  </a>
                 </div>
               </div>
             </article>
           <?php endforeach; ?>
         </div>
       </div>
-      <button class="pap-featured-nav pap-featured-nav-next" type="button" aria-label="<?php esc_attr_e('Oferte următoare', 'papetarie-storefront'); ?>" data-offers-next>
-        <i class="fa-solid fa-angle-right pap-featured-nav-icon" aria-hidden="true"></i>
-      </button>
     </div>
   </section>
-  <?php endif; ?>
 
-  <section class="pap-shell pap-trust-bar">
-    <div class="pap-trust-strip" aria-label="<?php esc_attr_e('Avantaje magazin', 'papetarie-storefront'); ?>">
-      <?php foreach ($trust_features as $feature) : ?>
-        <div class="pap-trust-item">
-          <span class="pap-trust-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($feature['icon']); ?></span>
-          <div class="pap-trust-copy">
-            <strong><?php echo esc_html($feature['title']); ?></strong>
-            <span><?php echo esc_html($feature['copy']); ?></span>
-          </div>
-        </div>
-      <?php endforeach; ?>
+  <section class="pap-shell pap-offer-banner">
+    <div class="pap-offer-banner-inner">
+      <div class="pap-offer-banner-copy">
+        <span class="pap-offer-banner-label"><?php esc_html_e('Companii · Școli · Instituții', 'papetarie-storefront'); ?></span>
+        <h2><?php esc_html_e('Ai nevoie de o ofertă personalizată?', 'papetarie-storefront'); ?></h2>
+      </div>
+      <a class="pap-offer-banner-button" href="<?php echo esc_url(home_url('/contact/')); ?>">
+        <?php esc_html_e('Cere ofertă', 'papetarie-storefront'); ?>
+      </a>
     </div>
   </section>
 
@@ -713,11 +530,31 @@ get_header();
       }
 
       var card = slider.querySelector('.pap-product-card');
-      var amount = card ? card.offsetWidth + 16 : 260;
-      slider.scrollBy({
-        left: direction * amount * 2,
-        behavior: 'smooth'
-      });
+      if (!card) {
+        return;
+      }
+
+      var gap = parseFloat(getComputedStyle(slider.querySelector('.pap-product-grid') || slider).columnGap) || 0;
+      var amount = card.getBoundingClientRect().width + gap;
+      var maxScroll = slider.scrollWidth - slider.clientWidth;
+      var maxIndex = Math.max(0, Math.round(maxScroll / amount));
+      var currentIndex = Math.round(slider.scrollLeft / amount);
+      var targetIndex = currentIndex + direction;
+
+      if (targetIndex > maxIndex) {
+        slider.scrollLeft = 0;
+        slider.scrollTo({ left: Math.min(amount, maxScroll), behavior: 'smooth' });
+        return;
+      }
+
+      if (targetIndex < 0) {
+        slider.scrollLeft = maxScroll;
+        slider.scrollTo({ left: Math.max(maxScroll - amount, 0), behavior: 'smooth' });
+        return;
+      }
+
+      var target = targetIndex >= maxIndex ? maxScroll : targetIndex * amount;
+      slider.scrollTo({ left: target, behavior: 'smooth' });
     }
 
     if (featuredPrev) {

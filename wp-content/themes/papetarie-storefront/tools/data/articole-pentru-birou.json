@@ -1,0 +1,679 @@
+{
+  "top_level_slug": "articole-pentru-birou",
+  "subcategories": {
+    "Capsatoare": {
+      "slug": "capsatoare",
+      "products": [
+        {
+          "name": "Capsator Novus B2 Color ID, 25 coli",
+          "price": 48.79
+        },
+        {
+          "name": "Capsator E15 + capse No.10 + perforator E210 Novus, 15 coli",
+          "price": 40.02,
+          "obs": "Set"
+        },
+        {
+          "name": "Capsator SAX 160, 16 coli",
+          "price": 32.57
+        },
+        {
+          "name": "Capsator SAX 170, 20–40 coli",
+          "price": 71.62
+        },
+        {
+          "name": "Capsator SAX Design 239, 25 coli",
+          "price": 40.92
+        },
+        {
+          "name": "Capsator SAX 249, 25 coli",
+          "price": 42.75
+        },
+        {
+          "name": "Capsator tip clește SAX, 25 coli",
+          "price": 37.92
+        },
+        {
+          "name": "Capsator SAX 319, 10 coli",
+          "price": 9.16
+        },
+        {
+          "name": "Capsator Boxer mini nr. 10, 10 coli",
+          "price": 6.52
+        },
+        {
+          "name": "Capsator Novus Stabil, 30 coli",
+          "price": 31.72
+        },
+        {
+          "name": "Capsator Forster C10, 10 coli",
+          "price": 4.05
+        },
+        {
+          "name": "Capsator Forster C20, 20 coli",
+          "price": 6.72
+        },
+        {
+          "name": "Capsator Forster C100, 100 coli",
+          "price": 44.22
+        }
+      ]
+    },
+    "Decapsator/capse": {
+      "slug": "decapsatoare-capse",
+      "products": [
+        {
+          "name": "Decapsator Forster, Decapsator, 1 buc",
+          "price": 1.73
+        },
+        {
+          "name": "Decapsator cu sistem de blocare Elegance EK, Decapsator, 1 buc",
+          "price": 3.56
+        },
+        {
+          "name": "Capse SAX #26/6 zinc, 26/6, 1000 buc/cutie",
+          "price": 26.56
+        },
+        {
+          "name": "Capse SAX #24/6 zinc, 24/6, 1000 buc/cutie",
+          "price": 28.98
+        },
+        {
+          "name": "Capse SAX #23/8, 23/8, 1000 buc/cutie",
+          "price": 3.47
+        },
+        {
+          "name": "Capse SAX #23/10, 23/10, 1000 buc/cutie",
+          "price": 3.65
+        },
+        {
+          "name": "Capse SAX #23/17, 23/17, 1000 buc/cutie",
+          "price": 6.03
+        },
+        {
+          "name": "Capse Novus, 24/6, 1000 buc/cutie",
+          "price": 2.42
+        },
+        {
+          "name": "Capse color EK, 24/6, 1000 buc/cutie",
+          "price": 1.72,
+          "obs": "color"
+        },
+        {
+          "name": "Capse ICO Boxer-Q, Nr. 10, 1000 buc/cutie",
+          "price": 7.36
+        },
+        {
+          "name": "Capse Forster, Nr. 10, 1000 buc/cutie",
+          "price": 0.48
+        },
+        {
+          "name": "Capse Forster, 24/6, 1000 buc/cutie",
+          "price": 0.64
+        }
+      ]
+    },
+    "Perforator": {
+      "slug": "perforatoare",
+      "products": [
+        {
+          "name": "Capsator E15 + capse No.10 + perforator E210 Novus, 15 coli",
+          "price": 40.02,
+          "obs": "Set capsator + perforator"
+        },
+        {
+          "name": "Perforator Sax Design 908, 150 coli",
+          "price": 607.7
+        },
+        {
+          "name": "Perforator P652, 65 coli",
+          "price": 80.38
+        },
+        {
+          "name": "Perforator Sax Design 318, 20 coli",
+          "price": 37.06
+        },
+        {
+          "name": "Perforator SAX 318, 20 coli",
+          "price": 37.31
+        },
+        {
+          "name": "Perforator SAX 325, 25 coli",
+          "price": 26.86
+        },
+        {
+          "name": "Perforator Boxer P2, 30 coli",
+          "price": 36.45
+        },
+        {
+          "name": "Perforator ICO Boxer 080, 10 coli",
+          "price": 10.23
+        },
+        {
+          "name": "Perforator Forster P202, 20 coli",
+          "price": 8.42
+        }
+      ]
+    },
+    "Distrugător hârtie": {
+      "slug": "distrugatoare-hartie",
+      "products": [
+        {
+          "name": "Distrugător documente cross-cut Dahle Paper SAFE 100, 5 foi",
+          "price": 322.7
+        },
+        {
+          "name": "Distrugător documente cross-cut Dahle Paper SAFE, 10 foi",
+          "price": 796.79
+        },
+        {
+          "name": "Distrugător documente Dahle ShredMATIC 35090, 90 foi",
+          "price": 1591.49
+        },
+        {
+          "name": "Distrugător documente Dahle ShredMATIC 35150, 150 foi",
+          "price": 2121.81
+        },
+        {
+          "name": "Hârtie întreținere pentru distrugător PS100-00",
+          "price": 21.58,
+          "obs": "Accesoriu"
+        }
+      ]
+    },
+    "Ghilotină hârtie": {
+      "slug": "ghilotine-hartie",
+      "products": [
+        {
+          "name": "Ghilotină rolă Dahle 507, Ghilotină pentru hârtie",
+          "price": 225.74
+        }
+      ]
+    },
+    "Laminator": {
+      "slug": "laminatoare",
+      "products": [
+        {
+          "name": "Folie laminare Forster, A4, 175 microni, 100/set",
+          "price": 121.92
+        },
+        {
+          "name": "Mașină de laminat Dahle 70304, A4, 1 buc",
+          "price": 540.39
+        },
+        {
+          "name": "Mașină de laminat Dahle 70204, A4, 1 buc",
+          "price": 390.21
+        },
+        {
+          "name": "Mașină de laminat Dahle 70203, A3, 1 buc",
+          "price": 448.4
+        },
+        {
+          "name": "Mașină de laminat Dahle 70103, A3, 1 buc",
+          "price": 398.29
+        },
+        {
+          "name": "Folie laminare, A3, 80 microni, 100/set",
+          "price": 106.55
+        },
+        {
+          "name": "Folie laminare, A4, 80 microni, 100/set",
+          "price": 48.74
+        },
+        {
+          "name": "Folie laminare Forster, ID 65 × 95 mm, 125 microni, 100/set",
+          "price": 9.61
+        }
+      ]
+    },
+    "Suporturi birou": {
+      "slug": "suporturi-birou",
+      "products": [
+        {
+          "name": "Tavă organizare sertar 7 compartimente, Organizator sertar",
+          "price": 21.02
+        },
+        {
+          "name": "Tavă documente Cep Gloss, Tavă documente",
+          "price": 14.24
+        },
+        {
+          "name": "Tavă documente Office, Set 3 tăvi",
+          "price": 45.75,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Tavă documente Atlanta, Tavă documente",
+          "price": 12.67,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Suport reviste din plută Bi-Silque, Suport reviste",
+          "price": 90.93
+        },
+        {
+          "name": "Set birou 3 piese din plută Bi-Silque, Set birou",
+          "price": 83.5
+        },
+        {
+          "name": "Suport reviste Cep Gloss, Suport reviste",
+          "price": 22.43
+        },
+        {
+          "name": "Suport reviste Office, Suport reviste",
+          "price": 28.59,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Organizator birou cu accesorii incluse C50 3M, Organizator birou",
+          "price": 147.98
+        },
+        {
+          "name": "Suport birou 8 compartimente Cep Gloss, Organizator birou",
+          "price": 45.43
+        },
+        {
+          "name": "Suport pixuri ICO Quadrate transparent, Suport pixuri",
+          "price": 4.16
+        },
+        {
+          "name": "Suport pixuri ICO Lux transparent, Suport pixuri",
+          "price": 7.35
+        },
+        {
+          "name": "Suport cărți de vizită Office, Suport cărți de vizită",
+          "price": 3.54,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Pahar creioane Office, Pahar creioane",
+          "price": 3.58,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Mouse pad monocolor, textil, Mouse pad",
+          "price": 4.17
+        },
+        {
+          "name": "Suport încheietură pentru tastatură PlushTouch™, Suport ergonomic",
+          "price": 108.44
+        },
+        {
+          "name": "Suport ergonomic pentru laptop pliabil I-Spire Series, Suport laptop",
+          "price": 111.66
+        },
+        {
+          "name": "Suport ergonomic pentru monitor colț Riser Fellowes, Suport monitor",
+          "price": 150.01
+        },
+        {
+          "name": "Suport ergonomic pentru spate Professional Mesh Fellowes, Suport spate",
+          "price": 246.45
+        },
+        {
+          "name": "Suport ergonomic pentru spate Pro Series Ultimate Fellowes, Suport spate",
+          "price": 314.82
+        },
+        {
+          "name": "Suport ergonomic pentru laptop Office Fellowes, Suport laptop",
+          "price": 198.87
+        },
+        {
+          "name": "Suport ergonomic pentru picioare Pro Series Ultimate, Suport picioare",
+          "price": 202.78
+        }
+      ]
+    },
+    "Coș hârtie": {
+      "slug": "cosuri-hartie",
+      "products": [
+        {
+          "name": "Coș Office, 15 litri",
+          "price": 23.34,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Coș hârtie Cep Gloss, 14 litri",
+          "price": 25.58
+        },
+        {
+          "name": "Coș hârtie din plută Bi-Silque",
+          "price": 117.45
+        }
+      ]
+    },
+    "Bandă adezivă": {
+      "slug": "benzi-adezive",
+      "products": [
+        {
+          "name": "Bandă dublu adezivă montare exterior 3M, 19 mm × 1,5 m",
+          "price": 20.98
+        },
+        {
+          "name": "Bandă dublu adezivă montare suprafețe interioare 3M, 19 mm × 1,5 m",
+          "price": 12.65
+        },
+        {
+          "name": "Bandă dublu adezivă montare oglinzi 3M, 19 mm × 1,5 m",
+          "price": 19.15
+        },
+        {
+          "name": "Benzi dublu adezive pretăiate montare interior 3M, 16 buc",
+          "price": 10.4
+        },
+        {
+          "name": "Bandă dublu adezivă cu dispenser 3M, 12 mm × 6,3 m",
+          "price": 7.32
+        },
+        {
+          "name": "Bandă dublu adezivă Scotch 3M, 12,7 mm × 22,8 m",
+          "price": 15.3
+        },
+        {
+          "name": "Bandă adezivă Scotch Magic invizibilă 3M, 19 mm × 33 m",
+          "price": 11.29,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Bandă adezivă cu dispenser Scotch 3M, 19 mm × 7,5 m",
+          "price": 4.85
+        },
+        {
+          "name": "Dispenser pentru bandă adezivă C38, 19 mm × 33 m",
+          "price": 23.72
+        },
+        {
+          "name": "Bandă dublu adezivă EK, 12 mm × 10 m",
+          "price": 3.21,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Bandă adezivă, 19 mm × 33 m",
+          "price": 1.02,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Bandă adezivă, 15 mm × 33 m",
+          "price": 0.74,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Bandă marcaj 766I/767I 3M, 50 mm × 33 m",
+          "price": 35.34
+        },
+        {
+          "name": "Bandă marcaj 764 I 3M, 50 mm × 33 m",
+          "price": 30.9
+        }
+      ]
+    },
+    "Foarfeci": {
+      "slug": "foarfeci",
+      "products": [
+        {
+          "name": "Foarfecă Maped Essentials Green, 17 cm",
+          "price": 6.02,
+          "obs": "blister"
+        },
+        {
+          "name": "Foarfecă Maped Essentials Green, 21 cm",
+          "price": 8.38,
+          "obs": "blister"
+        },
+        {
+          "name": "Foarfecă birou Forster, 15,5 cm",
+          "price": 3.72,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Foarfecă birou Forster, 20 cm",
+          "price": 5.3,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Foarfecă Joy EK + riglă, 13,5 cm",
+          "price": 2.98,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Foarfecă stângaci Joy EK + riglă, 13,5 cm",
+          "price": 3.41,
+          "obs": "Preț de la"
+        }
+      ]
+    },
+    "Accesorii birou": {
+      "slug": "accesorii-birou",
+      "products": [
+        {
+          "name": "Cutter precizie EK",
+          "price": 16.05
+        },
+        {
+          "name": "Cutter metalic ErichKrause, 18 mm",
+          "price": 14.25
+        },
+        {
+          "name": "Cutter Forster, 9 mm",
+          "price": 0.61,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Cutter Forster, 18 mm",
+          "price": 1.41,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Lame cutter, 18 mm, 10 buc/set",
+          "price": 2.08,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Buretieră ICO Lux",
+          "price": 6.62
+        },
+        {
+          "name": "Tuș ștampilă, 30 ml",
+          "price": 1.71,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Pioneze color EK, 100 buc/cutie",
+          "price": 2.3,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Pioneze colorate Forster, 100 buc/cutie",
+          "price": 1.29,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Ace cu gămălie Forster, 28 mm, 50 g/cutie",
+          "price": 1.5,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Clip metalic Forster, 41 mm (1¾\"), 12 buc/cutie",
+          "price": 5.05,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Clip metalic Forster, 32 mm (1¼\"), 12 buc/cutie",
+          "price": 3.13,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Clip metalic Forster, 19 mm (¾\"), 12 buc/cutie",
+          "price": 1.38,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Agrafe color Forster, 28 mm, 100 buc/cutie",
+          "price": 0.99,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Agrafe Forster, 28 mm, 100 buc/cutie",
+          "price": 0.9,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Agrafe Forster, 32 mm, 100 buc/cutie",
+          "price": 1.06,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Agrafe Forster, 78 mm, 50 buc/cutie",
+          "price": 5.55,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Agrafe Durable, 50 mm, 100 buc/cutie",
+          "price": 7.69
+        },
+        {
+          "name": "Agrafe Milton ICO, 25 mm, 100 buc/cutie",
+          "price": 7.25
+        },
+        {
+          "name": "Agrafe Milton ICO, 30 mm, 100 buc/cutie",
+          "price": 7.25
+        },
+        {
+          "name": "Sistem tip arici susținere tablouri 3M Command, Mare",
+          "price": 21.6
+        },
+        {
+          "name": "Benzi dublu adezive rezerve cârlige Command 3M",
+          "price": 10.27
+        },
+        {
+          "name": "Husă tabletă Tarifold",
+          "price": 29.77
+        }
+      ]
+    },
+    "Întreținere și curățenie": {
+      "slug": "intretinere-si-curatenie",
+      "products": [
+        {
+          "name": "Spray curățare laptop/notebook, 100 ml",
+          "price": 5.81
+        },
+        {
+          "name": "Spray monitor ecran LCD/TFT Favorit F110022, 100 ml",
+          "price": 4.78
+        },
+        {
+          "name": "Șervețele curățare cu dispenser rotund CCM, 100 buc/set",
+          "price": 10.43
+        },
+        {
+          "name": "Șervețele curățare ecran LCD/TFT și alte monitoare",
+          "price": 8.06
+        },
+        {
+          "name": "Șervețele uscate universale Favorit F200200, 20 buc",
+          "price": 5.94
+        },
+        {
+          "name": "Lavetă microfibră Favorit F920020, 25 × 25 cm",
+          "price": 6.23
+        },
+        {
+          "name": "Spray pentru îndepărtarea etichetelor Durable, 200 ml",
+          "price": 42.19
+        },
+        {
+          "name": "Spray înlăturare praf Durable Power Clean, 400 ml",
+          "price": 45.12
+        }
+      ]
+    },
+    "Calculatoare": {
+      "slug": "calculatoare",
+      "products": [
+        {
+          "name": "Calculator științific Eleven SR, 12 digiți, 75,5 × 148 × 13 mm",
+          "price": 28.9
+        },
+        {
+          "name": "Calculator de birou Eleven, 12 digiți, 206 × 155 × 35 mm",
+          "price": 34.31
+        },
+        {
+          "name": "Calculator de birou Eleven SDC, 8 digiți, 120 × 105 × 21 mm",
+          "price": 17.81,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou Eleven SDC-805, 8 digiți, 120 × 105 × 21 mm",
+          "price": 20.59,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou Eleven, 12 digiți, 124 × 102 × 25 mm",
+          "price": 19.12,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou ECO, 8 digiți, 103,5 × 145,5 × 32,5 mm",
+          "price": 25.69
+        },
+        {
+          "name": "Calculator de birou Eleven, 10 digiți, 137 × 102 × 31 mm",
+          "price": 14.76,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou Eleven, 12 digiți, 137 × 102 × 31 mm",
+          "price": 14.96,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou Eleven SDC, 14 digiți, 199 × 153 × 31 mm",
+          "price": 30.12,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou Eleven, 12 digiți, 204 × 155 × 33 mm",
+          "price": 33.74,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou ECO, 12 digiți, 126 × 174,3 × 35,3 mm",
+          "price": 28.21,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou Eleven, 12 digiți, 205 × 155 × 35 mm",
+          "price": 22.69,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou Eleven, 16 digiți, 205 × 155 × 35 mm",
+          "price": 26.99,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de birou Eleven, 12 digiți, 130 × 129 × 34 mm",
+          "price": 30.43,
+          "obs": "Preț de la"
+        },
+        {
+          "name": "Calculator de buzunar Eleven LC, 8 digiți, 88 × 58 × 11 mm",
+          "price": 8.76
+        },
+        {
+          "name": "Calculator de buzunar Eleven SLD, 8 digiți, 88 × 58 × 10 mm",
+          "price": 9.42
+        },
+        {
+          "name": "Calculator de buzunar Eleven LC, 8 digiți, 98 × 62 × 10 mm",
+          "price": 9.23
+        }
+      ]
+    }
+  }
+}

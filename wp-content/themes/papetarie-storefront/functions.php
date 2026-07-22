@@ -93,6 +93,13 @@ function papetarie_storefront_dequeue_legacy_child_style(): void
 {
     wp_dequeue_style('storefront-child-style');
     wp_deregister_style('storefront-child-style');
+
+    // Storefront's own class-storefront.php independently enqueues 'storefront-style'
+    // pointing at the same parent style.css we already load (as 'storefront-parent-style',
+    // correctly ordered before our child stylesheet). Left alone, this duplicate copy loads
+    // a second time *after* our child theme's CSS and silently wins ties in the cascade.
+    wp_dequeue_style('storefront-style');
+    wp_deregister_style('storefront-style');
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_legacy_child_style', 40);
 
@@ -745,6 +752,59 @@ function papetarie_storefront_enqueue_cart_page_script(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_cart_page_script');
 
+function papetarie_storefront_enqueue_product_slider_script(): void
+{
+    $is_checkout = function_exists('is_checkout') && is_checkout();
+    $is_product = function_exists('is_product') && is_product();
+
+    if (!$is_checkout && !$is_product) {
+        return;
+    }
+
+    $product_slider_script = get_stylesheet_directory() . '/assets/js/product-slider.js';
+    $product_slider_version = file_exists($product_slider_script) ? (string) filemtime($product_slider_script) : wp_get_theme()->get('Version');
+
+    wp_enqueue_script(
+        'papetarie-storefront-product-slider',
+        get_stylesheet_directory_uri() . '/assets/js/product-slider.js',
+        [],
+        $product_slider_version,
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_product_slider_script');
+
+add_filter('woocommerce_product_description_tab_title', static function (): string {
+    return __('Descriere', 'papetarie-storefront');
+});
+
+add_filter('woocommerce_product_additional_information_tab_title', static function (): string {
+    return __('Specificații', 'papetarie-storefront');
+});
+
+add_filter('woocommerce_product_reviews_tab_title', static function ($title, $key) {
+    global $product;
+
+    $count = $product instanceof WC_Product ? $product->get_review_count() : 0;
+
+    return sprintf(
+        /* translators: %d: review count */
+        _n('Recenzie (%d)', 'Recenzii (%d)', $count, 'papetarie-storefront'),
+        $count
+    );
+}, 10, 2);
+
+add_filter('woocommerce_product_related_products_heading', static function (): string {
+    return __('Produse similare', 'papetarie-storefront');
+});
+
+add_filter('woocommerce_output_related_products_args', static function (array $args): array {
+    $args['posts_per_page'] = 8;
+    $args['columns'] = 4;
+
+    return $args;
+});
+
 function papetarie_storefront_clear_orphaned_cart_notices_on_account_pages(): void
 {
     if (is_admin() || !function_exists('is_account_page') || !is_account_page()) {
@@ -788,6 +848,12 @@ function papetarie_storefront_cart_fragments(array $fragments): array
     <span data-pap-cart-count><?php echo esc_html(papetarie_storefront_cart_count_label()); ?></span>
     <?php
     $fragments['[data-pap-cart-count]'] = ob_get_clean();
+
+    ob_start();
+    ?>
+    <span class="pap-tool-count-badge" data-pap-cart-count-badge><?php echo esc_html(papetarie_storefront_cart_count()); ?></span>
+    <?php
+    $fragments['[data-pap-cart-count-badge]'] = ob_get_clean();
 
     ob_start();
     ?>
@@ -2809,16 +2875,38 @@ function papetarie_storefront_unhook_auth_notices(): void
 }
 add_action('wp', 'papetarie_storefront_unhook_auth_notices', 20);
 
+function papetarie_storefront_catalog_orderby_labels(array $options): array
+{
+    return [
+        'price' => __('Preț crescător', 'papetarie-storefront'),
+        'price-desc' => __('Preț descrescător', 'papetarie-storefront'),
+    ];
+}
+add_filter('woocommerce_catalog_orderby', 'papetarie_storefront_catalog_orderby_labels');
+add_filter('woocommerce_default_catalog_orderby_options', 'papetarie_storefront_catalog_orderby_labels');
+add_filter('woocommerce_default_catalog_orderby', static fn (): string => 'price');
+
+// 60 products per page on shop/category archives before pagination kicks in
+// (see docs/pagination.md for the full reasoning behind this threshold).
+add_filter('loop_shop_per_page', static fn (): int => 60, 20);
+
+function papetarie_storefront_filter_sort_url(string $base_url, string $orderby): string
+{
+    $params = $_GET;
+    unset($params['paged']);
+    $params['orderby'] = $orderby;
+
+    $params = array_map('wp_unslash', $params);
+    $query = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+
+    return $query !== '' ? $base_url . '?' . $query : $base_url;
+}
+
 function papetarie_storefront_stock_status_options(): array
 {
-    if (function_exists('wc_get_product_stock_status_options')) {
-        return wc_get_product_stock_status_options();
-    }
-
     return [
         'instock' => __('În stoc', 'papetarie-storefront'),
         'outofstock' => __('Stoc epuizat', 'papetarie-storefront'),
-        'onbackorder' => __('În precomandă', 'papetarie-storefront'),
     ];
 }
 
@@ -3397,242 +3485,6 @@ function papetarie_storefront_account_initials(string $display_name): string
     return $initials !== '' ? $initials : 'A';
 }
 
-function papetarie_storefront_price_ranges(): array
-{
-    return [
-        [
-            'key' => 'under-50',
-            'label' => __('Sub 50 lei', 'papetarie-storefront'),
-            'min' => null,
-            'max' => 50,
-        ],
-        [
-            'key' => '50-100',
-            'label' => __('50 - 100 lei', 'papetarie-storefront'),
-            'min' => 50,
-            'max' => 100,
-        ],
-        [
-            'key' => '100-200',
-            'label' => __('100 - 200 lei', 'papetarie-storefront'),
-            'min' => 100,
-            'max' => 200,
-        ],
-        [
-            'key' => '200-500',
-            'label' => __('200 - 500 lei', 'papetarie-storefront'),
-            'min' => 200,
-            'max' => 500,
-        ],
-        [
-            'key' => '500-1000',
-            'label' => __('500 - 1.000 lei', 'papetarie-storefront'),
-            'min' => 500,
-            'max' => 1000,
-        ],
-        [
-            'key' => '1000-1500',
-            'label' => __('1.000 - 1.500 lei', 'papetarie-storefront'),
-            'min' => 1000,
-            'max' => 1500,
-        ],
-        [
-            'key' => '1500-2000',
-            'label' => __('1.500 - 2.000 lei', 'papetarie-storefront'),
-            'min' => 1500,
-            'max' => 2000,
-        ],
-        [
-            'key' => '2000-3000',
-            'label' => __('2.000 - 3.000 lei', 'papetarie-storefront'),
-            'min' => 2000,
-            'max' => 3000,
-        ],
-        [
-            'key' => 'over-3000',
-            'label' => __('Peste 3.000 lei', 'papetarie-storefront'),
-            'min' => 3000,
-            'max' => null,
-        ],
-    ];
-}
-
-function papetarie_storefront_get_selected_price_range_keys(): array
-{
-    $raw = $_GET['price_range'] ?? [];
-
-    if (!is_array($raw)) {
-        $raw = array_filter(array_map('trim', explode(',', (string) $raw)));
-    }
-
-    $allowed = array_column(papetarie_storefront_price_ranges(), 'key');
-    $selected = [];
-
-    foreach ($raw as $item) {
-        $key = sanitize_key((string) $item);
-
-        if ($key && in_array($key, $allowed, true)) {
-            $selected[] = $key;
-        }
-    }
-
-    return array_values(array_unique($selected));
-}
-
-function papetarie_storefront_get_custom_price_filter(): array
-{
-    $min_raw = $_GET['custom_price_min'] ?? $_GET['min_price'] ?? '';
-    $max_raw = $_GET['custom_price_max'] ?? $_GET['max_price'] ?? '';
-
-    $min = is_numeric($min_raw) ? (float) wp_unslash($min_raw) : null;
-    $max = is_numeric($max_raw) ? (float) wp_unslash($max_raw) : null;
-    $active = ($min !== null || $max !== null);
-    $valid = $active && $min !== null && $max !== null && $min >= 0 && $max >= 0 && $min <= $max;
-
-    return [
-        'min' => $min,
-        'max' => $max,
-        'active' => $active,
-        'valid' => $valid,
-    ];
-}
-
-function papetarie_storefront_build_price_clause(array $range): array
-{
-    if ($range['min'] === null) {
-        return [
-            'key' => '_price',
-            'value' => (float) $range['max'],
-            'compare' => '<',
-            'type' => 'NUMERIC',
-        ];
-    }
-
-    if ($range['max'] === null) {
-        return [
-            'key' => '_price',
-            'value' => (float) $range['min'],
-            'compare' => '>=',
-            'type' => 'NUMERIC',
-        ];
-    }
-
-    return [
-        'key' => '_price',
-        'value' => [
-            (float) $range['min'],
-            (float) $range['max'],
-        ],
-        'compare' => 'BETWEEN',
-        'type' => 'NUMERIC',
-    ];
-}
-
-function papetarie_storefront_append_meta_query(array $meta_query, array $clause): array
-{
-    if (empty($meta_query)) {
-        return [$clause];
-    }
-
-    if (isset($meta_query['relation'])) {
-        $meta_query[] = $clause;
-
-        return $meta_query;
-    }
-
-    $meta_query[] = $clause;
-
-    return $meta_query;
-}
-
-function papetarie_storefront_strip_price_meta_query(array $meta_query): array
-{
-    if (!$meta_query) {
-        return [];
-    }
-
-    if (isset($meta_query['relation'])) {
-        $relation = $meta_query['relation'];
-        $clean = ['relation' => $relation];
-
-        foreach ($meta_query as $key => $clause) {
-            if ($key === 'relation') {
-                continue;
-            }
-
-            if (!is_array($clause)) {
-                continue;
-            }
-
-            $clean_clause = papetarie_storefront_strip_price_meta_query($clause);
-
-            if ($clean_clause) {
-                $clean[] = $clean_clause;
-            }
-        }
-
-        return count($clean) > 1 ? $clean : [];
-    }
-
-    if (isset($meta_query['key']) && $meta_query['key'] === '_price') {
-        return [];
-    }
-
-    return $meta_query;
-}
-
-function papetarie_storefront_get_base_archive_query_args(?\WP_Term $term = null): array
-{
-    $query = $GLOBALS['wp_query'] ?? null;
-    $args = $query instanceof \WP_Query ? $query->query_vars : [];
-
-    $args['post_type'] = 'product';
-    $args['post_status'] = 'publish';
-    $args['fields'] = 'ids';
-    $args['posts_per_page'] = 1;
-    $args['no_found_rows'] = false;
-    $args['ignore_sticky_posts'] = true;
-    $args['cache_results'] = false;
-    $args['update_post_meta_cache'] = false;
-    $args['update_post_term_cache'] = false;
-    $args['papetarie_ignore_price_filters'] = true;
-
-    unset(
-        $args['paged'],
-        $args['page'],
-        $args['price_range'],
-        $args['custom_price_min'],
-        $args['custom_price_max'],
-        $args['min_price'],
-        $args['max_price']
-    );
-
-    if (isset($args['meta_query']) && is_array($args['meta_query'])) {
-        $args['meta_query'] = papetarie_storefront_strip_price_meta_query($args['meta_query']);
-    }
-
-    return $args;
-}
-
-function papetarie_storefront_get_price_range_counts(?\WP_Term $term = null): array
-{
-    $counts = [];
-    $base_args = papetarie_storefront_get_base_archive_query_args($term);
-
-    foreach (papetarie_storefront_price_ranges() as $range) {
-        $args = $base_args;
-        $args['meta_query'] = papetarie_storefront_append_meta_query(
-            $args['meta_query'] ?? [],
-            papetarie_storefront_build_price_clause($range)
-        );
-
-        $count_query = new \WP_Query($args);
-        $counts[$range['key']] = (int) $count_query->found_posts;
-    }
-
-    return $counts;
-}
-
 function papetarie_storefront_get_archive_price_bounds(?\WP_Term $term = null): array
 {
     global $wpdb;
@@ -3687,6 +3539,301 @@ function papetarie_storefront_get_archive_price_bounds(?\WP_Term $term = null): 
     ];
 }
 
+/**
+ * Builds "nice" round-number price buckets (à la D3/matplotlib tick generation)
+ * scaled to the real min/max price found in the given category, instead of a
+ * fixed global scale. A cheap category (2-25 lei) gets buckets like
+ * "0 – 10 lei" / "10 – 20 lei" / "Peste 20 lei"; an expensive one gets
+ * proportionally bigger buckets — so no category is left with 4 empty
+ * checkboxes out of 5 the way a fixed 0-25/25-50/... scale would.
+ */
+function papetarie_storefront_generate_price_ranges(float $min, float $max): array
+{
+    if ($max <= $min) {
+        $max = $min + 1;
+    }
+
+    $span = $max - $min;
+    $rough_step = $span / 4;
+    $magnitude = 10 ** floor(log10($rough_step));
+    $normalized = $rough_step / $magnitude;
+
+    if ($normalized <= 1) {
+        $nice = 1;
+    } elseif ($normalized <= 2) {
+        $nice = 2;
+    } elseif ($normalized <= 2.5) {
+        $nice = 2.5;
+    } elseif ($normalized <= 5) {
+        $nice = 5;
+    } else {
+        $nice = 10;
+    }
+
+    $step = max(1.0, $nice * $magnitude);
+    // Start at 0 when the cheapest item is within one step of it (reads more
+    // naturally as "under X lei"); otherwise snap to the step grid so we
+    // don't render a leading bucket with zero products in it.
+    $start = $min < $step ? 0.0 : floor($min / $step) * $step;
+
+    $ranges = [];
+    $bucket_start = $start;
+
+    while ($bucket_start < $max) {
+        $bucket_end = $bucket_start + $step;
+
+        if ($bucket_end >= $max) {
+            $ranges[] = [
+                'key' => 'over-' . (int) $bucket_start,
+                'label' => sprintf(
+                    /* translators: %s: lower bound of the open-ended price range */
+                    __('Peste %s lei', 'papetarie-storefront'),
+                    number_format_i18n($bucket_start)
+                ),
+                'min' => $bucket_start,
+                'max' => null,
+            ];
+            break;
+        }
+
+        $ranges[] = [
+            'key' => (int) $bucket_start . '-' . (int) $bucket_end,
+            'label' => sprintf('%s – %s lei', number_format_i18n($bucket_start), number_format_i18n($bucket_end)),
+            'min' => $bucket_start,
+            'max' => $bucket_end,
+        ];
+
+        $bucket_start = $bucket_end;
+    }
+
+    return $ranges;
+}
+
+function papetarie_storefront_price_ranges(?\WP_Term $term = null): array
+{
+    $bounds = papetarie_storefront_get_archive_price_bounds($term);
+
+    return papetarie_storefront_generate_price_ranges((float) $bounds['min'], (float) $bounds['max']);
+}
+
+function papetarie_storefront_get_selected_price_range_keys(?\WP_Term $term = null): array
+{
+    $raw = $_GET['price_range'] ?? [];
+
+    if (!is_array($raw)) {
+        $raw = array_filter(array_map('trim', explode(',', (string) $raw)));
+    }
+
+    $allowed = array_column(papetarie_storefront_price_ranges($term), 'key');
+    $selected = [];
+
+    foreach ($raw as $item) {
+        $key = sanitize_key((string) $item);
+
+        if ($key && in_array($key, $allowed, true)) {
+            $selected[] = $key;
+        }
+    }
+
+    return array_values(array_unique($selected));
+}
+
+
+function papetarie_storefront_filter_removal_url(string $base_url, array $remove): string
+{
+    $params = $_GET;
+    unset($params['paged']);
+
+    foreach ($remove as $key => $value) {
+        if (!isset($params[$key])) {
+            continue;
+        }
+
+        if ($value === null) {
+            unset($params[$key]);
+            continue;
+        }
+
+        if (is_array($params[$key])) {
+            $params[$key] = array_values(array_diff($params[$key], [(string) $value]));
+
+            if (empty($params[$key])) {
+                unset($params[$key]);
+            }
+        } else {
+            unset($params[$key]);
+        }
+    }
+
+    $params = array_map('wp_unslash', $params);
+    $query = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+
+    return $query !== '' ? $base_url . '?' . $query : $base_url;
+}
+
+function papetarie_storefront_build_price_clause(array $range): array
+{
+    if ($range['min'] === null) {
+        return [
+            'key' => '_price',
+            'value' => (float) $range['max'],
+            'compare' => '<',
+            'type' => 'DECIMAL(10,2)',
+        ];
+    }
+
+    if ($range['max'] === null) {
+        return [
+            'key' => '_price',
+            'value' => (float) $range['min'],
+            'compare' => '>=',
+            'type' => 'DECIMAL(10,2)',
+        ];
+    }
+
+    return [
+        'key' => '_price',
+        'value' => [
+            (float) $range['min'],
+            (float) $range['max'],
+        ],
+        'compare' => 'BETWEEN',
+        'type' => 'DECIMAL(10,2)',
+    ];
+}
+
+function papetarie_storefront_append_meta_query(array $meta_query, array $clause): array
+{
+    if (empty($meta_query)) {
+        return [$clause];
+    }
+
+    if (isset($meta_query['relation'])) {
+        $meta_query[] = $clause;
+
+        return $meta_query;
+    }
+
+    $meta_query[] = $clause;
+
+    return $meta_query;
+}
+
+function papetarie_storefront_strip_meta_query_by_key(array $meta_query, string $meta_key): array
+{
+    if (!$meta_query) {
+        return [];
+    }
+
+    // A single clause (has its own 'key'), not a list of clauses.
+    if (isset($meta_query['key'])) {
+        return $meta_query['key'] === $meta_key ? [] : $meta_query;
+    }
+
+    $relation = $meta_query['relation'] ?? null;
+    $clean = [];
+
+    foreach ($meta_query as $index => $clause) {
+        if ($index === 'relation' || !is_array($clause)) {
+            continue;
+        }
+
+        $clean_clause = papetarie_storefront_strip_meta_query_by_key($clause, $meta_key);
+
+        if ($clean_clause) {
+            $clean[] = $clean_clause;
+        }
+    }
+
+    if (!$clean) {
+        return [];
+    }
+
+    if ($relation !== null) {
+        $clean['relation'] = $relation;
+    }
+
+    return $clean;
+}
+
+function papetarie_storefront_get_base_archive_query_args(?\WP_Term $term = null): array
+{
+    $query = $GLOBALS['wp_query'] ?? null;
+    $args = $query instanceof \WP_Query ? $query->query_vars : [];
+
+    $args['post_type'] = 'product';
+    $args['post_status'] = 'publish';
+    $args['fields'] = 'ids';
+    $args['posts_per_page'] = 1;
+    $args['no_found_rows'] = false;
+    $args['ignore_sticky_posts'] = true;
+    $args['cache_results'] = false;
+    $args['update_post_meta_cache'] = false;
+    $args['update_post_term_cache'] = false;
+    $args['papetarie_ignore_price_filters'] = true;
+
+    unset(
+        $args['paged'],
+        $args['page'],
+        $args['price_range'],
+        $args['min_price'],
+        $args['max_price']
+    );
+
+    return $args;
+}
+
+function papetarie_storefront_get_price_range_counts(?\WP_Term $term = null): array
+{
+    $counts = [];
+    $base_args = papetarie_storefront_get_base_archive_query_args($term);
+
+    if (isset($base_args['meta_query']) && is_array($base_args['meta_query'])) {
+        $base_args['meta_query'] = papetarie_storefront_strip_meta_query_by_key($base_args['meta_query'], '_price');
+    }
+
+    foreach (papetarie_storefront_price_ranges($term) as $range) {
+        $args = $base_args;
+        $args['meta_query'] = papetarie_storefront_append_meta_query(
+            $args['meta_query'] ?? [],
+            papetarie_storefront_build_price_clause($range)
+        );
+
+        $count_query = new \WP_Query($args);
+        $counts[$range['key']] = (int) $count_query->found_posts;
+    }
+
+    return $counts;
+}
+
+function papetarie_storefront_get_stock_status_counts(?\WP_Term $term = null): array
+{
+    $counts = [];
+    $base_args = papetarie_storefront_get_base_archive_query_args($term);
+
+    if (isset($base_args['meta_query']) && is_array($base_args['meta_query'])) {
+        $base_args['meta_query'] = papetarie_storefront_strip_meta_query_by_key($base_args['meta_query'], '_stock_status');
+    }
+
+    foreach (array_keys(papetarie_storefront_stock_status_options()) as $status) {
+        $args = $base_args;
+        $args['meta_query'] = papetarie_storefront_append_meta_query(
+            $args['meta_query'] ?? [],
+            [
+                'key' => '_stock_status',
+                'value' => $status,
+                'compare' => '=',
+            ]
+        );
+
+        $count_query = new \WP_Query($args);
+        $counts[$status] = (int) $count_query->found_posts;
+    }
+
+    return $counts;
+}
+
+
 function papetarie_storefront_filter_stock_status_query(array $meta_query, $query): array
 {
     if (is_admin()) {
@@ -3719,6 +3866,87 @@ function papetarie_storefront_filter_stock_status_query(array $meta_query, $quer
 }
 add_filter('woocommerce_product_query_meta_query', 'papetarie_storefront_filter_stock_status_query', 20, 2);
 
+function papetarie_storefront_filter_subcategory_query(\WP_Query $query): void
+{
+    if (is_admin() || !$query->is_main_query()) {
+        return;
+    }
+
+    if (!(is_shop() || is_product_category() || is_product_taxonomy())) {
+        return;
+    }
+
+    $selected = isset($_GET['product_cat_child']) ? array_map('sanitize_key', (array) wp_unslash($_GET['product_cat_child'])) : [];
+    $selected = array_values(array_filter($selected));
+
+    if (!$selected) {
+        return;
+    }
+
+    $tax_query = (array) $query->get('tax_query');
+    $tax_query[] = [
+        'taxonomy' => 'product_cat',
+        'field' => 'slug',
+        'terms' => $selected,
+    ];
+
+    $query->set('tax_query', $tax_query);
+}
+add_action('pre_get_posts', 'papetarie_storefront_filter_subcategory_query');
+
+function papetarie_storefront_register_brand_taxonomy(): void
+{
+    register_taxonomy(
+        'product_brand',
+        'product',
+        [
+            'label' => __('Brand', 'papetarie-storefront'),
+            'hierarchical' => false,
+            'public' => true,
+            'show_in_nav_menus' => false,
+            'show_ui' => true,
+            'show_admin_column' => true,
+            'show_in_rest' => true,
+            'rewrite' => ['slug' => 'brand'],
+        ]
+    );
+}
+add_action('init', 'papetarie_storefront_register_brand_taxonomy');
+
+function papetarie_storefront_get_selected_brands(): array
+{
+    $selected = isset($_GET['brand']) ? array_map('sanitize_key', (array) wp_unslash($_GET['brand'])) : [];
+
+    return array_values(array_filter($selected));
+}
+
+function papetarie_storefront_filter_brand_query(\WP_Query $query): void
+{
+    if (is_admin() || !$query->is_main_query()) {
+        return;
+    }
+
+    if (!(is_shop() || is_product_category() || is_product_taxonomy())) {
+        return;
+    }
+
+    $selected = papetarie_storefront_get_selected_brands();
+
+    if (!$selected) {
+        return;
+    }
+
+    $tax_query = (array) $query->get('tax_query');
+    $tax_query[] = [
+        'taxonomy' => 'product_brand',
+        'field' => 'slug',
+        'terms' => $selected,
+    ];
+
+    $query->set('tax_query', $tax_query);
+}
+add_action('pre_get_posts', 'papetarie_storefront_filter_brand_query');
+
 function papetarie_storefront_filter_price_ranges_query(array $meta_query, $query): array
 {
     if (is_admin()) {
@@ -3733,10 +3961,12 @@ function papetarie_storefront_filter_price_ranges_query(array $meta_query, $quer
         return $meta_query;
     }
 
-    $selected_ranges = papetarie_storefront_get_selected_price_range_keys();
-    $custom_price = papetarie_storefront_get_custom_price_filter();
+    $queried_object = is_product_category() ? get_queried_object() : null;
+    $term = $queried_object instanceof \WP_Term ? $queried_object : null;
+
+    $selected_ranges = papetarie_storefront_get_selected_price_range_keys($term);
     $price_clauses = [];
-    $price_ranges = papetarie_storefront_price_ranges();
+    $price_ranges = papetarie_storefront_price_ranges($term);
 
     foreach ($selected_ranges as $selected_range_key) {
         foreach ($price_ranges as $range) {
@@ -3745,18 +3975,6 @@ function papetarie_storefront_filter_price_ranges_query(array $meta_query, $quer
                 break;
             }
         }
-    }
-
-    if ($custom_price['valid']) {
-        $price_clauses[] = [
-            'key' => '_price',
-            'value' => [
-                (float) $custom_price['min'],
-                (float) $custom_price['max'],
-            ],
-            'compare' => 'BETWEEN',
-            'type' => 'NUMERIC',
-        ];
     }
 
     if (!$price_clauses) {
@@ -4820,6 +5038,11 @@ function papetarie_storefront_icon(string $name): string
         'cart' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.1 10.5A2 2 0 0 0 9.3 16h7.9a2 2 0 0 0 2-1.6l1.3-7.4H6.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 20a1.1 1.1 0 1 0 0-.01M17.5 20a1.1 1.1 0 1 0 0-.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         'menu' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v2H4V7zm0 4h16v2H4v-2zm0 4h16v2H4v-2z" fill="currentColor"/></svg>',
         'chevron' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z" fill="currentColor"/></svg>',
+        'chevron-down' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'filter' => '<svg viewBox="0 0 13 13" aria-hidden="true"><path d="M11.375 2.16667H7.58333" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.41667 2.16667H1.625" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.375 6.5H6.5" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.33333 6.5H1.625" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.375 10.8333H8.66667" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 10.8333H1.625" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.58333 1.08333V3.25" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.33333 5.41667V7.58333" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.66667 9.75V11.9167" fill="none" stroke="currentColor" stroke-width="1.08333" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'grid' => '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.0833 1.75H2.91667C2.27233 1.75 1.75 2.27233 1.75 2.91667V11.0833C1.75 11.7277 2.27233 12.25 2.91667 12.25H11.0833C11.7277 12.25 12.25 11.7277 12.25 11.0833V2.91667C12.25 2.27233 11.7277 1.75 11.0833 1.75Z" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.75 5.25H12.25" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.75 8.75H12.25" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.25 1.75V12.25" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.75 1.75V12.25" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'list' => '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1.75 7H1.75583" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.75 10.5H1.75583" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.75 3.5H1.75583" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.66667 7H12.25" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.66667 10.5H12.25" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.66667 3.5H12.25" fill="none" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'sort' => '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M10.5 8L8.5 10L6.5 8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 10V2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.5 4L3.5 2L5.5 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 2V10" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         'help' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 17a1.25 1.25 0 110-2.5A1.25 1.25 0 0112 19zm1.33-5.94-.58.33c-.94.53-1.25.98-1.25 1.86h-2c0-1.67.79-2.67 2.27-3.5l.76-.43c.78-.44 1.22-1.02 1.22-1.76 0-1.16-.95-1.92-2.39-1.92-1.31 0-2.31.57-3.18 1.64L6.6 7.99C7.77 6.43 9.5 5.5 11.73 5.5c2.77 0 4.85 1.57 4.85 4.1 0 1.5-.75 2.67-3.25 3.46z" fill="currentColor"/></svg>',
         'heart' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.82 10.55 19.5C5.46 14.86 2 11.81 2 8.1 2 5.08 4.34 2.75 7.37 2.75c1.93 0 3.71.96 4.63 2.46.92-1.5 2.7-2.46 4.63-2.46 3.03 0 5.37 2.33 5.37 5.35 0 3.71-3.46 6.76-8.55 11.4L12 20.82Z" fill="currentColor"/></svg>',
         'shield' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l7 3v6c0 4.97-3.06 9.63-7 11-3.94-1.37-7-6.03-7-11V5l7-3zm-1 13l5-5-1.41-1.41L11 12.17l-1.59-1.58L8 12l3 3z" fill="currentColor"/></svg>',
@@ -4845,6 +5068,22 @@ function papetarie_storefront_icon(string $name): string
         'stapler' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h10l4 3H8a4 4 0 0 1-4-4v-1l7-5 6 1 3 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
         'bag' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 6h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 10a4 4 0 0 1-8 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
         'star' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>',
+        'star-outline' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+        'clock-outline' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'benefit-delivery' => '<svg viewBox="0 0 11.6667 12.8321" fill="none" aria-hidden="true"><path d="M5.25001 12.0913C5.42736 12.1937 5.62855 12.2476 5.83334 12.2476C6.03813 12.2476 6.23932 12.1937 6.41667 12.0913L10.5 9.75797C10.6771 9.65567 10.8243 9.50857 10.9267 9.33146C11.0291 9.15433 11.0831 8.9534 11.0833 8.74881V4.08214C11.0831 3.87755 11.0291 3.67662 10.9267 3.49949C10.8243 3.32236 10.6771 3.17527 10.5 3.07297L6.41667 0.739645C6.23932 0.637245 6.03813 0.583335 5.83334 0.583335C5.62855 0.583335 5.42736 0.637245 5.25001 0.739645L1.16667 3.07297C0.989485 3.17527 0.842325 3.32236 0.739935 3.49949C0.637555 3.67662 0.583545 3.87755 0.583335 4.08214V8.74881C0.583545 8.9534 0.637555 9.15433 0.739935 9.33146C0.842325 9.50857 0.989485 9.65567 1.16667 9.75797L5.25001 12.0913Z" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.83334 12.2488V6.41547" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M0.752505 3.49881L5.83334 6.41547L10.9141 3.49881" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.20834 1.9063L8.45834 4.91047" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'benefit-payment' => '<svg viewBox="0 0 10.5 12.8353" fill="none" aria-hidden="true"><path d="M9.91671 7.00027C9.91671 9.91694 7.875 11.3752 5.44833 12.2211C5.32126 12.2641 5.18323 12.2621 5.0575 12.2152C2.625 11.3752 0.583335 9.91694 0.583335 7.00027V2.91694C0.583335 2.76223 0.644795 2.61385 0.754195 2.50445C0.863585 2.39506 1.01197 2.33361 1.16668 2.33361C2.33334 2.33361 3.79168 1.63361 4.80668 0.746935C4.93026 0.641355 5.08746 0.583335 5.25 0.583335C5.41254 0.583335 5.56975 0.641355 5.69333 0.746935C6.71417 1.63944 8.16667 2.33361 9.3333 2.33361C9.488 2.33361 9.6364 2.39506 9.7458 2.50445C9.8552 2.61385 9.91671 2.76223 9.91671 2.91694V7.00027Z" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'benefit-support' => '<svg viewBox="0 0 11.6667 11.6667" fill="none" aria-hidden="true"><path d="M0.583335 7H2.33333C2.64275 7 2.93951 7.12291 3.1583 7.34171C3.37709 7.5605 3.5 7.85725 3.5 8.16667V9.91663C3.5 10.2261 3.37709 10.5228 3.1583 10.7416C2.93951 10.9604 2.64275 11.0833 2.33333 11.0833H1.75001C1.44059 11.0833 1.14384 10.9604 0.925045 10.7416C0.706255 10.5228 0.583335 10.2261 0.583335 9.91663V5.83333C0.583335 4.44094 1.13645 3.10559 2.12102 2.12102C3.10559 1.13645 4.44094 0.583335 5.83333 0.583335C7.22572 0.583335 8.56108 1.13645 9.54564 2.12102C10.5302 3.10559 11.0833 4.44094 11.0833 5.83333V9.91663C11.0833 10.2261 10.9604 10.5228 10.7416 10.7416C10.5228 10.9604 10.2261 11.0833 9.91663 11.0833H9.33333C9.02393 11.0833 8.72717 10.9604 8.50838 10.7416C8.28959 10.5228 8.16667 10.2261 8.16667 9.91663V8.16667C8.16667 7.85725 8.28959 7.5605 8.50838 7.34171C8.72717 7.12291 9.02393 7 9.33333 7H11.0833" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'benefit-returns' => '<svg viewBox="0 0 12.8333 12.8333" fill="none" aria-hidden="true"><path d="M6.41667 12.25C9.63837 12.25 12.25 9.63837 12.25 6.41667C12.25 3.19501 9.63837 0.583335 6.41667 0.583335C3.19501 0.583335 0.583335 3.19501 0.583335 6.41667C0.583335 9.63837 3.19501 12.25 6.41667 12.25Z" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.41667 2.91667V6.41667L8.75 7.58333" stroke="currentColor" stroke-width="1.16667" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'briefcase-outline' => '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3.5 12.5h17" stroke="currentColor" stroke-width="1.7"/></svg>',
+        'share' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 10.7l7.6-4.4M8.2 13.3l7.6 4.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        'plus' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'minus' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'package' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.2 12 3.5l8.5 4.7v8.6L12 21.5l-8.5-4.7V8.2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3.7 8 12 12.5 20.3 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 12.5V21.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+        'undo' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h8.5a5.5 5.5 0 1 1 0 11H10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 5.5 4 10l4 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'check-circle' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m8 12.5 2.5 2.5 5.5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        'info-circle' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.1" fill="currentColor"/></svg>',
+        'alert-triangle' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 22 20.5H2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1.05" fill="currentColor"/></svg>',
+        'alert-circle' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.05" fill="currentColor"/></svg>',
     ];
 
     return $icons[$name] ?? '';
@@ -6212,6 +6451,13 @@ function papetarie_storefront_get_product_badges(WC_Product $product): array
 
 function papetarie_storefront_render_product_badges_html(WC_Product $product): string
 {
+    // Disabled site-wide until we agree on what these badges should mean to a
+    // shopper — see docs/product-badges.md for the logic behind each one.
+    // Re-enable with: add_filter('papetarie_storefront_enable_product_badges', '__return_true');
+    if (!apply_filters('papetarie_storefront_enable_product_badges', false)) {
+        return '';
+    }
+
     $badges = papetarie_storefront_get_product_badges($product);
     if (empty($badges)) {
         return '';
@@ -6306,6 +6552,63 @@ function papetarie_storefront_render_slider_product_card(WC_Product $product): v
     <?php
 }
 
+function papetarie_storefront_render_product_slider_section(string $title, string $subtitle, array $products, string $see_all_url, array $extra_section_classes = [], string $id = ''): string
+{
+    $products = array_values(array_filter($products, static function ($product): bool {
+        return $product instanceof WC_Product;
+    }));
+
+    if (empty($products)) {
+        return '';
+    }
+
+    $section_classes = array_merge(['pap-featured', 'pap-product-slider'], $extra_section_classes);
+
+    ob_start();
+    ?>
+    <section<?php echo $id !== '' ? ' id="' . esc_attr($id) . '"' : ''; ?> class="<?php echo esc_attr(implode(' ', $section_classes)); ?>">
+      <div class="pap-product-slider__card">
+        <div class="pap-product-slider__gradient-bar" aria-hidden="true"></div>
+        <div class="pap-product-slider__card-body">
+          <div class="pap-section-head pap-section-head-soft pap-section-head-featured">
+            <div class="pap-product-slider__head-row">
+              <div class="pap-product-slider__head-title">
+                <span class="pap-product-slider__accent" aria-hidden="true"></span>
+                <h2><?php echo esc_html($title); ?></h2>
+              </div>
+              <a class="pap-product-slider__see-all" href="<?php echo esc_url($see_all_url); ?>">
+                <span><?php esc_html_e('Vezi toate', 'papetarie-storefront'); ?></span>
+                <span class="pap-product-slider__see-all-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+              </a>
+            </div>
+            <?php if ($subtitle !== '') : ?>
+              <p><?php echo esc_html($subtitle); ?></p>
+            <?php endif; ?>
+          </div>
+
+          <div class="pap-featured-slider-shell">
+            <button class="pap-featured-nav pap-featured-nav-prev" type="button" aria-label="<?php esc_attr_e('Produse anterioare', 'papetarie-storefront'); ?>" data-featured-prev>
+              <span class="pap-featured-nav-icon pap-featured-nav-icon-prev" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+            </button>
+            <div class="pap-featured-slider" data-featured-slider>
+              <div class="pap-product-grid">
+                <?php foreach ($products as $product) : ?>
+                  <?php papetarie_storefront_render_slider_product_card($product); ?>
+                <?php endforeach; ?>
+              </div>
+            </div>
+            <button class="pap-featured-nav pap-featured-nav-next" type="button" aria-label="<?php esc_attr_e('Produse următoare', 'papetarie-storefront'); ?>" data-featured-next>
+              <span class="pap-featured-nav-icon pap-featured-nav-icon-next" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
 function papetarie_storefront_render_cart_recommendations_html(?string $title = null, ?string $subtitle = null, int $limit = 8): string
 {
     if (!function_exists('WC') || !WC()->cart || $limit < 1) {
@@ -6321,56 +6624,13 @@ function papetarie_storefront_render_cart_recommendations_html(?string $title = 
         : __('Produse complementare pentru coșul tău.', 'papetarie-storefront'));
 
     $products = papetarie_storefront_cart_recommendation_products($limit);
-    if (empty($products)) {
-        return '';
-    }
-
     $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
 
-    ob_start();
-    ?>
-    <section class="<?php echo esc_attr($is_empty_cart ? 'pap-featured pap-cart-recommendations pap-cart-recommendations--empty' : 'pap-shell pap-featured pap-cart-recommendations'); ?>">
-      <div class="pap-cart-recommendations__card">
-        <div class="pap-cart-recommendations__gradient-bar" aria-hidden="true"></div>
-        <div class="pap-cart-recommendations__card-body">
-          <div class="pap-section-head pap-section-head-soft pap-section-head-featured">
-            <div class="pap-cart-recommendations__head-row">
-              <div class="pap-cart-recommendations__head-title">
-                <span class="pap-cart-recommendations__accent" aria-hidden="true"></span>
-                <h2><?php echo esc_html($title); ?></h2>
-              </div>
-              <a class="pap-cart-recommendations__see-all" href="<?php echo esc_url($shop_url); ?>">
-                <span><?php esc_html_e('Vezi toate', 'papetarie-storefront'); ?></span>
-                <span class="pap-cart-recommendations__see-all-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
-              </a>
-            </div>
-            <?php if ($subtitle !== '') : ?>
-              <p><?php echo esc_html($subtitle); ?></p>
-            <?php endif; ?>
-          </div>
+    $extra_classes = $is_empty_cart
+        ? ['pap-cart-recommendations', 'pap-cart-recommendations--empty']
+        : ['pap-shell', 'pap-cart-recommendations'];
 
-          <div class="pap-featured-slider-shell">
-            <button class="pap-featured-nav pap-featured-nav-prev" type="button" aria-label="<?php esc_attr_e('Produse anterioare', 'papetarie-storefront'); ?>" data-featured-prev>
-              <span class="pap-featured-nav-icon pap-featured-nav-icon-prev" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-            </button>
-            <div class="pap-featured-slider" data-featured-slider>
-              <div class="pap-product-grid">
-                <?php foreach ($products as $product) : ?>
-                  <?php if (!$product instanceof WC_Product) { continue; } ?>
-                  <?php papetarie_storefront_render_slider_product_card($product); ?>
-                <?php endforeach; ?>
-              </div>
-            </div>
-            <button class="pap-featured-nav pap-featured-nav-next" type="button" aria-label="<?php esc_attr_e('Produse următoare', 'papetarie-storefront'); ?>" data-featured-next>
-              <span class="pap-featured-nav-icon pap-featured-nav-icon-next" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-    <?php
-
-    return (string) ob_get_clean();
+    return papetarie_storefront_render_product_slider_section($title, $subtitle, $products, $shop_url, $extra_classes);
 }
 
 function papetarie_storefront_recently_viewed_product_ids(int $limit = 4): array
@@ -6459,6 +6719,10 @@ function papetarie_storefront_mega_menu_icon(string $slug, string $name): string
         'accesorii-it' => 'it',
         'echipamente-birou' => 'machine',
         'capsatoare-si-perforatoare' => 'stapler',
+        'articole-pentru-birou' => 'office',
+        'accesorii-pentru-scris' => 'pen',
+        'organizare-arhivare-prezentare' => 'organize',
+        'periferice' => 'it',
     ];
 
     if (isset($map[$slug])) {
@@ -9427,3 +9691,76 @@ function papetarie_storefront_account_orders_query(array $args): array
     return $args;
 }
 add_filter('woocommerce_my_account_my_orders_query', 'papetarie_storefront_account_orders_query');
+
+/**
+ * Hidden internal style guide — reachable only by typing the URL directly.
+ * Not a WP Page, not linked in any menu, not in search/sitemap.
+ */
+function papetarie_storefront_register_styleguide_rewrite(): void
+{
+    add_rewrite_rule('^style-guide/?$', 'index.php?pap_styleguide=1', 'top');
+}
+add_action('init', 'papetarie_storefront_register_styleguide_rewrite');
+
+function papetarie_storefront_add_styleguide_query_var(array $vars): array
+{
+    $vars[] = 'pap_styleguide';
+
+    return $vars;
+}
+add_filter('query_vars', 'papetarie_storefront_add_styleguide_query_var');
+
+function papetarie_storefront_maybe_flush_styleguide_rewrite(): void
+{
+    if (get_option('pap_styleguide_rewrite_flushed') !== '1') {
+        flush_rewrite_rules();
+        update_option('pap_styleguide_rewrite_flushed', '1');
+    }
+}
+add_action('init', 'papetarie_storefront_maybe_flush_styleguide_rewrite', 20);
+
+function papetarie_storefront_styleguide_template_include(string $template): string
+{
+    if ((int) get_query_var('pap_styleguide') === 1) {
+        $custom_template = get_stylesheet_directory() . '/template-styleguide.php';
+
+        if (file_exists($custom_template)) {
+            status_header(200);
+
+            return $custom_template;
+        }
+    }
+
+    return $template;
+}
+add_filter('template_include', 'papetarie_storefront_styleguide_template_include');
+
+function papetarie_storefront_save_review_title(int $comment_id): void
+{
+    if (empty($_POST['review_title'])) {
+        return;
+    }
+
+    $comment = get_comment($comment_id);
+    if (!$comment || !$comment->comment_post_ID || get_post_type($comment->comment_post_ID) !== 'product') {
+        return;
+    }
+
+    $title = sanitize_text_field(wp_unslash($_POST['review_title']));
+    if ($title === '') {
+        return;
+    }
+
+    update_comment_meta($comment_id, 'review_title', $title);
+}
+add_action('comment_post', 'papetarie_storefront_save_review_title');
+
+function papetarie_storefront_render_code_toggle(string $code): void
+{
+    ?>
+    <details class="pap-code-toggle">
+      <summary><?php esc_html_e('Arată codul', 'papetarie-storefront'); ?></summary>
+      <pre><code><?php echo esc_html($code); ?></code></pre>
+    </details>
+    <?php
+}

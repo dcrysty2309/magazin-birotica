@@ -156,8 +156,8 @@ $show_form = !$shipping_address_is_summary;
                         <?php echo $render_order_field('order_comments'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                     </div>
 
-                    <label class="pap-checkout-save-address">
-                        <input type="checkbox" name="pap_save_address_for_future" value="1">
+                    <label class="pap-checkout-save-address pap-form-check-label">
+                        <input type="checkbox" class="pap-checkbox-input" name="pap_save_address_for_future" value="1">
                         <span><?php esc_html_e('Actualizează adresa din contul meu cu aceste date', 'papetarie-storefront'); ?></span>
                     </label>
 

@@ -122,30 +122,47 @@ $period_options = [
         </div>
 
         <?php if (1 < (int) $customer_orders->max_num_pages) : ?>
-          <nav class="pap-account-pagination" aria-label="<?php esc_attr_e('Paginare comenzi', 'papetarie-storefront'); ?>">
-            <?php
-            $page_count = (int) $customer_orders->max_num_pages;
-            $query_args = array_filter($current_args, static fn($value) => $value !== '' && $value !== null);
-            unset($query_args['paged'], $query_args['orders-page']);
+          <?php
+          $page_count = (int) $customer_orders->max_num_pages;
+          $query_args = array_filter($current_args, static fn($value) => $value !== '' && $value !== null);
+          unset($query_args['paged'], $query_args['orders-page']);
 
-            $build_page_url = static function (int $page) use ($query_args): string {
-                $url = wc_get_endpoint_url('orders', (string) $page);
-                if (!empty($query_args)) {
-                    $url = add_query_arg($query_args, $url);
-                }
-                return $url;
-            };
-            ?>
+          $build_page_url = static function (int $page) use ($query_args): string {
+              $url = wc_get_endpoint_url('orders', (string) $page);
+              if (!empty($query_args)) {
+                  $url = add_query_arg($query_args, $url);
+              }
+              return $url;
+          };
+          $pagination_chevron = papetarie_storefront_icon('chevron');
+          ?>
+          <nav class="pap-pagination-nav" aria-label="<?php esc_attr_e('Paginare comenzi', 'papetarie-storefront'); ?>">
             <?php if ($current_page > 1) : ?>
-              <a class="pap-account-pagination__button" href="<?php echo esc_url($build_page_url($current_page - 1)); ?>" aria-label="<?php esc_attr_e('Pagina anterioară', 'papetarie-storefront'); ?>">‹</a>
+              <a class="page-numbers prev" href="<?php echo esc_url($build_page_url($current_page - 1)); ?>" aria-label="<?php esc_attr_e('Pagina anterioară', 'papetarie-storefront'); ?>">
+                <span class="pap-pagination-icon pap-pagination-icon--prev" aria-hidden="true"><?php echo $pagination_chevron; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+              </a>
+            <?php else : ?>
+              <span class="page-numbers prev disabled" aria-hidden="true">
+                <span class="pap-pagination-icon pap-pagination-icon--prev" aria-hidden="true"><?php echo $pagination_chevron; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+              </span>
             <?php endif; ?>
 
             <?php for ($page = 1; $page <= $page_count; $page++) : ?>
-              <a class="pap-account-pagination__button<?php echo $page === $current_page ? ' is-active' : ''; ?>" href="<?php echo esc_url($build_page_url($page)); ?>"><?php echo esc_html((string) $page); ?></a>
+              <?php if ($page === $current_page) : ?>
+                <span class="page-numbers current" aria-current="page"><?php echo esc_html((string) $page); ?></span>
+              <?php else : ?>
+                <a class="page-numbers" href="<?php echo esc_url($build_page_url($page)); ?>"><?php echo esc_html((string) $page); ?></a>
+              <?php endif; ?>
             <?php endfor; ?>
 
             <?php if ($current_page < $page_count) : ?>
-              <a class="pap-account-pagination__button" href="<?php echo esc_url($build_page_url($current_page + 1)); ?>" aria-label="<?php esc_attr_e('Pagina următoare', 'papetarie-storefront'); ?>">›</a>
+              <a class="page-numbers next" href="<?php echo esc_url($build_page_url($current_page + 1)); ?>" aria-label="<?php esc_attr_e('Pagina următoare', 'papetarie-storefront'); ?>">
+                <span class="pap-pagination-icon" aria-hidden="true"><?php echo $pagination_chevron; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+              </a>
+            <?php else : ?>
+              <span class="page-numbers next disabled" aria-hidden="true">
+                <span class="pap-pagination-icon" aria-hidden="true"><?php echo $pagination_chevron; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+              </span>
             <?php endif; ?>
           </nav>
         <?php endif; ?>

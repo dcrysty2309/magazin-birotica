@@ -36,7 +36,7 @@ $redirect = isset($redirect) ? $redirect : '';
 
       <p class="form-row pap-auth-form-actions">
         <label class="woocommerce-form__label woocommerce-form__label-for-checkbox woocommerce-form-login__rememberme">
-          <input class="woocommerce-form__input woocommerce-form__input-checkbox" name="rememberme" type="checkbox" id="rememberme" value="forever" />
+          <input class="woocommerce-form__input woocommerce-form__input-checkbox pap-checkbox-input" name="rememberme" type="checkbox" id="rememberme" value="forever" />
           <span><?php esc_html_e('Ține-mă minte', 'papetarie-storefront'); ?></span>
         </label>
         <?php wp_nonce_field('woocommerce-login', 'woocommerce-login-nonce'); ?>
