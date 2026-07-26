@@ -33,11 +33,14 @@ $has_meaningful_price_filter = count(array_filter($price_range_counts, static fn
 $stock_status_counts = function_exists('papetarie_storefront_get_stock_status_counts') ? papetarie_storefront_get_stock_status_counts($current_term) : [];
 $selected_subcategories = isset($_GET['product_cat_child']) ? array_map('sanitize_key', (array) wp_unslash($_GET['product_cat_child'])) : [];
 $selected_brands = function_exists('papetarie_storefront_get_selected_brands') ? papetarie_storefront_get_selected_brands() : [];
+$attribute_filter_groups = function_exists('papetarie_storefront_get_category_attribute_filters') ? papetarie_storefront_get_category_attribute_filters($current_term) : [];
+$selected_attributes = function_exists('papetarie_storefront_get_selected_attribute_terms') ? papetarie_storefront_get_selected_attribute_terms() : [];
 
 $has_active_filters = !empty($selected_subcategories)
     || $current_stock_status !== 'all'
     || !empty($selected_price_ranges)
-    || !empty($selected_brands);
+    || !empty($selected_brands)
+    || !empty($selected_attributes);
 
 $subcategory_terms = [];
 
@@ -120,6 +123,20 @@ foreach ($selected_brands as $selected_brand_slug) {
                 'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['brand' => $selected_brand_slug]),
             ];
             break;
+        }
+    }
+}
+
+foreach ($selected_attributes as $selected_attr_slug) {
+    foreach ($attribute_filter_groups as $attr_values) {
+        foreach ($attr_values as $attr_value) {
+            if ($attr_value['slug'] === $selected_attr_slug) {
+                $active_filter_chips[] = [
+                    'label' => $attr_value['name'],
+                    'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['attr' => $selected_attr_slug]),
+                ];
+                break 2;
+            }
         }
     }
 }
@@ -301,6 +318,24 @@ get_header();
               </div>
             </div>
           <?php endif; ?>
+
+          <?php foreach ($attribute_filter_groups as $attr_group_name => $attr_values) : ?>
+            <div class="pap-filter-card">
+              <div class="pap-archive-filter-section-title">
+                <span><?php echo esc_html($attr_group_name); ?></span>
+              </div>
+              <div class="pap-archive-filter-body pap-archive-filter-checklist">
+                <?php foreach ($attr_values as $attr_value) : ?>
+                  <?php $is_checked = in_array($attr_value['slug'], $selected_attributes, true); ?>
+                  <label class="pap-archive-check-option">
+                    <input type="checkbox" class="pap-checkbox-input" name="attr[]" value="<?php echo esc_attr($attr_value['slug']); ?>" <?php checked($is_checked); ?>>
+                    <span class="pap-archive-check-label"><?php echo esc_html($attr_value['name']); ?></span>
+                    <span class="pap-archive-check-count">(<?php echo esc_html((string) $attr_value['count']); ?>)</span>
+                  </label>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endforeach; ?>
         </form>
 
         <div class="pap-sidebar-promo">

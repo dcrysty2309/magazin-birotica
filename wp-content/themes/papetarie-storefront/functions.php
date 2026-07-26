@@ -3950,6 +3950,136 @@ function papetarie_storefront_filter_brand_query(\WP_Query $query): void
 }
 add_action('pre_get_posts', 'papetarie_storefront_filter_brand_query');
 
+/**
+ * Filtre dinamice pe atribute reale (culoare, format etc.), generate din
+ * taxonomia unica product_attr_value (vezi includes/aperta-sync.php) - spre
+ * deosebire de Brand/Subcategorie (liste fixe), aici arătăm doar grupurile
+ * care chiar au produse ÎN categoria curentă, cu minim 2 valori distincte
+ * (altfel un filtru cu o singură opțiune n-are ce să filtreze).
+ *
+ * Intenționat: pe pagina generală de shop (fără categorie), nu arătăm deloc
+ * aceste filtre - un amestec prea larg de tipuri de produse face ca
+ * "Gramaj" sau "Culoare" să nu aibă sens pentru jumătate din rezultate
+ * (exact cum se comportă și emag pe categoriile lor foarte largi/mixte).
+ *
+ * @return array<string, array<int, array{term_id: int, slug: string, name: string, count: int}>>
+ */
+function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): array
+{
+    if (!$term || !taxonomy_exists('product_attr_value')) {
+        return [];
+    }
+
+    global $wpdb;
+
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT tt2.term_id AS term_id, COUNT(DISTINCT tr1.object_id) AS cnt
+         FROM {$wpdb->term_relationships} tr1
+         INNER JOIN {$wpdb->term_taxonomy} tt1 ON tt1.term_taxonomy_id = tr1.term_taxonomy_id
+             AND tt1.taxonomy = 'product_cat' AND tt1.term_id = %d
+         INNER JOIN {$wpdb->term_relationships} tr2 ON tr2.object_id = tr1.object_id
+         INNER JOIN {$wpdb->term_taxonomy} tt2 ON tt2.term_taxonomy_id = tr2.term_taxonomy_id
+             AND tt2.taxonomy = 'product_attr_value'
+         GROUP BY tt2.term_id",
+        $term->term_id
+    ));
+
+    if (empty($rows)) {
+        return [];
+    }
+
+    $termIds = array_map(static fn ($row): int => (int) $row->term_id, $rows);
+    $counts = array_combine($termIds, array_map(static fn ($row): int => (int) $row->cnt, $rows));
+
+    $terms = get_terms([
+        'taxonomy' => 'product_attr_value',
+        'hide_empty' => false,
+        'include' => $termIds,
+    ]);
+
+    if (is_wp_error($terms)) {
+        return [];
+    }
+
+    $grouped = [];
+
+    foreach (papetarie_storefront_sort_terms($terms) as $attr_term) {
+        $group = (string) get_term_meta($attr_term->term_id, 'pap_attr_group', true);
+
+        if ($group === '') {
+            continue;
+        }
+
+        $grouped[$group][] = [
+            'term_id' => (int) $attr_term->term_id,
+            'slug' => $attr_term->slug,
+            'name' => $attr_term->name,
+            'count' => $counts[$attr_term->term_id] ?? 0,
+        ];
+    }
+
+    // Doar grupurile cu minim 2 valori distincte chiar filtreaza ceva.
+    return array_filter($grouped, static fn (array $values): bool => count($values) >= 2);
+}
+
+function papetarie_storefront_get_selected_attribute_terms(): array
+{
+    $selected = isset($_GET['attr']) ? array_map('sanitize_key', (array) wp_unslash($_GET['attr'])) : [];
+
+    return array_values(array_filter($selected));
+}
+
+function papetarie_storefront_filter_attribute_query(\WP_Query $query): void
+{
+    if (is_admin() || !$query->is_main_query()) {
+        return;
+    }
+
+    if (!(is_shop() || is_product_category() || is_product_taxonomy())) {
+        return;
+    }
+
+    $selected = papetarie_storefront_get_selected_attribute_terms();
+
+    if (!$selected) {
+        return;
+    }
+
+    // Grupam sloturile selectate dupa grupul lor real (Culoare, Format etc.) -
+    // in cadrul aceluiasi grup e OR (roșu SAU albastru), dar intre grupuri
+    // diferite e AND (Culoare=roșu ȘI Format=A4), altfel un singur tax_query
+    // cu toate slugurile amestecate ar insemna gresit "ORICARE dintre toate".
+    $byGroup = [];
+
+    foreach ($selected as $slug) {
+        $term = get_term_by('slug', $slug, 'product_attr_value');
+
+        if (!($term instanceof \WP_Term)) {
+            continue;
+        }
+
+        $group = (string) get_term_meta($term->term_id, 'pap_attr_group', true);
+        $byGroup[$group][] = $slug;
+    }
+
+    if (!$byGroup) {
+        return;
+    }
+
+    $tax_query = (array) $query->get('tax_query');
+
+    foreach ($byGroup as $slugsInGroup) {
+        $tax_query[] = [
+            'taxonomy' => 'product_attr_value',
+            'field' => 'slug',
+            'terms' => $slugsInGroup,
+        ];
+    }
+
+    $query->set('tax_query', $tax_query);
+}
+add_action('pre_get_posts', 'papetarie_storefront_filter_attribute_query');
+
 function papetarie_storefront_filter_price_ranges_query(array $meta_query, $query): array
 {
     if (is_admin()) {

@@ -682,6 +682,164 @@ function papetarie_storefront_aperta_find_legacy_product_by_name(string $name): 
     return null;
 }
 
+/**
+ * Feed-ul Aperta foloseste nume diferite de "Tip variant" pentru acelasi
+ * concept, in special la culoare (ex. "Culori Molotow", "Culori Kreul",
+ * "Culori Clairefontaine" sunt toate, de fapt, culoare) - fara normalizare,
+ * ar aparea cate un card de filtru separat per brand in loc de un singur
+ * filtru "Culoare" unificat pe pagina de categorie.
+ */
+function papetarie_storefront_aperta_normalize_attr_group(string $group): string
+{
+    if (mb_stripos($group, 'culo') !== false) {
+        return 'Culoare';
+    }
+
+    return $group;
+}
+
+/**
+ * Taxonomie unica pentru VALORI de atribute filtrabile (culoare, format etc.),
+ * indiferent de numele atributului - un singur termen = o pereche (grup, valoare),
+ * ex. slug "culoare-rosu", cu grupul ("Culoare") retinut in term meta
+ * "pap_attr_group". Asta evita sa inregistram cate o taxonomie separata pentru
+ * fiecare din cele ~17 nume de atribute din feed, dar tot permite filtrare
+ * eficienta prin tax_query, la fel ca la Brand/Subcategorie - grupate vizual
+ * dupa meta, nu dupa taxonomie separata.
+ */
+function papetarie_storefront_aperta_register_attr_taxonomy(): void
+{
+    register_taxonomy(
+        'product_attr_value',
+        'product',
+        [
+            'label' => __('Atribut produs', 'papetarie-storefront'),
+            'hierarchical' => false,
+            'public' => true,
+            'show_in_nav_menus' => false,
+            'show_ui' => true,
+            'show_admin_column' => false,
+            'show_in_rest' => false,
+            'rewrite' => false,
+        ]
+    );
+}
+add_action('init', 'papetarie_storefront_aperta_register_attr_taxonomy');
+
+/**
+ * Gaseste (sau creeaza) termenul pentru o pereche (grup, valoare) - ex.
+ * grup "Culoare", valoare "Roșu" -> slug "culoare-rosu", nume afisat "Roșu"
+ * (grupul se stie separat, din term meta, nu trebuie repetat in numele termenului).
+ */
+function papetarie_storefront_aperta_get_or_create_attr_term(string $group, string $value): ?int
+{
+    $group = papetarie_storefront_aperta_normalize_attr_group(trim($group));
+    $value = trim($value);
+
+    if ($group === '' || $value === '') {
+        return null;
+    }
+
+    $slug = sanitize_title($group . '-' . $value);
+    $existing = get_term_by('slug', $slug, 'product_attr_value');
+
+    if ($existing instanceof WP_Term) {
+        return (int) $existing->term_id;
+    }
+
+    $created = wp_insert_term($value, 'product_attr_value', ['slug' => $slug]);
+
+    if (is_wp_error($created)) {
+        $byName = get_term_by('name', $value, 'product_attr_value');
+        return $byName instanceof WP_Term ? (int) $byName->term_id : null;
+    }
+
+    $termId = (int) $created['term_id'];
+    update_term_meta($termId, 'pap_attr_group', $group);
+
+    return $termId;
+}
+
+/**
+ * Eticheteaza produsul-parinte cu termenii (grup, valoare) pentru toate
+ * valorile distincte gasite la variantele lui - asa poate fi gasit prin
+ * filtrare chiar daca pagina de arhiva listeaza doar produsul-parinte, nu
+ * fiecare varianta separat. Inlocuieste (nu adauga la) setul anterior, ca
+ * variantele disparute intre timp sa nu ramana ca filtre fantoma.
+ *
+ * @param array<int, string> $values
+ */
+function papetarie_storefront_aperta_tag_attr_terms(int $productId, string $group, array $values): void
+{
+    $termIds = [];
+
+    foreach (array_unique($values) as $value) {
+        $termId = papetarie_storefront_aperta_get_or_create_attr_term($group, $value);
+        if ($termId !== null) {
+            $termIds[] = $termId;
+        }
+    }
+
+    wp_set_object_terms($productId, $termIds, 'product_attr_value', false);
+}
+
+/**
+ * La fel ca tag_attr_terms(), dar pentru un produs simplu care poate avea
+ * MAI MULTE atribute extrase din text deodata (Format + Gramaj + Nr. coli) -
+ * seteaza-le pe toate intr-un singur apel, ca sa nu se suprascrie una pe alta
+ * (fiecare apel la wp_set_object_terms cu append=false ar sterge ce a pus
+ * apelul anterior).
+ *
+ * @param array<string, string> $groupValuePairs grup => valoare (o singura valoare per grup)
+ */
+function papetarie_storefront_aperta_tag_multiple_attrs(int $productId, array $groupValuePairs): void
+{
+    $termIds = [];
+
+    foreach ($groupValuePairs as $group => $value) {
+        $termId = papetarie_storefront_aperta_get_or_create_attr_term($group, $value);
+        if ($termId !== null) {
+            $termIds[] = $termId;
+        }
+    }
+
+    wp_set_object_terms($productId, $termIds, 'product_attr_value', false);
+}
+
+/**
+ * Extrage atribute filtrabile din NUMELE produsului, pentru produse simple
+ * care nu au deloc date structurate de atribut in feed (spre deosebire de
+ * produsele cu variante, unde Aperta trimite explicit "Tip variant"/"Variant").
+ * Scopat strict la categoria hârtie - un regex generic de "gramaj" aplicat
+ * peste tot ar prinde si greutati nelegate (ex. "Plastilina ... 500 g").
+ *
+ * @return array<string, string> grup => valoare
+ */
+function papetarie_storefront_aperta_extract_text_attributes(string $name, string $categoryPath): array
+{
+    $attrs = [];
+
+    $isPaperCategory = mb_stripos($categoryPath, 'hârtie') !== false || mb_stripos($categoryPath, 'hartie') !== false;
+
+    if (!$isPaperCategory) {
+        return $attrs;
+    }
+
+    if (preg_match('/\bA([3-6])\b/i', $name, $m)) {
+        $attrs['Format'] = 'A' . $m[1];
+    }
+
+    if (preg_match('/(\d+)\s*g(?:\/mp)?\b/i', $name, $m)) {
+        $attrs['Gramaj'] = $m[1] . ' g';
+    }
+
+    if (preg_match('/(\d+)\s*\/\s*top\b/i', $name, $m)) {
+        $attrs['Număr coli'] = $m[1] . '/top';
+    }
+
+    return $attrs;
+}
+
 function papetarie_storefront_aperta_stock_status_from_text(string $statusText): string
 {
     $statusText = mb_strtolower($statusText);
@@ -793,6 +951,11 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
         }
 
         $simple->save();
+
+        $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
+        if ($textAttrs) {
+            papetarie_storefront_aperta_tag_multiple_attrs($productId, $textAttrs);
+        }
     }
 
     return [
@@ -930,6 +1093,10 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
     $variable = new WC_Product_Variable($productId);
     $variable->set_attributes([$attribute]);
     $variable->save();
+
+    // Etichetare pentru filtrare pe pagina de arhiva (separat de atributul
+    // WooCommerce de mai sus, care e pentru afisare/variatii, nu pentru query).
+    papetarie_storefront_aperta_tag_attr_terms($productId, $attributeName, $values);
 
     $attributeKey = sanitize_title($attributeName);
     $firstImageId = null;
