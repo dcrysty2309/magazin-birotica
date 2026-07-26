@@ -151,6 +151,18 @@ function papetarie_storefront_render_aperta_sync_page(): void
     $skuCount = (int) $wpdb->get_var(
         "SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta} WHERE meta_key = '_pap_aperta_sku'"
     );
+    // Produse din importul vechi (JSON static, fara SKU) - nu se pot reconcilia
+    // fiabil cu feed-ul Aperta si de-asta e recomandat sa fie curatate inainte
+    // de primul sync real, ca sa nu ramana duplicate pe site.
+    $legacyCount = (int) $wpdb->get_var(
+        "SELECT COUNT(DISTINCT pm.post_id) FROM {$wpdb->postmeta} pm
+         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+         WHERE pm.meta_key = '_pap_import_key' AND p.post_type = 'product'
+         AND NOT EXISTS (
+             SELECT 1 FROM {$wpdb->postmeta} pm2
+             WHERE pm2.post_id = p.ID AND pm2.meta_key IN ('_pap_aperta_cod_produs', '_pap_aperta_sku')
+         )"
+    );
 
     // Istoric permanent al rulărilor COMPLETE (nu bucăți individuale) - scris
     // de papetarie_storefront_aperta_record_history(), independent de
@@ -192,6 +204,27 @@ function papetarie_storefront_render_aperta_sync_page(): void
           )); ?></span>
         </div>
       </div>
+
+      <?php if ($legacyCount > 0) : ?>
+        <div class="notice notice-warning inline pap-aperta-legacy-notice">
+          <p>
+            <?php echo esc_html(sprintf(
+                /* translators: %d: number of legacy products found */
+                _n(
+                    'Am găsit %d produs din importul vechi (fără SKU, nu poate fi reconciliat automat cu Aperta).',
+                    'Am găsit %d produse din importul vechi (fără SKU, nu pot fi reconciliate automat cu Aperta).',
+                    $legacyCount,
+                    'papetarie-storefront'
+                ),
+                $legacyCount
+            )); ?>
+            <?php esc_html_e('Recomandat: mută-le în coșul de gunoi înainte de prima sincronizare Aperta, ca să nu rămână duplicate pe site.', 'papetarie-storefront'); ?>
+          </p>
+          <p>
+            <button type="button" class="button button-secondary" id="pap-aperta-purge-legacy"><?php esc_html_e('Curăță produsele vechi', 'papetarie-storefront'); ?></button>
+          </p>
+        </div>
+      <?php endif; ?>
 
       <h2><?php esc_html_e('Program de sincronizare', 'papetarie-storefront'); ?></h2>
       <table class="widefat striped pap-aperta-table">
@@ -747,6 +780,32 @@ function papetarie_storefront_render_aperta_sync_page(): void
           });
         });
 
+        $('#pap-aperta-purge-legacy').on('click', function () {
+          var $button = $(this);
+          if (!window.confirm('<?php echo esc_js(__('Sigur muți produsele vechi (fără SKU) în coșul de gunoi? Cele deja migrate prin Aperta nu sunt atinse.', 'papetarie-storefront')); ?>')) {
+            return;
+          }
+
+          $button.prop('disabled', true);
+          $message.prop('hidden', true);
+
+          $.post(ajaxurl, {
+            action: 'pap_aperta_purge_legacy',
+            nonce: nonce
+          }).done(function (response) {
+            if (response && response.success) {
+              showMessage('success', response.data.message);
+              setTimeout(function () { window.location.reload(); }, 1500);
+              return;
+            }
+            showMessage('error', (response && response.data && response.data.message) ? response.data.message : '<?php echo esc_js(__('A apărut o eroare.', 'papetarie-storefront')); ?>');
+            $button.prop('disabled', false);
+          }).fail(function () {
+            showMessage('error', '<?php echo esc_js(__('A apărut o eroare de conexiune.', 'papetarie-storefront')); ?>');
+            $button.prop('disabled', false);
+          });
+        });
+
         // O verificare imediată la deschiderea paginii, ca să reflecte o
         // rulare deja în curs (pornită din altă filă sau automat).
         poll();
@@ -822,3 +881,52 @@ function papetarie_storefront_aperta_ajax_get_run_log(): void
     wp_send_json_success(['items' => papetarie_storefront_aperta_get_run_log($runId)]);
 }
 add_action('wp_ajax_pap_aperta_get_run_log', 'papetarie_storefront_aperta_ajax_get_run_log');
+
+/**
+ * Muta in cosul de gunoi produsele importate din vechiul JSON static
+ * (_pap_import_key, fara SKU) - varianta din admin a tools/purge-legacy-import-products.php,
+ * declansabila cu un click, fara acces la baza de date sau linie de comanda.
+ *
+ * Notă: pe unele instalări wp_delete_post($id, false) s-a comportat ca ștergere
+ * definitivă în loc de coș de gunoi (observat local) - dacă asta se întâmplă,
+ * comportamentul WordPress-ului de bază e responsabil, nu acest cod.
+ */
+function papetarie_storefront_aperta_ajax_purge_legacy(): void
+{
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => __('Nu ai permisiunea necesară.', 'papetarie-storefront')], 403);
+    }
+
+    check_ajax_referer('pap-aperta-run-now', 'nonce');
+
+    if (!function_exists('wc_get_product')) {
+        wp_send_json_error(['message' => __('WooCommerce nu pare încărcat.', 'papetarie-storefront')], 400);
+    }
+
+    $ids = get_posts([
+        'post_type' => 'product',
+        'post_status' => 'any',
+        'meta_key' => '_pap_import_key',
+        'fields' => 'ids',
+        'posts_per_page' => -1,
+    ]);
+
+    $trashed = 0;
+    foreach ($ids as $id) {
+        if (get_post_meta($id, '_pap_aperta_cod_produs', true) || get_post_meta($id, '_pap_aperta_sku', true)) {
+            continue;
+        }
+
+        wp_delete_post($id, false);
+        $trashed++;
+    }
+
+    wp_send_json_success([
+        'message' => sprintf(
+            /* translators: %d: number of products moved to trash */
+            __('%d produse mutate în coșul de gunoi.', 'papetarie-storefront'),
+            $trashed
+        ),
+    ]);
+}
+add_action('wp_ajax_pap_aperta_purge_legacy', 'papetarie_storefront_aperta_ajax_purge_legacy');
