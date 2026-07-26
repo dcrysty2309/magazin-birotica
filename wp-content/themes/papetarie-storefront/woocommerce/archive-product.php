@@ -32,14 +32,12 @@ $price_range_counts = function_exists('papetarie_storefront_get_price_range_coun
 $has_meaningful_price_filter = count(array_filter($price_range_counts, static fn (int $count): bool => $count > 0)) >= 2;
 $stock_status_counts = function_exists('papetarie_storefront_get_stock_status_counts') ? papetarie_storefront_get_stock_status_counts($current_term) : [];
 $selected_subcategories = isset($_GET['product_cat_child']) ? array_map('sanitize_key', (array) wp_unslash($_GET['product_cat_child'])) : [];
-$selected_brands = function_exists('papetarie_storefront_get_selected_brands') ? papetarie_storefront_get_selected_brands() : [];
 $attribute_filter_groups = function_exists('papetarie_storefront_get_category_attribute_filters') ? papetarie_storefront_get_category_attribute_filters($current_term) : [];
 $selected_attributes = function_exists('papetarie_storefront_get_selected_attribute_terms') ? papetarie_storefront_get_selected_attribute_terms() : [];
 
 $has_active_filters = !empty($selected_subcategories)
     || $current_stock_status !== 'all'
     || !empty($selected_price_ranges)
-    || !empty($selected_brands)
     || !empty($selected_attributes);
 
 $subcategory_terms = [];
@@ -58,25 +56,6 @@ if ($term_id > 0) {
                 'slug' => $child_term->slug,
                 'name' => $child_term->name,
                 'count' => (int) $child_term->count,
-            ];
-        }
-    }
-}
-
-$brand_terms = [];
-
-if (taxonomy_exists('product_brand')) {
-    $brand_term_objects = get_terms([
-        'taxonomy' => 'product_brand',
-        'hide_empty' => false,
-    ]);
-
-    if (!is_wp_error($brand_term_objects)) {
-        foreach ($brand_term_objects as $brand_term_object) {
-            $brand_terms[] = [
-                'slug' => $brand_term_object->slug,
-                'name' => $brand_term_object->name,
-                'count' => (int) $brand_term_object->count,
             ];
         }
     }
@@ -109,18 +88,6 @@ foreach ($selected_price_ranges as $selected_range_key) {
             $active_filter_chips[] = [
                 'label' => $range['label'],
                 'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['price_range' => $selected_range_key]),
-            ];
-            break;
-        }
-    }
-}
-
-foreach ($selected_brands as $selected_brand_slug) {
-    foreach ($brand_terms as $brand_term) {
-        if ($brand_term['slug'] === $selected_brand_slug) {
-            $active_filter_chips[] = [
-                'label' => $brand_term['name'],
-                'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['brand' => $selected_brand_slug]),
             ];
             break;
         }
@@ -300,24 +267,6 @@ get_header();
               <?php endforeach; ?>
             </div>
           </div>
-
-          <?php if ($brand_terms) : ?>
-            <div class="pap-filter-card">
-              <div class="pap-archive-filter-section-title">
-                <span><?php esc_html_e('Brand', 'papetarie-storefront'); ?></span>
-              </div>
-              <div class="pap-archive-filter-body pap-archive-filter-checklist">
-                <?php foreach ($brand_terms as $brand_term) : ?>
-                  <?php $is_checked = in_array($brand_term['slug'], $selected_brands, true); ?>
-                  <label class="pap-archive-check-option">
-                    <input type="checkbox" class="pap-checkbox-input" name="brand[]" value="<?php echo esc_attr($brand_term['slug']); ?>" <?php checked($is_checked); ?>>
-                    <span class="pap-archive-check-label"><?php echo esc_html($brand_term['name']); ?></span>
-                    <span class="pap-archive-check-count">(<?php echo esc_html((string) $brand_term['count']); ?>)</span>
-                  </label>
-                <?php endforeach; ?>
-              </div>
-            </div>
-          <?php endif; ?>
 
           <?php foreach ($attribute_filter_groups as $attr_group_name => $attr_values) : ?>
             <div class="pap-filter-card">
