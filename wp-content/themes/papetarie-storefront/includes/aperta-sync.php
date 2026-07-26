@@ -695,6 +695,17 @@ function papetarie_storefront_aperta_normalize_attr_group(string $group): string
         return 'Culoare';
     }
 
+    // Aceeasi idee, extinsa la etichetele din descriere care variaza usor
+    // intre produse pentru acelasi concept (ex. "Dimensiune" vs "Dimensiuni
+    // Produs", "Compartiment Laptop" vs "Compartiment Pentru Laptop").
+    if (mb_stripos($group, 'dimensiune') !== false) {
+        return 'Dimensiuni';
+    }
+
+    if (mb_stripos($group, 'laptop') !== false) {
+        return 'Compartiment pentru laptop';
+    }
+
     return $group;
 }
 
@@ -861,6 +872,97 @@ function papetarie_storefront_aperta_extract_text_attributes(string $name, strin
         }
     }
 
+    // Culoare, dupa un vocabular de cuvinte cunoscute (nu pozitie fixa in
+    // nume) - multe categorii (ghiozdane, bagajerie) scriu culoarea in
+    // engleza, amestecata liber cu numele modelului
+    // ("Pulse Fusion Cationic Blue", "Servietă ... Exacompta 17124E, gri"),
+    // deci un regex pozitional n-ar functiona, dar o cautare de cuvinte
+    // cunoscute merge peste tot. Separat de tag_attr_terms() de la
+    // produsele cu variante - aici e doar pentru produse SIMPLE.
+    $colorKeywords = [
+        'negru' => 'Negru', 'black' => 'Negru',
+        'alb' => 'Alb', 'white' => 'Alb',
+        'gri' => 'Gri', 'gray' => 'Gri', 'grey' => 'Gri',
+        'bleumarin' => 'Albastru', 'albastru' => 'Albastru', 'blue' => 'Albastru', 'navy' => 'Albastru',
+        'roșu' => 'Roșu', 'rosu' => 'Roșu', 'red' => 'Roșu',
+        'verde' => 'Verde', 'green' => 'Verde',
+        'galben' => 'Galben', 'yellow' => 'Galben',
+        'roz' => 'Roz', 'pink' => 'Roz',
+        'mov' => 'Mov', 'violet' => 'Mov', 'purple' => 'Mov',
+        'maro' => 'Maro', 'brown' => 'Maro',
+        'bej' => 'Bej', 'beige' => 'Bej',
+        'portocaliu' => 'Portocaliu', 'orange' => 'Portocaliu',
+        'turcoaz' => 'Turcoaz', 'turquoise' => 'Turcoaz',
+        'auriu' => 'Auriu', 'gold' => 'Auriu',
+        'argintiu' => 'Argintiu', 'silver' => 'Argintiu',
+    ];
+    foreach ($colorKeywords as $needle => $label) {
+        if (preg_match('/\b' . preg_quote($needle, '/') . '\b/iu', $name)) {
+            $attrs['Culoare'] = $label;
+            break;
+        }
+    }
+
+    // Numar role/set sau role/bax - verificat INAINTE de "bucati/set" generic,
+    // ca sa nu se suprapuna (ex. "6 role/set" nu trebuie sa devina si
+    // "Numar bucati/set" = 6, sunt lucruri diferite).
+    if (preg_match('/(\d+)\s*role\s*\/\s*(set|bax|pachet)\b/i', $name, $m)) {
+        $attrs['Număr role/set'] = $m[1] . ' role/' . mb_strtolower($m[2]);
+    } elseif (preg_match('/(\d+)\s*(?:buc)?\s*\/\s*(set|cutie|blister|pachet)\b/i', $name, $m)) {
+        $attrs['Număr bucăți/set'] = $m[1] . '/' . mb_strtolower($m[2]);
+    }
+
+    if (preg_match('/(\d+)\s*strat(uri)?\b/i', $name, $m)) {
+        $attrs['Număr straturi'] = $m[1] . ' straturi';
+    }
+
+    if (preg_match('/\b(\d{1,2})\s*\+/', $name, $m)) {
+        $attrs['Vârstă'] = $m[1] . '+ ani';
+    }
+
+    return $attrs;
+}
+
+/**
+ * Multe descrieri Aperta sunt liste <li>Etichetă: Valoare</li> - o sursa
+ * mult mai bogata si 100% generica decat titlul (~jumatate din produsele
+ * simple au asa ceva), gasita analizand un produs cu Capse -> "Capacitate:
+ * 25 coli" era chiar acolo, nu in titlu. Extragem TOATE perechile gasite,
+ * nu doar cateva anume - functioneaza pe orice categorie, fara reguli
+ * speciale per tip de produs.
+ *
+ * Doar valorile scurte devin filtre (sub PAP_ATTR_DESC_MAX_VALUE_LENGTH) -
+ * unele etichete (ex. "Compartimente", "Caracteristici suplimentare") au
+ * propozitii intregi ca valoare, unice per produs, care n-ar functiona ca
+ * optiune de filtru (fiecare produs ar avea alta valoare, deci n-ar filtra
+ * nimic util) - lungimea e un filtru simplu, generic, pentru asta.
+ *
+ * @return array<string, string> grup => valoare
+ */
+function papetarie_storefront_aperta_extract_description_attributes(string $description): array
+{
+    $attrs = [];
+    $maxValueLength = 40;
+
+    if (!preg_match_all('/<li>\s*([^:<]{2,40}):\s*([^<]+?)\s*<\/li>/iu', $description, $matches, PREG_SET_ORDER)) {
+        return $attrs;
+    }
+
+    foreach ($matches as $match) {
+        $rawGroup = trim($match[1]);
+        $value = trim($match[2]);
+
+        if ($rawGroup === '' || $value === '' || mb_strlen($value) > $maxValueLength) {
+            continue;
+        }
+
+        // Normalizare simpla de capitalizare, ca "Nr. file" si "Nr. FILE" sa
+        // devina acelasi grup (altfel am avea carduri de filtru duplicate).
+        $group = mb_convert_case($rawGroup, MB_CASE_TITLE, 'UTF-8');
+
+        $attrs[$group] = $value;
+    }
+
     return $attrs;
 }
 
@@ -976,9 +1078,14 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
 
         $simple->save();
 
+        // Descrierea e o sursa mai bogata si mai fiabila (liste structurate
+        // "Eticheta: Valoare") decat titlul - o citim intai, apoi completam
+        // cu ce mai gasim in titlu daca nu a fost deja acolo.
+        $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
         $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
-        if ($textAttrs) {
-            papetarie_storefront_aperta_tag_multiple_attrs($productId, $textAttrs);
+        $allAttrs = $descAttrs + $textAttrs;
+        if ($allAttrs) {
+            papetarie_storefront_aperta_tag_multiple_attrs($productId, $allAttrs);
         }
     }
 

@@ -4018,8 +4018,39 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
         ];
     }
 
-    // Doar grupurile cu minim 2 valori distincte chiar filtreaza ceva.
-    return array_filter($grouped, static fn (array $values): bool => count($values) >= 2);
+    // Un grup e util ca filtru doar daca: are minim 2 valori distincte (o
+    // singura optiune n-are ce sa filtreze), nu are prea multe valori (peste
+    // 20 de bife devine o lista nefolosibila, ca la Culoare cu 263 de coduri
+    // exacte), si media de produse per valoare e rezonabila (daca aproape
+    // fiecare produs are alta valoare - ex. "Greutate: 0,42kg", "Greutate:
+    // 0,46kg" - practic nu grupeaza nimic, e mai degraba o specificatie
+    // unica per produs decat un filtru real).
+    return array_filter($grouped, static function (array $values): bool {
+        $distinctCount = count($values);
+
+        if ($distinctCount < 2 || $distinctCount > 20) {
+            return false;
+        }
+
+        $totalProducts = array_sum(array_column($values, 'count'));
+        $avgProductsPerValue = $totalProducts / $distinctCount;
+
+        if ($avgProductsPerValue < 1.5) {
+            return false;
+        }
+
+        // O optiune de bifat trebuie sa fie scurta ("Negru", "Poliester
+        // 600d") - daca valorile sunt propozitii descriptive ("1 principal +
+        // 1 fata + 2 laturi + al doilea rucsac"), nu functioneaza ca filtru,
+        // chiar daca numarul de valori distincte pare rezonabil.
+        $totalWords = array_sum(array_map(
+            static fn (array $v): int => count(preg_split('/\s+/', trim($v['name']))),
+            $values
+        ));
+        $avgWordsPerValue = $totalWords / $distinctCount;
+
+        return $avgWordsPerValue <= 3;
+    });
 }
 
 function papetarie_storefront_get_selected_attribute_terms(): array

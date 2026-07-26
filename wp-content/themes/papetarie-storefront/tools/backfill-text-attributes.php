@@ -52,11 +52,14 @@ foreach ($codes as $code) {
     $row = $grouped[$code][0];
     $name = trim((string) $row['Denumire produs']);
     $categoryPath = (string) $row['Categorie produs'];
+    $description = (string) $row['Descriere produs'];
     $codUnic = trim((string) $row['Cod unic']);
 
+    $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
     $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
+    $allAttrs = $descAttrs + $textAttrs;
 
-    if (!$textAttrs) {
+    if (!$allAttrs) {
         $skipped++;
         continue;
     }
@@ -68,7 +71,7 @@ foreach ($codes as $code) {
         continue;
     }
 
-    papetarie_storefront_aperta_tag_multiple_attrs($productId, $textAttrs);
+    papetarie_storefront_aperta_tag_multiple_attrs($productId, $allAttrs);
     $tagged++;
 }
 
