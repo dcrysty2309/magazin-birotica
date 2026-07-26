@@ -567,7 +567,7 @@ function papetarie_storefront_render_aperta_sync_page(): void
         };
         var pollTimer = null;
         var siteProductCount = <?php echo (int) $productCount; ?>;
-        var batchSizes = { products: 25, stock: 100 };
+        var batchSizes = { products: 10, stock: 100 };
         var unitLabels = {
           products: '<?php echo esc_js(__('produse (din feed.csv)', 'papetarie-storefront')); ?>',
           stock: '<?php echo esc_js(__('variante/SKU-uri verificate (din feed-stoc.csv)', 'papetarie-storefront')); ?>'

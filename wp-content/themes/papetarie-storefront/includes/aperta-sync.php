@@ -11,6 +11,11 @@ defined('ABSPATH') || exit;
 const PAP_APERTA_PRODUCTS_FEED_URL = 'https://www.aperta.ro/feed.csv';
 const PAP_APERTA_STOCK_FEED_URL = 'https://www.aperta.ro/feed-stoc.csv';
 const PAP_APERTA_CHUNK_SIZE = 25;
+// Bucata de produse e mai mica decat cea de stoc, fiindca descarca imagini -
+// o bucata de 25 cu poze multe/grele poate depasi cele 300s dupa care
+// Action Scheduler marcheaza automat actiunea "esuata", rupand lantul (nu se
+// mai programeaza bucata urmatoare). Descoperit live pe staging 2026-07-26.
+const PAP_APERTA_PRODUCTS_CHUNK_SIZE = 10;
 const PAP_APERTA_SYNC_DELAY_MINUTES = 20;
 
 /**
@@ -1074,7 +1079,7 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
         papetarie_storefront_aperta_progress_start('products', $total);
     }
 
-    $slice = array_slice($codes, $offset, PAP_APERTA_CHUNK_SIZE);
+    $slice = array_slice($codes, $offset, PAP_APERTA_PRODUCTS_CHUNK_SIZE);
     $items = [];
 
     foreach ($slice as $code) {
@@ -1088,8 +1093,8 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
 
     papetarie_storefront_aperta_progress_tick('products', count($slice), $items);
 
-    if ($offset + PAP_APERTA_CHUNK_SIZE < $total) {
-        as_schedule_single_action(time() + 5, 'pap_aperta_sync_products_chunk', [$offset + PAP_APERTA_CHUNK_SIZE], 'aperta-sync');
+    if ($offset + PAP_APERTA_PRODUCTS_CHUNK_SIZE < $total) {
+        as_schedule_single_action(time() + 5, 'pap_aperta_sync_products_chunk', [$offset + PAP_APERTA_PRODUCTS_CHUNK_SIZE], 'aperta-sync');
     } else {
         update_option('pap_aperta_last_full_sync', time());
         papetarie_storefront_aperta_progress_finish('products');
