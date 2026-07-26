@@ -45,7 +45,7 @@ $subcategory_terms = [];
 if ($term_id > 0) {
     $direct_children = get_terms([
         'taxonomy' => 'product_cat',
-        'hide_empty' => false,
+        'hide_empty' => true,
         'parent' => $term_id,
     ]);
 

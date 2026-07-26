@@ -6837,6 +6837,10 @@ function papetarie_storefront_get_mega_menu_categories(): array
     }
 
     $default_category = (int) get_option('default_product_cat');
+    // hide_empty ramane false la nivelul de top - categoriile-parinte au
+    // mereu 0 produse DIRECTE (produsele stau doar pe subcategorii), deci
+    // hide_empty=true le-ar ascunde pe toate gresit. Se filtreaza mai jos
+    // dupa ce au copii reali (vezi array_filter la finalul functiei).
     $parents = get_terms(
         [
             'taxonomy' => 'product_cat',
@@ -6856,7 +6860,7 @@ function papetarie_storefront_get_mega_menu_categories(): array
         $children = get_terms(
             [
                 'taxonomy' => 'product_cat',
-                'hide_empty' => false,
+                'hide_empty' => true,
                 'parent' => $parent->term_id,
             ]
         );
@@ -6879,7 +6883,7 @@ function papetarie_storefront_get_mega_menu_categories(): array
                     $grandchildren = get_terms(
                         [
                             'taxonomy' => 'product_cat',
-                            'hide_empty' => false,
+                            'hide_empty' => true,
                             'parent' => $child->term_id,
                         ]
                     );
@@ -6918,7 +6922,7 @@ function papetarie_storefront_get_mega_menu_categories(): array
     return array_values(
         array_filter(
             $items,
-            static fn (array $item): bool => !empty($item['children']) || $item['slug'] === 'test'
+            static fn (array $item): bool => !empty($item['children'])
         )
     );
 }
