@@ -4,7 +4,7 @@ Theme URI: http://localhost:8080
 Description: Child theme Storefront pentru magazinul online de papetarie.
 Author: Codex
 Template: storefront
-Version: 1.1.1
+Version: 1.1.2
 Text Domain: papetarie-storefront
 */
 
@@ -168,18 +168,20 @@ body.theme-papetarie .pap-featured .pap-section-head-featured p {
   max-width: 620px;
 }
 
-body.theme-papetarie .entry-content .pap-featured .pap-product-card h3,
-body.theme-papetarie .pap-featured .pap-product-card h3 {
-  margin: 0 0 8px;
+body.theme-papetarie .entry-content .pap-product-card h3,
+body.theme-papetarie .pap-product-card h3 {
+  margin: 0;
   color: var(--pap-ink);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-height: 21px;
+  min-height: 42px;
 }
 
-body.theme-papetarie .entry-content .pap-featured .pap-product-card p,
-body.theme-papetarie .pap-featured .pap-product-card p {
+body.theme-papetarie .entry-content .pap-product-card p,
+body.theme-papetarie .pap-product-card p {
   margin: 0;
   color: #68809f;
   display: -webkit-box;
@@ -652,6 +654,7 @@ body.theme-papetarie .pap-site-header--checkout .pap-checkout-header__support-co
   width: 100%;
   height: auto;
   object-fit: contain;
+  object-position: left center;
 }
 
 .pap-logo-text {
@@ -1567,6 +1570,15 @@ body.tax-product_cat .pap-header-catmenu-panel {
   min-height: 100%;
 }
 
+/*
+ * Panourile cu coloane grupate (ex. "Organizare și arhivare") nu au un
+ * element decorativ pe coloana din dreapta — folosim toată lățimea
+ * disponibilă pentru coloane, ca titlurile gri să încapă pe un rând.
+ */
+.pap-showcase-panel-layout--full {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .pap-showcase-panel-copy {
   display: grid;
   align-content: start;
@@ -1577,6 +1589,62 @@ body.tax-product_cat .pap-header-catmenu-panel {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   align-content: start;
+}
+
+/*
+ * Categorii cu 2 coloane grupate logic (nu alfabetic) + titlu gri deasupra
+ * fiecărei coloane (ex. "Accesorii pentru scris" — instrumente de scris vs.
+ * markere/accesorii, ordonate prin term meta 'order', vezi
+ * tools/order-accesorii-pentru-scris-subcats.php). 2 divs de coloană
+ * explicite (nu grid-auto-flow), fiecare cu propriul titlu + listă.
+ */
+.pap-showcase-panel-columns--grouped {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 32px;
+}
+
+/*
+ * Cazul cu 2 coloane nu trebuie să se întindă pe toată lățimea
+ * containerului (mai ales în dropdown-ul lat "Toate categoriile" din
+ * header) — altfel coloanele ajung foarte late și par "depărtate" una de
+ * alta. Limităm lățimea totală ca cele 2 coloane să rămână apropiate,
+ * indiferent cât de lat e panoul din jur.
+ */
+.pap-showcase-panel-columns--cols-2 {
+  max-width: 650px;
+}
+
+.pap-showcase-panel-columns--cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 64px;
+}
+
+.pap-showcase-panel-columns--cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 32px;
+}
+
+.pap-showcase-panel-columns-column {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+}
+
+.pap-showcase-panel-columns-column-heading {
+  margin: 0 0 8px;
+  color: #97a6bb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  min-height: 29px;
+  white-space: nowrap;
+}
+
+.pap-showcase-panel-columns-column-groups {
+  display: grid;
+  gap: 0;
 }
 
 .pap-showcase-panel-group,
@@ -1995,12 +2063,12 @@ body.theme-papetarie .entry-content .pap-featured a.pap-product-slider__see-all 
   height: 100%;
 }
 
-.pap-product-slider__card h3,
-body.theme-papetarie .entry-content .pap-product-slider__card h3 {
+.pap-product-card h3,
+body.theme-papetarie .entry-content .pap-product-card h3 {
   font-size: 13px;
 }
 
-.pap-product-slider__card .pap-price {
+.pap-product-card .pap-price {
   font-size: 14px;
   font-weight: 600;
 }
@@ -2961,110 +3029,11 @@ body.theme-papetarie .pap-archive-titlebar-copy p {
   gap: 12px;
 }
 
-.pap-product-card--archive {
-  padding: 0;
-  aspect-ratio: auto;
-  min-height: 100%;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-
 .pap-product-card-link {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   color: inherit;
   text-decoration: none;
-}
-
-.pap-product-card--archive .pap-product-card-link {
-  gap: 0;
-}
-
-.pap-product-thumb--archive {
-  flex: 0 0 auto;
-  height: 168px;
-  aspect-ratio: auto;
-  background: #f8f9fb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pap-product-thumb--archive img {
-  max-width: 220px;
-  max-height: 134px;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  padding: 0;
-}
-
-.pap-product-card--archive .pap-product-copy {
-  padding: 12px 14px 0;
-}
-
-.pap-product-card--archive .pap-product-category {
-  color: #6b7a95;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-
-.pap-product-card--archive .pap-product-copy h3 {
-  margin: 6px 0 0;
-  color: #0d2e61;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-  letter-spacing: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.pap-product-card--archive .pap-product-rating {
-  margin-top: 10px;
-  gap: 5px;
-}
-
-.pap-product-card--archive .pap-product-rating__star {
-  width: 11px;
-  height: 11px;
-}
-
-.pap-product-card--archive .pap-product-rating__count {
-  font-size: 10px;
-  color: #6b7a95;
-}
-
-.pap-product-copy p {
-  margin: 6px 0 0;
-  color: #68809f;
-  font-size: var(--pap-secondary-text-size);
-  line-height: 1.6;
-}
-
-.pap-product-meta--archive {
-  margin: 11px 14px 14px;
-  padding-top: 11px;
-  border-top: 1px solid #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.pap-product-meta--archive .pap-price {
-  color: #0d2e61;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.pap-product-meta--archive .pap-price .woocommerce-Price-currencySymbol {
-  font-size: 11px;
-  font-weight: 700;
 }
 
 .pap-pagination-nav a.page-numbers,
@@ -3388,17 +3357,6 @@ body.theme-papetarie .pap-archive-empty p {
     margin-top: 0;
   }
 
-  .pap-product-card--archive {
-    padding: 12px;
-  }
-
-  .pap-product-copy h2 {
-    font-size: var(--pap-product-title-size);
-  }
-
-  .pap-product-copy p {
-    font-size: var(--pap-secondary-text-size);
-  }
 }
 
 .pap-product-card {
@@ -3542,10 +3500,9 @@ body.theme-papetarie .pap-archive-empty p {
 
 .pap-product-category {
   display: block;
-  margin: 14px 0 2px;
   color: var(--pap-orange);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -3562,9 +3519,9 @@ body.theme-papetarie .pap-archive-empty p {
   margin: 2px 0 0;
 }
 
-.pap-product-card:not(.pap-product-card--archive) .pap-product-category,
-.pap-product-card:not(.pap-product-card--archive) h3,
-.pap-product-card:not(.pap-product-card--archive) .pap-product-rating {
+.pap-product-card .pap-product-category,
+.pap-product-card h3,
+.pap-product-card .pap-product-rating {
   padding-inline: 16px;
 }
 
@@ -3704,15 +3661,14 @@ body.theme-papetarie .pap-archive-empty p {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: auto;
-  margin-bottom: 8px;
-  padding-top: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  padding-bottom: 14px;
   border-top: 1px solid #f0f2f5;
 }
 
-.pap-product-card:not(.pap-product-card--archive) .pap-product-meta {
+.pap-product-card .pap-product-meta {
   margin-inline: 16px;
-  padding-bottom: 0;
 }
 
 .pap-price {
@@ -5874,6 +5830,15 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
     gap: 18px;
   }
 
+  .pap-showcase-panel-columns--grouped {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+
+  .pap-showcase-panel-columns-column-groups {
+    gap: 6px;
+  }
+
   .pap-showcase-panel-group {
     padding: 8px 0;
     border-right: 0;
@@ -5948,10 +5913,6 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
     align-items: stretch;
     min-height: auto;
     padding: 14px 0;
-  }
-
-  .pap-logo {
-    justify-content: center;
   }
 
   .pap-search {
@@ -6096,6 +6057,15 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
   .pap-showcase-panel-columns {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  .pap-showcase-panel-columns--grouped {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+
+  .pap-showcase-panel-columns-column-groups {
+    gap: 6px;
   }
 
   .pap-showcase-panel-group {
@@ -17554,37 +17524,86 @@ body.theme-papetarie .pap-footer-meta a:hover {
   border-radius: 2px;
 }
 
-.pap-product-gallery-next {
-  position: absolute;
-  top: 50%;
-  right: 25px;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1px solid #dde1e8;
-  background: #fff;
-  color: #0d2e61;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+body.theme-papetarie .pap-product-gallery-next {
+  position: absolute !important;
+  top: 50% !important;
+  right: 25px !important;
+  transform: translateY(-50%) !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid #dde1e8 !important;
+  background: #fff !important;
+  color: #0d2e61 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   cursor: pointer;
 }
 
-.pap-product-gallery-next span {
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
+body.theme-papetarie .pap-product-gallery-next span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 14px !important;
+  height: 14px !important;
+  flex: 0 0 14px !important;
 }
 
-.pap-product-gallery-next svg {
-  width: 100%;
-  height: 100%;
+body.theme-papetarie .pap-product-gallery-next svg {
+  width: 14px !important;
+  height: 14px !important;
+  display: block !important;
+}
+
+.pap-product-gallery-thumbs-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pap-product-gallery-thumbs {
   display: flex;
   gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body.theme-papetarie .pap-product-gallery-thumbs-nav {
+  flex: 0 0 auto !important;
+  width: 26px !important;
+  height: 26px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid #dde1e8 !important;
+  background: #fff !important;
+  color: #0d2e61 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+}
+
+body.theme-papetarie .pap-product-gallery-thumbs-nav span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 12px !important;
+  height: 12px !important;
+  flex: 0 0 12px !important;
+}
+
+body.theme-papetarie .pap-product-gallery-thumbs-nav svg {
+  width: 12px !important;
+  height: 12px !important;
+  display: block !important;
+}
+
+.pap-product-gallery-thumbs-nav--prev svg {
+  transform: rotate(180deg);
 }
 
 .pap-product-gallery-thumb {
@@ -17599,6 +17618,7 @@ body.theme-papetarie .pap-footer-meta a:hover {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  flex: 0 0 auto;
 }
 
 .pap-product-gallery-thumb.is-active {
@@ -17609,6 +17629,272 @@ body.theme-papetarie .pap-footer-meta a:hover {
   width: 56px;
   height: 56px;
   object-fit: contain;
+}
+
+.pap-product-gallery-main {
+  cursor: zoom-in;
+}
+
+/* Photo gallery lightbox (eMAG-style) */
+
+.pap-gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.pap-gallery-lightbox.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pap-gallery-lightbox[hidden] {
+  display: none;
+}
+
+.pap-gallery-lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.pap-gallery-lightbox__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(1100px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__close {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  z-index: 2 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 1px solid #dde1e8 !important;
+  background: #fff !important;
+  color: #0d2e61 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  cursor: pointer;
+}
+
+.pap-gallery-lightbox__close:hover {
+  background: #f0f2f5;
+}
+
+.pap-gallery-lightbox__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 56px 32px 24px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.pap-gallery-lightbox__viewer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 0;
+}
+
+.pap-gallery-lightbox__stage {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: min(56vh, 480px);
+  overflow: hidden;
+}
+
+.pap-gallery-lightbox__stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.15s ease;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__nav {
+  flex: 0 0 auto !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 1px solid #dde1e8 !important;
+  background: #fff !important;
+  color: #0d2e61 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__nav span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  flex: 0 0 18px !important;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__nav svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+}
+
+.pap-gallery-lightbox__nav--prev svg {
+  transform: rotate(180deg);
+}
+
+.pap-gallery-lightbox__thumbs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.pap-gallery-lightbox__thumbs {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+.pap-gallery-lightbox__thumb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  padding: 5px;
+  border-radius: 3px;
+  border: 2px solid #dde1e8;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pap-gallery-lightbox__thumb.is-active {
+  border-color: var(--pap-orange);
+}
+
+.pap-gallery-lightbox__thumb img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__thumbs-nav {
+  flex: 0 0 auto !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid #dde1e8 !important;
+  background: #fff !important;
+  color: #0d2e61 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__thumbs-nav span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 13px !important;
+  height: 13px !important;
+  flex: 0 0 13px !important;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__thumbs-nav svg {
+  width: 13px !important;
+  height: 13px !important;
+  display: block !important;
+}
+
+.pap-gallery-lightbox__thumbs-nav--prev svg {
+  transform: rotate(180deg);
+}
+
+.pap-gallery-lightbox__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-top: 1px solid #f0f2f5;
+  flex: 0 0 auto;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__tool {
+  width: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 1px solid #dde1e8 !important;
+  background: #fff !important;
+  color: #0d2e61 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+}
+
+body.theme-papetarie .pap-gallery-lightbox__tool svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+}
+
+.pap-gallery-lightbox__tool:hover {
+  background: #f0f2f5;
+}
+
+@media (max-width: 767px) {
+  .pap-gallery-lightbox {
+    padding: 0;
+  }
+
+  .pap-gallery-lightbox__dialog {
+    width: 100vw;
+    max-width: none;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .pap-gallery-lightbox__stage {
+    height: min(48vh, 420px);
+  }
 }
 
 .pap-product-info {

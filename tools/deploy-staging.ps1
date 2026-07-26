@@ -3,12 +3,12 @@ param(
     [string]$FtpUser = $env:STAGING_FTP_USER,
     [string]$FtpPassword = $env:STAGING_FTP_PASSWORD,
     [string]$TargetUrl = "https://notix.ro",
-    [string]$RemoteThemePath = "/wp-content/themes/papetarie-storefront",
+    [string]$RemoteThemePath = "/public_html/wp-content/themes/papetarie-storefront",
     [string]$LocalThemePath = "wp-content/themes/papetarie-storefront",
-    [string]$RemotePluginPath = "/wp-content/plugins",
+    [string]$RemotePluginPath = "/public_html/wp-content/plugins",
     [string]$LocalPluginPath = "wp-content/plugins",
     [string]$PackageZipPath = "",
-    [string]$RemotePackageBasePath = "/wp-content/themes/papetarie-storefront/tools",
+    [string]$RemotePackageBasePath = "/public_html/wp-content/themes/papetarie-storefront/tools",
     [string]$RemotePackageZipFileName = "staging-package.zip",
     [string]$RemotePackageRunnerFileName = "staging-package-deploy-runner.php",
     [switch]$SkipPlugins,
@@ -87,7 +87,7 @@ function Upload-Tree {
         }
 
         Write-Host "Uploading $relativePath"
-        & curl --ssl-reqd --ftp-create-dirs --retry 3 --retry-delay 2 --user "${FtpUser}:${FtpPassword}" -T $file.FullName $remoteUrl | Out-Null
+        & curl --ssl-reqd --ftp-create-dirs --ftp-skip-pasv-ip --retry 3 --retry-delay 2 --user "${FtpUser}:${FtpPassword}" -T $file.FullName $remoteUrl | Out-Null
         if ($LASTEXITCODE -ne 0) {
             throw "Upload eșuat pentru $relativePath"
         }
@@ -236,7 +236,7 @@ function Upload-SingleFile {
     }
 
     Write-Host "Uploading $Label"
-    & curl --ssl-reqd --ftp-create-dirs --retry 3 --retry-delay 2 --user "${FtpUser}:${FtpPassword}" -T $LocalPath ("ftp://$FtpHost$RemotePath") | Out-Null
+    & curl --ssl-reqd --ftp-create-dirs --ftp-skip-pasv-ip --retry 3 --retry-delay 2 --user "${FtpUser}:${FtpPassword}" -T $LocalPath ("ftp://$FtpHost$RemotePath") | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Upload eșuat pentru $Label"
     }
@@ -250,8 +250,11 @@ if ([string]::IsNullOrWhiteSpace($PackageZipPath)) {
     }
 
     if (-not $DryRun) {
+        # $RemoteThemePath is an FTP/filesystem path (includes /public_html, the docroot);
+        # the public URL never includes that prefix, so strip it before building the check URL.
+        $publicThemePath = $RemoteThemePath -replace '^/public_html', ''
         $localStylePath = Join-Path $localThemeRoot "style.css"
-        Assert-RemoteFileMatchesLocal -LocalPath $localStylePath -RemotePath ($RemoteThemePath.TrimEnd('/') + '/style.css') -Label "theme stylesheet"
+        Assert-RemoteFileMatchesLocal -LocalPath $localStylePath -RemotePath ($publicThemePath.TrimEnd('/') + '/style.css') -Label "theme stylesheet"
     }
 }
 else {

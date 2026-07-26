@@ -342,7 +342,7 @@ get_header();
                 continue;
             }
 
-            papetarie_storefront_render_product_card($product, 'archive');
+            papetarie_storefront_render_product_card($product);
             ?>
           <?php endwhile; ?>
         </div>

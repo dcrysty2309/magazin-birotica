@@ -3,7 +3,7 @@
 defined('ABSPATH') || exit;
 $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
 $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/');
-$logo_image = get_stylesheet_directory_uri() . '/assets/images/logo-supplyhub-cropped.png';
+$logo_image = get_stylesheet_directory_uri() . '/assets/images/logo-notix.png';
 ?>
 </div>
 

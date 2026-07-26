@@ -12,21 +12,6 @@
   const panels = Array.from(shell.querySelectorAll('[data-header-catmenu-panel]'));
   const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
   const panelSlugs = new Set(panels.map((panel) => panel.getAttribute('data-header-catmenu-panel')).filter(Boolean));
-  const activeItem = shell.querySelector('.pap-header-catmenu-item.is-active');
-  const activeItemSlug = activeItem && activeItem.getAttribute('data-header-catmenu-target');
-  const activeItemHasPanel = !!(activeItemSlug && panelSlugs.has(activeItemSlug));
-  let fallbackSlug = '';
-
-  for (let index = 0; index < items.length; index += 1) {
-    const candidateSlug = items[index].getAttribute('data-header-catmenu-target') || '';
-
-    if (candidateSlug && panelSlugs.has(candidateSlug)) {
-      fallbackSlug = candidateSlug;
-      break;
-    }
-  }
-
-  const defaultSlug = activeItemHasPanel ? activeItemSlug : fallbackSlug;
 
   let isOpen = false;
   let closeTimer = null;
@@ -71,7 +56,7 @@
     });
   };
 
-  const openMenu = (slug = defaultSlug) => {
+  const openMenu = (slug = '') => {
     clearCloseTimer();
     isOpen = true;
     shell.hidden = false;
@@ -118,11 +103,11 @@
   if (trigger) {
     trigger.addEventListener('mouseenter', () => {
       if (hoverQuery.matches) {
-        openMenu(defaultSlug);
+        openMenu();
       }
     });
 
-    trigger.addEventListener('focus', () => openMenu(defaultSlug));
+    trigger.addEventListener('focus', () => openMenu());
     trigger.addEventListener('click', () => {
       if (hoverQuery.matches) {
         return;
@@ -133,7 +118,7 @@
         return;
       }
 
-      openMenu(defaultSlug);
+      openMenu();
     });
   }
 

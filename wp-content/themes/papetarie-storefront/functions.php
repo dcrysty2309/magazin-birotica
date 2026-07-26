@@ -46,9 +46,11 @@ add_action('widgets_init', 'papetarie_storefront_widgets_init');
 
 if (is_admin()) {
     require_once __DIR__ . '/admin-category-ordering.php';
+    require_once __DIR__ . '/admin-aperta-sync.php';
 }
 
 require_once __DIR__ . '/includes/address-book.php';
+require_once __DIR__ . '/includes/aperta-sync.php';
 
 function papetarie_storefront_enqueue_styles(): void
 {
@@ -98,8 +100,9 @@ function papetarie_storefront_dequeue_legacy_child_style(): void
     // pointing at the same parent style.css we already load (as 'storefront-parent-style',
     // correctly ordered before our child stylesheet). Left alone, this duplicate copy loads
     // a second time *after* our child theme's CSS and silently wins ties in the cascade.
+    // Dequeue only (not deregister) - WooCommerce's own 'storefront-woocommerce-style'
+    // lists 'storefront-style' as a dependency, and deregistering it breaks that lookup.
     wp_dequeue_style('storefront-style');
-    wp_deregister_style('storefront-style');
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_legacy_child_style', 40);
 
@@ -3300,7 +3303,7 @@ function papetarie_storefront_get_checkout_header_html(): string
       <div class="pap-shell pap-checkout-header">
         <a class="pap-checkout-header__logo" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php esc_attr_e('Acasă', 'papetarie-storefront'); ?>">
           <span class="pap-checkout-header__logo-image">
-            <img src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/logo-supplyhub-cropped.png'); ?>" alt="<?php esc_attr_e('SupplyHub Stationery Solutions', 'papetarie-storefront'); ?>">
+            <img src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/logo-notix.png'); ?>" alt="<?php esc_attr_e('Notix', 'papetarie-storefront'); ?>">
           </span>
         </a>
 
@@ -5078,6 +5081,9 @@ function papetarie_storefront_icon(string $name): string
         'share' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.2 10.7l7.6-4.4M8.2 13.3l7.6 4.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
         'plus' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
         'minus' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        'zoom-in' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 7.5v6M7.5 10.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M15.3 15.3 20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        'zoom-out' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 10.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M15.3 15.3 20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        'rotate' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.34 5.66" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 17v-5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         'package' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.2 12 3.5l8.5 4.7v8.6L12 21.5l-8.5-4.7V8.2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3.7 8 12 12.5 20.3 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 12.5V21.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
         'undo' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h8.5a5.5 5.5 0 1 1 0 11H10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 5.5 4 10l4 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         'check-circle' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m8 12.5 2.5 2.5 5.5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -6512,46 +6518,6 @@ function papetarie_storefront_render_product_rating_html(WC_Product $product): s
     return (string) ob_get_clean();
 }
 
-function papetarie_storefront_render_slider_product_card(WC_Product $product): void
-{
-    $product_id = $product->get_id();
-    $product_name = $product->get_name();
-    $product_url = $product->get_permalink();
-    $product_image_id = $product->get_image_id();
-    $product_image = $product_image_id
-        ? wp_get_attachment_image($product_image_id, 'medium', false, ['loading' => 'lazy', 'alt' => $product_name])
-        : '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
-    $product_category = papetarie_storefront_get_product_primary_category($product);
-    ?>
-    <article class="pap-product-card" data-product-name="<?php echo esc_attr($product_name); ?>">
-      <?php echo papetarie_storefront_render_product_badges_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-      <div class="pap-product-thumb">
-        <?php echo $product_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-      </div>
-      <?php if ($product_category !== '') : ?>
-        <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
-      <?php endif; ?>
-      <h3 data-product-name="<?php echo esc_attr($product_name); ?>"><?php echo esc_html($product_name); ?></h3>
-      <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-      <div class="pap-product-meta">
-        <strong class="pap-price"><?php echo wp_kses_post($product->get_price_html()); ?></strong>
-        <div class="pap-product-actions">
-          <button
-            class="pap-home-add-to-cart"
-            type="button"
-            data-product-id="<?php echo esc_attr((string) $product_id); ?>"
-            data-product-url="<?php echo esc_url($product_url); ?>"
-            aria-label="<?php esc_attr_e('Adaugă în coș', 'papetarie-storefront'); ?>"
-          >
-            <span class="pap-product-action-icon"><?php echo papetarie_storefront_icon('bag'); ?></span>
-            <span class="pap-product-action-label"><?php esc_html_e('Adaugă', 'papetarie-storefront'); ?></span>
-          </button>
-        </div>
-      </div>
-    </article>
-    <?php
-}
-
 function papetarie_storefront_render_product_slider_section(string $title, string $subtitle, array $products, string $see_all_url, array $extra_section_classes = [], string $id = ''): string
 {
     $products = array_values(array_filter($products, static function ($product): bool {
@@ -6593,7 +6559,7 @@ function papetarie_storefront_render_product_slider_section(string $title, strin
             <div class="pap-featured-slider" data-featured-slider>
               <div class="pap-product-grid">
                 <?php foreach ($products as $product) : ?>
-                  <?php papetarie_storefront_render_slider_product_card($product); ?>
+                  <?php papetarie_storefront_render_product_card($product); ?>
                 <?php endforeach; ?>
               </div>
             </div>
@@ -6871,6 +6837,66 @@ function papetarie_storefront_short_category_name(string $slug, string $name): s
     return $map[$slug] ?? $name;
 }
 
+/**
+ * Categorii cu mai multe coloane grupate logic (nu alfabetic) care primesc
+ * și un titlu gri deasupra fiecărei coloane, după modelul eMAG. 'counts' =
+ * câte subcategorii (în ordinea lor curentă, via term meta 'order') intră
+ * în fiecare coloană, în ordine — suma trebuie să fie egală cu numărul
+ * total de subcategorii ale categoriei. Folosit de ambele randări ale
+ * mega-meniului (widget-ul de homepage și dropdown-ul "Toate categoriile"
+ * din header) ca să rămână consistente.
+ */
+function papetarie_storefront_get_column_group_headings(): array
+{
+    return [
+        'accesorii-pentru-scris' => [
+            'counts' => [9, 7],
+            'headings' => [
+                __('Instrumente de scris', 'papetarie-storefront'),
+                __('Markere și accesorii', 'papetarie-storefront'),
+            ],
+        ],
+        'organizare-arhivare-prezentare' => [
+            'counts' => [6, 7, 7],
+            'headings' => [
+                __('Arhivare', 'papetarie-storefront'),
+                __('Organizarea documentelor', 'papetarie-storefront'),
+                __('Prezentare și etichetare', 'papetarie-storefront'),
+            ],
+        ],
+        'articole-pentru-birou' => [
+            'counts' => [7, 6],
+            'headings' => [
+                __('Instrumente și accesorii de birou', 'papetarie-storefront'),
+                __('Echipamente de birou', 'papetarie-storefront'),
+            ],
+        ],
+        'creativitate' => [
+            'counts' => [8, 8, 7, 7],
+            'headings' => [
+                __('Scris și desenat', 'papetarie-storefront'),
+                __('Accesorii desenat', 'papetarie-storefront'),
+                __('Pictură și modelaj', 'papetarie-storefront'),
+                __('Markere și seturi', 'papetarie-storefront'),
+            ],
+        ],
+        'periferice' => [
+            'counts' => [5, 4],
+            'headings' => [
+                __('Dispozitive periferice', 'papetarie-storefront'),
+                __('Alimentare și accesorii', 'papetarie-storefront'),
+            ],
+        ],
+        'curatenie-si-sanitare' => [
+            'counts' => [6, 5],
+            'headings' => [
+                __('Produse de curățenie', 'papetarie-storefront'),
+                __('Igienă și accesorii menaj', 'papetarie-storefront'),
+            ],
+        ],
+    ];
+}
+
 function papetarie_storefront_render_mega_menu_panels(array $categories, string $active_slug, array $args = []): void
 {
     if (empty($categories)) {
@@ -6915,9 +6941,11 @@ function papetarie_storefront_render_mega_menu_panels(array $categories, string 
     $panel_id_prefix = (string) $args['panel_id_prefix'];
     $panel_data_attr = (string) $args['panel_data_attr'];
 
+    $column_group_headings = papetarie_storefront_get_column_group_headings();
     ?>
     <?php foreach ($categories as $category) : ?>
       <?php if (empty($category['children'])) { continue; } ?>
+      <?php $column_headings = $column_group_headings[$category['slug']] ?? null; ?>
       <section
         class="<?php echo esc_attr($panel_item_class); ?><?php echo $category['slug'] === $active_slug ? ' is-active' : ''; ?>"
         <?php if ($include_id) : ?>
@@ -6926,11 +6954,15 @@ function papetarie_storefront_render_mega_menu_panels(array $categories, string 
         <?php echo esc_attr($panel_data_attr); ?>="<?php echo esc_attr($category['slug']); ?>"
         <?php echo $category['slug'] === $active_slug ? '' : 'hidden'; ?>
       >
-        <div class="<?php echo esc_attr($panel_layout_class); ?>">
+        <?php $use_full_layout = $column_headings && count($column_headings['counts']) >= 3; ?>
+        <div class="<?php echo esc_attr($panel_layout_class); ?><?php echo $use_full_layout ? ' ' . esc_attr($panel_layout_class) . '--full' : ''; ?>">
             <div class="<?php echo esc_attr($panel_copy_class); ?>">
-            <div class="<?php echo esc_attr($panel_title_class); ?>"><?php echo esc_html($category['name']); ?></div>
-            <div class="<?php echo esc_attr($panel_columns_class); ?>">
-              <?php foreach ($category['children'] as $child) : ?>
+            <?php if (!$column_headings) : ?>
+              <div class="<?php echo esc_attr($panel_title_class); ?>"><?php echo esc_html($category['name']); ?></div>
+            <?php endif; ?>
+            <?php
+            $render_group = static function (array $child) use ($panel_group_class, $panel_group_title_class, $panel_sublist_class): void {
+                ?>
                 <div class="<?php echo esc_attr($panel_group_class); ?>">
                   <?php if (!empty($child['children'])) : ?>
                     <a class="<?php echo esc_attr($panel_group_title_class); ?>" href="<?php echo esc_url($child['url']); ?>">
@@ -6951,8 +6983,40 @@ function papetarie_storefront_render_mega_menu_panels(array $categories, string 
                     </a>
                   <?php endif; ?>
                 </div>
-              <?php endforeach; ?>
-            </div>
+                <?php
+            };
+            ?>
+            <?php if ($column_headings) : ?>
+              <?php $column_count = count($column_headings['counts']); ?>
+              <div class="<?php echo esc_attr($panel_columns_class); ?> <?php echo esc_attr($panel_columns_class . '--' . $category['slug']); ?> <?php echo esc_attr($panel_columns_class); ?>--grouped <?php echo esc_attr($panel_columns_class); ?>--cols-<?php echo esc_attr((string) $column_count); ?>">
+                <?php
+                $columns_of_children = [];
+                $offset = 0;
+                foreach ($column_headings['counts'] as $column_size) {
+                    $columns_of_children[] = array_slice($category['children'], $offset, $column_size);
+                    $offset += $column_size;
+                }
+                ?>
+                <?php foreach ($columns_of_children as $column_index => $column_children) : ?>
+                  <div class="<?php echo esc_attr($panel_columns_class); ?>-column">
+                    <div class="<?php echo esc_attr($panel_columns_class); ?>-column-heading">
+                      <?php echo esc_html($column_headings['headings'][$column_index]); ?>
+                    </div>
+                    <div class="<?php echo esc_attr($panel_columns_class); ?>-column-groups">
+                      <?php foreach ($column_children as $child) : ?>
+                        <?php $render_group($child); ?>
+                      <?php endforeach; ?>
+                    </div>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php else : ?>
+              <div class="<?php echo esc_attr($panel_columns_class); ?> <?php echo esc_attr($panel_columns_class . '--' . $category['slug']); ?>">
+                <?php foreach ($category['children'] as $child) : ?>
+                  <?php $render_group($child); ?>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
           </div>
         </div>
         </section>
@@ -6965,6 +7029,29 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
     if (empty($categories)) {
         return;
     }
+
+    $column_group_headings = papetarie_storefront_get_column_group_headings();
+
+    $render_child = static function (array $child): void {
+        ?>
+        <div class="pap-header-catmenu-group">
+          <a class="pap-header-catmenu-group-title" href="<?php echo esc_url($child['url']); ?>">
+            <?php echo esc_html($child['name']); ?>
+          </a>
+          <?php if (!empty($child['children'])) : ?>
+            <ul class="pap-header-catmenu-sublist">
+              <?php foreach ($child['children'] as $grandchild) : ?>
+                <li>
+                  <a href="<?php echo esc_url($grandchild['url']); ?>">
+                    <?php echo esc_html($grandchild['name']); ?>
+                  </a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </div>
+        <?php
+    };
 
     ?>
     <div id="pap-header-category-menu" class="pap-header-catmenu-shell" data-header-catmenu-shell hidden>
@@ -6994,33 +7081,47 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
           <div class="pap-header-catmenu-panels">
             <?php foreach ($categories as $category) : ?>
               <?php if (empty($category['children'])) { continue; } ?>
+              <?php $column_headings = $column_group_headings[$category['slug']] ?? null; ?>
               <section
                 class="pap-header-catmenu-panel<?php echo $category['slug'] === $active_slug ? ' is-active' : ''; ?>"
                 data-header-catmenu-panel="<?php echo esc_attr($category['slug']); ?>"
                 id="pap-header-catmenu-panel-<?php echo esc_attr($category['slug']); ?>"
                 <?php echo $category['slug'] === $active_slug ? '' : 'hidden'; ?>
               >
-                <div class="pap-header-catmenu-panel-title"><?php echo esc_html($category['name']); ?></div>
-                <div class="pap-header-catmenu-group-list">
-                  <?php foreach ($category['children'] as $child) : ?>
-                    <div class="pap-header-catmenu-group">
-                      <a class="pap-header-catmenu-group-title" href="<?php echo esc_url($child['url']); ?>">
-                        <?php echo esc_html($child['name']); ?>
-                      </a>
-                      <?php if (!empty($child['children'])) : ?>
-                        <ul class="pap-header-catmenu-sublist">
-                          <?php foreach ($child['children'] as $grandchild) : ?>
-                            <li>
-                              <a href="<?php echo esc_url($grandchild['url']); ?>">
-                                <?php echo esc_html($grandchild['name']); ?>
-                              </a>
-                            </li>
+                <?php if (!$column_headings) : ?>
+                  <div class="pap-header-catmenu-panel-title"><?php echo esc_html($category['name']); ?></div>
+                <?php endif; ?>
+                <?php if ($column_headings) : ?>
+                  <?php $column_count = count($column_headings['counts']); ?>
+                  <div class="pap-header-catmenu-group-list pap-showcase-panel-columns--grouped pap-showcase-panel-columns--cols-<?php echo esc_attr((string) $column_count); ?>">
+                    <?php
+                    $columns_of_children = [];
+                    $offset = 0;
+                    foreach ($column_headings['counts'] as $column_size) {
+                        $columns_of_children[] = array_slice($category['children'], $offset, $column_size);
+                        $offset += $column_size;
+                    }
+                    ?>
+                    <?php foreach ($columns_of_children as $column_index => $column_children) : ?>
+                      <div class="pap-showcase-panel-columns-column">
+                        <div class="pap-showcase-panel-columns-column-heading">
+                          <?php echo esc_html($column_headings['headings'][$column_index]); ?>
+                        </div>
+                        <div class="pap-showcase-panel-columns-column-groups">
+                          <?php foreach ($column_children as $child) : ?>
+                            <?php $render_child($child); ?>
                           <?php endforeach; ?>
-                        </ul>
-                      <?php endif; ?>
-                    </div>
-                  <?php endforeach; ?>
-                </div>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php else : ?>
+                  <div class="pap-header-catmenu-group-list">
+                    <?php foreach ($category['children'] as $child) : ?>
+                      <?php $render_child($child); ?>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
               </section>
             <?php endforeach; ?>
           </div>
@@ -8647,7 +8748,7 @@ function papetarie_storefront_customer_real_order_count_filter($order_count, WC_
 }
 add_filter('woocommerce_customer_get_order_count', 'papetarie_storefront_customer_real_order_count_filter', 20, 2);
 
-function papetarie_storefront_render_product_card(WC_Product $product, string $context = 'account', array $args = []): void
+function papetarie_storefront_render_product_card(WC_Product $product): void
 {
     $product_id = $product->get_id();
     $product_name = $product->get_name();
@@ -8662,21 +8763,19 @@ function papetarie_storefront_render_product_card(WC_Product $product, string $c
     $action_text = $can_add_to_cart ? $product->add_to_cart_text() : __('Vezi produsul', 'papetarie-storefront');
     $action_class = $can_add_to_cart && $product->is_type('simple') ? 'add_to_cart_button ajax_add_to_cart' : '';
     ?>
-    <article class="pap-product-card pap-product-card--<?php echo esc_attr($context); ?>" data-product-name="<?php echo esc_attr($product_name); ?>">
+    <div class="pap-product-card" data-product-name="<?php echo esc_attr($product_name); ?>">
       <?php echo papetarie_storefront_render_product_badges_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       <a class="pap-product-card-link" href="<?php echo esc_url($product_url); ?>">
-        <div class="pap-product-thumb pap-product-thumb--<?php echo esc_attr($context); ?>">
+        <div class="pap-product-thumb">
           <?php echo $product_image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
-        <div class="pap-product-copy">
-          <?php if ($product_category !== '') : ?>
-            <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
-          <?php endif; ?>
-          <h3 data-product-name="<?php echo esc_attr($product_name); ?>"><?php echo esc_html($product_name); ?></h3>
-          <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        </div>
+        <?php if ($product_category !== '') : ?>
+          <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
+        <?php endif; ?>
+        <h3 data-product-name="<?php echo esc_attr($product_name); ?>"><?php echo esc_html($product_name); ?></h3>
+        <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       </a>
-      <div class="pap-product-meta pap-product-meta--<?php echo esc_attr($context); ?>">
+      <div class="pap-product-meta">
         <strong class="pap-price"><?php echo wp_kses_post($product->get_price_html()); ?></strong>
         <div class="pap-product-actions">
           <?php if ($can_add_to_cart && $product->is_type('simple')) : ?>
@@ -8703,7 +8802,7 @@ function papetarie_storefront_render_product_card(WC_Product $product, string $c
           <?php endif; ?>
         </div>
       </div>
-    </article>
+    </div>
     <?php
 }
 
@@ -8786,7 +8885,7 @@ function papetarie_storefront_account_offers_endpoint(): void
           <?php foreach ($query->posts as $product_id) : ?>
             <?php $product = wc_get_product((int) $product_id); ?>
             <?php if (!$product instanceof WC_Product || !$product->is_on_sale()) { continue; } ?>
-            <?php papetarie_storefront_render_product_card($product, 'account'); ?>
+            <?php papetarie_storefront_render_product_card($product); ?>
           <?php endforeach; ?>
         </div>
       <?php endif; ?>

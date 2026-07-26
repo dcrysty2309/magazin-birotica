@@ -127,7 +127,6 @@ get_header();
               href="<?php echo esc_url($category['url']); ?>"
               data-showcase-tab="<?php echo esc_attr($category['slug']); ?>"
               data-showcase-has-children="<?php echo !empty($category['children']) ? '1' : '0'; ?>"
-              title="<?php echo esc_attr($category['name']); ?>"
             >
               <span class="pap-showcase-nav-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
               <span class="pap-showcase-nav-label"><?php echo esc_html(papetarie_storefront_short_category_name($category['slug'], $category['name'])); ?></span>

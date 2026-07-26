@@ -114,7 +114,28 @@ Ce rămâne în afara acestui flux, intenționat, deocamdată:
 - **pluginurile** (`wp-content/plugins`, ~11.800 de fișiere) — prea multe pentru upload file-by-file; nu sunt incluse implicit (`-SkipPlugins`), se urcă manual doar când chiar se schimbă;
 - **tema părinte `storefront`** — statică, rar modificată;
 - **`tools/build-staging-package.ps1`, `tools/sync-staging.ps1`, `tools/sync-staging-db.ps1`, `tools/prepare-sync-package.ps1`** — varianta cu pachet ZIP + runner PHP server-side care le folosea a cauzat majoritatea problemelor istorice (cale de extragere greșită, timeout-uri, verificare nesigură) și rămân dezactivate; nu se reactivează fără o decizie explicită;
-- **workflow-ul GitHub Actions** (`.github/workflows/deploy-staging.yml`) — a fost șters; reactivarea automatizării CI e o decizie separată, ulterioară, după ce fluxul manual e validat.
+- **workflow-ul GitHub Actions** (`.github/workflows/deploy-staging.yml`) — a fost șters (2026-07-23); reactivarea automatizării CI e o decizie separată, ulterioară, după ce fluxul manual e validat.
+
+## 6.2. IMPORTANT — calea reală de pe server e `/public_html/wp-content/...`, nu `/wp-content/...`
+
+Descoperit pe 2026-07-23 după ore de debugging inutil: contul cPanel `memoreaz` are **trei foldere `wp-content` diferite** pe server:
+
+- `/wp-content/` — la rădăcina contului FTP (`/home/memoreaz/`). E ținta VECHE, greșită, folosită de `deploy-staging.ps1` înainte de 2026-07-23. FTP-ul urcă fișierele acolo fără nicio eroare — upload-ul "reușește" complet, verificarea de hash pe `style.css` trece, dar acel folder **nu e văzut de site**.
+- `/public_html/wp-content/` — **acesta e folderul real servit de Apache** pentru `memoreaza.ro` și alias-ul `notix.ro` (confirmat explicit în cPanel → Domains → Document Root: `/public_html` pentru ambele domenii).
+- `/www/wp-content/` — un al treilea folder, aparent o copie/snapshot vechi, neclar dacă mai e folosit de ceva; nu s-a investigat mai departe.
+
+Simptomul: cod nou + bază de date nouă corect urcate/importate, dar site-ul live continuă să arate design-ul vechi la nesfârșit, indiferent de schimbări de versiune PHP, restart PHP-FPM, sau `.user.ini` cu `opcache.validate_timestamps=1` — pentru că PHP-ul executat efectiv de Apache nu vedea niciodată fișierele noi, nu conta ce cache era golit.
+
+**Fix aplicat**: `tools/deploy-staging.ps1` are acum implicit `-RemoteThemePath "/public_html/wp-content/themes/papetarie-storefront"` și `-RemotePluginPath "/public_html/wp-content/plugins"`. Dacă rulezi scriptul cu path-uri custom sau faci vreun upload manual prin FTP, **asigură-te mereu că țintești `/public_html/wp-content/...`**, nu `/wp-content/...` de la rădăcină.
+
+Cum verifici rapid, dacă bănuiești din nou o desincronizare:
+
+```bash
+curl --ssl-reqd -s --user "FTP_USER:FTP_PASS" "ftp://rs.nsh.ro/public_html/wp-content/themes/papetarie-storefront/style.css" -o /tmp/live.css
+diff /tmp/live.css wp-content/themes/papetarie-storefront/style.css && echo "OK, identic"
+```
+
+Nu te încrede orbește în hash-check-ul automat al scriptului dacă ai schimbat manual `RemoteThemePath` — verificarea HTTP a scriptului presupune că path-ul FTP e deja relativ la docroot (fără prefixul `/public_html`), altfel dă fals-pozitiv 404 la verificare chiar dacă upload-ul FTP a mers bine.
 
 ## 7. Fișiere care NU trebuie publicate
 

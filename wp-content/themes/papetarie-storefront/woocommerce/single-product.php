@@ -72,7 +72,7 @@ get_header();
 
     <div id="product-<?php echo esc_attr((string) $product_id); ?>" <?php wc_product_class('pap-shell pap-product-summary', $product); ?>>
       <div class="pap-product-gallery" data-product-gallery>
-        <div class="pap-product-gallery-main">
+        <div class="pap-product-gallery-main" data-gallery-lightbox-open aria-label="<?php esc_attr_e('Deschide galeria foto', 'papetarie-storefront'); ?>">
           <?php if ($is_on_sale && $discount_percent > 0) : ?>
             <span class="pap-product-gallery-badge">−<?php echo esc_html((string) $discount_percent); ?>%</span>
           <?php endif; ?>
@@ -84,20 +84,87 @@ get_header();
           <?php endif; ?>
         </div>
         <?php if (count($all_image_ids) > 1) : ?>
-          <div class="pap-product-gallery-thumbs">
-            <?php foreach ($all_image_ids as $index => $image_id) : ?>
-              <?php $thumb_url = wp_get_attachment_image_url($image_id, 'thumbnail'); ?>
-              <button
-                type="button"
-                class="pap-product-gallery-thumb<?php echo $index === 0 ? ' is-active' : ''; ?>"
-                data-product-gallery-thumb
-                data-full-src="<?php echo esc_url(wp_get_attachment_image_url($image_id, 'large')); ?>"
-              >
-                <img src="<?php echo esc_url($thumb_url); ?>" alt="" loading="lazy">
-              </button>
-            <?php endforeach; ?>
+          <div class="pap-product-gallery-thumbs-row">
+            <button type="button" class="pap-product-gallery-thumbs-nav pap-product-gallery-thumbs-nav--prev" data-gallery-thumbs-prev aria-label="<?php esc_attr_e('Thumbnail-uri anterioare', 'papetarie-storefront'); ?>" hidden>
+              <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+            </button>
+            <div class="pap-product-gallery-thumbs" data-gallery-thumbs-track>
+              <?php foreach ($all_image_ids as $index => $image_id) : ?>
+                <?php $thumb_url = wp_get_attachment_image_url($image_id, 'thumbnail'); ?>
+                <button
+                  type="button"
+                  class="pap-product-gallery-thumb<?php echo $index === 0 ? ' is-active' : ''; ?>"
+                  data-product-gallery-thumb
+                  data-index="<?php echo esc_attr((string) $index); ?>"
+                  data-full-src="<?php echo esc_url(wp_get_attachment_image_url($image_id, 'large')); ?>"
+                >
+                  <img src="<?php echo esc_url($thumb_url); ?>" alt="" loading="lazy">
+                </button>
+              <?php endforeach; ?>
+            </div>
+            <button type="button" class="pap-product-gallery-thumbs-nav pap-product-gallery-thumbs-nav--next" data-gallery-thumbs-next aria-label="<?php esc_attr_e('Thumbnail-uri următoare', 'papetarie-storefront'); ?>">
+              <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+            </button>
           </div>
         <?php endif; ?>
+      </div>
+
+      <div id="pap-gallery-lightbox" class="pap-gallery-lightbox" hidden aria-hidden="true">
+        <div class="pap-gallery-lightbox__backdrop" data-gallery-lightbox-close></div>
+        <div class="pap-gallery-lightbox__dialog" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('Galerie foto produs', 'papetarie-storefront'); ?>">
+          <button type="button" class="pap-gallery-lightbox__close" data-gallery-lightbox-close aria-label="<?php esc_attr_e('Închide', 'papetarie-storefront'); ?>">&times;</button>
+          <div class="pap-gallery-lightbox__body">
+            <div class="pap-gallery-lightbox__viewer">
+              <?php if (count($all_image_ids) > 1) : ?>
+                <button type="button" class="pap-gallery-lightbox__nav pap-gallery-lightbox__nav--prev" data-gallery-lightbox-prev aria-label="<?php esc_attr_e('Imaginea anterioară', 'papetarie-storefront'); ?>">
+                  <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+                </button>
+              <?php endif; ?>
+              <div class="pap-gallery-lightbox__stage">
+                <img src="" alt="<?php echo esc_attr($product_name); ?>" data-gallery-lightbox-image>
+              </div>
+              <?php if (count($all_image_ids) > 1) : ?>
+                <button type="button" class="pap-gallery-lightbox__nav pap-gallery-lightbox__nav--next" data-gallery-lightbox-next aria-label="<?php esc_attr_e('Imaginea următoare', 'papetarie-storefront'); ?>">
+                  <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+                </button>
+              <?php endif; ?>
+            </div>
+            <?php if (count($all_image_ids) > 1) : ?>
+              <div class="pap-gallery-lightbox__thumbs-row">
+                <button type="button" class="pap-gallery-lightbox__thumbs-nav pap-gallery-lightbox__thumbs-nav--prev" data-lightbox-thumbs-prev aria-label="<?php esc_attr_e('Thumbnail-uri anterioare', 'papetarie-storefront'); ?>" hidden>
+                  <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+                </button>
+                <div class="pap-gallery-lightbox__thumbs" data-lightbox-thumbs-track>
+                  <?php foreach ($all_image_ids as $index => $image_id) : ?>
+                    <button
+                      type="button"
+                      class="pap-gallery-lightbox__thumb<?php echo $index === 0 ? ' is-active' : ''; ?>"
+                      data-lightbox-thumb
+                      data-index="<?php echo esc_attr((string) $index); ?>"
+                      data-full-src="<?php echo esc_url(wp_get_attachment_image_url($image_id, 'full')); ?>"
+                    >
+                      <img src="<?php echo esc_url(wp_get_attachment_image_url($image_id, 'thumbnail')); ?>" alt="" loading="lazy">
+                    </button>
+                  <?php endforeach; ?>
+                </div>
+                <button type="button" class="pap-gallery-lightbox__thumbs-nav pap-gallery-lightbox__thumbs-nav--next" data-lightbox-thumbs-next aria-label="<?php esc_attr_e('Thumbnail-uri următoare', 'papetarie-storefront'); ?>">
+                  <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+                </button>
+              </div>
+            <?php endif; ?>
+          </div>
+          <div class="pap-gallery-lightbox__toolbar">
+            <button type="button" class="pap-gallery-lightbox__tool" data-gallery-lightbox-zoom-out aria-label="<?php esc_attr_e('Micșorează', 'papetarie-storefront'); ?>">
+              <?php echo papetarie_storefront_icon('zoom-out'); ?>
+            </button>
+            <button type="button" class="pap-gallery-lightbox__tool" data-gallery-lightbox-zoom-in aria-label="<?php esc_attr_e('Mărește', 'papetarie-storefront'); ?>">
+              <?php echo papetarie_storefront_icon('zoom-in'); ?>
+            </button>
+            <button type="button" class="pap-gallery-lightbox__tool" data-gallery-lightbox-rotate aria-label="<?php esc_attr_e('Rotește', 'papetarie-storefront'); ?>">
+              <?php echo papetarie_storefront_icon('rotate'); ?>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="pap-product-info">
@@ -246,6 +313,8 @@ get_header();
     var mainImage = gallery.querySelector('[data-product-gallery-image]');
     var thumbs = Array.prototype.slice.call(gallery.querySelectorAll('[data-product-gallery-thumb]'));
     var nextButton = gallery.querySelector('[data-product-gallery-next]');
+    var activeIndex = 0;
+    var defaultImageSrc = mainImage ? mainImage.src : '';
 
     function activate(index) {
       var thumb = thumbs[index];
@@ -253,11 +322,43 @@ get_header();
         return;
       }
 
+      activeIndex = index;
       thumbs.forEach(function (item) {
         item.classList.remove('is-active');
       });
       thumb.classList.add('is-active');
       mainImage.src = thumb.getAttribute('data-full-src');
+    }
+
+    var variationsForm = document.querySelector('.variations_form');
+    if (variationsForm && window.jQuery) {
+      window.jQuery(variationsForm).on('found_variation', function (event, variation) {
+        if (!mainImage || !variation || !variation.image || !variation.image.src) {
+          return;
+        }
+
+        mainImage.src = variation.image.src;
+        thumbs.forEach(function (item) {
+          item.classList.remove('is-active');
+        });
+
+        var matchingThumb = thumbs.find(function (thumb) {
+          return thumb.getAttribute('data-full-src') === variation.image.src
+            || thumb.getAttribute('data-full-src') === variation.image.full_src;
+        });
+
+        if (matchingThumb) {
+          matchingThumb.classList.add('is-active');
+          activeIndex = thumbs.indexOf(matchingThumb);
+        }
+      });
+
+      window.jQuery(variationsForm).on('reset_data', function () {
+        if (mainImage) {
+          mainImage.src = defaultImageSrc;
+        }
+        activate(0);
+      });
     }
 
     thumbs.forEach(function (thumb, index) {
@@ -268,11 +369,193 @@ get_header();
 
     if (nextButton && thumbs.length > 1) {
       nextButton.addEventListener('click', function () {
-        var activeIndex = thumbs.findIndex(function (thumb) {
-          return thumb.classList.contains('is-active');
-        });
         activate((activeIndex + 1) % thumbs.length);
       });
+    }
+
+    function initThumbSlider(track, prevBtn, nextBtn) {
+      if (!track) {
+        return;
+      }
+
+      function refresh() {
+        var maxScroll = track.scrollWidth - track.clientWidth;
+        if (prevBtn) {
+          prevBtn.hidden = track.scrollLeft <= 4;
+        }
+        if (nextBtn) {
+          nextBtn.hidden = track.scrollLeft >= maxScroll - 4;
+        }
+      }
+
+      function scrollByPage(direction) {
+        track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: 'smooth' });
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', function () {
+          scrollByPage(-1);
+        });
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+          scrollByPage(1);
+        });
+      }
+
+      track.addEventListener('scroll', refresh);
+      window.addEventListener('resize', refresh);
+      refresh();
+    }
+
+    initThumbSlider(
+      gallery.querySelector('[data-gallery-thumbs-track]'),
+      gallery.querySelector('[data-gallery-thumbs-prev]'),
+      gallery.querySelector('[data-gallery-thumbs-next]')
+    );
+
+    var lightbox = document.getElementById('pap-gallery-lightbox');
+
+    if (lightbox) {
+      var lightboxOpenTrigger = gallery.querySelector('[data-gallery-lightbox-open]');
+      var lightboxCloseTriggers = lightbox.querySelectorAll('[data-gallery-lightbox-close]');
+      var lightboxStageImage = lightbox.querySelector('[data-gallery-lightbox-image]');
+      var lightboxThumbs = Array.prototype.slice.call(lightbox.querySelectorAll('[data-lightbox-thumb]'));
+      var lightboxPrev = lightbox.querySelector('[data-gallery-lightbox-prev]');
+      var lightboxNext = lightbox.querySelector('[data-gallery-lightbox-next]');
+      var zoomInBtn = lightbox.querySelector('[data-gallery-lightbox-zoom-in]');
+      var zoomOutBtn = lightbox.querySelector('[data-gallery-lightbox-zoom-out]');
+      var rotateBtn = lightbox.querySelector('[data-gallery-lightbox-rotate]');
+      var lightboxIndex = 0;
+      var zoomScale = 1;
+      var rotateDeg = 0;
+      var lastFocusedTrigger = null;
+
+      function applyTransform() {
+        if (lightboxStageImage) {
+          lightboxStageImage.style.transform = 'scale(' + zoomScale + ') rotate(' + rotateDeg + 'deg)';
+        }
+      }
+
+      function showLightboxImage(index) {
+        var thumb = lightboxThumbs[index];
+        if (!thumb || !lightboxStageImage) {
+          return;
+        }
+
+        lightboxIndex = index;
+        zoomScale = 1;
+        rotateDeg = 0;
+        applyTransform();
+
+        lightboxThumbs.forEach(function (item) {
+          item.classList.remove('is-active');
+        });
+        thumb.classList.add('is-active');
+        lightboxStageImage.src = thumb.getAttribute('data-full-src');
+      }
+
+      function closeLightbox() {
+        lightbox.classList.remove('is-open');
+        lightbox.setAttribute('aria-hidden', 'true');
+
+        if (window.papModalManager) {
+          window.papModalManager.close(lightbox);
+        }
+
+        window.setTimeout(function () {
+          lightbox.hidden = true;
+        }, 180);
+
+        if (lastFocusedTrigger && typeof lastFocusedTrigger.focus === 'function') {
+          window.setTimeout(function () {
+            lastFocusedTrigger.focus({ preventScroll: true });
+          }, 200);
+        }
+      }
+
+      function openLightbox(index) {
+        lastFocusedTrigger = document.activeElement;
+        lightbox.hidden = false;
+        lightbox.setAttribute('aria-hidden', 'false');
+        showLightboxImage(index || 0);
+
+        if (window.papModalManager) {
+          window.papModalManager.open(lightbox, closeLightbox, {});
+        }
+
+        window.requestAnimationFrame(function () {
+          lightbox.classList.add('is-open');
+        });
+      }
+
+      if (lightboxOpenTrigger) {
+        lightboxOpenTrigger.addEventListener('click', function () {
+          openLightbox(activeIndex);
+        });
+      }
+
+      Array.prototype.forEach.call(lightboxCloseTriggers, function (trigger) {
+        trigger.addEventListener('click', closeLightbox);
+      });
+
+      lightboxThumbs.forEach(function (thumb, index) {
+        thumb.addEventListener('click', function () {
+          showLightboxImage(index);
+        });
+      });
+
+      if (lightboxPrev) {
+        lightboxPrev.addEventListener('click', function () {
+          showLightboxImage((lightboxIndex - 1 + lightboxThumbs.length) % lightboxThumbs.length);
+        });
+      }
+
+      if (lightboxNext) {
+        lightboxNext.addEventListener('click', function () {
+          showLightboxImage((lightboxIndex + 1) % lightboxThumbs.length);
+        });
+      }
+
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', function () {
+          zoomScale = Math.min(3, zoomScale + 0.25);
+          applyTransform();
+        });
+      }
+
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', function () {
+          zoomScale = Math.max(1, zoomScale - 0.25);
+          applyTransform();
+        });
+      }
+
+      if (rotateBtn) {
+        rotateBtn.addEventListener('click', function () {
+          rotateDeg = (rotateDeg + 90) % 360;
+          applyTransform();
+        });
+      }
+
+      document.addEventListener('keydown', function (event) {
+        if (lightbox.hidden) {
+          return;
+        }
+
+        if (event.key === 'ArrowLeft' && lightboxPrev) {
+          lightboxPrev.click();
+        } else if (event.key === 'ArrowRight' && lightboxNext) {
+          lightboxNext.click();
+        }
+      });
+
+      initThumbSlider(
+        lightbox.querySelector('[data-lightbox-thumbs-track]'),
+        lightbox.querySelector('[data-lightbox-thumbs-prev]'),
+        lightbox.querySelector('[data-lightbox-thumbs-next]')
+      );
     }
 
     var stepper = document.querySelector('[data-qty-stepper]');

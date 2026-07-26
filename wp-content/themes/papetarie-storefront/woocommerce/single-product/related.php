@@ -29,7 +29,7 @@ $heading = apply_filters('woocommerce_product_related_products_heading', __('Pro
   <div class="pap-featured-slider" data-featured-slider>
     <div class="pap-product-grid">
       <?php foreach ($related_products as $related_product) : ?>
-        <?php papetarie_storefront_render_product_card($related_product, 'archive'); ?>
+        <?php papetarie_storefront_render_product_card($related_product); ?>
       <?php endforeach; ?>
     </div>
   </div>

@@ -36,7 +36,7 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
             <span class="pap-logo-image"><?php the_custom_logo(); ?></span>
           <?php else : ?>
             <span class="pap-logo-image">
-              <img src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/logo-supplyhub-cropped.png'); ?>" alt="<?php esc_attr_e('SupplyHub Stationery Solutions', 'papetarie-storefront'); ?>">
+              <img src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/logo-notix.png'); ?>" alt="<?php esc_attr_e('Notix', 'papetarie-storefront'); ?>">
             </span>
           <?php endif; ?>
           <?php if (papetarie_storefront_has_real_logo()) : ?>
