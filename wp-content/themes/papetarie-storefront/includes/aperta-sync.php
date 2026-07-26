@@ -810,8 +810,15 @@ function papetarie_storefront_aperta_tag_multiple_attrs(int $productId, array $g
  * Extrage atribute filtrabile din NUMELE produsului, pentru produse simple
  * care nu au deloc date structurate de atribut in feed (spre deosebire de
  * produsele cu variante, unde Aperta trimite explicit "Tip variant"/"Variant").
- * Scopat strict la categoria hârtie - un regex generic de "gramaj" aplicat
- * peste tot ar prinde si greutati nelegate (ex. "Plastilina ... 500 g").
+ *
+ * Fiecare tipar are propriul nivel de "siguranta":
+ * - Format (A3-A6) e sigur peste tot - cod de format de hartie/document,
+ *   foarte putin probabil sa apara intamplator in alt sens.
+ * - Numar file e sigur peste tot - "file" e specific documentelor.
+ * - Liniatura e potrivire de cuvinte cheie, nu numar - sigura oriunde.
+ * - Gramaj si Numar coli raman scopate strict la categoria hârtie, fiindca
+ *   un regex generic de "gramaj" ar prinde si greutati nelegate
+ *   (ex. "Plastilina ... 500 g", care n-are legatura cu gramajul hartiei).
  *
  * @return array<string, string> grup => valoare
  */
@@ -821,20 +828,37 @@ function papetarie_storefront_aperta_extract_text_attributes(string $name, strin
 
     $isPaperCategory = mb_stripos($categoryPath, 'hârtie') !== false || mb_stripos($categoryPath, 'hartie') !== false;
 
-    if (!$isPaperCategory) {
-        return $attrs;
-    }
-
     if (preg_match('/\bA([3-6])\b/i', $name, $m)) {
         $attrs['Format'] = 'A' . $m[1];
     }
 
-    if (preg_match('/(\d+)\s*g(?:\/mp)?\b/i', $name, $m)) {
-        $attrs['Gramaj'] = $m[1] . ' g';
+    if (preg_match('/(\d+)\s*file\b/i', $name, $m)) {
+        $attrs['Număr file'] = $m[1] . ' file';
     }
 
-    if (preg_match('/(\d+)\s*\/\s*top\b/i', $name, $m)) {
-        $attrs['Număr coli'] = $m[1] . '/top';
+    $liniaturaKeywords = [
+        'dictando' => 'Dictando',
+        'matematică' => 'Matematică',
+        'matematica' => 'Matematică',
+        'velin' => 'Velin',
+        'pătrățele' => 'Pătrățele',
+        'patratele' => 'Pătrățele',
+    ];
+    foreach ($liniaturaKeywords as $needle => $label) {
+        if (mb_stripos($name, $needle) !== false) {
+            $attrs['Liniatură'] = $label;
+            break;
+        }
+    }
+
+    if ($isPaperCategory) {
+        if (preg_match('/(\d+)\s*g(?:\/mp)?\b/i', $name, $m)) {
+            $attrs['Gramaj'] = $m[1] . ' g';
+        }
+
+        if (preg_match('/(\d+)\s*\/\s*top\b/i', $name, $m)) {
+            $attrs['Număr coli'] = $m[1] . '/top';
+        }
     }
 
     return $attrs;
