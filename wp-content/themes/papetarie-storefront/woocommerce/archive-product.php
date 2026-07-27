@@ -236,7 +236,18 @@ get_header();
               </div>
               <div class="pap-archive-filter-body pap-archive-filter-checklist">
                 <?php foreach ($price_ranges as $range) : ?>
-                  <?php $is_checked = in_array($range['key'], $selected_price_ranges, true); ?>
+                  <?php
+                    $is_checked = in_array($range['key'], $selected_price_ranges, true);
+                    // O optiune fara niciun produs (posibila la intervale generate
+                    // algoritmic, nu neaparat pline toate) n-are ce sa filtreze -
+                    // ascundem randul, nu doar bageta cu numarul. Pastram optiunea
+                    // deja selectata vizibila chiar daca numaratoarea curenta e 0
+                    // (ex. dupa combinarea cu alt filtru), ca sa nu dispara de sub
+                    // click-ul utilizatorului fara explicatie.
+                    if (empty($price_range_counts[$range['key']]) && !$is_checked) {
+                        continue;
+                    }
+                  ?>
                   <label class="pap-archive-check-option">
                     <input type="checkbox" class="pap-checkbox-input" name="price_range[]" value="<?php echo esc_attr($range['key']); ?>" <?php checked($is_checked); ?>>
                     <span class="pap-archive-check-label"><?php echo esc_html($range['label']); ?></span>
