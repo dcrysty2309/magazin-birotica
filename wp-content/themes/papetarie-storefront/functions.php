@@ -7015,14 +7015,14 @@ function papetarie_storefront_get_column_group_headings(): array
 {
     return [
         'accesorii-pentru-scris' => [
-            'counts' => [9, 7],
+            'counts' => [8, 7],
             'headings' => [
                 __('Instrumente de scris', 'papetarie-storefront'),
                 __('Markere și accesorii', 'papetarie-storefront'),
             ],
         ],
         'organizare-arhivare-prezentare' => [
-            'counts' => [6, 7, 7],
+            'counts' => [6, 7, 6],
             'headings' => [
                 __('Arhivare', 'papetarie-storefront'),
                 __('Organizarea documentelor', 'papetarie-storefront'),
@@ -7037,7 +7037,7 @@ function papetarie_storefront_get_column_group_headings(): array
             ],
         ],
         'creativitate' => [
-            'counts' => [8, 8, 7, 7],
+            'counts' => [8, 7, 7, 5],
             'headings' => [
                 __('Scris și desenat', 'papetarie-storefront'),
                 __('Accesorii desenat', 'papetarie-storefront'),
@@ -7046,19 +7046,206 @@ function papetarie_storefront_get_column_group_headings(): array
             ],
         ],
         'periferice' => [
-            'counts' => [5, 4],
+            'counts' => [5, 3],
             'headings' => [
                 __('Dispozitive periferice', 'papetarie-storefront'),
                 __('Alimentare și accesorii', 'papetarie-storefront'),
             ],
         ],
         'curatenie-si-sanitare' => [
-            'counts' => [6, 5],
+            'counts' => [6, 6],
             'headings' => [
                 __('Produse de curățenie', 'papetarie-storefront'),
                 __('Igienă și accesorii menaj', 'papetarie-storefront'),
             ],
         ],
+    ];
+}
+
+/**
+ * Slug-urile fiecarei subcategorii din cele 6 categorii cu coloane grupate,
+ * IN ORDINEA dorita (coloana 1 apoi coloana 2 etc., conform 'counts' din
+ * papetarie_storefront_get_column_group_headings()). Sincronizarea Aperta
+ * creeaza subcategorii noi automat cand feed-ul aduce o cale noua, deci
+ * lista trebuie revazuta din cand in cand fata de categoriile reale
+ * (vezi papetarie_storefront_aperta_fix_menu_order()).
+ */
+function papetarie_storefront_get_menu_order_slugs(): array
+{
+    return [
+        'accesorii-pentru-scris' => [
+            'pixuri-cu-pasta',
+            'pixuri-cu-gel',
+            'pixuri-cu-gel-si-tehnologia-viscoglide',
+            'stilouri-si-rollere-cu-rezerve-de-cerneala',
+            'rollere-cu-cerneala',
+            'creioane-mecanice-si-mine',
+            'mine-pentru-pixuri',
+            'rezerve-de-cerneala-pic-corector',
+            'markere-universale',
+            'markere-permanente',
+            'markere-pentru-whiteboard-si-flipchart',
+            'textmarkere',
+            'linere',
+            'corectoare',
+            'gume-de-sters',
+        ],
+        'organizare-arhivare-prezentare' => [
+            'arhivare',
+            'bibliorafturi',
+            'dosare-din-carton',
+            'dosare-din-plastic',
+            'dosare-suspendate',
+            'caiete-mecanice',
+            'mape-si-accesorii',
+            'folii-si-mape-de-protectie',
+            'intercalatoare',
+            'indexuri',
+            'clipboarduri',
+            'accesorii-si-cutii-din-carton',
+            'plicuri',
+            'prezentare-si-afisare',
+            'etichete-pret-si-autoadezive',
+            'etichete-universale-pentru-copiator',
+            'ecusoane-si-accesorii',
+            'aparate-pentru-aplicat-preturi',
+            'benzi-din-cauciuc-si-adezive',
+        ],
+        'articole-pentru-birou' => [
+            'accesorii-pentru-birou',
+            'benzi-adezive',
+            'capsatoare',
+            'decapsatoare-si-capse-de-rezerva',
+            'foarfeci',
+            'perforatoare',
+            'suporturi-pentru-birou',
+            'calculatoare',
+            'cosuri-pentru-hartii',
+            'distrugatoare-hartie',
+            'ghilotine-pentru-hartie',
+            'masini-de-laminat',
+            'intretinere-si-curatenie',
+        ],
+        'creativitate' => [
+            'creioane-color',
+            'creioane-cerate',
+            'creioane-hb',
+            'carioci',
+            'carioci-textile',
+            'brushpen',
+            'ascutitori',
+            'linere-color',
+            'lipiciuri',
+            'blocuri-desen-si-schite',
+            'blocuri-mix-media',
+            'pensule',
+            'deco-markere',
+            'stilou-caligrafie',
+            'mask-up',
+            'tempera',
+            'acuarele',
+            'plastilina',
+            'seturi-colorat-si-pictura',
+            'markere-pentru-sticla',
+            'paint-markere',
+            'spray-uri-acrilice',
+            'markere-acrilice',
+            'markere-acrilice-efect-metalic',
+            'markere-efect-chrom',
+            'twin-markere',
+            'seturi-creative',
+        ],
+        'periferice' => [
+            'casti',
+            'boxe',
+            'camere',
+            'mouse',
+            'tastaturi',
+            'baterii-externe',
+            'incarcatoare',
+            'cabluri',
+        ],
+        'curatenie-si-sanitare' => [
+            'lavete',
+            'maturi-si-mopuri',
+            'detergenti-de-vase-si-geamuri',
+            'solutii-diverse-pentru-curatenie',
+            'bureti-pentru-vase',
+            'odorizanti',
+            'accesorii-menaj',
+            'manusi-menaj',
+            'hartie-igienica-si-dispensere',
+            'prosoape-de-hartie-si-dispensere',
+            'sapunuri-si-dispensere',
+            'sanitare',
+        ],
+    ];
+}
+
+/**
+ * Repara ordinea subcategoriilor din mega-meniu pe baza listei de mai sus si
+ * curata orice categorie orfana creata gresit de sincronizarea Aperta dintr-o
+ * cale de feed corupta (ex. "Periferice>Mouse,Periferice>Tastaturi" in loc de
+ * "Periferice>Tastaturi" - vezi papetarie_storefront_aperta_get_or_create_term()).
+ * Idempotenta - poate fi rulata de mai multe ori fara efecte secundare.
+ *
+ * @return array{ordered:int, missing:string[], reparented:string[]}
+ */
+function papetarie_storefront_aperta_fix_menu_order(): array
+{
+    $missing = [];
+    $ordered = 0;
+    $reparented = [];
+
+    // Cazul specific "Mouse,Periferice" -> Tastaturi trebuie sa fie copil
+    // direct al "Periferice", nu al categoriei corupte create din cauza
+    // virgulei din numele feed-ului.
+    $periferice = get_term_by('slug', 'periferice', 'product_cat');
+    $garbage = get_term_by('slug', 'mouseperiferice', 'product_cat');
+
+    if ($periferice instanceof WP_Term && $garbage instanceof WP_Term) {
+        $garbageChildren = get_terms([
+            'taxonomy' => 'product_cat',
+            'hide_empty' => false,
+            'parent' => $garbage->term_id,
+        ]);
+
+        if (!is_wp_error($garbageChildren)) {
+            foreach ($garbageChildren as $child) {
+                wp_update_term($child->term_id, 'product_cat', ['parent' => $periferice->term_id]);
+                $reparented[] = $child->slug;
+            }
+        }
+
+        wp_delete_term($garbage->term_id, 'product_cat');
+    }
+
+    foreach (papetarie_storefront_get_menu_order_slugs() as $parentSlug => $slugs) {
+        $parent = get_term_by('slug', $parentSlug, 'product_cat');
+
+        if (!($parent instanceof WP_Term)) {
+            continue;
+        }
+
+        $order = 1;
+        foreach ($slugs as $slug) {
+            $term = get_term_by('slug', $slug, 'product_cat');
+
+            if (!($term instanceof WP_Term) || (int) $term->parent !== $parent->term_id) {
+                $missing[] = "{$parentSlug}/{$slug}";
+                continue;
+            }
+
+            update_term_meta($term->term_id, 'order', $order);
+            $order++;
+            $ordered++;
+        }
+    }
+
+    return [
+        'ordered' => $ordered,
+        'missing' => $missing,
+        'reparented' => $reparented,
     ];
 }
 

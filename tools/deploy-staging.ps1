@@ -3,12 +3,21 @@ param(
     [string]$FtpUser = $env:STAGING_FTP_USER,
     [string]$FtpPassword = $env:STAGING_FTP_PASSWORD,
     [string]$TargetUrl = "https://notix.ro",
-    [string]$RemoteThemePath = "/public_html/wp-content/themes/papetarie-storefront",
+    # NOTA: radacina contului FTP (memoreaz) ESTE deja docroot-ul WordPress
+    # (wp-load.php, wp-config.php etc. stau direct acolo). Exista un subfolder
+    # "public_html" separat, orfan, care contine DOAR un wp-content vechi/dus
+    # (fara wp-load.php) - un artefact stray, nu docroot-ul live. Nu adauga
+    # niciun prefix "/public_html" aici, altfel deploy-ul ajunge in acel
+    # folder mort si site-ul live nu vede niciodata schimbarile (verificat
+    # direct 2026-07-27: fisierele ajungeau corect pe disc in acel folder,
+    # dar wp-admin continua sa serveasca versiunea veche pt ca PHP-ul real
+    # ruleaza din radacina FTP, nu din subfolderul "public_html").
+    [string]$RemoteThemePath = "/wp-content/themes/papetarie-storefront",
     [string]$LocalThemePath = "wp-content/themes/papetarie-storefront",
-    [string]$RemotePluginPath = "/public_html/wp-content/plugins",
+    [string]$RemotePluginPath = "/wp-content/plugins",
     [string]$LocalPluginPath = "wp-content/plugins",
     [string]$PackageZipPath = "",
-    [string]$RemotePackageBasePath = "/public_html/wp-content/themes/papetarie-storefront/tools",
+    [string]$RemotePackageBasePath = "/wp-content/themes/papetarie-storefront/tools",
     [string]$RemotePackageZipFileName = "staging-package.zip",
     [string]$RemotePackageRunnerFileName = "staging-package-deploy-runner.php",
     [switch]$SkipPlugins,
@@ -250,8 +259,9 @@ if ([string]::IsNullOrWhiteSpace($PackageZipPath)) {
     }
 
     if (-not $DryRun) {
-        # $RemoteThemePath is an FTP/filesystem path (includes /public_html, the docroot);
-        # the public URL never includes that prefix, so strip it before building the check URL.
+        # FTP root IS the docroot here, so $RemoteThemePath is already a valid
+        # public URL path as-is (no prefix to strip). Kept as a no-op replace
+        # in case a caller still passes an explicit /public_html-prefixed path.
         $publicThemePath = $RemoteThemePath -replace '^/public_html', ''
         $localStylePath = Join-Path $localThemeRoot "style.css"
         Assert-RemoteFileMatchesLocal -LocalPath $localStylePath -RemotePath ($publicThemePath.TrimEnd('/') + '/style.css') -Label "theme stylesheet"

@@ -438,9 +438,15 @@ function papetarie_storefront_aperta_top_level_map(): array
 
 function papetarie_storefront_aperta_get_or_create_term(string $name, string $slug, int $parentId): int
 {
+    // Cautarea dupa slug trebuie scopata la parinte: get_term_by('slug', ...)
+    // e globala pe toata taxonomia, deci doua categorii cu acelasi nume sub
+    // parinti diferiti (ex. un rand de feed cu o cale corupta gen
+    // "Periferice>Mouse,Periferice>Tastaturi" alaturi de randul corect
+    // "Periferice>Tastaturi") ar fi fost legate gresit de primul termen
+    // creat, indiferent de parintele lui real.
     $existing = get_term_by('slug', $slug, 'product_cat');
 
-    if ($existing instanceof WP_Term) {
+    if ($existing instanceof WP_Term && (int) $existing->parent === $parentId) {
         return (int) $existing->term_id;
     }
 
@@ -453,7 +459,13 @@ function papetarie_storefront_aperta_get_or_create_term(string $name, string $sl
             return (int) $byName->term_id;
         }
 
-        throw new RuntimeException('Nu am putut crea categoria ' . $name . ': ' . $created->get_error_message());
+        // Slug-ul e ocupat de un termen cu alt parinte - lasam WP sa genereze
+        // un slug unic (ex. tastaturi-2) in loc sa esuam sau sa ne agatam gresit.
+        $created = wp_insert_term($name, 'product_cat', ['parent' => $parentId]);
+
+        if (is_wp_error($created)) {
+            throw new RuntimeException('Nu am putut crea categoria ' . $name . ': ' . $created->get_error_message());
+        }
     }
 
     return (int) $created['term_id'];
@@ -1121,7 +1133,13 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
 
     $product->set_name($name);
     $product->set_description($description);
-    $product->set_status('publish');
+    // Produsele noi (necunoscute pana acum) intra ca ciorna, nu publicate
+    // direct - trebuie verificate manual in admin inainte sa apara pe site.
+    // Produsele deja existente isi pastreaza starea curenta neatinsa (daca
+    // un admin le-a scos manual de pe site, sincronizarea nu le repune).
+    if ($isNew) {
+        $product->set_status('draft');
+    }
     $product->set_catalog_visibility('visible');
 
     $categoryId = papetarie_storefront_aperta_resolve_category($categoryPath);
