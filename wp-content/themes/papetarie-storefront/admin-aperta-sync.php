@@ -274,7 +274,7 @@ function papetarie_storefront_render_aperta_sync_page(): void
                 __('%d x/zi (1:30 și din oră în oră 9:30–17:30)', 'papetarie-storefront'),
                 $stockSchedule['count'] ?: 10
             )); ?></td>
-            <td><?php esc_html_e('~4–5 minute', 'papetarie-storefront'); ?></td>
+            <td><?php esc_html_e('Variabil — mai lent prima dată, apoi rapid (sare peste stocurile neschimbate)', 'papetarie-storefront'); ?></td>
             <td><?php esc_html_e('Nu — actualizare rapidă, fără impact vizibil.', 'papetarie-storefront'); ?></td>
             <td><?php echo esc_html(papetarie_storefront_aperta_format_next_run($stockSchedule['next'])); ?></td>
             <td><button type="button" class="button button-primary" data-pap-run="stock"><?php esc_html_e('Rulează acum', 'papetarie-storefront'); ?></button></td>

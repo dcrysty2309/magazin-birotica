@@ -1340,28 +1340,42 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
             continue;
         }
 
+        $quantity = (int) $data['stock'];
+
+        // Verificare rapida (doar postmeta, fara sa incarcam tot obiectul
+        // WC_Product) inainte sa decidem daca chiar trebuie scris ceva -
+        // aceeasi idee ca la produse: marea majoritate a stocurilor nu se
+        // schimba intre doua verificari orare, deci evitam save()-ul greu
+        // pentru ele.
+        $oldQuantityRaw = get_post_meta($postId, '_stock', true);
+        $oldQuantity = $oldQuantityRaw === '' ? null : (int) $oldQuantityRaw;
+        $oldStatus = get_post_meta($postId, '_stock_status', true);
+        $expectedStatus = $quantity > 0 ? 'instock' : ($oldStatus === 'onbackorder' ? 'onbackorder' : 'outofstock');
+
+        if ($oldQuantity === $quantity && $oldStatus === $expectedStatus) {
+            $applied[] = [
+                'sku' => $codUnic,
+                'name' => get_the_title($postId) . ' (stoc: ' . $quantity . ' → ' . $quantity . ')',
+                'changed' => false,
+            ];
+            continue;
+        }
+
         $product = wc_get_product($postId);
         if (!($product instanceof WC_Product)) {
             continue;
         }
 
-        $oldQuantity = $product->get_stock_quantity();
-        $quantity = (int) $data['stock'];
         $product->set_manage_stock(true);
         $product->set_stock_quantity($quantity);
-        $product->set_stock_status($quantity > 0 ? 'instock' : $product->get_stock_status());
-
-        if ($quantity <= 0 && $product->get_stock_status() !== 'onbackorder') {
-            $product->set_stock_status('outofstock');
-        }
-
+        $product->set_stock_status($expectedStatus);
         $product->save();
 
         $oldLabel = $oldQuantity === null ? '—' : (string) $oldQuantity;
         $applied[] = [
             'sku' => $codUnic,
             'name' => $product->get_name() . ' (stoc: ' . $oldLabel . ' → ' . $quantity . ')',
-            'changed' => $oldQuantity !== $quantity,
+            'changed' => true,
         ];
     }
 
