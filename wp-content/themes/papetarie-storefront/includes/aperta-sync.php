@@ -921,6 +921,21 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
         return 'Matematică';
     }
 
+    // "160 g", "160 g/mp", "80g/mp" sunt aceeasi gramaj, doar scrise diferit
+    // intre descriere (Aperta) si titlu (extract_text_attributes) - pastram
+    // doar numarul + "g", indiferent de sufixul "/mp" sau spatiere.
+    if ($group === 'Gramaj' && preg_match('/^(\d+)\s*g/i', $value, $m)) {
+        return $m[1] . ' g';
+    }
+
+    // "250 coli/top" si "250 coli/top, 4 topuri/cutie" sunt acelasi numar de
+    // coli per top - detaliul suplimentar (topuri/cutie) are oricum propriul
+    // grup separat ("Topuri/cutie"), deci nu se pierde, doar nu mai
+    // fragmenteaza si Ambalare in 2 optiuni pentru acelasi numar.
+    if ($group === 'Ambalare' && preg_match('/^(\d+\s*coli\s*\/\s*top)/iu', $value, $m)) {
+        return trim($m[1]);
+    }
+
     return $value;
 }
 
@@ -1044,6 +1059,39 @@ function papetarie_storefront_aperta_tag_multiple_attrs(int $productId, array $g
     }
 
     wp_set_object_terms($productId, $termIds, 'product_attr_value', false);
+}
+
+/**
+ * Ca tag_attr_terms(), dar combina si atributele suplimentare extrase din
+ * descriere/nume (Format, Gramaj, Ambalare etc.) - necesar pentru produsele
+ * VARIABILE, care altfel primesc doar atributul de variatie (culoare) si
+ * pierd restul informatiei structurate din descriere (multe produse cu
+ * variante de culoare au si ele liste <li>Format: A4</li> etc., dar pana
+ * acum nimic nu le citea, fiindca extract_description_attributes() /
+ * extract_text_attributes() rulau doar pe ramura produselor simple).
+ *
+ * @param array<int, string> $variantValues
+ * @param array<string, string> $extraGroupValuePairs grup => valoare (o singura valoare per grup)
+ */
+function papetarie_storefront_aperta_tag_variant_and_extra_attrs(int $productId, string $variantGroup, array $variantValues, array $extraGroupValuePairs): void
+{
+    $termIds = [];
+
+    foreach (array_unique($variantValues) as $value) {
+        $termId = papetarie_storefront_aperta_get_or_create_attr_term($variantGroup, $value);
+        if ($termId !== null) {
+            $termIds[] = $termId;
+        }
+    }
+
+    foreach ($extraGroupValuePairs as $group => $value) {
+        $termId = papetarie_storefront_aperta_get_or_create_attr_term($group, $value);
+        if ($termId !== null) {
+            $termIds[] = $termId;
+        }
+    }
+
+    wp_set_object_terms($productId, array_unique($termIds), 'product_attr_value', false);
 }
 
 /**
@@ -1433,7 +1481,7 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     $variationsSummary = null;
 
     if ($isVariable) {
-        $variationsSummary = papetarie_storefront_aperta_sync_variations($productId, $rows, $discountPercent);
+        $variationsSummary = papetarie_storefront_aperta_sync_variations($productId, $rows, $discountPercent, $name, $description, $categoryPath);
     } else {
         $price = round(((float) str_replace(',', '.', (string) $first['Pret produs'])) * (1 - $discountPercent / 100), 2);
         $newPrice = $price;
@@ -1570,7 +1618,7 @@ function papetarie_storefront_aperta_upsert_is_changed(array $result): bool
  * @param array<int, array<string, string>> $rows
  * @return array{total: int, new: int, changed: int}
  */
-function papetarie_storefront_aperta_sync_variations(int $productId, array $rows, float $discountPercent): array
+function papetarie_storefront_aperta_sync_variations(int $productId, array $rows, float $discountPercent, string $name = '', string $description = '', string $categoryPath = ''): array
 {
     $attributeName = '';
     foreach ($rows as $row) {
@@ -1605,7 +1653,15 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
 
     // Etichetare pentru filtrare pe pagina de arhiva (separat de atributul
     // WooCommerce de mai sus, care e pentru afisare/variatii, nu pentru query).
-    papetarie_storefront_aperta_tag_attr_terms($productId, $attributeName, $values);
+    // Combinam si atributele extrase din descriere/nume (Format, Gramaj,
+    // Ambalare etc.) - multe produse variabile au si ele liste structurate
+    // in descriere, pierdute pana acum fiindca doar culoarea/varianta se
+    // etticheta pentru produsele variabile.
+    $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
+    $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
+    $extraAttrs = $descAttrs + $textAttrs;
+    unset($extraAttrs[$attributeName]);
+    papetarie_storefront_aperta_tag_variant_and_extra_attrs($productId, $attributeName, $values, $extraAttrs);
 
     $attributeKey = sanitize_title($attributeName);
     $firstImageId = null;
