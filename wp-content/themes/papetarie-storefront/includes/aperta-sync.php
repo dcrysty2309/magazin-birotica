@@ -130,6 +130,7 @@ function papetarie_storefront_aperta_progress_start(string $flow, int $total, ?s
     $progress['total'] = $total;
     $progress['processed'] = 0;
     $progress['matched'] = 0;
+    $progress['matched_published'] = 0;
     $progress['changed'] = 0;
     $progress['unchanged'] = 0;
     // progress_start() inseamna mereu "o rulare noua incepe acum" - fie una
@@ -148,7 +149,7 @@ function papetarie_storefront_aperta_progress_start(string $flow, int $total, ?s
 }
 
 /**
- * @param array<int, array{sku: string, name: string, changed?: bool}> $affectedItems fiecare item = un cod gasit pe site (potrivit); cele nepotrivite nu apar aici
+ * @param array<int, array{sku: string, name: string, changed?: bool, trashed?: bool}> $affectedItems fiecare item = un cod gasit pe site (potrivit); cele nepotrivite nu apar aici
  */
 function papetarie_storefront_aperta_progress_tick(string $flow, int $scannedCount, array $affectedItems): void
 {
@@ -161,6 +162,13 @@ function papetarie_storefront_aperta_progress_tick(string $flow, int $scannedCou
             $progress['changed']++;
         } else {
             $progress['unchanged']++;
+        }
+        // 'matched' include si produsele din cosul de gunoi (gasite explicit
+        // acolo, ca sa le tinem stocul la zi) - 'matched_published' e cel
+        // afisat in raport, ca sa se potriveasca cu numararea de la cardul
+        // "Total products" (care exclude trash).
+        if (empty($item['trashed'])) {
+            $progress['matched_published']++;
         }
     }
 
@@ -203,6 +211,7 @@ function papetarie_storefront_aperta_record_history(string $flow, array $progres
         'duration' => ($progress['started_at'] && $progress['finished_at']) ? ($progress['finished_at'] - $progress['started_at']) : null,
         'total' => $progress['total'],
         'matched' => $progress['matched'],
+        'matched_published' => $progress['matched_published'] ?? $progress['matched'],
         'changed' => $progress['changed'],
         'unchanged' => $progress['unchanged'],
         'run_id' => $runId,
@@ -848,6 +857,14 @@ function papetarie_storefront_aperta_find_legacy_product_by_name(string $name): 
  */
 function papetarie_storefront_aperta_normalize_attr_group(string $group): string
 {
+    // Verificat INAINTE de regula generica "culo" -> Culoare de mai jos:
+    // "Numar culori"/"N culori/set" e CATE nuante vin intr-un set, nu
+    // culoarea in sine - dar "culo" e substring in "culori", deci regula
+    // generica l-ar fi inghitit gresit daca ar fi verificata prima.
+    if (mb_stripos($group, 'culori') !== false && preg_match('/\bnr\.?\b|n[uă]m[aă]r/iu', $group)) {
+        return 'Număr culori';
+    }
+
     if (mb_stripos($group, 'culo') !== false) {
         return 'Culoare';
     }
@@ -1171,6 +1188,13 @@ function papetarie_storefront_aperta_extract_text_attributes(string $name, strin
         $attrs['Vârstă'] = $m[1] . '+ ani';
     }
 
+    // "20 culori", "4 culori" - tipar frecvent la plastilină/seturi creative,
+    // separat de culoarea in sine (o singura nuanta) - aici e CATE nuante
+    // vin in set.
+    if (preg_match('/(\d+)\s*culori\b/iu', $name, $m)) {
+        $attrs['Număr culori'] = $m[1] . ' culori';
+    }
+
     return $attrs;
 }
 
@@ -1244,7 +1268,7 @@ function papetarie_storefront_aperta_stock_status_from_text(string $statusText):
 function papetarie_storefront_aperta_upsert_product(array $rows): array
 {
     if (empty($rows)) {
-        return ['product_id' => 0, 'is_new' => false, 'is_variable' => false, 'old_price' => null, 'new_price' => null];
+        return ['product_id' => 0, 'is_new' => false, 'is_variable' => false, 'old_price' => null, 'new_price' => null, 'was_trashed' => false];
     }
 
     $first = $rows[0];
@@ -1272,6 +1296,11 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     }
 
     $isNew = $productId === null;
+    // find_by_sku_meta/find_parent_by_cod_produs cauta si prin trash (ca sa
+    // tina stocul la zi la produse posibil restaurabile) - retinem starea
+    // gasita ca sa raportam "gasit pe site" excluzand trash-ul, la fel ca la
+    // cardul "Total products".
+    $wasTrashed = !$isNew && get_post_status($productId) === 'trash';
     $oldPrice = (!$isNew && !$isVariable) ? get_post_meta($productId, '_regular_price', true) : '';
     $oldPrice = $oldPrice !== '' ? (float) $oldPrice : null;
 
@@ -1294,6 +1323,7 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
                 'old_price' => $oldPrice,
                 'new_price' => $oldPrice,
                 'variations' => null,
+                'was_trashed' => $wasTrashed,
             ];
         }
     }
@@ -1378,6 +1408,7 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
         'old_price' => $oldPrice,
         'new_price' => $newPrice,
         'variations' => $variationsSummary,
+        'was_trashed' => $wasTrashed,
     ];
 }
 
@@ -1585,7 +1616,7 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
  * @param array<string, array{stock: int}> $stockByCodUnic
  */
 /**
- * @return array<int, array{sku: string, name: string}> produsele chiar afectate (SKU-uri gasite pe site)
+ * @return array<int, array{sku: string, name: string, changed: bool, trashed: bool}> produsele chiar afectate (SKU-uri gasite pe site)
  */
 function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
 {
@@ -1596,6 +1627,12 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
         if ($postId === null) {
             continue;
         }
+
+        // find_by_sku_meta cauta si prin trash (ca sa tina stocul la zi la
+        // produse posibil restaurabile) - retinem starea gasita ca sa
+        // raportam "gasit pe site" excluzand trash-ul, la fel ca la cardul
+        // "Total products".
+        $isTrashed = get_post_status($postId) === 'trash';
 
         $quantity = (int) $data['stock'];
 
@@ -1618,6 +1655,7 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
                 // simplu text node (nu html()), entitatea ar aparea literal pe ecran.
                 'name' => get_post_field('post_title', $postId) . ' (stoc: ' . $quantity . ' → ' . $quantity . ')',
                 'changed' => false,
+                'trashed' => $isTrashed,
             ];
             continue;
         }
@@ -1637,6 +1675,7 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
             'sku' => $codUnic,
             'name' => $product->get_name() . ' (stoc: ' . $oldLabel . ' → ' . $quantity . ')',
             'changed' => true,
+            'trashed' => $isTrashed,
         ];
     }
 
@@ -1686,6 +1725,7 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
             'sku' => trim((string) $grouped[$code][0]['Cod unic']),
             'name' => trim((string) $grouped[$code][0]['Denumire produs']) . ' (' . papetarie_storefront_aperta_describe_upsert($result) . ')',
             'changed' => papetarie_storefront_aperta_upsert_is_changed($result),
+            'trashed' => $result['was_trashed'],
         ];
     }
 
