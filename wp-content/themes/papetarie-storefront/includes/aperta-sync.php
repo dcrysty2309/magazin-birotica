@@ -1590,7 +1590,11 @@ function papetarie_storefront_aperta_sync_stock_chunk_cb(int $offset = 0): void
 
 add_action('pap_aperta_sync_products_start', 'papetarie_storefront_aperta_sync_products_start_cb');
 add_action('pap_aperta_sync_products_chunk', 'papetarie_storefront_aperta_sync_products_chunk_cb');
-add_action('pap_aperta_sync_stock_start', 'papetarie_storefront_aperta_sync_stock_start_cb');
+// accepted_args=2 explicit - implicit WordPress trimite doar primul argument
+// din actiune, deci $trigger (al 2-lea parametru) nu ar ajunge niciodata la
+// callback; fara asta, rularile pornite manual din "Ruleaza acum" erau
+// etichetate gresit "Automat (program)" in istoric, mereu.
+add_action('pap_aperta_sync_stock_start', 'papetarie_storefront_aperta_sync_stock_start_cb', 10, 2);
 add_action('pap_aperta_sync_stock_chunk', 'papetarie_storefront_aperta_sync_stock_chunk_cb');
 
 /**

@@ -332,7 +332,14 @@ function papetarie_storefront_render_aperta_sync_page(): void
                 $hasLog = $runId !== '' && isset($retainedRunLogIds[$runId]);
             ?>
               <tr>
-                <td><?php echo esc_html(date_i18n('d.m.Y H:i', $row['finished_at'])); ?></td>
+                <td><?php
+                    // date_i18n() foloseste fusul orar al site-ului (UTC) - la fel ca
+                    // la "Urmatoarea rulare", afisam explicit in ora Romaniei.
+                    $finishedAtRo = (new DateTime('@' . $row['finished_at']))
+                        ->setTimezone(new DateTimeZone('Europe/Bucharest'))
+                        ->format('d.m.Y H:i');
+                    echo esc_html($finishedAtRo);
+                ?></td>
                 <td><?php echo esc_html($row['flow'] === 'stock' ? __('Stoc', 'papetarie-storefront') : __('Produse', 'papetarie-storefront')); ?></td>
                 <td><?php echo esc_html(($row['trigger'] ?? 'auto') === 'manual' ? __('Manual („Rulează acum”)', 'papetarie-storefront') : __('Automat (program)', 'papetarie-storefront')); ?></td>
                 <td><?php echo esc_html((string) $row['total']); ?></td>
