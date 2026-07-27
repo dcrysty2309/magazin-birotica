@@ -1024,6 +1024,29 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     $oldPrice = (!$isNew && !$isVariable) ? get_post_meta($productId, '_regular_price', true) : '';
     $oldPrice = $oldPrice !== '' ? (float) $oldPrice : null;
 
+    // Optimizare majora: daca produsul exista deja si toate randurile lui
+    // din feed sunt identice cu ultima rulare (hash comparat), sarim complet
+    // peste rezolvare categorie/brand, verificare poze si save() - in
+    // practica marea majoritate a produselor nu se schimba de la o noapte
+    // la alta, iar munca aia (query-uri, save() cu toate hook-urile
+    // WooCommerce) e ce facea rularile de noapte sa dureze ore in loc de
+    // minute. Fara asta, verificam identic aceleasi date in gol, in fiecare
+    // noapte, pentru cele ~3000 de produse nemodificate.
+    $rowHash = md5(serialize($rows));
+    if (!$isNew) {
+        $storedHash = get_post_meta($productId, '_pap_aperta_row_hash', true);
+        if ($storedHash === $rowHash) {
+            return [
+                'product_id' => $productId,
+                'is_new' => false,
+                'is_variable' => $isVariable,
+                'old_price' => $oldPrice,
+                'new_price' => $oldPrice,
+                'variations' => null,
+            ];
+        }
+    }
+
     $product = $isVariable ? new WC_Product_Variable($productId ?? 0) : new WC_Product_Simple($productId ?? 0);
 
     $product->set_name($name);
@@ -1088,6 +1111,8 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
             papetarie_storefront_aperta_tag_multiple_attrs($productId, $allAttrs);
         }
     }
+
+    update_post_meta($productId, '_pap_aperta_row_hash', $rowHash);
 
     return [
         'product_id' => $productId,
