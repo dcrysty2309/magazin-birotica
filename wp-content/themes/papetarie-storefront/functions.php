@@ -4026,7 +4026,18 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
     // fiecare produs are alta valoare - ex. "Greutate: 0,42kg", "Greutate:
     // 0,46kg" - practic nu grupeaza nimic, e mai degraba o specificatie
     // unica per produs decat un filtru real).
-    return array_filter($grouped, static function (array $values): bool {
+    // Grupuri care sunt masuratori fizice continue (greutate exacta in kg),
+    // nu categorii reale - aproape fiecare model de produs are alta greutate,
+    // deci exact cazul "Greutate: 0,42kg" vs "0,46kg" din comentariul de mai
+    // jos; niciun prag de numarare nu rezolva asta corect (17-20 valori
+    // aproape unice trec totusi de pragul de "20 valori maxim").
+    $nonFilterableGroups = ['Greutate'];
+
+    return array_filter($grouped, static function (array $values, string $group) use ($nonFilterableGroups): bool {
+        if (in_array($group, $nonFilterableGroups, true)) {
+            return false;
+        }
+
         $distinctCount = count($values);
 
         if ($distinctCount < 2 || $distinctCount > 20) {
@@ -4036,7 +4047,11 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
         $totalProducts = array_sum(array_column($values, 'count'));
         $avgProductsPerValue = $totalProducts / $distinctCount;
 
-        if ($avgProductsPerValue < 1.5) {
+        // 1.2 (nu 1.5) - la categorii mici (sub ~10 produse), un atribut cu
+        // 3-4 valori distincte pica sub orice prag mai strict doar din cauza
+        // volumului mic, desi extras corect si real folositor (ex. Format
+        // A4/A5 la "Coperti si etichete", 9 produse in total).
+        if ($avgProductsPerValue < 1.2) {
             return false;
         }
 
@@ -4051,7 +4066,7 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
         $avgWordsPerValue = $totalWords / $distinctCount;
 
         return $avgWordsPerValue <= 3;
-    });
+    }, ARRAY_FILTER_USE_BOTH);
 }
 
 function papetarie_storefront_get_selected_attribute_terms(): array

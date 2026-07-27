@@ -908,6 +908,23 @@ function papetarie_storefront_aperta_normalize_attr_group(string $group): string
 }
 
 /**
+ * Normalizare pe VALOARE, condiționată de grup (spre deosebire de
+ * normalize_attr_group() de mai sus, care normalizeaza doar eticheta de
+ * grup). Cazuri unde valoarea are o precizare in plus fata de conceptul
+ * general - "Matematica, 4 x 4 mm" e tot liniatura "Matematica", doar cu
+ * dimensiunea exacta a patratelelor mentionata - un filtru separat per
+ * dimensiune ar fragmenta inutil o lista deja mica de liniaturi.
+ */
+function papetarie_storefront_aperta_normalize_attr_value(string $group, string $value): string
+{
+    if ($group === 'Liniatură' && mb_stripos($value, 'matematic') === 0) {
+        return 'Matematică';
+    }
+
+    return $value;
+}
+
+/**
  * Taxonomie unica pentru VALORI de atribute filtrabile (culoare, format etc.),
  * indiferent de numele atributului - un singur termen = o pereche (grup, valoare),
  * ex. slug "culoare-rosu", cu grupul ("Culoare") retinut in term meta
@@ -943,7 +960,7 @@ add_action('init', 'papetarie_storefront_aperta_register_attr_taxonomy');
 function papetarie_storefront_aperta_get_or_create_attr_term(string $group, string $value): ?int
 {
     $group = papetarie_storefront_aperta_normalize_attr_group(trim($group));
-    $value = trim($value);
+    $value = papetarie_storefront_aperta_normalize_attr_value($group, trim($value));
 
     if ($group === '' || $value === '') {
         return null;
