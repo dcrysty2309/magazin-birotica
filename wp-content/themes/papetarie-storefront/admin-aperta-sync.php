@@ -252,8 +252,8 @@ function papetarie_storefront_render_aperta_sync_page(): void
               </details>
             </td>
             <td><?php esc_html_e('1x/zi, ~3:10', 'papetarie-storefront'); ?></td>
-            <td><?php esc_html_e('~20–40 minute (mai mult dacă sunt multe poze noi)', 'papetarie-storefront'); ?></td>
-            <td><?php esc_html_e('Nu — site-ul rămâne funcțional, produsele se actualizează treptat, unul câte unul.', 'papetarie-storefront'); ?></td>
+            <td><?php esc_html_e('~3–5 ore (rulează noaptea, pe bucăți mici, ca să nu se blocheze)', 'papetarie-storefront'); ?></td>
+            <td><?php esc_html_e('Nu — site-ul rămâne funcțional tot timpul, produsele se actualizează treptat, unul câte unul, iar rularea e programată noaptea, în afara orelor cu trafic.', 'papetarie-storefront'); ?></td>
             <td><?php echo esc_html(papetarie_storefront_aperta_format_next_run($productsSchedule['next'])); ?></td>
             <td><button type="button" class="button button-primary" data-pap-run="products"><?php esc_html_e('Rulează acum', 'papetarie-storefront'); ?></button></td>
           </tr>
