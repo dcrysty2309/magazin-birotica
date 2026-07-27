@@ -283,19 +283,32 @@ function papetarie_storefront_render_aperta_sync_page(): void
       </table>
       <p class="description"><?php esc_html_e('„Rulează acum” pornește sincronizarea imediat, fără să aștepte programul (util pentru testare).', 'papetarie-storefront'); ?></p>
 
-      <div class="pap-aperta-card" style="margin: 16px 0 24px;">
-        <span class="pap-aperta-card-label"><?php esc_html_e('Actualizare rapidă filtre', 'papetarie-storefront'); ?></span>
-        <p class="description" style="margin: 4px 0 10px;"><?php esc_html_e('Aplică pe produsele deja sincronizate cele mai noi reguli de extragere a filtrelor (culoare, format, material etc.), fără să refacă toată sincronizarea (fără poze, fără prețuri) — durează câteva secunde, nu ore. Folosește asta după ce urci o versiune nouă de cod cu reguli de filtre schimbate.', 'papetarie-storefront'); ?></p>
-        <button type="button" class="button button-secondary" id="pap-aperta-backfill-attrs"><?php esc_html_e('Actualizează filtrele acum', 'papetarie-storefront'); ?></button>
-        <p class="description" id="pap-aperta-backfill-status" style="margin-top: 8px;"></p>
-      </div>
+      <details class="pap-aperta-maintenance" style="margin: 16px 0 24px; border: 1px solid #dcdcde; border-radius: 4px; background: #f6f7f7;">
+        <summary style="padding: 10px 14px; cursor: pointer; font-weight: 600; color: #50575e;"><?php esc_html_e('Instrumente de întreținere (rar necesare)', 'papetarie-storefront'); ?></summary>
+        <div style="padding: 4px 14px 14px;">
+          <p class="description" style="margin: 0 0 14px;"><?php esc_html_e('Cele două de mai jos sunt sigure de rulat oricând (nu strică nimic, nu afectează comenzi/clienți) — dar nu sunt pentru uz zilnic. Fiecare explică mai jos exact când chiar are rost să le apeși.', 'papetarie-storefront'); ?></p>
 
-      <div class="pap-aperta-card" style="margin: 16px 0 24px;">
-        <span class="pap-aperta-card-label"><?php esc_html_e('Ordinea meniului', 'papetarie-storefront'); ?></span>
-        <p class="description" style="margin: 4px 0 10px;"><?php esc_html_e('Repară ordinea subcategoriilor din mega-meniu (coloanele grupate logic) și curăță categoriile create greșit de sincronizare dintr-o cale de feed coruptă. Rulează instant. Folosește asta după ce sincronizarea a creat subcategorii noi sau ordinea din meniu nu se potrivește cu local.', 'papetarie-storefront'); ?></p>
-        <button type="button" class="button button-secondary" id="pap-aperta-fix-menu-order"><?php esc_html_e('Repară ordinea meniului', 'papetarie-storefront'); ?></button>
-        <p class="description" id="pap-aperta-fix-menu-order-status" style="margin-top: 8px;"></p>
-      </div>
+          <div class="pap-aperta-card" style="margin: 0 0 16px; background: #fff;">
+            <span class="pap-aperta-card-label"><?php esc_html_e('Actualizare filtre', 'papetarie-storefront'); ?></span>
+            <p class="description" style="margin: 4px 0 10px;">
+              <strong><?php esc_html_e('Rulează doar dacă:', 'papetarie-storefront'); ?></strong>
+              <?php esc_html_e('tocmai am urcat cod nou care schimbă modul în care extragem filtrele (culoare, format, material) și vrem să se aplice imediat pe produsele deja sincronizate, fără să așteptăm ca ele să se schimbe și în feed-ul Aperta (sincronizarea de noapte le-ar sări pe cele nemodificate, ca să fie rapidă). Nu atinge poze, prețuri sau stoc — doar filtrele. Durează câteva secunde.', 'papetarie-storefront'); ?>
+            </p>
+            <button type="button" class="button button-secondary" id="pap-aperta-backfill-attrs"><?php esc_html_e('Actualizează filtrele acum', 'papetarie-storefront'); ?></button>
+            <p class="description" id="pap-aperta-backfill-status" style="margin-top: 8px;"></p>
+          </div>
+
+          <div class="pap-aperta-card" style="margin: 0; background: #fff;">
+            <span class="pap-aperta-card-label"><?php esc_html_e('Ordinea meniului', 'papetarie-storefront'); ?></span>
+            <p class="description" style="margin: 4px 0 10px;">
+              <strong><?php esc_html_e('Rulează doar dacă:', 'papetarie-storefront'); ?></strong>
+              <?php esc_html_e('sincronizarea a adus subcategorii noi de la Aperta și observăm că în meniul principal apar în ordine greșită (alfabetic, nu grupate logic pe coloane ca pe local). Odată reparată, ordinea rămâne fixă — nu trebuie rulat din nou decât dacă apar iar subcategorii noi.', 'papetarie-storefront'); ?>
+            </p>
+            <button type="button" class="button button-secondary" id="pap-aperta-fix-menu-order"><?php esc_html_e('Repară ordinea meniului', 'papetarie-storefront'); ?></button>
+            <p class="description" id="pap-aperta-fix-menu-order-status" style="margin-top: 8px;"></p>
+          </div>
+        </div>
+      </details>
 
       <h2><?php esc_html_e('Progres live', 'papetarie-storefront'); ?></h2>
       <div class="pap-aperta-progress-grid">
