@@ -283,6 +283,13 @@ function papetarie_storefront_render_aperta_sync_page(): void
       </table>
       <p class="description"><?php esc_html_e('„Rulează acum” pornește sincronizarea imediat, fără să aștepte programul (util pentru testare).', 'papetarie-storefront'); ?></p>
 
+      <div class="pap-aperta-card" style="margin: 16px 0 24px;">
+        <span class="pap-aperta-card-label"><?php esc_html_e('Actualizare rapidă filtre', 'papetarie-storefront'); ?></span>
+        <p class="description" style="margin: 4px 0 10px;"><?php esc_html_e('Aplică pe produsele deja sincronizate cele mai noi reguli de extragere a filtrelor (culoare, format, material etc.), fără să refacă toată sincronizarea (fără poze, fără prețuri) — durează câteva secunde, nu ore. Folosește asta după ce urci o versiune nouă de cod cu reguli de filtre schimbate.', 'papetarie-storefront'); ?></p>
+        <button type="button" class="button button-secondary" id="pap-aperta-backfill-attrs"><?php esc_html_e('Actualizează filtrele acum', 'papetarie-storefront'); ?></button>
+        <p class="description" id="pap-aperta-backfill-status" style="margin-top: 8px;"></p>
+      </div>
+
       <h2><?php esc_html_e('Progres live', 'papetarie-storefront'); ?></h2>
       <div class="pap-aperta-progress-grid">
         <?php foreach (['products' => ['label' => __('Produse', 'papetarie-storefront'), 'data' => $productsProgress], 'stock' => ['label' => __('Stoc', 'papetarie-storefront'), 'data' => $stockProgress]] as $flow => $info) : ?>
@@ -806,6 +813,44 @@ function papetarie_storefront_render_aperta_sync_page(): void
           });
         });
 
+        $('#pap-aperta-backfill-attrs').on('click', function () {
+          var $button = $(this);
+          var $status = $('#pap-aperta-backfill-status');
+
+          $button.prop('disabled', true);
+          $status.text('<?php echo esc_js(__('Pornit…', 'papetarie-storefront')); ?>');
+
+          function processChunk(offset) {
+            $.post(ajaxurl, {
+              action: 'pap_aperta_backfill_attrs',
+              nonce: nonce,
+              offset: offset
+            }).done(function (response) {
+              if (!response || !response.success) {
+                $status.text((response && response.data && response.data.message) ? response.data.message : '<?php echo esc_js(__('A apărut o eroare.', 'papetarie-storefront')); ?>');
+                $button.prop('disabled', false);
+                return;
+              }
+
+              var data = response.data;
+              var nextOffset = offset + data.processed;
+              $status.text(nextOffset + ' / ' + data.total + ' <?php echo esc_js(__('produse verificate…', 'papetarie-storefront')); ?>');
+
+              if (nextOffset < data.total && data.processed > 0) {
+                processChunk(nextOffset);
+              } else {
+                $status.text('<?php echo esc_js(__('Gata —', 'papetarie-storefront')); ?> ' + data.total + ' <?php echo esc_js(__('produse verificate.', 'papetarie-storefront')); ?>');
+                $button.prop('disabled', false);
+              }
+            }).fail(function () {
+              $status.text('<?php echo esc_js(__('A apărut o eroare de conexiune.', 'papetarie-storefront')); ?>');
+              $button.prop('disabled', false);
+            });
+          }
+
+          processChunk(0);
+        });
+
         // O verificare imediată la deschiderea paginii, ca să reflecte o
         // rulare deja în curs (pornită din altă filă sau automat).
         poll();
@@ -930,3 +975,21 @@ function papetarie_storefront_aperta_ajax_purge_legacy(): void
     ]);
 }
 add_action('wp_ajax_pap_aperta_purge_legacy', 'papetarie_storefront_aperta_ajax_purge_legacy');
+
+function papetarie_storefront_aperta_ajax_backfill_attrs(): void
+{
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error(['message' => __('Nu ai permisiunea necesară.', 'papetarie-storefront')], 403);
+    }
+
+    check_ajax_referer('pap-aperta-run-now', 'nonce');
+
+    if (!function_exists('papetarie_storefront_aperta_backfill_attributes_chunk')) {
+        wp_send_json_error(['message' => __('Funcția de actualizare nu e disponibilă.', 'papetarie-storefront')], 400);
+    }
+
+    $offset = isset($_POST['offset']) ? max(0, (int) $_POST['offset']) : 0;
+
+    wp_send_json_success(papetarie_storefront_aperta_backfill_attributes_chunk($offset, 300));
+}
+add_action('wp_ajax_pap_aperta_backfill_attrs', 'papetarie_storefront_aperta_ajax_backfill_attrs');

@@ -818,6 +818,76 @@ function papetarie_storefront_aperta_tag_multiple_attrs(int $productId, array $g
 }
 
 /**
+ * Aplica filtrele de atribute pe produsele Aperta DEJA sincronizate, fara sa
+ * refaca sincronizarea completa (fara re-descarcare poze, fara reluare pret/
+ * stoc) - citeste direct din datele deja salvate in WordPress (nume,
+ * descriere, categorie, atribute existente), nu din feed.csv. Mult mai rapid
+ * decat o resincronizare completa, util cand codul de extragere a atributelor
+ * se schimba si vrem sa-l aplicam retroactiv pe produsele existente.
+ *
+ * @return array{processed: int, tagged: int, total: int}
+ */
+function papetarie_storefront_aperta_backfill_attributes_chunk(int $offset, int $limit): array
+{
+    $allIds = get_posts([
+        'post_type' => 'product',
+        'post_status' => 'any',
+        'meta_key' => '_pap_aperta_cod_produs',
+        'fields' => 'ids',
+        'posts_per_page' => -1,
+        'orderby' => 'ID',
+        'order' => 'ASC',
+    ]);
+
+    $total = count($allIds);
+    $ids = array_slice($allIds, $offset, $limit);
+    $tagged = 0;
+
+    foreach ($ids as $id) {
+        $product = wc_get_product($id);
+        if (!($product instanceof WC_Product)) {
+            continue;
+        }
+
+        if ($product instanceof WC_Product_Variable) {
+            $attributes = $product->get_attributes();
+            if (empty($attributes)) {
+                continue;
+            }
+            $attribute = reset($attributes);
+            $group = $attribute->get_name();
+            $values = $attribute->get_options();
+            if ($group === '' || empty($values)) {
+                continue;
+            }
+            papetarie_storefront_aperta_tag_attr_terms($id, $group, $values);
+            $tagged++;
+            continue;
+        }
+
+        $name = $product->get_name();
+        $description = $product->get_description();
+        $categoryNames = wp_get_post_terms($id, 'product_cat', ['fields' => 'names']);
+        $categoryPath = is_array($categoryNames) ? implode('>', $categoryNames) : '';
+
+        $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
+        $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
+        $allAttrs = $descAttrs + $textAttrs;
+
+        if ($allAttrs) {
+            papetarie_storefront_aperta_tag_multiple_attrs($id, $allAttrs);
+            $tagged++;
+        }
+    }
+
+    return [
+        'processed' => count($ids),
+        'tagged' => $tagged,
+        'total' => $total,
+    ];
+}
+
+/**
  * Extrage atribute filtrabile din NUMELE produsului, pentru produse simple
  * care nu au deloc date structurate de atribut in feed (spre deosebire de
  * produsele cu variante, unde Aperta trimite explicit "Tip variant"/"Variant").
