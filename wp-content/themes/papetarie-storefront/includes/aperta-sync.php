@@ -631,11 +631,18 @@ function papetarie_storefront_aperta_sideload_images(array $urls, int $productId
     return $ids;
 }
 
+// NOTA: 'any' in WP_Query/get_posts EXCLUDE 'trash' (particularitate WP,
+// nu include tot ce pare "orice status"). Includem explicit 'trash' aici,
+// altfel sincronizarea nu vede produsele excluse manual (curatenia facuta
+// impreuna cu Lavinia) si le recreeaza ca produse noi la fiecare rulare -
+// gasit 2026-07-27 chiar inainte de cronul de noapte.
+const PAP_APERTA_ALL_STATUSES = ['publish', 'draft', 'pending', 'private', 'future', 'trash'];
+
 function papetarie_storefront_aperta_find_by_sku_meta(string $codUnic): ?int
 {
     $ids = get_posts([
         'post_type' => ['product', 'product_variation'],
-        'post_status' => 'any',
+        'post_status' => PAP_APERTA_ALL_STATUSES,
         'meta_key' => '_pap_aperta_sku',
         'meta_value' => $codUnic,
         'fields' => 'ids',
@@ -649,7 +656,7 @@ function papetarie_storefront_aperta_find_parent_by_cod_produs(string $codProdus
 {
     $ids = get_posts([
         'post_type' => 'product',
-        'post_status' => 'any',
+        'post_status' => PAP_APERTA_ALL_STATUSES,
         'meta_key' => '_pap_aperta_cod_produs',
         'meta_value' => $codProdus,
         'fields' => 'ids',
