@@ -949,10 +949,24 @@ function papetarie_storefront_aperta_get_or_create_attr_term(string $group, stri
         return null;
     }
 
+    // Regula generala pentru orice valoare de filtru, indiferent de sursa
+    // (variantele produselor variabile vin ca text brut din feed - Aperta
+    // scrie "tip francez", "matematică, 4 x 4 mm" cu litera mica - fara
+    // asta, aceeasi optiune reala apare de 2 ori in filtru, o data cu
+    // majuscula (din alta sursa) si o data fara).
+    $value = mb_strtoupper(mb_substr($value, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($value, 1, null, 'UTF-8');
+
     $slug = sanitize_title($group . '-' . $value);
     $existing = get_term_by('slug', $slug, 'product_attr_value');
 
     if ($existing instanceof WP_Term) {
+        // Slug-ul e mereu minuscul (sanitize_title) - un termen creat cu
+        // regula veche, necapitalizata, e gasit tot aici, dar cu numele
+        // vechi neschimbat daca nu-l actualizam explicit.
+        if ($existing->name !== $value) {
+            wp_update_term($existing->term_id, 'product_attr_value', ['name' => $value]);
+        }
+
         return (int) $existing->term_id;
     }
 
@@ -1112,7 +1126,11 @@ function papetarie_storefront_aperta_extract_text_attributes(string $name, strin
     }
 
     if (preg_match('/(\d+)\s*file\b/i', $name, $m)) {
-        $attrs['Număr file'] = $m[1] . ' file';
+        // Valoare bruta (fara " file") - extractorul de descriere (Nr. File:
+        // 100) produce deja doar numarul, iar eticheta grupului ("Numar
+        // file") spune deja ce reprezinta; cu sufix, aceeasi valoare reala
+        // aparea de 2 ori in filtru ("100" si "100 file" separat).
+        $attrs['Număr file'] = $m[1];
     }
 
     $liniaturaKeywords = [
@@ -1136,7 +1154,12 @@ function papetarie_storefront_aperta_extract_text_attributes(string $name, strin
         }
 
         if (preg_match('/(\d+)\s*\/\s*top\b/i', $name, $m)) {
-            $attrs['Număr coli'] = $m[1] . '/top';
+            // Acelasi grup si acelasi format ca "Ambalare: 250 coli/top" din
+            // descriere (extract_description_attributes) - daca descrierea
+            // nu are bulletul respectiv, titlul ofera aceeasi informatie;
+            // scriind sub grup diferit ("Numar coli") am fi avut 2 optiuni
+            // de filtru separate pentru exact acelasi lucru.
+            $attrs['Ambalare'] = $m[1] . ' coli/top';
         }
     }
 
@@ -1167,6 +1190,28 @@ function papetarie_storefront_aperta_extract_text_attributes(string $name, strin
     foreach ($colorKeywords as $needle => $label) {
         if (preg_match('/\b' . preg_quote($needle, '/') . '\b/iu', $name)) {
             $attrs['Culoare'] = $label;
+            break;
+        }
+    }
+
+    // Tip produs, dupa un vocabular de cuvinte cunoscute - utile mai ales in
+    // categoriile "cos comun" (ex. "Accesorii" de la articole scolare, unde
+    // stau amestecate foarfece, rigle, compasuri) care altfel n-au niciun
+    // filtru care sa desparta tipurile de produse intre ele. Extindem lista
+    // pe masura ce gasim alte categorii cu aceeasi problema.
+    $productTypeKeywords = [
+        'foarfec' => 'Foarfecă',
+        'trusă geometrie' => 'Trusă geometrie',
+        'trusa geometrie' => 'Trusă geometrie',
+        'set geometrie' => 'Set geometrie',
+        'compas' => 'Compas',
+        'riglă' => 'Riglă', 'rigla' => 'Riglă',
+        'echer' => 'Echer',
+        'raportor' => 'Raportor',
+    ];
+    foreach ($productTypeKeywords as $needle => $label) {
+        if (mb_stripos($name, $needle) !== false) {
+            $attrs['Tip produs'] = $label;
             break;
         }
     }
@@ -1233,6 +1278,9 @@ function papetarie_storefront_aperta_extract_description_attributes(string $desc
 
         // Normalizare simpla de capitalizare, ca "Nr. file" si "Nr. FILE" sa
         // devina acelasi grup (altfel am avea carduri de filtru duplicate).
+        // Capitalizarea VALORII se face centralizat, in
+        // get_or_create_attr_term() - acolo trec si variantele produselor
+        // variabile (text brut din feed), nu doar cele extrase aici.
         $group = mb_convert_case($rawGroup, MB_CASE_TITLE, 'UTF-8');
 
         $attrs[$group] = $value;
