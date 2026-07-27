@@ -214,7 +214,7 @@ function papetarie_storefront_render_aperta_sync_page(): void
           <strong><?php echo esc_html((string) $productCount); ?></strong>
           <span class="pap-aperta-card-note"><?php echo esc_html(sprintf(
               /* translators: %d: total SKU/variant count */
-              __('%d variante individuale în total — dacă un produs are, de ex., 5 culori diferite, fiecare culoare are propriul cod (SKU) și e numărată separat aici', 'papetarie-storefront'),
+              __('%d variante individuale publicate în total — dacă un produs are, de ex., 5 culori diferite, fiecare culoare are propriul cod (SKU) și e numărată separat aici. Nu include produsele de la coșul de gunoi.', 'papetarie-storefront'),
               $skuCount
           )); ?></span>
         </div>
@@ -319,7 +319,7 @@ function papetarie_storefront_render_aperta_sync_page(): void
               <th><?php esc_html_e('Flux', 'papetarie-storefront'); ?></th>
               <th><?php esc_html_e('Pornit', 'papetarie-storefront'); ?></th>
               <th><?php esc_html_e('Verificate', 'papetarie-storefront'); ?></th>
-              <th><?php esc_html_e('Găsite pe site', 'papetarie-storefront'); ?></th>
+              <th title="<?php esc_attr_e('Include și produsele de la coșul de gunoi (stocul lor e ținut la zi pentru cazul în care sunt restaurate) - poate fi mai mare decât numărul de produse publicate afișat mai sus.', 'papetarie-storefront'); ?>"><?php esc_html_e('Găsite pe site', 'papetarie-storefront'); ?> ⓘ</th>
               <th><?php esc_html_e('Schimbate', 'papetarie-storefront'); ?></th>
               <th><?php esc_html_e('Neschimbate', 'papetarie-storefront'); ?></th>
               <th><?php esc_html_e('Durată', 'papetarie-storefront'); ?></th>
@@ -725,7 +725,8 @@ function papetarie_storefront_render_aperta_sync_page(): void
               summary = '<?php echo esc_js(__('Am verificat', 'papetarie-storefront')); ?> ' + data.total + ' <?php echo esc_js(__('variante/SKU-uri (', 'papetarie-storefront')); ?>' + siteProductCount + '<?php echo esc_js(__(' produse) — actualizate:', 'papetarie-storefront')); ?> ' + data.changed
                 + ', <?php echo esc_js(__('neschimbate:', 'papetarie-storefront')); ?> ' + data.unchanged + '.';
               tooltipText = '<?php echo esc_js(__('Din cele verificate,', 'papetarie-storefront')); ?> ' + data.matched + ' <?php echo esc_js(__('au fost găsite pe site.', 'papetarie-storefront')); ?>\n\n'
-                + '<?php echo esc_js(__('Dacă un produs are mai multe culori sau mărimi, se numește produs variabil: e un singur produs pe site, dar fiecare culoare/mărime are propriul cod (SKU) și stoc — verificate separat.', 'papetarie-storefront')); ?>';
+                + '<?php echo esc_js(__('Dacă un produs are mai multe culori sau mărimi, se numește produs variabil: e un singur produs pe site, dar fiecare culoare/mărime are propriul cod (SKU) și stoc — verificate separat.', 'papetarie-storefront')); ?>\n\n'
+                + '<?php echo esc_js(__('Acest număr include și produsele aflate la coșul de gunoi - le ținem stocul la zi chiar și acolo, pentru cazul în care sunt restaurate - de-aia poate fi mai mare decât numărul de „variante individuale” de mai sus (care numără doar produsele publicate).', 'papetarie-storefront')); ?>';
             } else {
               summary = '<?php echo esc_js(__('Am verificat', 'papetarie-storefront')); ?> ' + data.total + ' <?php echo esc_js(__('produse din feed.csv — create/actualizate cu modificări:', 'papetarie-storefront')); ?> ' + data.changed
                 + ', <?php echo esc_js(__('neschimbate:', 'papetarie-storefront')); ?> ' + data.unchanged + '.';
