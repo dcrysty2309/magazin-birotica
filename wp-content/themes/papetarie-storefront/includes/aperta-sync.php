@@ -1461,7 +1461,11 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
         if ($oldQuantity === $quantity && $oldStatus === $expectedStatus) {
             $applied[] = [
                 'sku' => $codUnic,
-                'name' => get_the_title($postId) . ' (stoc: ' . $quantity . ' → ' . $quantity . ')',
+                // get_post_field (nu get_the_title) - get_the_title trece prin
+                // filtrul 'the_title' (wptexturize), care transforma "-" in
+                // entitatea HTML "&#8211;"; cum acest text ajunge in JS printr-un
+                // simplu text node (nu html()), entitatea ar aparea literal pe ecran.
+                'name' => get_post_field('post_title', $postId) . ' (stoc: ' . $quantity . ' → ' . $quantity . ')',
                 'changed' => false,
             ];
             continue;

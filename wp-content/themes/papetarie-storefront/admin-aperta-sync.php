@@ -738,10 +738,24 @@ function papetarie_storefront_render_aperta_sync_page(): void
 
           var $log = $card.find('[data-field="log"]');
           $log.empty();
+          // Schimbatele primele (la fel ca la istoric) - altfel cele cateva
+          // modificari reale se pierd printre mii de randuri neschimbate.
           var recent = (data.recent || []).slice().reverse();
-          recent.forEach(function (item) {
-            $log.append($('<li>').append($('<span>').text(item.sku)).append(document.createTextNode(item.name)));
-          });
+          var changedRecent = recent.filter(function (item) { return !!item.changed; });
+          var unchangedRecent = recent.filter(function (item) { return !item.changed; });
+
+          function appendLogGroup(label, groupItems) {
+            if (!groupItems.length) {
+              return;
+            }
+            $log.append($('<li>').addClass('pap-aperta-log-heading').text(label + ' (' + groupItems.length + ')'));
+            groupItems.forEach(function (item) {
+              $log.append($('<li>').append($('<span>').text(item.sku)).append(document.createTextNode(item.name)));
+            });
+          }
+
+          appendLogGroup('<?php echo esc_js(__('Schimbate', 'papetarie-storefront')); ?>', changedRecent);
+          appendLogGroup('<?php echo esc_js(__('Neschimbate', 'papetarie-storefront')); ?>', unchangedRecent);
         }
 
         function isActive(data) {
