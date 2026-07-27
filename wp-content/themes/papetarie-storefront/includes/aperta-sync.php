@@ -376,6 +376,133 @@ function papetarie_storefront_aperta_read_products_grouped(): array
 
     fclose($handle);
 
+    return papetarie_storefront_aperta_consolidate_singleton_colors($grouped);
+}
+
+/**
+ * Lista de culori cunoscute (fara diacritice, litere mici) pentru detectarea
+ * unui sufix de culoare la finalul denumirii unui produs.
+ *
+ * @return array<int, string>
+ */
+function papetarie_storefront_aperta_color_words(): array
+{
+    return [
+        'negru', 'alb', 'rosu', 'roz', 'albastru', 'bleu', 'bleumarin', 'verde',
+        'vernil', 'galben', 'portocaliu', 'mov', 'gri', 'maro', 'bej', 'auriu',
+        'argintiu', 'turcoaz', 'crem', 'multicolor',
+    ];
+}
+
+/**
+ * Elimina diacriticele romanesti frecvente, pentru comparatii tolerante.
+ */
+function papetarie_storefront_aperta_strip_diacritics(string $text): string
+{
+    $map = [
+        'ă' => 'a', 'â' => 'a', 'î' => 'i', 'ș' => 's', 'ş' => 's', 'ț' => 't', 'ţ' => 't',
+        'Ă' => 'A', 'Â' => 'A', 'Î' => 'I', 'Ș' => 'S', 'Ş' => 'S', 'Ț' => 'T', 'Ţ' => 'T',
+    ];
+
+    return strtr($text, $map);
+}
+
+/**
+ * Incearca sa detecteze si sa elimine un cuvant de culoare de la finalul unei
+ * denumiri de produs (cu sau fara virgula inainte). Returneaza numele fara
+ * sufix si culoarea detectata (cu litera mare), sau null daca numele nu se
+ * termina cu un cuvant de culoare cunoscut.
+ *
+ * @return array{base: string, color: string}|null
+ */
+function papetarie_storefront_aperta_strip_color_suffix(string $name): ?array
+{
+    $trimmed = trim($name);
+    if ($trimmed === '') {
+        return null;
+    }
+
+    if (!preg_match('/^(.*?),?\s+([A-Za-zĂÂÎȘȚăâîșț]+)$/u', $trimmed, $matches)) {
+        return null;
+    }
+
+    $base = trim($matches[1]);
+    $lastWord = $matches[2];
+    $normalized = strtolower(papetarie_storefront_aperta_strip_diacritics($lastWord));
+
+    if ($base === '' || !in_array($normalized, papetarie_storefront_aperta_color_words(), true)) {
+        return null;
+    }
+
+    return [
+        'base' => $base,
+        'color' => mb_convert_case(mb_strtolower($lastWord), MB_CASE_TITLE),
+    ];
+}
+
+/**
+ * Cheie sintetica, stabila intre rulari, pentru un grup unificat de produse
+ * multi-culoare (nu depinde de codurile originale din feed, doar de nume+brand,
+ * ca sa recunoasca acelasi grup la fiecare sincronizare viitoare).
+ */
+function papetarie_storefront_aperta_synthetic_group_key(string $baseName, string $brandName): string
+{
+    return 'merged-' . sanitize_title($baseName . '-' . $brandName);
+}
+
+/**
+ * Consolideaza randurile "singleton" (un singur rand, fara Variant) care par
+ * sa fie de fapt culori diferite ale aceluiasi produs, dupa nume+brand -
+ * previne ca Aperta sa creeze produse simple separate per culoare cand
+ * feed-ul nu le leaga printr-un "Cod produs" comun.
+ *
+ * @param array<string, array<int, array<string, string>>> $grouped
+ * @return array<string, array<int, array<string, string>>>
+ */
+function papetarie_storefront_aperta_consolidate_singleton_colors(array $grouped): array
+{
+    $clusters = [];
+
+    foreach ($grouped as $code => $rows) {
+        if (count($rows) !== 1) {
+            continue;
+        }
+
+        $row = $rows[0];
+        if (trim((string) ($row['Variant'] ?? '')) !== '') {
+            continue;
+        }
+
+        $name = trim((string) ($row['Denumire produs'] ?? ''));
+        $stripped = papetarie_storefront_aperta_strip_color_suffix($name);
+        if ($stripped === null) {
+            continue;
+        }
+
+        $brandName = trim((string) ($row['Brand produs'] ?? ''));
+        $clusterKey = papetarie_storefront_aperta_synthetic_group_key($stripped['base'], $brandName);
+
+        $clusters[$clusterKey][] = ['code' => $code, 'color' => $stripped['color']];
+    }
+
+    foreach ($clusters as $clusterKey => $members) {
+        if (count($members) < 2) {
+            continue;
+        }
+
+        $mergedRows = [];
+        foreach ($members as $member) {
+            $row = $grouped[$member['code']][0];
+            $row['Variant'] = $member['color'];
+            $row['Tip variant'] = 'Culoare';
+            $row['Cod produs'] = $clusterKey;
+            $mergedRows[] = $row;
+            unset($grouped[$member['code']]);
+        }
+
+        $grouped[$clusterKey] = $mergedRows;
+    }
+
     return $grouped;
 }
 
@@ -734,6 +861,30 @@ function papetarie_storefront_aperta_normalize_attr_group(string $group): string
 
     if (mb_stripos($group, 'laptop') !== false) {
         return 'Compartiment pentru laptop';
+    }
+
+    // Aceleasi variatii mici de eticheta intre descrieri diferite - gasite
+    // auditand toate grupurile distincte de pe site: "Nr. File" / "Numar
+    // File" / "Numar file" sunt toate acelasi lucru. Verificam "numar" +
+    // "file" impreuna (nu doar "file") ca sa nu prindem si "Grosime File"
+    // (gramaj hartie, g/mp - alt concept, nu numar de pagini).
+    if (mb_stripos($group, 'file') !== false && preg_match('/\bnr\.?\b|n[uă]m[aă]r/iu', $group)) {
+        return 'Număr file';
+    }
+
+    // La fel, "grosime" + "scriere" impreuna (nu doar "scriere") ca sa nu
+    // prindem si "Lungime (de) Scriere" (metri de scris ai unei rezerve -
+    // alt concept, nu grosimea varfului).
+    if (mb_stripos($group, 'grosime') !== false && mb_stripos($group, 'scriere') !== false) {
+        return 'Grosime de scriere';
+    }
+
+    if (mb_stripos($group, 'diametr') !== false && mb_stripos($group, 'min') !== false) {
+        return 'Diametrul minei';
+    }
+
+    if (mb_stripos($group, 'strat') !== false) {
+        return 'Număr straturi';
     }
 
     return $group;
