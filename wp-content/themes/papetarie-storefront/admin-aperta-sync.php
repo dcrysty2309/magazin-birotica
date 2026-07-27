@@ -32,7 +32,10 @@ function papetarie_storefront_aperta_format_relative(?int $timestamp): string
     }
 
     $diff = time() - $timestamp;
-    $when = date_i18n('d.m.Y H:i', $timestamp);
+    // Vezi nota din format_next_run() - afisam explicit in ora Romaniei.
+    $when = (new DateTime('@' . $timestamp))
+        ->setTimezone(new DateTimeZone('Europe/Bucharest'))
+        ->format('d.m.Y H:i');
 
     if ($diff < 0) {
         return sprintf(
@@ -61,7 +64,13 @@ function papetarie_storefront_aperta_format_next_run(?int $timestamp): string
         return __('niciodată', 'papetarie-storefront');
     }
 
-    $when = date_i18n('d.m.Y H:i', $timestamp);
+    // Serverul (si setarea de timezone din WP) sunt pe UTC, dar orele la care
+    // ne raportam sunt ale Romaniei (asa le publica Aperta) - afisam explicit
+    // in ora Romaniei, altfel un administrator vede o ora care nu se potriveste
+    // deloc cu ce stie de la Aperta.
+    $when = (new DateTime('@' . $timestamp))
+        ->setTimezone(new DateTimeZone('Europe/Bucharest'))
+        ->format('d.m.Y H:i');
 
     if ($timestamp > time()) {
         return sprintf(
@@ -143,13 +152,19 @@ function papetarie_storefront_render_aperta_sync_page(): void
     // Doar produsele-parinte (nu si variatiile individuale de culoare/marime,
     // care sunt post-uri separate cu propriul lor SKU) - numarul pe care il
     // recunoaste un administrator ca "un produs".
+    // Exclude 'trash' explicit - altfel produsele scoase manual din catalog
+    // (curatenia facuta cu Lavinia) raman numarate la infinit aici, chiar
+    // daca nu mai sunt "pe site" in sensul in care citeste un administrator
+    // eticheta cardului.
     $productCount = (int) $wpdb->get_var(
         "SELECT COUNT(DISTINCT pm.post_id) FROM {$wpdb->postmeta} pm
          INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-         WHERE pm.meta_key = '_pap_aperta_cod_produs' AND p.post_type = 'product'"
+         WHERE pm.meta_key = '_pap_aperta_cod_produs' AND p.post_type = 'product' AND p.post_status != 'trash'"
     );
     $skuCount = (int) $wpdb->get_var(
-        "SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta} WHERE meta_key = '_pap_aperta_sku'"
+        "SELECT COUNT(DISTINCT pm.post_id) FROM {$wpdb->postmeta} pm
+         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+         WHERE pm.meta_key = '_pap_aperta_sku' AND p.post_status != 'trash'"
     );
     // Produse din importul vechi (JSON static, fara SKU) - nu se pot reconcilia
     // fiabil cu feed-ul Aperta si de-asta e recomandat sa fie curatate inainte
@@ -227,60 +242,51 @@ function papetarie_storefront_render_aperta_sync_page(): void
       <?php endif; ?>
 
       <h2><?php esc_html_e('Program de sincronizare', 'papetarie-storefront'); ?></h2>
-      <table class="widefat striped pap-aperta-table">
-        <thead>
-          <tr>
-            <th><?php esc_html_e('Flux', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Frecvență', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Durată estimată', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Afectează site-ul live?', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Următoarea rulare', 'papetarie-storefront'); ?></th>
-            <th><?php esc_html_e('Acțiune', 'papetarie-storefront'); ?></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>
-              <strong><?php esc_html_e('Produse (catalog complet)', 'papetarie-storefront'); ?></strong>
-              <details>
-                <summary><?php esc_html_e('ce face', 'papetarie-storefront'); ?></summary>
-                <ul class="pap-aperta-flow-facts">
-                  <li><?php esc_html_e('Descarcă feed.csv (tot catalogul: nume, descriere, preț, categorie, brand, poze) și actualizează fiecare produs, cu prețul recalculat cu discountul din contract.', 'papetarie-storefront'); ?></li>
-                  <li><?php esc_html_e('Poze: NU redescarcă pozele deja existente — verifică după link-ul sursă și descarcă doar ce e nou sau schimbat.', 'papetarie-storefront'); ?></li>
-                  <li><?php esc_html_e('Stoc: nu este atins de acest job (asta face fluxul de Stoc, separat).', 'papetarie-storefront'); ?></li>
-                </ul>
-              </details>
-            </td>
-            <td><?php esc_html_e('1x/zi, ~3:10', 'papetarie-storefront'); ?></td>
-            <td><?php esc_html_e('Variabil — mai lent la primele rulări (~3–5 ore), apoi mult mai rapid odată ce majoritatea produselor rămân neschimbate de la o noapte la alta (sar peste procesare dacă nu s-a schimbat nimic)', 'papetarie-storefront'); ?></td>
-            <td><?php esc_html_e('Nu — site-ul rămâne funcțional tot timpul, produsele se actualizează treptat, unul câte unul, iar rularea e programată noaptea, în afara orelor cu trafic.', 'papetarie-storefront'); ?></td>
-            <td><?php echo esc_html(papetarie_storefront_aperta_format_next_run($productsSchedule['next'])); ?></td>
-            <td><button type="button" class="button button-primary" data-pap-run="products"><?php esc_html_e('Rulează acum', 'papetarie-storefront'); ?></button></td>
-          </tr>
-          <tr>
-            <td>
-              <strong><?php esc_html_e('Stoc', 'papetarie-storefront'); ?></strong>
-              <details>
-                <summary><?php esc_html_e('ce face', 'papetarie-storefront'); ?></summary>
-                <ul class="pap-aperta-flow-facts">
-                  <li><?php esc_html_e('Descarcă feed-stoc.csv (câte un cod/SKU pentru fiecare variantă de produs — ex. fiecare culoare are codul ei — și cantitatea aferentă) și actualizează STRICT cantitatea de stoc și starea „în stoc / fără stoc”.', 'papetarie-storefront'); ?></li>
-                  <li><?php esc_html_e('Nu atinge preț, descriere, categorie sau poze — doar cantitatea.', 'papetarie-storefront'); ?></li>
-                  <li><?php esc_html_e('De ce de 10x/zi: copiază exact orele la care Aperta își actualizează propriul stoc.', 'papetarie-storefront'); ?></li>
-                </ul>
-              </details>
-            </td>
-            <td><?php echo esc_html(sprintf(
-                /* translators: %d: number of daily runs */
-                __('%d x/zi (1:30 și din oră în oră 9:30–17:30)', 'papetarie-storefront'),
-                $stockSchedule['count'] ?: 10
-            )); ?></td>
-            <td><?php esc_html_e('Variabil — mai lent prima dată, apoi rapid (sare peste stocurile neschimbate)', 'papetarie-storefront'); ?></td>
-            <td><?php esc_html_e('Nu — actualizare rapidă, fără impact vizibil.', 'papetarie-storefront'); ?></td>
-            <td><?php echo esc_html(papetarie_storefront_aperta_format_next_run($stockSchedule['next'])); ?></td>
-            <td><button type="button" class="button button-primary" data-pap-run="stock"><?php esc_html_e('Rulează acum', 'papetarie-storefront'); ?></button></td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="pap-aperta-schedule-grid">
+        <div class="pap-aperta-schedule-card">
+          <div class="pap-aperta-schedule-head">
+            <strong><?php esc_html_e('Produse (catalog complet)', 'papetarie-storefront'); ?></strong>
+            <span class="pap-aperta-schedule-freq" title="<?php esc_attr_e('Rulează în fiecare noapte, în afara orelor cu trafic.', 'papetarie-storefront'); ?>"><?php esc_html_e('1×/zi · ~03:10', 'papetarie-storefront'); ?></span>
+          </div>
+          <div class="pap-aperta-schedule-next">
+            <span class="pap-aperta-schedule-next-label"><?php esc_html_e('Următoarea rulare', 'papetarie-storefront'); ?></span>
+            <span class="pap-aperta-schedule-next-value"><?php echo esc_html(papetarie_storefront_aperta_format_next_run($productsSchedule['next'])); ?></span>
+          </div>
+          <details>
+            <summary><?php esc_html_e('Ce face, cât durează, ce impact are', 'papetarie-storefront'); ?></summary>
+            <ul class="pap-aperta-flow-facts">
+              <li><?php esc_html_e('Descarcă feed.csv (tot catalogul: nume, descriere, preț, categorie, brand, poze) și actualizează fiecare produs, cu prețul recalculat cu discountul din contract.', 'papetarie-storefront'); ?></li>
+              <li><?php esc_html_e('Poze: NU redescarcă pozele deja existente — verifică după link-ul sursă și descarcă doar ce e nou sau schimbat.', 'papetarie-storefront'); ?></li>
+              <li><?php esc_html_e('Stoc: nu este atins de acest job (asta face fluxul de Stoc, separat).', 'papetarie-storefront'); ?></li>
+              <li><strong><?php esc_html_e('Durată:', 'papetarie-storefront'); ?></strong> <?php esc_html_e('variabilă — mai lentă la primele rulări (~3–5 ore), apoi mult mai rapidă odată ce majoritatea produselor rămân neschimbate de la o noapte la alta.', 'papetarie-storefront'); ?></li>
+              <li><strong><?php esc_html_e('Impact pe site:', 'papetarie-storefront'); ?></strong> <?php esc_html_e('niciunul — site-ul rămâne funcțional tot timpul, produsele se actualizează treptat, iar rularea e noaptea, în afara traficului.', 'papetarie-storefront'); ?></li>
+            </ul>
+          </details>
+          <button type="button" class="button button-secondary pap-aperta-run-now" data-pap-run="products"><?php esc_html_e('Rulează acum', 'papetarie-storefront'); ?></button>
+        </div>
+
+        <div class="pap-aperta-schedule-card">
+          <div class="pap-aperta-schedule-head">
+            <strong><?php esc_html_e('Stoc', 'papetarie-storefront'); ?></strong>
+            <span class="pap-aperta-schedule-freq" title="<?php echo esc_attr(sprintf(__('01:30 și din oră în oră 09:30–17:30 (%d rulări/zi).', 'papetarie-storefront'), $stockSchedule['count'] ?: 10)); ?>"><?php echo esc_html(sprintf(__('%d×/zi · 01:30–17:30', 'papetarie-storefront'), $stockSchedule['count'] ?: 10)); ?></span>
+          </div>
+          <div class="pap-aperta-schedule-next">
+            <span class="pap-aperta-schedule-next-label"><?php esc_html_e('Următoarea rulare', 'papetarie-storefront'); ?></span>
+            <span class="pap-aperta-schedule-next-value"><?php echo esc_html(papetarie_storefront_aperta_format_next_run($stockSchedule['next'])); ?></span>
+          </div>
+          <details>
+            <summary><?php esc_html_e('Ce face, cât durează, ce impact are', 'papetarie-storefront'); ?></summary>
+            <ul class="pap-aperta-flow-facts">
+              <li><?php esc_html_e('Descarcă feed-stoc.csv (câte un cod/SKU pentru fiecare variantă de produs — ex. fiecare culoare are codul ei — și cantitatea aferentă) și actualizează STRICT cantitatea de stoc și starea „în stoc / fără stoc”.', 'papetarie-storefront'); ?></li>
+              <li><?php esc_html_e('Nu atinge preț, descriere, categorie sau poze — doar cantitatea.', 'papetarie-storefront'); ?></li>
+              <li><?php esc_html_e('De ce de multe ori pe zi: copiază exact orele la care Aperta își actualizează propriul stoc.', 'papetarie-storefront'); ?></li>
+              <li><strong><?php esc_html_e('Durată:', 'papetarie-storefront'); ?></strong> <?php esc_html_e('variabilă — mai lentă prima dată, apoi rapidă (sare peste stocurile neschimbate).', 'papetarie-storefront'); ?></li>
+              <li><strong><?php esc_html_e('Impact pe site:', 'papetarie-storefront'); ?></strong> <?php esc_html_e('niciunul — actualizare rapidă, fără impact vizibil.', 'papetarie-storefront'); ?></li>
+            </ul>
+          </details>
+          <button type="button" class="button button-secondary pap-aperta-run-now" data-pap-run="stock"><?php esc_html_e('Rulează acum', 'papetarie-storefront'); ?></button>
+        </div>
+      </div>
       <p class="description"><?php esc_html_e('„Rulează acum” pornește sincronizarea imediat, fără să aștepte programul (util pentru testare).', 'papetarie-storefront'); ?></p>
 
       <h2><?php esc_html_e('Progres live', 'papetarie-storefront'); ?></h2>
@@ -408,6 +414,75 @@ function papetarie_storefront_render_aperta_sync_page(): void
 
       .pap-aperta-table {
         margin-top: 12px;
+      }
+
+      .pap-aperta-schedule-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 14px;
+        margin: 12px 0 24px;
+      }
+
+      .pap-aperta-schedule-card {
+        background: #fff;
+        border: 1px solid #dcdcde;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+        border-radius: 4px;
+        padding: 16px 18px;
+      }
+
+      .pap-aperta-schedule-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .pap-aperta-schedule-head strong {
+        font-size: 14px;
+      }
+
+      .pap-aperta-schedule-freq {
+        font-size: 12px;
+        color: #50575e;
+        background: #f0f0f1;
+        border-radius: 12px;
+        padding: 3px 10px;
+        cursor: help;
+        white-space: nowrap;
+      }
+
+      .pap-aperta-schedule-next {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin: 12px 0;
+        padding: 10px 12px;
+        background: #f6f7f7;
+        border-radius: 4px;
+      }
+
+      .pap-aperta-schedule-next-label {
+        font-size: 12px;
+        color: #50575e;
+      }
+
+      .pap-aperta-schedule-next-value {
+        font-weight: 600;
+      }
+
+      .pap-aperta-schedule-card details {
+        margin-bottom: 12px;
+      }
+
+      .pap-aperta-schedule-card > .pap-aperta-run-now {
+        display: block;
+        margin-left: auto;
+        font-size: 12px;
+        padding: 0 10px;
+        line-height: 26px;
+        height: 28px;
       }
 
       .pap-aperta-progress-grid {
@@ -552,6 +627,20 @@ function papetarie_storefront_render_aperta_sync_page(): void
       .pap-aperta-log-row .pap-aperta-progress-log {
         border-top: none;
         max-height: 360px;
+      }
+
+      .pap-aperta-progress-log li.pap-aperta-log-heading {
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        color: #1d2327;
+        background: #eef1f5;
+        padding: 6px 8px;
+        border-bottom: 1px solid #dcdcde;
+        position: sticky;
+        top: 0;
+        z-index: 1;
       }
     </style>
 
@@ -731,7 +820,24 @@ function papetarie_storefront_render_aperta_sync_page(): void
               $content.append($('<li>').text('<?php echo esc_js(__('Niciun detaliu salvat pentru această rulare.', 'papetarie-storefront')); ?>'));
               return;
             }
+
+            // Serverul deja sorteaza schimbatele primele; aici doar inseram
+            // un antet la tranzitie, ca sa nu fie nevoie sa cauti manual
+            // printre mii de randuri neschimbate.
+            var changedCount = items.filter(function (item) { return !!item.changed; }).length;
+            var unchangedCount = items.length - changedCount;
+            var lastGroup = null;
+
             items.forEach(function (item) {
+              var isChanged = !!item.changed;
+              if (isChanged !== lastGroup) {
+                var label = isChanged
+                  ? '<?php echo esc_js(__('Schimbate', 'papetarie-storefront')); ?>'
+                  : '<?php echo esc_js(__('Neschimbate', 'papetarie-storefront')); ?>';
+                var count = isChanged ? changedCount : unchangedCount;
+                $content.append($('<li>').addClass('pap-aperta-log-heading').text(label + ' (' + count + ')'));
+                lastGroup = isChanged;
+              }
               $content.append($('<li>').append($('<span>').text(item.sku)).append(document.createTextNode(item.name)));
             });
             $content.data('loaded', true);

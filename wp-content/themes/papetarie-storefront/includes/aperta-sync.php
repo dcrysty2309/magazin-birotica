@@ -226,13 +226,24 @@ function papetarie_storefront_aperta_run_log_option(string $runId): string
 }
 
 /**
+ * Produsele schimbate apar primele (utilizatorul trebuie sa le gaseasca rapid
+ * intr-o lista de mii de randuri neschimbate) - restul raman in ordinea in
+ * care au fost procesate.
+ *
  * @return array<int, array{sku: string, name: string, changed?: bool}>
  */
 function papetarie_storefront_aperta_get_run_log(string $runId): array
 {
     $log = get_option(papetarie_storefront_aperta_run_log_option($runId), []);
 
-    return is_array($log) ? $log : [];
+    if (!is_array($log)) {
+        return [];
+    }
+
+    $changed = array_values(array_filter($log, static fn(array $item): bool => !empty($item['changed'])));
+    $unchanged = array_values(array_filter($log, static fn(array $item): bool => empty($item['changed'])));
+
+    return array_merge($changed, $unchanged);
 }
 
 /**
@@ -1583,6 +1594,22 @@ add_action('pap_aperta_sync_stock_chunk', 'papetarie_storefront_aperta_sync_stoc
  * ale sursei (produsele se actualizeaza la 2:50, stocul la 1:10 si din ora
  * in ora intre 9:10-17:10).
  */
+/**
+ * Aperta isi publica orele de actualizare (2:50 pt. produse, 1:10 + din ora
+ * in ora 9:10-17:10 pt. stoc) in ora Romaniei, nu UTC. Serverul nostru ruleaza
+ * in UTC (confirmat: PHP + setarea de timezone din WP sunt ambele UTC), deci
+ * un simplu strtotime('today HH:MM:00') calculeaza ora gresita cu 2-3 ore
+ * (offset-ul UTC+2/+3 al Romaniei, in functie de ora de vara/iarna) - gasit
+ * 2026-07-27. Aceasta functie converteste explicit ora Romaniei catre UTC,
+ * indiferent de fusul orar implicit al serverului.
+ */
+function papetarie_storefront_aperta_romania_time_today(string $time): int
+{
+    $dt = new DateTime('today ' . $time, new DateTimeZone('Europe/Bucharest'));
+
+    return $dt->getTimestamp();
+}
+
 function papetarie_storefront_aperta_schedule_cron(): void
 {
     if (!function_exists('as_schedule_recurring_action') || get_option('pap_aperta_cron_registered') === 'yes') {
@@ -1592,7 +1619,7 @@ function papetarie_storefront_aperta_schedule_cron(): void
     $delay = PAP_APERTA_SYNC_DELAY_MINUTES * MINUTE_IN_SECONDS;
 
     if (!as_next_scheduled_action('pap_aperta_sync_products_start', [], 'aperta-sync')) {
-        $timestamp = strtotime('today 02:50:00') + $delay;
+        $timestamp = papetarie_storefront_aperta_romania_time_today('02:50:00') + $delay;
         if ($timestamp < time()) {
             $timestamp += DAY_IN_SECONDS;
         }
@@ -1605,7 +1632,7 @@ function papetarie_storefront_aperta_schedule_cron(): void
             continue;
         }
 
-        $timestamp = strtotime(sprintf('today %02d:10:00', $hour)) + $delay;
+        $timestamp = papetarie_storefront_aperta_romania_time_today(sprintf('%02d:10:00', $hour)) + $delay;
         if ($timestamp < time()) {
             $timestamp += DAY_IN_SECONDS;
         }
