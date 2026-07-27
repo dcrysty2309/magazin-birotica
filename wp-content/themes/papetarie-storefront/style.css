@@ -19913,3 +19913,36 @@ body.theme-papetarie .pap-review-modal__footer {
     border-radius: 0;
   }
 }
+
+.pap-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.pap-color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  background-color: var(--pap-swatch-color, #d0d0d0);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pap-color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.pap-color-swatch.is-selected {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1a1a1a;
+}
+
+.pap-color-swatch:focus-visible {
+  outline: 2px solid #2f6fb3;
+  outline-offset: 2px;
+}

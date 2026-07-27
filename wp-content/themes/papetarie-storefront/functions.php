@@ -51,6 +51,7 @@ if (is_admin()) {
 
 require_once __DIR__ . '/includes/address-book.php';
 require_once __DIR__ . '/includes/aperta-sync.php';
+require_once __DIR__ . '/includes/color-swatches.php';
 
 function papetarie_storefront_enqueue_styles(): void
 {
