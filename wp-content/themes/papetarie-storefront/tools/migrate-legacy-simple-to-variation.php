@@ -154,6 +154,9 @@ foreach ($targetFamilies as $clusterKey => $rows) {
         echo "  Parinte creat: #{$parentId}\n";
     }
 
+    $firstImageId = null;
+    $galleryImageIds = [];
+
     foreach ($rows as $row) {
         $sku = trim((string) $row['Cod unic']);
         $variantValue = trim((string) $row['Variant']);
@@ -237,8 +240,31 @@ foreach ($targetFamilies as $clusterKey => $rows) {
         // 4. Verificat OK - trecem produsul vechi la gunoi (recuperabil).
         wp_trash_post($existingId);
 
+        if ($oldData['image_id']) {
+            if ($firstImageId === null) {
+                $firstImageId = (int) $oldData['image_id'];
+            } else {
+                $galleryImageIds[(int) $oldData['image_id']] = true;
+            }
+        }
+
         echo "      => Migrat: variatie noua #{$newVariationId}, produs vechi #{$existingId} trecut la gunoi.\n";
         $migrated++;
+    }
+
+    // Parintele insusi nu are poza proprie (doar variatiile) - fara asta,
+    // pagina de produs nu arata nicio poza pana nu alegi o culoare (bug
+    // gasit live pe staging 2026-07-28). Acelasi lucru se intampla si la
+    // sincronizarea normala (sync_variations()), care seteaza poza
+    // parintelui dupa prima variatie procesata.
+    if ($apply && $firstImageId !== null) {
+        $parentProduct = wc_get_product($parentId);
+        if ($parentProduct && !$parentProduct->get_image_id()) {
+            $parentProduct->set_image_id($firstImageId);
+            $parentProduct->set_gallery_image_ids(array_keys($galleryImageIds));
+            $parentProduct->save();
+            echo "  Poza parintelui setata din prima variatie: #{$firstImageId}\n";
+        }
     }
 
     echo "\n";
