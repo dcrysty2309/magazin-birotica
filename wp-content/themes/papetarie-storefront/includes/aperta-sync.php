@@ -427,6 +427,11 @@ function papetarie_storefront_aperta_read_products_grouped(): array
 
     fclose($handle);
 
+    // Ordinea conteaza doar in masura in care cele doua consolidari vizeaza
+    // seturi disjuncte de randuri (Variant gol vs Variant completat), deci
+    // nu se calca reciproc pe picioare.
+    $grouped = papetarie_storefront_aperta_consolidate_by_shared_link($grouped);
+
     return papetarie_storefront_aperta_consolidate_singleton_colors($grouped);
 }
 
@@ -605,8 +610,15 @@ function papetarie_storefront_aperta_consolidate_singleton_colors(array $grouped
  * 2026-07-28: ex. "One4All 627HS 15mm" - 18 culori, acelasi Link produs,
  * Cod produs diferit per culoare).
  *
- * NEFOLOSITA INCA in fluxul real (nu e apelata din read_products_grouped) -
- * doar definita, pentru dry-run/verificare manuala inainte de activare.
+ * Apelata automat din read_products_grouped() (deci si de sincronizarea
+ * zilnica, nu doar de tools/consolidate-color-families.php). Aceasta functie
+ * NU verifica ea insasi statusul produselor din baza de date - siguranta
+ * vine din doua straturi mai jos in lant: sync_variations() sare (nu
+ * atinge) orice rand al carui SKU e deja un produs SIMPLU existent (vezi
+ * "Skip (don't crash) when a variation SKU already belongs to a simple
+ * product"), iar upsert_product() sterge imediat parintele nou-creat daca
+ * TOTI membrii au fost sariti asa (ramane 0 variatii) - altfel ar ramane o
+ * coaja goala, fara poza, ca cele 15 gasite si curatate manual 2026-07-28.
  *
  * Grupeaza DOAR daca toate randurile clusterului au: acelasi nume, acelasi
  * brand, acelasi "Tip variant" (nevid) si "Variant" completat pe fiecare
@@ -658,7 +670,15 @@ function papetarie_storefront_aperta_consolidate_by_shared_link(array $grouped):
         $clusterKey = 'link-' . md5($link);
         $mergedRows = [];
         foreach ($codes as $code) {
-            $mergedRows[] = $grouped[$code][0];
+            $row = $grouped[$code][0];
+            // Esential: fara asta, "Cod produs" ramane cel individual al
+            // fiecarui membru (ex. codul propriu al culorii Rosu) - upsert
+            // l-ar folosi ca sa caute produsul-parinte si ar gasi/rescrie
+            // din greseala parintele existent, deja publicat, al ACELUI
+            // membru, in loc sa trateze grupul ca familie noua. Gasit live
+            // 2026-07-28 (lavete Kimberly-Clark).
+            $row['Cod produs'] = $clusterKey;
+            $mergedRows[] = $row;
             unset($grouped[$code]);
         }
 
@@ -1629,7 +1649,16 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
         ? papetarie_storefront_aperta_find_parent_by_cod_produs($codProdus)
         : papetarie_storefront_aperta_find_by_sku_meta($primaryCodUnic);
 
-    if ($productId === null) {
+    // Potrivirea dupa nume e gandita pentru produse vechi din importul JSON
+    // original (fara SKU) - pentru un grup sintetic (creat de consolidare,
+    // 'merged-'/'link-') nu trebuie folosita: mai multe produse-parinte
+    // individuale, deja publicate, pot avea EXACT acelasi nume generic de
+    // familie (ex. "Lavete Kimberly-Clark WypAll X50, 50 buc/set" pe fiecare
+    // culoare) - potrivirea dupa nume ar "adopta" din greseala unul dintre
+    // ele ca tinta a fuziunii, in loc sa trateze grupul ca fiind chiar nou.
+    // Gasit live 2026-07-28.
+    $isSyntheticGroup = str_starts_with($codProdus, 'merged-') || str_starts_with($codProdus, 'link-');
+    if ($productId === null && !$isSyntheticGroup) {
         $productId = papetarie_storefront_aperta_find_legacy_product_by_name($name);
     }
 
@@ -1707,6 +1736,27 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
 
     if ($isVariable) {
         $variationsSummary = papetarie_storefront_aperta_sync_variations($productId, $rows, $discountPercent, $name, $description, $categoryPath);
+
+        // Daca TOTI membrii familiei erau deja produse simple publicate
+        // (sync_variations sare peste fiecare, vezi "Skip (don't crash)..."),
+        // ramane un parinte nou-creat fara nicio variatie - o coaja goala,
+        // fara poza, identica cu cele 15 gasite si curatate manual pe
+        // staging 2026-07-28. Daca parintele e chiar nou (nu exista inainte
+        // de randul asta), il stergem imediat in loc sa lasam o coaja
+        // orfana pentru cineva sa o gaseasca mai tarziu.
+        if ($isNew && $variationsSummary['total'] === 0) {
+            wp_trash_post($productId);
+
+            return [
+                'product_id' => $productId,
+                'is_new' => true,
+                'is_variable' => true,
+                'old_price' => null,
+                'new_price' => null,
+                'variations' => $variationsSummary,
+                'was_trashed' => true,
+            ];
+        }
     } else {
         $price = round(((float) str_replace(',', '.', (string) $first['Pret produs'])) * (1 - $discountPercent / 100), 2);
         $newPrice = $price;
@@ -1925,6 +1975,32 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
             ];
             update_option('pap_aperta_pending_variation_migrations', $pendingMigrations, false);
             continue;
+        }
+
+        // SKU-ul poate fi deja o variatie REALA, dar a altui produs-parinte
+        // deja PUBLICAT (gasit live 2026-07-28: lavete Kimberly-Clark,
+        // markere Schneider Paint-It - fiecare culoare deja e propriul
+        // produs variabil publicat, cu 1 singura variatie). Re-parentarea
+        // ei catre noul produs comun ar lasa in urma un parinte vechi
+        // PUBLICAT, live, fara nicio variatie - o "gaura" vizibila pe site.
+        // Sarim si aici, la fel ca la produsele simple - migrarea asta ramane
+        // manuala/deliberata (tools/migrate-legacy-simple-to-variation.php).
+        if ($variationId !== null) {
+            $oldParentId = (int) get_post_field('post_parent', $variationId);
+            if ($oldParentId > 0 && $oldParentId !== $productId && get_post_status($oldParentId) === 'publish') {
+                $pendingMigrations = get_option('pap_aperta_pending_variation_migrations', []);
+                $pendingMigrations[$codUnic] = [
+                    'existing_post_id' => $variationId,
+                    'existing_post_type' => 'product_variation',
+                    'existing_parent_id' => $oldParentId,
+                    'existing_parent_status' => 'publish',
+                    'parent_product_id' => $productId,
+                    'variant' => $variantValue,
+                    'found_at' => current_time('mysql'),
+                ];
+                update_option('pap_aperta_pending_variation_migrations', $pendingMigrations, false);
+                continue;
+            }
         }
 
         $isNewVariation = $variationId === null;
