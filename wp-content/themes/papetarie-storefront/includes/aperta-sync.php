@@ -1791,6 +1791,30 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
 
         $variantValue = trim((string) $row['Variant']);
         $variationId = papetarie_storefront_aperta_find_by_sku_meta($codUnic);
+
+        // SKU-ul poate fi deja atasat unui produs SIMPLU (nu o variatie) -
+        // de exemplu un produs importat individual inainte ca acest cod sa
+        // fie recunoscut ca parte a unei familii de culori/marimi (vezi
+        // consolidate_singleton_colors). WC_Product_Variation arunca eroare
+        // daca primeste ID-ul unui post care nu e chiar 'product_variation'
+        // - confirmat live pe staging 2026-07-28 ("Pix Klick-fix Schneider
+        // alb/negru", deja publicate individual). Migrarea lor reala intr-o
+        // variatie e o operatie separata (task de consolidare) - aici doar
+        // sarim peste randul asta, ca sa nu stricam produsul vechi existent
+        // si sa nu crape tot lotul incercand sa-l tratam gresit ca variatie.
+        if ($variationId !== null && get_post_type($variationId) !== 'product_variation') {
+            $pendingMigrations = get_option('pap_aperta_pending_variation_migrations', []);
+            $pendingMigrations[$codUnic] = [
+                'existing_post_id' => $variationId,
+                'existing_post_type' => get_post_type($variationId),
+                'parent_product_id' => $productId,
+                'variant' => $variantValue,
+                'found_at' => current_time('mysql'),
+            ];
+            update_option('pap_aperta_pending_variation_migrations', $pendingMigrations, false);
+            continue;
+        }
+
         $isNewVariation = $variationId === null;
         $oldPrice = !$isNewVariation ? get_post_meta($variationId, '_regular_price', true) : '';
         $oldPrice = $oldPrice !== '' ? (float) $oldPrice : null;
