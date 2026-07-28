@@ -911,8 +911,23 @@ function papetarie_storefront_aperta_sideload_image(string $url, int $productId)
         'posts_per_page' => 1,
     ]);
 
+    // Nu e suficient ca inregistrarea de attachment sa existe in baza de date -
+    // pe un mediu restaurat dintr-un export SQL fara wp-content/uploads (ex.
+    // clona locala a unui coleg), postmeta-ul de dedup vine din dump, dar
+    // fisierul fizic lipseste. Fara verificarea asta, sideload-ul s-ar opri
+    // aici crezand ca poza exista deja si n-ar mai descarca niciodata nimic.
     if (!empty($existing)) {
-        return (int) $existing[0];
+        $existingId = (int) $existing[0];
+        $attachedFile = get_attached_file($existingId);
+        if ($attachedFile && file_exists($attachedFile)) {
+            return $existingId;
+        }
+
+        // Fisierul fizic lipseste (tipic dupa o restaurare dintr-un export SQL
+        // fara wp-content/uploads) - scoatem marcajul de dedup de pe randul
+        // orfan (nu stergem inregistrarea in sine), altfel urmatoarea
+        // sincronizare l-ar gasi din nou, tot fara fisier, la infinit.
+        delete_post_meta($existingId, '_pap_aperta_image_source', $url);
     }
 
     require_once ABSPATH . 'wp-admin/includes/media.php';
