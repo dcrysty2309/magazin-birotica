@@ -1930,11 +1930,29 @@ function papetarie_storefront_aperta_romania_time_today(string $time): int
     return $dt->getTimestamp();
 }
 
+/**
+ * Auto-vindecare: daca o rulare recurenta esueaza (ex. feed-ul Aperta a
+ * raspuns prea incet intr-o noapte si Action Scheduler a marcat actiunea
+ * "blocata" ca esuata dupa timeout-ul lui intern), Action Scheduler NU mai
+ * programeaza singur urmatoarea aparitie - "Urmatoarea rulare" ramane
+ * "niciodata" la nesfarsit pana observa cineva manual. Functia de mai jos
+ * e deja idempotenta per-actiune (verifica as_next_scheduled_action inainte
+ * sa (re)programeze fiecare cron) - inainte avea un "paznic" (optiunea
+ * pap_aperta_cron_registered) care o oprea sa mai ruleze deloc dupa prima
+ * inregistrare reusita, exact ce impiedica auto-vindecarea. Throttle cu
+ * tranzient (nu la fiecare cerere) ca verificarea sa nu coste nimic pe
+ * majoritatea paginilor.
+ */
 function papetarie_storefront_aperta_schedule_cron(): void
 {
-    if (!function_exists('as_schedule_recurring_action') || get_option('pap_aperta_cron_registered') === 'yes') {
+    if (!function_exists('as_schedule_recurring_action')) {
         return;
     }
+
+    if (get_transient('pap_aperta_cron_healthcheck') !== false) {
+        return;
+    }
+    set_transient('pap_aperta_cron_healthcheck', 1, 10 * MINUTE_IN_SECONDS);
 
     $delay = PAP_APERTA_SYNC_DELAY_MINUTES * MINUTE_IN_SECONDS;
 
@@ -1958,7 +1976,5 @@ function papetarie_storefront_aperta_schedule_cron(): void
         }
         as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_sync_stock_start', $args, 'aperta-sync');
     }
-
-    update_option('pap_aperta_cron_registered', 'yes');
 }
 add_action('init', 'papetarie_storefront_aperta_schedule_cron');
