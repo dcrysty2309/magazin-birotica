@@ -787,7 +787,21 @@ function papetarie_storefront_aperta_sideload_image(string $url, int $productId)
     require_once ABSPATH . 'wp-admin/includes/file.php';
     require_once ABSPATH . 'wp-admin/includes/image.php';
 
+    // media_sideload_image() nu accepta un timeout explicit - foloseste
+    // implicit 300s (download_url()), acelasi prag la care Action Scheduler
+    // marcheaza automat actiunea "esuata". O singura poza care raspunde lent
+    // de pe serverul Aperta putea astfel bloca toata bucata pana exact la
+    // acel prag (confirmat live pe staging 2026-07-28: o bucata a esuat dupa
+    // exact 300s, fara nicio alta explicatie in loguri). Plafonam timeout-ul
+    // la 20s cat timp e activa cererea asta - suficient pentru o poza produs
+    // normala, dar nu lasa un singur raspuns lent sa opreasca tot importul.
+    $capTimeout = static function (array $args) {
+        $args['timeout'] = min($args['timeout'] ?? 20, 20);
+        return $args;
+    };
+    add_filter('http_request_args', $capTimeout);
     $attachmentId = media_sideload_image($url, $productId, null, 'id');
+    remove_filter('http_request_args', $capTimeout);
 
     if (is_wp_error($attachmentId)) {
         return null;
