@@ -10,6 +10,12 @@ defined('ABSPATH') || exit;
 
 const PAP_APERTA_PRODUCTS_FEED_URL = 'https://www.aperta.ro/feed.csv';
 const PAP_APERTA_STOCK_FEED_URL = 'https://www.aperta.ro/feed-stoc.csv';
+// Categorii de top din feed excluse definitiv de la import (decizie user
+// 2026-07-28) - verificate pe segmentul 0 al coloanei "Categorie produs" din
+// feed, nu pe taxonomia noastra rezolvata (Molotow nu are propria categorie
+// de top pe site, se mapeaza in subcategorii sub "Arta" - vezi
+// papetarie_storefront_aperta_top_level_map()).
+const PAP_APERTA_EXCLUDED_TOP_LEVEL_CATEGORIES = ['Molotow', 'Universul copiilor'];
 const PAP_APERTA_CHUNK_SIZE = 25;
 // Produsele nu mai sunt impartite pe un numar fix per bucata (vezi
 // PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET mai jos) - un numar fix de 10 insemna
@@ -396,6 +402,23 @@ function papetarie_storefront_aperta_read_products_grouped(): array
         $code = trim((string) ($assoc['Cod produs'] ?? ''));
 
         if ($code === '') {
+            continue;
+        }
+
+        // Fara nicio poza - nu aducem randul deloc (nici macar in rapoarte),
+        // la cererea explicita a userului 2026-07-28.
+        if (papetarie_storefront_aperta_image_urls((string) ($assoc['Imagine produs'] ?? '')) === []) {
+            continue;
+        }
+
+        // Categorii excluse definitiv de la import (Molotow, Universul
+        // copiilor) - verificam segmentul de top de pe calea RAW din feed
+        // ("Categorie produs"), inainte de orice mapare a noastra. Molotow
+        // in special nu are propria categorie de top pe site (se mapeaza in
+        // subcategorii sub "Arta"), deci excluderea trebuie facuta aici, pe
+        // datele brute din feed, nu pe taxonomia noastra rezolvata.
+        $topLevelCategory = trim((string) explode('>', (string) ($assoc['Categorie produs'] ?? ''))[0]);
+        if (in_array($topLevelCategory, PAP_APERTA_EXCLUDED_TOP_LEVEL_CATEGORIES, true)) {
             continue;
         }
 
