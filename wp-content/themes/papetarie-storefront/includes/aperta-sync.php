@@ -20,12 +20,21 @@ const PAP_APERTA_CHUNK_SIZE = 25;
 // 2026-07-26). Cu buget de timp, o bucata proceseaza cat incape sub prag,
 // oricate produse ar fi asta - rapida cand sunt neschimbate, protejata cand
 // pica pe un cluster de produse noi.
-const PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET_SECONDS = 45;
+//
+// Masurat live pe staging 2026-07-28 cu bugetul initial de 45s: fiecare
+// bucata dura ~50-58s indiferent cate produse continea (45s lucru + ~5-10s
+// bootstrap WP/WC + delay-ul de 5s pana la urmatoarea) - adica timpul total
+// era dominat de NUMARUL de bucati, nu de continutul lor. Marind bugetul,
+// acelasi cost fix de bootstrap se plateste de mai putine ori. Ramanem cu
+// marja mare sub pragul de 300s de la care Action Scheduler marcheaza
+// actiunea esuata.
+const PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET_SECONDS = 150;
 // Plasa de siguranta - opreste bucata chiar daca timpul nu s-a scurs inca,
 // ca sa nu ramana intr-o bucla foarte lunga intr-un singur request daca timpul
 // per produs ar fi neasteptat de mic (nu ar trebui sa se intample, dar evitam
-// orice risc de request nesfarsit).
-const PAP_APERTA_PRODUCTS_CHUNK_MAX_ITEMS = 300;
+// orice risc de request nesfarsit). Marit proportional cu bugetul de timp de
+// mai sus, ca sa nu devina el insusi noul plafon pe bucatile ieftine.
+const PAP_APERTA_PRODUCTS_CHUNK_MAX_ITEMS = 900;
 const PAP_APERTA_SYNC_DELAY_MINUTES = 20;
 
 /**
