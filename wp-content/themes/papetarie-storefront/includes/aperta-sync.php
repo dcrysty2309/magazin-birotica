@@ -736,45 +736,30 @@ function papetarie_storefront_aperta_top_level_map(): array
     ];
 }
 
-function papetarie_storefront_aperta_get_or_create_term(string $name, string $slug, int $parentId): int
-{
-    // Cautarea dupa slug trebuie scopata la parinte: get_term_by('slug', ...)
-    // e globala pe toata taxonomia, deci doua categorii cu acelasi nume sub
-    // parinti diferiti (ex. un rand de feed cu o cale corupta gen
-    // "Periferice>Mouse,Periferice>Tastaturi" alaturi de randul corect
-    // "Periferice>Tastaturi") ar fi fost legate gresit de primul termen
-    // creat, indiferent de parintele lui real.
-    $existing = get_term_by('slug', $slug, 'product_cat');
-
-    if ($existing instanceof WP_Term && (int) $existing->parent === $parentId) {
-        return (int) $existing->term_id;
-    }
-
-    $created = wp_insert_term($name, 'product_cat', ['slug' => $slug, 'parent' => $parentId]);
-
-    if (is_wp_error($created)) {
-        // Poate exista deja cu alt slug (coliziune de nume la acelasi parinte).
-        $byName = get_term_by('name', $name, 'product_cat');
-        if ($byName instanceof WP_Term && (int) $byName->parent === $parentId) {
-            return (int) $byName->term_id;
-        }
-
-        // Slug-ul e ocupat de un termen cu alt parinte - lasam WP sa genereze
-        // un slug unic (ex. tastaturi-2) in loc sa esuam sau sa ne agatam gresit.
-        $created = wp_insert_term($name, 'product_cat', ['parent' => $parentId]);
-
-        if (is_wp_error($created)) {
-            throw new RuntimeException('Nu am putut crea categoria ' . $name . ': ' . $created->get_error_message());
-        }
-    }
-
-    return (int) $created['term_id'];
-}
-
 /**
  * Rezolva "Categorie produs" (ex. "Organizare, arhivare, prezentare>Bibliorafturi")
- * la un term_id product_cat existent, creand subcategoria (sau, rar, un arbore
- * top-level nou) daca nu gaseste un copil potrivit.
+ * la un term_id product_cat existent - categoriile site-ului sunt curatoriate
+ * manual (fixe), deci NU se creeaza niciodata una noua; daca un segment nu
+ * are corespondent, ne oprim la ultima categorie reala gasita (vezi
+ * papetarie_storefront_aperta_log_unmatched_category()).
+ */
+/**
+ * Categoriile site-ului sunt curatoriate manual (fixe) - sincronizarea NU
+ * trebuie sa creeze niciodata categorii noi, doar sa asigneze produse in
+ * cele deja existente. Gasit live 2026-07-28: cand un segment din calea de
+ * categorie a feed-ului nu se potrivea exact cu vreun copil existent sub
+ * parintele curent, codul (versiunea veche) crea un termen nou - iar cum
+ * WordPress cere sloguri unice global (nu doar per-parinte), acelasi nume
+ * generic ("Accesorii", "Linere", "Pixuri cu gel"...) aparut sub mai multi
+ * parinti diferiti a produs zeci de categorii-duplicat numerotate
+ * (accesorii-creativitate-2, -3, ... -10), fiecare cu un singur produs.
+ *
+ * Acum: daca un segment nu se potriveste cu niciun copil existent, ne oprim
+ * din coborat si folosim ultimul parinte gasit (produsul ramane asignat
+ * celei mai apropiate categorii reale, nu se creeaza nimic nou). Daca nici
+ * segmentul de top nu se potriveste cu nimic existent, produsul ramane
+ * neasignat (0) - se logheaza separat pentru revizuire manuala, nu se
+ * ghiceste o categorie noua.
  */
 function papetarie_storefront_aperta_resolve_category(string $feedCategoryPath): int
 {
@@ -790,9 +775,13 @@ function papetarie_storefront_aperta_resolve_category(string $feedCategoryPath):
     $topLevelSlug = $map[$topLevelName] ?? sanitize_title($topLevelName);
 
     $topTerm = get_term_by('slug', $topLevelSlug, 'product_cat');
-    $parentId = $topTerm instanceof WP_Term
-        ? (int) $topTerm->term_id
-        : papetarie_storefront_aperta_get_or_create_term($topLevelName, $topLevelSlug, 0);
+    if (!($topTerm instanceof WP_Term)) {
+        papetarie_storefront_aperta_log_unmatched_category($feedCategoryPath, $topLevelName);
+
+        return 0;
+    }
+
+    $parentId = (int) $topTerm->term_id;
 
     // Molotow>Artist>Markere -> subcategorie noua "Artist Markere" sub "arta".
     $subSegments = array_slice($segments, 1);
@@ -820,12 +809,40 @@ function papetarie_storefront_aperta_resolve_category(string $feedCategoryPath):
             }
         }
 
-        $currentParentId = $match instanceof WP_Term
-            ? (int) $match->term_id
-            : papetarie_storefront_aperta_get_or_create_term($subName, $subSlug, $currentParentId);
+        if (!($match instanceof WP_Term)) {
+            papetarie_storefront_aperta_log_unmatched_category($feedCategoryPath, $subName);
+            break;
+        }
+
+        $currentParentId = (int) $match->term_id;
     }
 
     return $currentParentId;
+}
+
+/**
+ * Salveaza in optiunea pap_aperta_unmatched_categories orice cale de
+ * categorie din feed care nu are corespondent exact in taxonomia noastra
+ * (dupa segmentul care s-a oprit), pentru revizuire manuala ulterioara.
+ */
+function papetarie_storefront_aperta_log_unmatched_category(string $feedCategoryPath, string $missingSegment): void
+{
+    $log = get_option('pap_aperta_unmatched_categories', []);
+    $key = $feedCategoryPath;
+
+    if (isset($log[$key])) {
+        $log[$key]['count']++;
+        $log[$key]['last_seen'] = current_time('mysql');
+    } else {
+        $log[$key] = [
+            'feed_path' => $feedCategoryPath,
+            'missing_segment' => $missingSegment,
+            'count' => 1,
+            'last_seen' => current_time('mysql'),
+        ];
+    }
+
+    update_option('pap_aperta_unmatched_categories', $log, false);
 }
 
 function papetarie_storefront_aperta_resolve_brand(string $brandName): int
