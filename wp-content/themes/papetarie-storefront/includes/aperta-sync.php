@@ -574,6 +574,78 @@ function papetarie_storefront_aperta_consolidate_singleton_colors(array $grouped
 }
 
 /**
+ * Consolideaza randurile "singleton" (Cod produs unic, un singur rand) care
+ * au totusi "Variant"/"Tip variant" completate de Aperta, dar impart acelasi
+ * "Link produs" (pagina de produs de pe site-ul Aperta) - semn explicit ca
+ * Aperta insusi le trateaza ca UN produs cu mai multe culori/marimi, chiar
+ * daca exportul CSV le da coduri de produs separate (confirmat pe feed
+ * 2026-07-28: ex. "One4All 627HS 15mm" - 18 culori, acelasi Link produs,
+ * Cod produs diferit per culoare).
+ *
+ * NEFOLOSITA INCA in fluxul real (nu e apelata din read_products_grouped) -
+ * doar definita, pentru dry-run/verificare manuala inainte de activare.
+ *
+ * Grupeaza DOAR daca toate randurile clusterului au: acelasi nume, acelasi
+ * brand, acelasi "Tip variant" (nevid) si "Variant" completat pe fiecare
+ * rand - orice abatere de la asta inseamna ca nu e sigur si le lasam
+ * neatinse (raportate separat ca ambigue).
+ *
+ * @param array<string, array<int, array<string, string>>> $grouped
+ * @return array<string, array<int, array<string, string>>>
+ */
+function papetarie_storefront_aperta_consolidate_by_shared_link(array $grouped): array
+{
+    $byLink = [];
+
+    foreach ($grouped as $code => $rows) {
+        if (count($rows) !== 1) {
+            continue;
+        }
+
+        $link = trim((string) ($rows[0]['Link produs'] ?? ''));
+        if ($link === '') {
+            continue;
+        }
+
+        $byLink[$link][] = $code;
+    }
+
+    foreach ($byLink as $link => $codes) {
+        if (count($codes) < 2) {
+            continue;
+        }
+
+        $rows = array_map(static fn ($code) => $grouped[$code][0], $codes);
+
+        $names = array_unique(array_map(static fn ($r) => trim((string) $r['Denumire produs']), $rows));
+        $brands = array_unique(array_map(static fn ($r) => trim((string) $r['Brand produs']), $rows));
+        $tipVariants = array_unique(array_map(static fn ($r) => trim((string) $r['Tip variant']), $rows));
+        $variantsFilled = array_filter($rows, static fn ($r) => trim((string) $r['Variant']) !== '');
+
+        $safe = count($names) === 1
+            && count($brands) === 1
+            && count($tipVariants) === 1
+            && $tipVariants[0] !== ''
+            && count($variantsFilled) === count($rows);
+
+        if (!$safe) {
+            continue;
+        }
+
+        $clusterKey = 'link-' . md5($link);
+        $mergedRows = [];
+        foreach ($codes as $code) {
+            $mergedRows[] = $grouped[$code][0];
+            unset($grouped[$code]);
+        }
+
+        $grouped[$clusterKey] = $mergedRows;
+    }
+
+    return $grouped;
+}
+
+/**
  * @return array<string, array{stock: int, cod_produs: string}>
  */
 function papetarie_storefront_aperta_read_stock_map(): array
