@@ -11,11 +11,21 @@ defined('ABSPATH') || exit;
 const PAP_APERTA_PRODUCTS_FEED_URL = 'https://www.aperta.ro/feed.csv';
 const PAP_APERTA_STOCK_FEED_URL = 'https://www.aperta.ro/feed-stoc.csv';
 const PAP_APERTA_CHUNK_SIZE = 25;
-// Bucata de produse e mai mica decat cea de stoc, fiindca descarca imagini -
-// o bucata de 25 cu poze multe/grele poate depasi cele 300s dupa care
-// Action Scheduler marcheaza automat actiunea "esuata", rupand lantul (nu se
-// mai programeaza bucata urmatoare). Descoperit live pe staging 2026-07-26.
-const PAP_APERTA_PRODUCTS_CHUNK_SIZE = 10;
+// Produsele nu mai sunt impartite pe un numar fix per bucata (vezi
+// PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET mai jos) - un numar fix de 10 insemna
+// bucati la fel de "scumpe" indiferent daca produsele erau neschimbate
+// (rapid) sau noi, cu poze multe (lent), risipind timp pe cele neschimbate
+// (marea majoritate) doar ca sa stea sub pragul de 300s la care Action
+// Scheduler marcheaza automat actiunea "esuata" (descoperit live pe staging
+// 2026-07-26). Cu buget de timp, o bucata proceseaza cat incape sub prag,
+// oricate produse ar fi asta - rapida cand sunt neschimbate, protejata cand
+// pica pe un cluster de produse noi.
+const PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET_SECONDS = 45;
+// Plasa de siguranta - opreste bucata chiar daca timpul nu s-a scurs inca,
+// ca sa nu ramana intr-o bucla foarte lunga intr-un singur request daca timpul
+// per produs ar fi neasteptat de mic (nu ar trebui sa se intample, dar evitam
+// orice risc de request nesfarsit).
+const PAP_APERTA_PRODUCTS_CHUNK_MAX_ITEMS = 300;
 const PAP_APERTA_SYNC_DELAY_MINUTES = 20;
 
 /**
@@ -1884,8 +1894,9 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
 }
 
 /**
- * Procesare in bucati (Action Scheduler) - fiecare rulare proceseaza
- * PAP_APERTA_CHUNK_SIZE produse-parinte, apoi programeaza urmatoarea bucata.
+ * Procesare in bucati (Action Scheduler) - fiecare rulare proceseaza cat
+ * incape sub PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET_SECONDS, apoi programeaza
+ * urmatoarea bucata (vezi sync_products_chunk_cb).
  */
 function papetarie_storefront_aperta_sync_products_start_cb(string $trigger = 'auto'): void
 {
@@ -1909,6 +1920,57 @@ function papetarie_storefront_aperta_sync_products_start_cb(string $trigger = 'a
     as_enqueue_async_action('pap_aperta_sync_products_chunk', [0], 'aperta-sync');
 }
 
+/**
+ * Verificare suplimentara de siguranta, pe langa timp/numar de produse -
+ * memoria PHP creste progresiv cu fiecare produs incarcat in acelasi proces
+ * (cache-uri interne WP/WC ce nu se elibereaza intre produse), confirmat
+ * local (2026-07-28): o bucla neintrerupta de bucati in ACELASI proces PHP a
+ * epuizat memory_limit dupa ~900 produse. Action Scheduler are propriul
+ * prag de memorie intre actiuni diferite, dar verificam si aici, in bucla
+ * proprie, ca sa oprim bucata curenta din timp daca memoria creste neasteptat
+ * de repede (ex. poze foarte mari), nu doar sa ne bazam pe pragul din urma.
+ *
+ * Comparam fata de un nivel de referinta (memoria chiar dupa ce s-a incarcat
+ * WordPress/WooCommerce, INAINTE de primul produs din bucata), nu procentul
+ * absolut din memory_limit - bootstrap-ul singur poate ocupa deja 80-90% din
+ * memory_limit pe un mediu cu limita mica (confirmat local: 110M din 128M
+ * inainte de orice produs), ceea ce ar opri bucata dupa un singur produs desi
+ * nu exista niciun risc real de epuizare.
+ */
+function papetarie_storefront_aperta_memory_budget_exceeded(int $baselineBytes): bool
+{
+    $limit = ini_get('memory_limit');
+    if ($limit === false || $limit === '-1' || $limit === '') {
+        return false;
+    }
+
+    $unit = strtolower(substr($limit, -1));
+    $value = (int) $limit;
+    $limitBytes = match ($unit) {
+        'g' => $value * 1024 * 1024 * 1024,
+        'm' => $value * 1024 * 1024,
+        'k' => $value * 1024,
+        default => (int) $limit,
+    };
+
+    if ($limitBytes <= 0) {
+        return false;
+    }
+
+    $current = memory_get_usage(true);
+
+    // Prag absolut: opreste indiferent de baseline daca a mai ramas foarte
+    // putina memorie libera pana la limita reala.
+    if ($limitBytes - $current <= 16 * 1024 * 1024) {
+        return true;
+    }
+
+    // Prag relativ: opreste daca INSASI bucata curenta a acumulat o crestere
+    // mare fata de cum a pornit (semn ca ceva din bucata asta creste memoria
+    // neobisnuit de repede, indiferent cat de generoasa e limita totala).
+    return ($current - $baselineBytes) >= 48 * 1024 * 1024;
+}
+
 function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): void
 {
     $grouped = papetarie_storefront_aperta_read_products_grouped_cached();
@@ -1919,23 +1981,37 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
         papetarie_storefront_aperta_progress_start('products', $total);
     }
 
-    $slice = array_slice($codes, $offset, PAP_APERTA_PRODUCTS_CHUNK_SIZE);
+    $startedAt = microtime(true);
+    $memoryBaseline = memory_get_usage(true);
     $items = [];
+    $processed = 0;
 
-    foreach ($slice as $code) {
-        $result = papetarie_storefront_aperta_upsert_product($grouped[$code]);
+    for ($i = $offset; $i < $total; $i++) {
+        $result = papetarie_storefront_aperta_upsert_product($grouped[$codes[$i]]);
         $items[] = [
-            'sku' => trim((string) $grouped[$code][0]['Cod unic']),
-            'name' => trim((string) $grouped[$code][0]['Denumire produs']) . ' (' . papetarie_storefront_aperta_describe_upsert($result) . ')',
+            'sku' => trim((string) $grouped[$codes[$i]][0]['Cod unic']),
+            'name' => trim((string) $grouped[$codes[$i]][0]['Denumire produs']) . ' (' . papetarie_storefront_aperta_describe_upsert($result) . ')',
             'changed' => papetarie_storefront_aperta_upsert_is_changed($result),
             'trashed' => $result['was_trashed'],
         ];
+        $processed++;
+
+        if ($processed >= PAP_APERTA_PRODUCTS_CHUNK_MAX_ITEMS) {
+            break;
+        }
+        if ((microtime(true) - $startedAt) >= PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET_SECONDS) {
+            break;
+        }
+        if (papetarie_storefront_aperta_memory_budget_exceeded($memoryBaseline)) {
+            break;
+        }
     }
 
-    papetarie_storefront_aperta_progress_tick('products', count($slice), $items);
+    papetarie_storefront_aperta_progress_tick('products', $processed, $items);
 
-    if ($offset + PAP_APERTA_PRODUCTS_CHUNK_SIZE < $total) {
-        as_schedule_single_action(time() + 5, 'pap_aperta_sync_products_chunk', [$offset + PAP_APERTA_PRODUCTS_CHUNK_SIZE], 'aperta-sync');
+    $nextOffset = $offset + $processed;
+    if ($nextOffset < $total) {
+        as_schedule_single_action(time() + 5, 'pap_aperta_sync_products_chunk', [$nextOffset], 'aperta-sync');
     } else {
         update_option('pap_aperta_last_full_sync', time());
         papetarie_storefront_aperta_progress_finish('products');
