@@ -824,32 +824,73 @@ function papetarie_storefront_aperta_sideload_images(array $urls, int $productId
 // gasit 2026-07-27 chiar inainte de cronul de noapte.
 const PAP_APERTA_ALL_STATUSES = ['publish', 'draft', 'pending', 'private', 'future', 'trash'];
 
+/**
+ * Preincarca TOATE perechile SKU/Cod produs -> post ID intr-o singura
+ * interogare, cache-uita static (o data per proces/bucata) - inlocuieste
+ * cate un get_posts() individual per produs (N+1), care era al treilea cel
+ * mai mare consumator de timp gasit la investigatia din 2026-07-28. Nu
+ * filtram dupa post_status: tabela wp_posts contine oricum toate starile
+ * (inclusiv trash), la fel cum facea si get_posts() cu PAP_APERTA_ALL_STATUSES.
+ *
+ * @return array{sku: array<string, int>, cod_produs: array<string, int>}
+ */
+function papetarie_storefront_aperta_lookup_maps(): array
+{
+    static $maps = null;
+
+    if ($maps !== null) {
+        return $maps;
+    }
+
+    global $wpdb;
+
+    $skuToId = [];
+    $codProdusToId = [];
+
+    $rows = $wpdb->get_results(
+        "SELECT pm.meta_key, pm.meta_value, pm.post_id
+         FROM {$wpdb->postmeta} pm
+         INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+         WHERE pm.meta_key IN ('_pap_aperta_sku', '_pap_aperta_cod_produs')
+         AND p.post_type IN ('product', 'product_variation')
+         ORDER BY p.ID DESC"
+    );
+
+    foreach ($rows as $row) {
+        $value = trim((string) $row->meta_value);
+        if ($value === '') {
+            continue;
+        }
+
+        // ORDER BY p.ID DESC + "seteaza doar daca lipseste" => in caz de
+        // coliziune (nu ar trebui sa existe) pastram cel mai recent post,
+        // acelasi comportament ca get_posts() implicit (orderby date DESC).
+        if ($row->meta_key === '_pap_aperta_sku') {
+            if (!isset($skuToId[$value])) {
+                $skuToId[$value] = (int) $row->post_id;
+            }
+        } elseif (!isset($codProdusToId[$value])) {
+            $codProdusToId[$value] = (int) $row->post_id;
+        }
+    }
+
+    $maps = ['sku' => $skuToId, 'cod_produs' => $codProdusToId];
+
+    return $maps;
+}
+
 function papetarie_storefront_aperta_find_by_sku_meta(string $codUnic): ?int
 {
-    $ids = get_posts([
-        'post_type' => ['product', 'product_variation'],
-        'post_status' => PAP_APERTA_ALL_STATUSES,
-        'meta_key' => '_pap_aperta_sku',
-        'meta_value' => $codUnic,
-        'fields' => 'ids',
-        'posts_per_page' => 1,
-    ]);
+    $maps = papetarie_storefront_aperta_lookup_maps();
 
-    return isset($ids[0]) ? (int) $ids[0] : null;
+    return $maps['sku'][$codUnic] ?? null;
 }
 
 function papetarie_storefront_aperta_find_parent_by_cod_produs(string $codProdus): ?int
 {
-    $ids = get_posts([
-        'post_type' => 'product',
-        'post_status' => PAP_APERTA_ALL_STATUSES,
-        'meta_key' => '_pap_aperta_cod_produs',
-        'meta_value' => $codProdus,
-        'fields' => 'ids',
-        'posts_per_page' => 1,
-    ]);
+    $maps = papetarie_storefront_aperta_lookup_maps();
 
-    return isset($ids[0]) ? (int) $ids[0] : null;
+    return $maps['cod_produs'][$codProdus] ?? null;
 }
 
 /**
