@@ -389,6 +389,45 @@ function papetarie_storefront_aperta_read_products_grouped(): array
 }
 
 /**
+ * Cache pe disc al rezultatului (deja grupat + consolidat) al functiei de
+ * mai sus - folosit de lantul de bucati Action Scheduler, ca sa nu se mai
+ * re-parseze feed.csv (5341 randuri) + regex-ul de consolidare culori la
+ * FIECARE bucata (~330 re-parsari redundante pe o rulare completa, cel mai
+ * mare consumator de timp gasit la investigatia din 2026-07-28). Scris o
+ * singura data la pornirea sincronizarii (sync_products_start_cb), citit de
+ * fiecare bucata in loc de reparsare.
+ */
+function papetarie_storefront_aperta_products_grouped_cache_path(): string
+{
+    return papetarie_storefront_aperta_feed_dir() . '/grouped-cache.php';
+}
+
+function papetarie_storefront_aperta_cache_products_grouped(array $grouped): void
+{
+    file_put_contents(papetarie_storefront_aperta_products_grouped_cache_path(), serialize($grouped));
+}
+
+function papetarie_storefront_aperta_read_products_grouped_cached(): array
+{
+    $path = papetarie_storefront_aperta_products_grouped_cache_path();
+
+    if (is_file($path)) {
+        $raw = file_get_contents($path);
+        if ($raw !== false) {
+            $data = @unserialize($raw, ['allowed_classes' => false]);
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+    }
+
+    // Plasa de siguranta (cache lipsa/corupt, ex. rulare manuala din
+    // tools/sync-aperta-feed.php care nu trece prin start_cb) - re-parsam
+    // din feed, mai lent dar corect.
+    return papetarie_storefront_aperta_read_products_grouped();
+}
+
+/**
  * Lista de culori cunoscute (fara diacritice, litere mici) pentru detectarea
  * unui sufix de culoare la finalul denumirii unui produs.
  *
@@ -1824,12 +1863,14 @@ function papetarie_storefront_aperta_sync_products_start_cb(string $trigger = 'a
     papetarie_storefront_aperta_progress_start('products', 0, $trigger);
 
     papetarie_storefront_aperta_download_feed('feed');
+    // Parsam + consolidam feed-ul o singura data aici, nu la fiecare bucata.
+    papetarie_storefront_aperta_cache_products_grouped(papetarie_storefront_aperta_read_products_grouped());
     as_enqueue_async_action('pap_aperta_sync_products_chunk', [0], 'aperta-sync');
 }
 
 function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): void
 {
-    $grouped = papetarie_storefront_aperta_read_products_grouped();
+    $grouped = papetarie_storefront_aperta_read_products_grouped_cached();
     $codes = array_keys($grouped);
     $total = count($codes);
 
