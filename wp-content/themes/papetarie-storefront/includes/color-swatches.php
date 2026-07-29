@@ -12,8 +12,34 @@ function papetarie_storefront_is_color_attribute(string $attributeName): bool
 function papetarie_storefront_color_name_to_hex(string $name): string
 {
     $normalized = strtolower(trim($name));
+    if (function_exists('papetarie_storefront_aperta_strip_diacritics')) {
+        $normalized = strtolower(papetarie_storefront_aperta_strip_diacritics($normalized));
+    }
 
     $keywordMap = [
+        // romana (cuvinte mai lungi/specifice inaintea celor scurte care sunt
+        // prefixul lor - ex. "albastru" inainte de "alb", altfel s-ar prinde
+        // gresit ca "alb" oricare varianta care incepe cu "alb...")
+        'negru' => '#1a1a1a',
+        'albastru' => '#2f6fb3',
+        'alb' => '#ffffff',
+        'rosu' => '#d32f2f',
+        'bleumarin' => '#1a2a4a',
+        'bleu' => '#7ec8e3',
+        'verde' => '#4caf50',
+        'vernil' => '#8fae4a',
+        'galben' => '#f5d020',
+        'portocaliu' => '#f2811d',
+        'mov' => '#7c4dff',
+        'roz' => '#f4a6c6',
+        'gri' => '#808080',
+        'maro' => '#6b4226',
+        'bej' => '#e8d4b0',
+        'crem' => '#f0e6d2',
+        'auriu' => '#d4af37',
+        'argintiu' => '#c0c0c0',
+        'turcoaz' => '#2fb8ab',
+        // engleza
         'bavarian' => '#3d6cb9',
         'gentian' => '#3b5fa0',
         'cobalt' => '#1e4b9e',
@@ -49,7 +75,9 @@ function papetarie_storefront_color_name_to_hex(string $name): string
 
     $hex = null;
     foreach ($keywordMap as $keyword => $candidate) {
-        if (str_contains($normalized, $keyword)) {
+        // Potrivire pe granita de cuvant, nu substring brut - altfel
+        // "galben" ar "contine" gresit "alb" (g-alb-en) si ar deveni alb.
+        if (preg_match('/\b' . preg_quote($keyword, '/') . '\b/u', $normalized) === 1) {
             $hex = $candidate;
             break;
         }
