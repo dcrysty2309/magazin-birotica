@@ -42,6 +42,14 @@ const PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET_SECONDS = 150;
 // mai sus, ca sa nu devina el insusi noul plafon pe bucatile ieftine.
 const PAP_APERTA_PRODUCTS_CHUNK_MAX_ITEMS = 900;
 const PAP_APERTA_SYNC_DELAY_MINUTES = 20;
+// Temporar (investigare 2026-07-29): o bucata a fost marcata "esuata" de
+// Action Scheduler dupa ~379s, peste bugetul nostru de 150s, dar fara nicio
+// urma in error_log-ul PHP (nici macar un fatal de "maximum execution time")
+// - semn ca procesul a fost omorat din afara PHP (server), nu ca a picat
+// intr-un mod normal, catchable. Logam un checkpoint per produs (inainte si
+// dupa upsert) ca sa vedem exact la ce produs se blocheaza data viitoare -
+// de scos dupa ce cauza reala e confirmata.
+const PAP_APERTA_DEBUG_TIMING = true;
 
 /**
  * Stare de progres pentru o rulare (produse sau stoc), ca sa poata fi
@@ -895,10 +903,37 @@ function papetarie_storefront_aperta_resolve_brand(string $brandName): int
  * Dedup prin postmeta _pap_aperta_image_source, ca sa nu redescarce aceeasi
  * poza la fiecare sincronizare zilnica.
  */
+/**
+ * Termen-limita dur (microtime absolut) pentru descarcarea de imagini,
+ * setat doar de bucata cronulu de produse - fara argument = citire, cu
+ * argument = scriere (inclusiv null, ca sa resetam la iesirea din bucata).
+ * Un singur produs cu o galerie mare de poze (fiecare pana la 20s) putea
+ * singur sa impinga bucata peste pragul de 300s la care Action Scheduler
+ * marcheaza automat actiunea esuata (vezi comentariul din
+ * sync_products_chunk_cb) - verificarea de buget dintre produse nu ajuta
+ * daca UN produs consuma tot bugetul intre doua verificari.
+ */
+function papetarie_storefront_aperta_sideload_deadline(?float $newDeadline = null): ?float
+{
+    static $deadline = null;
+    if (func_num_args() > 0) {
+        $deadline = $newDeadline;
+    }
+    return $deadline;
+}
+
 function papetarie_storefront_aperta_sideload_image(string $url, int $productId): ?int
 {
     $url = trim($url);
     if ($url === '') {
+        return null;
+    }
+
+    $deadline = papetarie_storefront_aperta_sideload_deadline();
+    if ($deadline !== null && microtime(true) >= $deadline) {
+        // Bugetul de timp al bucatii e epuizat - sarim peste imaginile
+        // ramase (se recupereaza la urmatoarea sincronizare) in loc sa
+        // riscam sa impingem intregul proces peste pragul extern de 300s.
         return null;
     }
 
@@ -2236,8 +2271,41 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
     $items = [];
     $processed = 0;
 
+    // Vezi papetarie_storefront_aperta_sideload_deadline() - 260s lasa o
+    // marja de 40s sub pragul de 300s al Action Scheduler pentru bootstrap-ul
+    // WP/WC de dinainte de $startedAt si pentru finalizarea bucatii dupa
+    // ultima poza. Resetat la null in finally, ca sa nu afecteze alti
+    // apelanti (tool-uri manuale, migrari) care nu au acest risc de timeout.
+    papetarie_storefront_aperta_sideload_deadline($startedAt + 260);
+
+    try {
     for ($i = $offset; $i < $total; $i++) {
+        if (PAP_APERTA_DEBUG_TIMING) {
+            error_log(sprintf(
+                '[pap-aperta-timing] chunk offset=%d item=%d/%d cod=%s elapsed=%.1fs mem=%.1fMB - START',
+                $offset,
+                $i,
+                $total,
+                (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i]),
+                microtime(true) - $startedAt,
+                memory_get_usage(true) / 1048576
+            ));
+        }
+
         $result = papetarie_storefront_aperta_upsert_product($grouped[$codes[$i]]);
+
+        if (PAP_APERTA_DEBUG_TIMING) {
+            error_log(sprintf(
+                '[pap-aperta-timing] chunk offset=%d item=%d/%d cod=%s elapsed=%.1fs mem=%.1fMB - DONE',
+                $offset,
+                $i,
+                $total,
+                (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i]),
+                microtime(true) - $startedAt,
+                memory_get_usage(true) / 1048576
+            ));
+        }
+
         $items[] = [
             'sku' => trim((string) $grouped[$codes[$i]][0]['Cod unic']),
             'name' => trim((string) $grouped[$codes[$i]][0]['Denumire produs']) . ' (' . papetarie_storefront_aperta_describe_upsert($result) . ')',
@@ -2255,6 +2323,9 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
         if (papetarie_storefront_aperta_memory_budget_exceeded($memoryBaseline)) {
             break;
         }
+    }
+    } finally {
+        papetarie_storefront_aperta_sideload_deadline(null);
     }
 
     papetarie_storefront_aperta_progress_tick('products', $processed, $items);
