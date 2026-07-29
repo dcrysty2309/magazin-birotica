@@ -7,5 +7,21 @@ database/wordpress-staging.sql
 database/exports/
 tmp/
 docs/deployment/manifests/*.md
-wordpress/wp-content/uploads/wc-logs/
 __pycache__/
+
+# Nucleul WordPress local (Docker) - vine din imaginea wordpress:6.8.1-php8.3-apache,
+# nu e cod al nostru, nu are ce cauta versionat (schimba mii de fisiere la fiecare
+# update de core, exact ca node_modules). Codul real e in wp-content/themes/papetarie-storefront,
+# montat separat in container.
+wordpress/
+
+# Plugin-uri terte (WooCommerce, Blocksy, Loco Translate, iPay, WPForms etc.) -
+# instalate din marketplace, nu cod scris de noi, se schimba la fiecare update
+# de plugin exact ca nucleul WordPress de mai sus. Daca vreodata apare un
+# plugin propriu, custom, se adauga explicit o exceptie (!wp-content/plugins/nume-plugin/).
+wp-content/plugins/
+
+# Documente de business (contracte) - nu au ce cauta intr-un repo de cod.
+# (.gitignore nu foloseste ghilimele shell - spatiile din nume sunt literale)
+contract client  (inclus clauza directiva UE 679_680 si acord fc electr).._Artflex (1).doc
+contract client - anexa _dropshipping ARTFLEX.doc
