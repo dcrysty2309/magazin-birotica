@@ -1729,10 +1729,27 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     // WooCommerce) e ce facea rularile de noapte sa dureze ore in loc de
     // minute. Fara asta, verificam identic aceleasi date in gol, in fiecare
     // noapte, pentru cele ~3000 de produse nemodificate.
+    // Daca feed-ul indica poze pentru produsul asta dar produsul de pe site
+    // nu are nicio poza (ex. sarite din cauza plafonului de timp - vezi
+    // papetarie_storefront_aperta_sideload_deadline()), NU consideram randul
+    // "neschimbat" doar pentru ca datele din feed sunt identice - altfel
+    // pozele lipsa ar ramane lipsa pentru totdeauna, pana cand altceva se
+    // schimba la produsul asta (pret, stoc etc.) si strica hash-ul din
+    // intamplare. Asa, incercarea se repeta la fiecare sincronizare pana
+    // reuseste.
+    $feedHasImages = false;
+    foreach ($rows as $row) {
+        if (trim((string) ($row['Imagine produs'] ?? '')) !== '') {
+            $feedHasImages = true;
+            break;
+        }
+    }
+
     $rowHash = md5(serialize($rows));
     if (!$isNew) {
         $storedHash = get_post_meta($productId, '_pap_aperta_row_hash', true);
-        if ($storedHash === $rowHash) {
+        $imagesLookComplete = !$feedHasImages || has_post_thumbnail($productId);
+        if ($storedHash === $rowHash && $imagesLookComplete) {
             return [
                 'product_id' => $productId,
                 'is_new' => false,
