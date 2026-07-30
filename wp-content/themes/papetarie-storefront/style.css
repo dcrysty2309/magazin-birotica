@@ -1121,13 +1121,31 @@ body.home .pap-category-trigger {
 .pap-header-catmenu {
   display: grid;
   grid-template-columns: 208px minmax(0, 1fr);
-  width: min(1120px, calc(100vw - 48px));
+  /* Latimea trebuie sa se opreasca exact unde se opreste containerul paginii
+     (.pap-shell) - butonul declansator sta la marginea stanga interioara a
+     shell-ului, deci scazand cele doua padding-uri de 24px de pe fiecare
+     parte obtinem exact distanta pana la marginea dreapta interioara, unde
+     sta "Ai nevoie de ajutor?". Pragurile trebuie sa ramana identice cu cele
+     ale .pap-shell mai jos in fisier, altfel se dezalinieaza din nou. */
+  width: min(1102px, calc(100vw - 48px));
   max-height: min(72vh, 760px);
   background: #fff;
   border: 1px solid #dbe4f0;
   border-top: 0;
   box-shadow: none;
   overflow: hidden;
+}
+
+@media (min-width: 1260px) {
+  .pap-header-catmenu {
+    width: min(1172px, calc(100vw - 48px));
+  }
+}
+
+@media (min-width: 1530px) {
+  .pap-header-catmenu {
+    width: min(1472px, calc(100vw - 48px));
+  }
 }
 
 .pap-header-catmenu-left {
