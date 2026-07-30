@@ -3657,7 +3657,7 @@ body.theme-papetarie .pap-archive-empty p {
   flex: 0 0 172px;
   height: 172px;
   border-radius: 10px;
-  background: #fafafa;
+  background: #fff;
   display: grid;
   grid-template-rows: 100%;
   grid-template-columns: 100%;
