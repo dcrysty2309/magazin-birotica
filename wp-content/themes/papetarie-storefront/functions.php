@@ -4459,9 +4459,6 @@ function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, a
             <?php else : ?>
               <span class="pap-cart-item-name" aria-hidden="true"><?php echo esc_html($product_name); ?></span>
             <?php endif; ?>
-            <?php if ($is_product_valid && $product->get_price_html()) : ?>
-              <div class="pap-cart-item-price"><?php echo wp_kses_post($product->get_price_html()); ?></div>
-            <?php endif; ?>
             <?php if ($product_description !== '') : ?>
               <div class="pap-cart-item-description"><?php echo esc_html($product_description); ?></div>
             <?php endif; ?>
@@ -4486,7 +4483,7 @@ function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, a
                 data-cart-stock-tooltip-text="<?php echo esc_attr($stock_limit_text); ?>"
                 aria-label="<?php echo esc_attr($stock_limit_text); ?>"
               >
-                <span class="pap-cart-stock-limit-trigger__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('info'); ?></span>
+                <span class="pap-cart-stock-limit-trigger__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('info-circle'); ?></span>
               </button>
               <div class="pap-cart-stock-tooltip" data-cart-stock-tooltip hidden aria-hidden="true"></div>
             <?php endif; ?>

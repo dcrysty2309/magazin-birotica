@@ -7275,14 +7275,6 @@ body.theme-papetarie.woocommerce-cart .pap-cart-item-name {
   -webkit-box-orient: vertical;
 }
 
-body.theme-papetarie.woocommerce-cart .pap-cart-item-price {
-  margin: 0 0 4px;
-  color: var(--text-primary);
-  font-size: var(--pap-important-text-size);
-  line-height: 1.4;
-  font-weight: 600;
-}
-
 body.theme-papetarie.woocommerce-cart .pap-cart-item-description {
   color: var(--text-secondary);
   font-size: var(--pap-body-text-size);
@@ -7425,8 +7417,8 @@ body.theme-papetarie.woocommerce-cart .pap-cart-qty-control__field .quantity inp
 
 body.theme-papetarie.woocommerce-cart .pap-cart-stock-limit-trigger {
   position: absolute;
-  top: -14px;
-  right: -4px;
+  top: -10px;
+  right: -10px;
   width: 22px;
   height: 22px;
   border: 0;
@@ -7442,6 +7434,17 @@ body.theme-papetarie.woocommerce-cart .pap-cart-stock-limit-trigger {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
   z-index: 2;
   transition: color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* JS ascunde acest buton (setand atributul "hidden") ori de cate ori
+   cantitatea nu e chiar la limita de stoc - fara regula asta, "display:
+   inline-flex" de mai sus are aceeasi specificitate ca stilul implicit al
+   browserului pentru [hidden] si, fiind mai jos in fisier, castiga mereu,
+   aratand bula peste orice produs cu stoc urmarit (gasit live 2026-07-31:
+   aparea si la un produs cu 22 in stoc si cantitate 1 in cos, la ani lumina
+   de limita). */
+body.theme-papetarie.woocommerce-cart .pap-cart-stock-limit-trigger[hidden] {
+  display: none;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-stock-limit-trigger:hover,
@@ -8510,10 +8513,6 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
   body.theme-papetarie.woocommerce-cart .pap-cart-item-name {
     font-size: var(--pap-product-title-size);
   }
-
-  body.theme-papetarie.woocommerce-cart .pap-cart-item-price {
-    font-size: var(--pap-important-text-size);
-  }
 }
 
 @media (max-width: 980px) {
@@ -8599,10 +8598,6 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
 
   body.theme-papetarie.woocommerce-cart .pap-cart-item-name {
     font-size: 20px;
-  }
-
-  body.theme-papetarie.woocommerce-cart .pap-cart-item-price {
-    font-size: var(--pap-important-text-size);
   }
 
   body.theme-papetarie.woocommerce-cart .pap-cart-item-controls {
