@@ -160,12 +160,26 @@
     var maxScroll = metrics.maxScroll;
     var maxIndex = metrics.maxIndex;
     var currentIndex = getTrackedIndex(slider, amount, maxIndex);
-    // Fara wrap-around: la capete, click-ul suplimentar ramane pe loc in loc
-    // sa teleporteze instantaneu la celalalt capat (teleportul instant, daca
-    // prindea o animatie anterioara inca in desfasurare, producea exact
-    // sariturea vizibila spre stanga raportata - vezi comentariul de la
-    // animateScrollTo()).
-    var targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction));
+    var targetIndex = currentIndex + direction;
+
+    // Wrap-around: la capat, click-ul suplimentar continua de la celalalt
+    // capat in loc sa ramana blocat. Teleportul instant la 0/maxScroll e
+    // sigur acum - scroll-snap-type e deja dezactivat de orice animatie
+    // anterioara inca in desfasurare (vezi animateScrollTo()), asa ca nu mai
+    // produce saritura vizibila raportata initial.
+    if (targetIndex > maxIndex) {
+      setTrackedIndex(slider, 0);
+      slider.scrollLeft = 0;
+      animateScrollTo(slider, Math.min(amount, maxScroll));
+      return;
+    }
+
+    if (targetIndex < 0) {
+      setTrackedIndex(slider, maxIndex);
+      slider.scrollLeft = maxScroll;
+      animateScrollTo(slider, Math.max(maxScroll - amount, 0));
+      return;
+    }
 
     setTrackedIndex(slider, targetIndex);
     var target = targetIndex >= maxIndex ? maxScroll : targetIndex * amount;

@@ -49,20 +49,20 @@ $showcase_category_positions = [
 
 $products = function_exists('wc_get_products') ? wc_get_products([
     'status' => 'publish',
-    'limit' => 8,
+    'limit' => 5,
     'featured' => true,
     'orderby' => 'menu_order',
     'order' => 'ASC',
 ]) : [];
 
-if (function_exists('wc_get_products') && count($products) < 8) {
+if (function_exists('wc_get_products') && count($products) < 5) {
     $featured_ids = array_map(static function ($product) {
         return $product instanceof WC_Product ? $product->get_id() : 0;
     }, $products);
 
     $supplemental_products = wc_get_products([
         'status' => 'publish',
-        'limit' => 8 - count($products),
+        'limit' => 5 - count($products),
         'exclude' => $featured_ids,
         'orderby' => 'date',
         'order' => 'DESC',
@@ -660,11 +660,25 @@ get_header();
       var maxScroll = metrics.maxScroll;
       var maxIndex = metrics.maxIndex;
       var currentIndex = getTrackedSliderIndex(slider, amount, maxIndex);
-      // Fara wrap-around: la capete, click-ul suplimentar ramane pe loc in loc
-      // sa teleporteze instantaneu la celalalt capat (teleportul instant, daca
-      // prindea o animatie anterioara inca in desfasurare, producea exact
-      // sariturea vizibila spre stanga raportata).
-      var targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction));
+      var targetIndex = currentIndex + direction;
+
+      // Wrap-around: la capat, click-ul suplimentar continua de la celalalt
+      // capat in loc sa ramana blocat. Teleportul instant la 0/maxScroll e
+      // sigur acum - scroll-snap-type e deja dezactivat de orice animatie
+      // anterioara inca in desfasurare (vezi animateScrollTo()).
+      if (targetIndex > maxIndex) {
+        if (sliderTargetIndex) { sliderTargetIndex.set(slider, 0); }
+        slider.scrollLeft = 0;
+        animateScrollTo(slider, Math.min(amount, maxScroll));
+        return;
+      }
+
+      if (targetIndex < 0) {
+        if (sliderTargetIndex) { sliderTargetIndex.set(slider, maxIndex); }
+        slider.scrollLeft = maxScroll;
+        animateScrollTo(slider, Math.max(maxScroll - amount, 0));
+        return;
+      }
 
       if (sliderTargetIndex) { sliderTargetIndex.set(slider, targetIndex); }
       var target = targetIndex >= maxIndex ? maxScroll : targetIndex * amount;
