@@ -701,11 +701,17 @@ function papetarie_storefront_enqueue_header_menu_script(): void
         return;
     }
 
+    $header_menu_path = get_stylesheet_directory() . '/assets/js/header-menu.js';
+
     wp_enqueue_script(
         'papetarie-storefront-header-menu',
         get_stylesheet_directory_uri() . '/assets/js/header-menu.js',
         [],
-        wp_get_theme()->get('Version'),
+        // filemtime, nu versiunea fixa a temei - altfel orice editare a acestui
+        // fisier ramane cache-uita in browser pana cineva bumpuieste manual
+        // versiunea temei (gasit live 2026-07-31: un fix real nu se aplica
+        // deloc in browser desi fisierul de pe disc era corect).
+        file_exists($header_menu_path) ? (string) filemtime($header_menu_path) : wp_get_theme()->get('Version'),
         true
     );
 }

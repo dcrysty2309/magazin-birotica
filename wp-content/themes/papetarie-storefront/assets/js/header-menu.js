@@ -56,7 +56,15 @@
     });
   };
 
-  const openMenu = (slug = '') => {
+  // Fara un slug implicit, deschiderea meniului (inainte sa treci mouse-ul
+  // peste vreo categorie) dezactiveaza toate panourile - coloana dreapta
+  // ramane un dreptunghi alb, gol, chiar din prima clipa (gasit live
+  // 2026-07-31, mult mai vizibil dupa ce meniul a fost latit sa acopere tot
+  // containerul). Prima categorie se activeaza implicit, ca panoul sa fie
+  // mereu populat, la fel ca la hover pe orice categorie.
+  const defaultSlug = items.length > 0 ? items[0].getAttribute('data-header-catmenu-target') : '';
+
+  const openMenu = (slug = defaultSlug) => {
     clearCloseTimer();
     isOpen = true;
     shell.hidden = false;
