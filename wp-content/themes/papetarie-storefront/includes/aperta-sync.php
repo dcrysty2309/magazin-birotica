@@ -50,6 +50,16 @@ const PAP_APERTA_SYNC_DELAY_MINUTES = 20;
 // dupa upsert) ca sa vedem exact la ce produs se blocheaza data viitoare -
 // de scos dupa ce cauza reala e confirmata.
 const PAP_APERTA_DEBUG_TIMING = true;
+// Un produs cu foarte multe variante costa mult intr-o singura iteratie
+// (fiecare varianta = un save() WooCommerce complet, plus verificarea pozelor
+// ei). Verificarea de buget de timp se face doar INTRE produse, deci un
+// asemenea produs pornit tarziu in bucata poate trece singur peste pragul de
+// 300s la care Action Scheduler marcheaza actiunea esuata - si atunci nici
+// hash-ul lui nu se mai salveaza, deci esueaza identic la fiecare rulare, la
+// infinit (confirmat live 2026-07-30: LIN034, 32 variante, a blocat importul
+// exact la produsul 261 din 2395, doua nopti la rand). Un produs peste pragul
+// asta primeste o bucata intreaga numai pentru el, cu tot bugetul disponibil.
+const PAP_APERTA_HEAVY_PRODUCT_ROWS = 12;
 
 /**
  * Stare de progres pentru o rulare (produse sau stoc), ca sa poata fi
@@ -1748,7 +1758,13 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     $rowHash = md5(serialize($rows));
     if (!$isNew) {
         $storedHash = get_post_meta($productId, '_pap_aperta_row_hash', true);
-        $imagesLookComplete = !$feedHasImages || has_post_thumbnail($productId);
+        // Produsele de la coșul de gunoi sunt excluse din reincercare: nu se
+        // afiseaza nicaieri, deci n-are rost sa le descarcam poze, iar cele
+        // cinci cochilii goale ramase din consolidare (fara nicio variatie, deci
+        // fara nicio sansa sa capete vreodata imagine principala) ar fi
+        // reprocesate integral la fiecare rulare, la infinit - inclusiv pana la
+        // 88 de descarcari de poze fiecare (gasit live 2026-07-30).
+        $imagesLookComplete = !$feedHasImages || $wasTrashed || has_post_thumbnail($productId);
         if ($storedHash === $rowHash && $imagesLookComplete) {
             return [
                 'product_id' => $productId,
@@ -2297,6 +2313,14 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
 
     try {
     for ($i = $offset; $i < $total; $i++) {
+        // Vezi PAP_APERTA_HEAVY_PRODUCT_ROWS - un produs cu foarte multe
+        // variante primeste o bucata doar pentru el, ca sa aiba tot bugetul
+        // la dispozitie si sa nu poata trece singur peste pragul de 300s.
+        $isHeavy = count($grouped[$codes[$i]]) >= PAP_APERTA_HEAVY_PRODUCT_ROWS;
+        if ($isHeavy && $processed > 0) {
+            break;
+        }
+
         if (PAP_APERTA_DEBUG_TIMING) {
             error_log(sprintf(
                 '[pap-aperta-timing] chunk offset=%d item=%d/%d cod=%s elapsed=%.1fs mem=%.1fMB - START',
@@ -2331,6 +2355,11 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
         ];
         $processed++;
 
+        // Produsul greu a consumat probabil o bucata buna din buget - inchidem
+        // bucata aici, ca urmatoarele produse sa porneasca de la zero.
+        if ($isHeavy) {
+            break;
+        }
         if ($processed >= PAP_APERTA_PRODUCTS_CHUNK_MAX_ITEMS) {
             break;
         }
