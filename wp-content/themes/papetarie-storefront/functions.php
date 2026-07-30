@@ -6785,7 +6785,7 @@ function papetarie_storefront_render_cart_recommendations_html(?string $title = 
         : __('S-ar putea să-ți placă și', 'papetarie-storefront'));
     $subtitle = $subtitle !== null ? $subtitle : ($is_empty_cart
         ? ''
-        : __('Produse complementare pentru coșul tău.', 'papetarie-storefront'));
+        : __('Completează-ți comanda cu produse alese special pentru tine.', 'papetarie-storefront'));
 
     $products = papetarie_storefront_cart_recommendation_products($limit);
     $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
