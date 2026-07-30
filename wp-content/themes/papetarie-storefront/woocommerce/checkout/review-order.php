@@ -33,7 +33,13 @@ if ($cart && (function_exists('papetarie_storefront_cart_needs_shipping') ? pape
 			$shipping_total += (float) $cart->get_shipping_tax();
 		}
 
-		$shipping_row_value = papetarie_storefront_shipping_method_price_text(max(0.0, $shipping_total));
+		$shipping_total = max(0.0, $shipping_total);
+		// Aceeasi regula ca pe pagina de cos (papetarie_storefront_cart_shipping_summary_data())
+		// - fara ea, transportul gratuit aparea "0,00 lei" aici dar "Transport gratuit"
+		// pe cos, pentru aceeasi comanda (gasit live 2026-07-31).
+		$shipping_row_value = $shipping_total > 0.0
+			? papetarie_storefront_shipping_method_price_text($shipping_total)
+			: __('Transport gratuit', 'papetarie-storefront');
 	}
 }
 
