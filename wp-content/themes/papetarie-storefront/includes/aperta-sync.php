@@ -60,6 +60,18 @@ const PAP_APERTA_DEBUG_TIMING = true;
 // exact la produsul 261 din 2395, doua nopti la rand). Un produs peste pragul
 // asta primeste o bucata intreaga numai pentru el, cu tot bugetul disponibil.
 const PAP_APERTA_HEAVY_PRODUCT_ROWS = 12;
+// Stocul se procesa in bucati fixe de 100 SKU-uri => 54 de bucati pentru cele
+// ~5340 SKU-uri din feed-stoc.csv. Fiecare bucata isi programa urmatoarea si
+// apoi ISI TERMINA rularea, deci de multe ori urmatoarea nu mai era luata de
+// aceeasi trecere a cozii, ci de urmatoarea declansare a cronului de sistem -
+// care pe notix.ro e din 5 in 5 minute (masurat live 2026-07-30: pauze de
+// exact 299-301s intre bucati consecutive). 54 de bucati x pana la 5 minute
+// de asteptare = ore intregi pentru o munca reala de ~3 minute (o rulare a
+// durat 8950s = 2h29m). Bucatile de stoc sunt acum limitate de TIMP, nu de un
+// numar fix, exact ca la produse - o singura bucata acopera tot feed-ul in
+// cazul normal, deci nu se mai aduna asteptari intre bucati.
+const PAP_APERTA_STOCK_CHUNK_TIME_BUDGET_SECONDS = 120;
+const PAP_APERTA_STOCK_CHUNK_MAX_ITEMS = 4000;
 
 /**
  * Stare de progres pentru o rulare (produse sau stoc), ca sa poata fi
@@ -1675,6 +1687,38 @@ function papetarie_storefront_aperta_stock_status_from_text(string $statusText):
 }
 
 /**
+ * Estimare ieftina: produsul asta ar face munca reala la o sincronizare, sau
+ * ar fi sarit pe calea rapida (hash identic)? Folosita DOAR ca sa decidem cum
+ * impartim bucatile (vezi PAP_APERTA_HEAVY_PRODUCT_ROWS) - nu ia nicio decizie
+ * despre date, deci daca se desincronizeaza vreodata de logica reala din
+ * upsert_product() consecinta e strict una de programare (o bucata rupta
+ * degeaba, sau un produs greu neizolat), nimic incorect pe site.
+ *
+ * Costa o citire de postmeta, care oricum incalzeste cache-ul pentru
+ * upsert_product() imediat dupa.
+ *
+ * @param array<int, array<string, string>> $rows
+ */
+function papetarie_storefront_aperta_product_needs_work(array $rows): bool
+{
+    if (empty($rows)) {
+        return false;
+    }
+
+    $first = $rows[0];
+    $isVariable = count($rows) > 1 || trim((string) $first['Variant']) !== '';
+    $productId = $isVariable
+        ? papetarie_storefront_aperta_find_parent_by_cod_produs(trim((string) $first['Cod produs']))
+        : papetarie_storefront_aperta_find_by_sku_meta(trim((string) $first['Cod unic']));
+
+    if ($productId === null) {
+        return true;
+    }
+
+    return get_post_meta($productId, '_pap_aperta_row_hash', true) !== md5(serialize($rows));
+}
+
+/**
  * Creeaza/actualizeaza un produs (simplu sau variabil) dintr-un grup de
  * randuri feed.csv care au acelasi "Cod produs".
  *
@@ -2316,7 +2360,13 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
         // Vezi PAP_APERTA_HEAVY_PRODUCT_ROWS - un produs cu foarte multe
         // variante primeste o bucata doar pentru el, ca sa aiba tot bugetul
         // la dispozitie si sa nu poata trece singur peste pragul de 300s.
-        $isHeavy = count($grouped[$codes[$i]]) >= PAP_APERTA_HEAVY_PRODUCT_ROWS;
+        // Conditia de "needs_work" e esentiala: exista 34 de produse cu 12+
+        // variante, iar in mod normal niciunul nu se schimba de la o noapte la
+        // alta. Fara ea, fiecare ar rupe bucata degeaba (un produs neschimbat
+        // costa ~0.05s), transformand o rulare de 3 bucati in 37 - exact boala
+        // pe care o rezolvam la stoc.
+        $isHeavy = count($grouped[$codes[$i]]) >= PAP_APERTA_HEAVY_PRODUCT_ROWS
+            && papetarie_storefront_aperta_product_needs_work($grouped[$codes[$i]]);
         if ($isHeavy && $processed > 0) {
             break;
         }
@@ -2378,7 +2428,8 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
 
     $nextOffset = $offset + $processed;
     if ($nextOffset < $total) {
-        as_schedule_single_action(time() + 5, 'pap_aperta_sync_products_chunk', [$nextOffset], 'aperta-sync');
+        // Scadenta imediata - vezi nota de la bucatile de stoc.
+        as_schedule_single_action(time(), 'pap_aperta_sync_products_chunk', [$nextOffset], 'aperta-sync');
     } else {
         update_option('pap_aperta_last_full_sync', time());
         papetarie_storefront_aperta_progress_finish('products');
@@ -2407,18 +2458,46 @@ function papetarie_storefront_aperta_sync_stock_chunk_cb(int $offset = 0): void
         papetarie_storefront_aperta_progress_start('stock', $total);
     }
 
-    $slice = array_slice($codes, $offset, PAP_APERTA_CHUNK_SIZE * 4);
+    // Vezi PAP_APERTA_STOCK_CHUNK_TIME_BUDGET_SECONDS - procesam in sub-loturi
+    // de 100 (granularitatea la care verificam bugetul), dar continuam cat
+    // timp incape, ca sa nu mai fie nevoie de 54 de bucati separate, fiecare
+    // asteptand urmatoarea declansare a cronului.
+    $startedAt = microtime(true);
+    $memoryBaseline = memory_get_usage(true);
+    $processed = 0;
+    $applied = [];
 
-    $chunkMap = [];
-    foreach ($slice as $code) {
-        $chunkMap[$code] = $stockMap[$code];
+    while ($offset + $processed < $total) {
+        $slice = array_slice($codes, $offset + $processed, PAP_APERTA_CHUNK_SIZE * 4);
+        if (empty($slice)) {
+            break;
+        }
+
+        $chunkMap = [];
+        foreach ($slice as $code) {
+            $chunkMap[$code] = $stockMap[$code];
+        }
+
+        $applied = array_merge($applied, papetarie_storefront_aperta_apply_stock($chunkMap));
+        $processed += count($slice);
+
+        if ($processed >= PAP_APERTA_STOCK_CHUNK_MAX_ITEMS) {
+            break;
+        }
+        if ((microtime(true) - $startedAt) >= PAP_APERTA_STOCK_CHUNK_TIME_BUDGET_SECONDS) {
+            break;
+        }
+        if (papetarie_storefront_aperta_memory_budget_exceeded($memoryBaseline)) {
+            break;
+        }
     }
 
-    $applied = papetarie_storefront_aperta_apply_stock($chunkMap);
-    papetarie_storefront_aperta_progress_tick('stock', count($slice), $applied);
+    papetarie_storefront_aperta_progress_tick('stock', $processed, $applied);
 
-    if ($offset + PAP_APERTA_CHUNK_SIZE * 4 < $total) {
-        as_schedule_single_action(time() + 5, 'pap_aperta_sync_stock_chunk', [$offset + PAP_APERTA_CHUNK_SIZE * 4], 'aperta-sync');
+    if ($offset + $processed < $total) {
+        // Scadenta imediata (nu +5s): asa aceeasi trecere a cozii Action
+        // Scheduler o poate prelua pe loc, fara sa astepte cronul urmator.
+        as_schedule_single_action(time(), 'pap_aperta_sync_stock_chunk', [$offset + $processed], 'aperta-sync');
     } else {
         update_option('pap_aperta_last_stock_sync', time());
         papetarie_storefront_aperta_progress_finish('stock');
