@@ -98,12 +98,36 @@ function papetarie_storefront_dequeue_legacy_child_style(): void
     wp_deregister_style('storefront-child-style');
 
     // Storefront's own class-storefront.php independently enqueues 'storefront-style'
-    // pointing at the same parent style.css we already load (as 'storefront-parent-style',
-    // correctly ordered before our child stylesheet). Left alone, this duplicate copy loads
-    // a second time *after* our child theme's CSS and silently wins ties in the cascade.
-    // Dequeue only (not deregister) - WooCommerce's own 'storefront-woocommerce-style'
-    // lists 'storefront-style' as a dependency, and deregistering it breaks that lookup.
+    // pointing at the exact same parent style.css we already load (as
+    // 'storefront-parent-style', correctly ordered before our child stylesheet).
+    // Left alone, this duplicate copy loads a SECOND time after our child theme's
+    // CSS and silently wins any tied-specificity rule in the cascade - confirmed
+    // live 2026-07-31: its leftover blog-post rule ".hentry .entry-content a
+    // { text-decoration: underline; }" was overriding our own same-specificity
+    // ".pap-cart-checkout"/".pap-product-card-link" overrides on the cart page,
+    // because THIS duplicate printed after them despite our stylesheet being
+    // enqueued later.
+    //
+    // Just dequeuing 'storefront-style' is NOT enough on its own (tried first,
+    // confirmed still present in the rendered <head>): WooCommerce's own
+    // 'storefront-woocommerce-style' (registered at priority 20, before this
+    // function runs at 40) lists 'storefront-style' as a dependency, and
+    // WP_Dependencies prints dependencies of anything still queued regardless of
+    // whether the dependency itself was separately dequeued. So we repoint that
+    // dependency at our own already-correctly-ordered 'storefront-parent-style'
+    // (litteraly the same file) first - only then is 'storefront-style' truly
+    // unreferenced and safe to fully deregister, not just dequeue.
+    global $wp_styles;
+    if ($wp_styles instanceof WP_Styles && isset($wp_styles->registered['storefront-woocommerce-style'])) {
+        $deps = &$wp_styles->registered['storefront-woocommerce-style']->deps;
+        $deps = array_map(
+            static fn (string $dep): string => $dep === 'storefront-style' ? 'storefront-parent-style' : $dep,
+            $deps
+        );
+    }
+
     wp_dequeue_style('storefront-style');
+    wp_deregister_style('storefront-style');
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_legacy_child_style', 40);
 

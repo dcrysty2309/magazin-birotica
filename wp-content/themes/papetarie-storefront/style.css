@@ -3029,7 +3029,8 @@ body.theme-papetarie .pap-archive-titlebar-copy p {
   gap: 12px;
 }
 
-.pap-product-card-link {
+.pap-product-card-link,
+body.theme-papetarie .pap-product-card-link {
   display: grid;
   gap: 14px;
   color: inherit;
@@ -7265,9 +7266,9 @@ body.theme-papetarie.woocommerce-cart .pap-cart-item-name {
   display: -webkit-box;
   margin: 0 0 6px;
   color: var(--text-primary);
-  font-size: 20px;
-  line-height: 1.25;
-  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 600;
   text-decoration: none;
   overflow: hidden;
   -webkit-line-clamp: 2;
@@ -7345,11 +7346,11 @@ body.theme-papetarie.woocommerce-cart .pap-cart-qty-control__button {
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-qty-control__button:first-child {
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid #d6dde8;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-qty-control__button:last-child {
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid #d6dde8;
 }
 
 body.theme-papetarie.woocommerce-cart .pap-cart-qty-control__button:hover,
