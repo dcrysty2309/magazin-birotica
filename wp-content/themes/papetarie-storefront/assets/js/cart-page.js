@@ -19,6 +19,12 @@
   var stockTooltipTimers = new WeakMap();
   var isProgrammaticCartSubmit = false;
   var initializedSliderShells = typeof WeakSet === 'function' ? new WeakSet() : null;
+  // Vezi comentariul din scrollHorizontalSlider() mai jos - indexul "tintit"
+  // de noi la ultimul click, separat de scrollLeft-ul real (care e undeva
+  // la mijloc intre doua carduri in timp ce animatia "smooth" anterioara
+  // inca ruleaza).
+  var sliderTargetIndex = typeof WeakMap === 'function' ? new WeakMap() : null;
+  var sliderScrollTimers = typeof WeakMap === 'function' ? new WeakMap() : null;
 
   function refreshCartPageRefs() {
     page = document.querySelector('[data-cart-page]');
@@ -875,35 +881,90 @@
     }
   }
 
-  function scrollHorizontalSlider(slider, direction) {
-    if (!slider) {
-      return;
-    }
-
+  function getSliderMetrics(slider) {
     var card = slider.querySelector('.pap-product-card');
     if (!card) {
-      return;
+      return null;
     }
 
     var gap = parseFloat(getComputedStyle(slider.querySelector('.pap-product-grid') || slider).columnGap) || 0;
     var amount = card.getBoundingClientRect().width + gap;
     var maxScroll = slider.scrollWidth - slider.clientWidth;
     var maxIndex = Math.max(0, Math.round(maxScroll / amount));
-    var currentIndex = Math.round(slider.scrollLeft / amount);
+
+    return { amount: amount, maxScroll: maxScroll, maxIndex: maxIndex };
+  }
+
+  function indexFromScrollLeft(slider, amount, maxIndex) {
+    return Math.max(0, Math.min(maxIndex, Math.round(slider.scrollLeft / amount)));
+  }
+
+  function getTrackedSliderIndex(slider, amount, maxIndex) {
+    if (sliderTargetIndex && sliderTargetIndex.has(slider)) {
+      return sliderTargetIndex.get(slider);
+    }
+
+    return indexFromScrollLeft(slider, amount, maxIndex);
+  }
+
+  function scheduleManualSliderResync(slider) {
+    if (!sliderScrollTimers) {
+      return;
+    }
+
+    var existing = sliderScrollTimers.get(slider);
+    if (existing) {
+      window.clearTimeout(existing);
+    }
+
+    var timer = window.setTimeout(function () {
+      var metrics = getSliderMetrics(slider);
+      if (metrics && sliderTargetIndex) {
+        sliderTargetIndex.set(slider, indexFromScrollLeft(slider, metrics.amount, metrics.maxIndex));
+      }
+      sliderScrollTimers.delete(slider);
+    }, 150);
+
+    sliderScrollTimers.set(slider, timer);
+  }
+
+  // Scroll-ul e "smooth" (animat) - daca se da click din nou inainte ca
+  // animatia anterioara sa se termine, scrollLeft e undeva la mijloc intre
+  // doua carduri, iar un index calculat direct de-acolo pica adesea gresit,
+  // facand sageata sa para ca "sare" la click-uri rapide repetate (reprodus
+  // live 2026-07-31). Tinem indexul separat, actualizat sincron la fiecare
+  // click, indiferent daca animatia anterioara s-a terminat vizual sau nu.
+  function scrollHorizontalSlider(slider, direction) {
+    if (!slider) {
+      return;
+    }
+
+    var metrics = getSliderMetrics(slider);
+    if (!metrics) {
+      return;
+    }
+
+    var amount = metrics.amount;
+    var maxScroll = metrics.maxScroll;
+    var maxIndex = metrics.maxIndex;
+    var currentIndex = getTrackedSliderIndex(slider, amount, maxIndex);
     var targetIndex = currentIndex + direction;
 
     if (targetIndex > maxIndex) {
+      if (sliderTargetIndex) { sliderTargetIndex.set(slider, 0); }
       slider.scrollLeft = 0;
       slider.scrollTo({ left: Math.min(amount, maxScroll), behavior: 'smooth' });
       return;
     }
 
     if (targetIndex < 0) {
+      if (sliderTargetIndex) { sliderTargetIndex.set(slider, maxIndex); }
       slider.scrollLeft = maxScroll;
       slider.scrollTo({ left: Math.max(maxScroll - amount, 0), behavior: 'smooth' });
       return;
     }
 
+    if (sliderTargetIndex) { sliderTargetIndex.set(slider, targetIndex); }
     var target = targetIndex >= maxIndex ? maxScroll : targetIndex * amount;
     slider.scrollTo({ left: target, behavior: 'smooth' });
   }
@@ -932,6 +993,10 @@
         scrollHorizontalSlider(slider, 1);
       });
     }
+
+    slider.addEventListener('scroll', function () {
+      scheduleManualSliderResync(slider);
+    }, { passive: true });
   }
 
   function initHorizontalSliders() {
