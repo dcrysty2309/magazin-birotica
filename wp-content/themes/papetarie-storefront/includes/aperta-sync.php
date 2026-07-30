@@ -104,6 +104,59 @@ function papetarie_storefront_aperta_progress_get(string $flow): array
 }
 
 /**
+ * Ca progress_get(), dar pentru AFISARE: o rulare care a murit pe parcurs
+ * (bucata omorata de server / marcata esuata de Action Scheduler) ramane
+ * inregistrata ca "running" pentru totdeauna, fiindca nimeni nu mai ajunge sa
+ * o marcheze terminata. Panoul "Progres live" arata atunci "Rulează…" ore sau
+ * zile la rand, ceea ce induce complet in eroare (semnalat 2026-07-30: rularea
+ * picata la 00:15 se afisa "pornit acum 325m" a doua zi dimineata).
+ *
+ * O rulare vie are MEREU o bucata fie programata, fie chiar in executie in
+ * Action Scheduler; daca nu exista niciuna, rularea e abandonata.
+ */
+function papetarie_storefront_aperta_progress_for_display(string $flow): array
+{
+    $progress = papetarie_storefront_aperta_progress_get($flow);
+
+    if (!in_array($progress['status'], ['starting', 'running'], true)) {
+        return $progress;
+    }
+
+    // Fereastra de grație: pornirea descarca + parseaza feed-ul inainte sa
+    // programeze prima bucata, deci la inceput nu exista inca nicio bucata -
+    // nu declaram moarta o rulare abia pornita.
+    if (!$progress['started_at'] || (time() - $progress['started_at']) < 5 * MINUTE_IN_SECONDS) {
+        return $progress;
+    }
+
+    if (!function_exists('as_get_scheduled_actions') || !class_exists('ActionScheduler_Store')) {
+        return $progress;
+    }
+
+    // Doar hook-ul de BUCATA e un semnal valid de "rulare vie". Cel de start
+    // nu e: actiunea recurenta pentru rularea de mâine e mereu "pending", deci
+    // ar face orice rulare sa para vesnic in desfasurare.
+    $chunkHook = $flow === 'stock' ? 'pap_aperta_sync_stock_chunk' : 'pap_aperta_sync_products_chunk';
+
+    foreach ([ActionScheduler_Store::STATUS_PENDING, ActionScheduler_Store::STATUS_RUNNING] as $status) {
+        $live = as_get_scheduled_actions([
+            'hook' => $chunkHook,
+            'status' => $status,
+            'group' => 'aperta-sync',
+            'per_page' => 1,
+        ], 'ids');
+
+        if (!empty($live)) {
+            return $progress;
+        }
+    }
+
+    $progress['status'] = 'interrupted';
+
+    return $progress;
+}
+
+/**
  * O rulare (produse sau stoc) e "activa" cat timp e starting/running - alta
  * pornire (fie click pe "Ruleaza acum", fie programul recurent) trebuie sa
  * astepte, nu sa suprascrie afisarea de progres a celei deja in curs.

@@ -187,8 +187,8 @@ function papetarie_storefront_render_aperta_sync_page(): void
     $history = array_slice($history, 0, 30);
     $retainedRunLogIds = get_option('pap_aperta_run_log_ids', []);
     $retainedRunLogIds = is_array($retainedRunLogIds) ? array_flip($retainedRunLogIds) : [];
-    $productsProgress = papetarie_storefront_aperta_progress_get('products');
-    $stockProgress = papetarie_storefront_aperta_progress_get('stock');
+    $productsProgress = papetarie_storefront_aperta_progress_for_display('products');
+    $stockProgress = papetarie_storefront_aperta_progress_for_display('stock');
     ?>
     <div class="wrap pap-aperta-wrap">
       <h1><?php esc_html_e('Sincronizare Aperta', 'papetarie-storefront'); ?></h1>
@@ -543,6 +543,25 @@ function papetarie_storefront_render_aperta_sync_page(): void
         opacity: .35;
       }
 
+      /* Rulare intrerupta - se distinge clar de una in desfasurare, ca sa nu
+         mai para "Rulează…" la infinit dupa ce o bucata a murit. */
+      .pap-aperta-progress-card[data-status="interrupted"] {
+        border-left: 3px solid #d63638;
+      }
+
+      .pap-aperta-progress-card[data-status="interrupted"] .pap-aperta-progress-bar-fill {
+        background: #d63638;
+      }
+
+      .pap-aperta-progress-card[data-status="interrupted"] .pap-aperta-progress-bar {
+        opacity: .35;
+      }
+
+      .pap-aperta-progress-card[data-status="interrupted"] [data-field="status-label"] {
+        color: #d63638;
+        font-weight: 600;
+      }
+
       .pap-aperta-progress-waiting {
         display: flex;
         align-items: center;
@@ -685,11 +704,11 @@ function papetarie_storefront_render_aperta_sync_page(): void
           idle: '<?php echo esc_js(__('Inactiv', 'papetarie-storefront')); ?>',
           starting: '<?php echo esc_js(__('Pornește…', 'papetarie-storefront')); ?>',
           running: '<?php echo esc_js(__('Rulează…', 'papetarie-storefront')); ?>',
-          complete: '<?php echo esc_js(__('Finalizat', 'papetarie-storefront')); ?>'
+          complete: '<?php echo esc_js(__('Finalizat', 'papetarie-storefront')); ?>',
+          interrupted: '<?php echo esc_js(__('Întreruptă', 'papetarie-storefront')); ?>'
         };
         var pollTimer = null;
         var siteProductCount = <?php echo (int) $productCount; ?>;
-        var batchSizes = { products: 10, stock: 100 };
         var unitLabels = {
           products: '<?php echo esc_js(__('produse (din feed.csv)', 'papetarie-storefront')); ?>',
           stock: '<?php echo esc_js(__('variante/SKU-uri verificate (din feed-stoc.csv)', 'papetarie-storefront')); ?>'
@@ -744,9 +763,13 @@ function papetarie_storefront_render_aperta_sync_page(): void
             if (duration !== null) {
               meta += ' — <?php echo esc_js(__('finalizat în', 'papetarie-storefront')); ?> ' + Math.floor(duration / 60) + 'm ' + (duration % 60) + 's';
             }
+          } else if (data.status === 'interrupted') {
+            meta = '<?php echo esc_js(__('Rularea pornită acum', 'papetarie-storefront')); ?> ' + timeAgo(data.started_at)
+              + ' <?php echo esc_js(__('s-a oprit înainte să se termine (procesate:', 'papetarie-storefront')); ?> ' + data.processed + ' / ' + data.total + ').'
+              + ' <?php echo esc_js(__('Nu mai rulează nimic acum — apasă „Rulează acum” ca să reiei, sau așteaptă rularea programată.', 'papetarie-storefront')); ?>';
           } else {
             meta = data.processed + ' / ' + data.total + ' ' + (unitLabels[flow] || '') + ' (' + percent + '%) — <?php echo esc_js(__('pornit acum', 'papetarie-storefront')); ?> ' + timeAgo(data.started_at)
-              + ' — <?php echo esc_js(__('procesează în calupuri de', 'papetarie-storefront')); ?> ' + (batchSizes[flow] || '?') + ' <?php echo esc_js(__('simultan, o dată la ~5 secunde', 'papetarie-storefront')); ?>';
+              + ' — <?php echo esc_js(__('procesează în calupuri limitate la ~2 minute fiecare (numărul de produse per calup variază, în funcție de cât încape)', 'papetarie-storefront')); ?>';
           }
           $card.find('[data-field="meta"]').text(meta);
 
@@ -777,7 +800,7 @@ function papetarie_storefront_render_aperta_sync_page(): void
           }
 
           var $waiting = $card.find('[data-field="waiting"]');
-          if (data.status === 'complete') {
+          if (data.status === 'complete' || data.status === 'interrupted') {
             $waiting.text('<?php echo esc_js(__('Așteptăm următoarea rulare:', 'papetarie-storefront')); ?> ' + (nextRunLabels[flow] || ''));
             $waiting.prop('hidden', false);
           } else {
@@ -1026,8 +1049,8 @@ function papetarie_storefront_aperta_ajax_get_progress(): void
     }
 
     wp_send_json_success([
-        'products' => papetarie_storefront_aperta_progress_get('products'),
-        'stock' => papetarie_storefront_aperta_progress_get('stock'),
+        'products' => papetarie_storefront_aperta_progress_for_display('products'),
+        'stock' => papetarie_storefront_aperta_progress_for_display('stock'),
     ]);
 }
 add_action('wp_ajax_pap_aperta_get_progress', 'papetarie_storefront_aperta_ajax_get_progress');
