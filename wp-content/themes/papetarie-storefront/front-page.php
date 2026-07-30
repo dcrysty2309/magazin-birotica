@@ -532,6 +532,7 @@ get_header();
     // "oferte" de pe homepage).
     var sliderTargetIndex = typeof WeakMap === 'function' ? new WeakMap() : null;
     var sliderScrollTimers = typeof WeakMap === 'function' ? new WeakMap() : null;
+    var sliderAnimations = typeof WeakMap === 'function' ? new WeakMap() : null;
 
     function getSliderMetrics(slider) {
       var card = slider.querySelector('.pap-product-card');
@@ -560,7 +561,7 @@ get_header();
     }
 
     function scheduleManualSliderResync(slider) {
-      if (!sliderScrollTimers) {
+      if (!sliderScrollTimers || (sliderAnimations && sliderAnimations.has(slider))) {
         return;
       }
 
@@ -570,6 +571,9 @@ get_header();
       }
 
       var timer = window.setTimeout(function () {
+        if (sliderAnimations && sliderAnimations.has(slider)) {
+          return;
+        }
         var metrics = getSliderMetrics(slider);
         if (metrics && sliderTargetIndex) {
           sliderTargetIndex.set(slider, indexFromScrollLeft(slider, metrics.amount, metrics.maxIndex));
@@ -578,6 +582,68 @@ get_header();
       }, 150);
 
       sliderScrollTimers.set(slider, timer);
+    }
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    // Animatie proprie (requestAnimationFrame), in locul lui
+    // Element.scrollTo({behavior:'smooth'}) nativ - scroll-ul smooth nativ,
+    // re-tintit printr-un al doilea apel inainte sa se termine primul (exact
+    // ce se intampla la click-uri rapide repetate), se comporta inconsistent
+    // intre browsere, dand impresia ca sare putin inapoi la mijlocul miscarii
+    // chiar daca pozitia finala calculata era corecta (reprodus live
+    // 2026-07-31). Interpoland noi cadru cu cadru, plecam mereu din
+    // scrollLeft-ul real curent.
+    function animateScrollTo(slider, targetLeft, duration) {
+      duration = typeof duration === 'number' ? duration : 380;
+
+      if (sliderAnimations) {
+        var existing = sliderAnimations.get(slider);
+        if (existing) {
+          window.cancelAnimationFrame(existing.rafId);
+        }
+      }
+
+      var startLeft = slider.scrollLeft;
+      var delta = targetLeft - startLeft;
+      var startTime = null;
+
+      if (Math.abs(delta) < 1) {
+        slider.scrollLeft = targetLeft;
+        if (sliderAnimations) { sliderAnimations.delete(slider); }
+        return;
+      }
+
+      // CSS "scroll-snap-type: mandatory" de pe slider face ca browserul sa
+      // refuze sa randeze pozitiile intermediare pe care le setam noi cadru
+      // cu cadru (nu sunt puncte de "snap") - ramane vizual blocat pe pozitia
+      // curenta pana la finalul animatiei noastre si sare direct la
+      // urmatorul punct de snap, exact saritura raportata. Il dezactivam cat
+      // dureaza animatia proprie si il restauram la final, ca drag-ul manual
+      // (touch) sa ramana cu snap.
+      slider.style.scrollSnapType = 'none';
+
+      function step(timestamp) {
+        if (startTime === null) { startTime = timestamp; }
+        var elapsed = timestamp - startTime;
+        var progress = duration > 0 ? Math.min(1, elapsed / duration) : 1;
+        slider.scrollLeft = startLeft + delta * easeOutCubic(progress);
+
+        if (progress < 1) {
+          var rafId = window.requestAnimationFrame(step);
+          if (sliderAnimations) { sliderAnimations.set(slider, { rafId: rafId, targetLeft: targetLeft }); }
+        } else {
+          slider.style.scrollSnapType = '';
+          if (sliderAnimations) {
+            sliderAnimations.delete(slider);
+          }
+        }
+      }
+
+      var initialRafId = window.requestAnimationFrame(step);
+      if (sliderAnimations) { sliderAnimations.set(slider, { rafId: initialRafId, targetLeft: targetLeft }); }
     }
 
     function scrollHorizontalSlider(slider, direction) {
@@ -594,25 +660,15 @@ get_header();
       var maxScroll = metrics.maxScroll;
       var maxIndex = metrics.maxIndex;
       var currentIndex = getTrackedSliderIndex(slider, amount, maxIndex);
-      var targetIndex = currentIndex + direction;
-
-      if (targetIndex > maxIndex) {
-        if (sliderTargetIndex) { sliderTargetIndex.set(slider, 0); }
-        slider.scrollLeft = 0;
-        slider.scrollTo({ left: Math.min(amount, maxScroll), behavior: 'smooth' });
-        return;
-      }
-
-      if (targetIndex < 0) {
-        if (sliderTargetIndex) { sliderTargetIndex.set(slider, maxIndex); }
-        slider.scrollLeft = maxScroll;
-        slider.scrollTo({ left: Math.max(maxScroll - amount, 0), behavior: 'smooth' });
-        return;
-      }
+      // Fara wrap-around: la capete, click-ul suplimentar ramane pe loc in loc
+      // sa teleporteze instantaneu la celalalt capat (teleportul instant, daca
+      // prindea o animatie anterioara inca in desfasurare, producea exact
+      // sariturea vizibila spre stanga raportata).
+      var targetIndex = Math.max(0, Math.min(maxIndex, currentIndex + direction));
 
       if (sliderTargetIndex) { sliderTargetIndex.set(slider, targetIndex); }
       var target = targetIndex >= maxIndex ? maxScroll : targetIndex * amount;
-      slider.scrollTo({ left: target, behavior: 'smooth' });
+      animateScrollTo(slider, target);
     }
 
     [featuredSlider, offersSlider].forEach(function (slider) {
