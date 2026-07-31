@@ -26,10 +26,14 @@
   const setActive = (slug) => {
     const hasPanel = !!(slug && panelSlugs.has(slug));
 
-    shell.classList.toggle('is-leaf-active', !!slug && !hasPanel);
+    // Fara panou activ - fie ca nu s-a facut inca hover pe nicio categorie,
+    // fie ca s-a facut hover pe una fara copii (leaf) - meniul se restrange
+    // la latimea sidebar-ului, exact ca la eMAG: panoul din dreapta nu ocupa
+    // niciun spatiu (nu apare un dreptunghi alb gol) pana nu treci mouse-ul
+    // peste o categorie care chiar are subcategorii.
+    shell.classList.toggle('is-leaf-active', !hasPanel);
 
     if (!slug) {
-      shell.classList.remove('is-leaf-active');
       items.forEach((item) => {
         item.classList.remove('is-active');
         item.setAttribute('aria-expanded', 'false');
@@ -56,15 +60,11 @@
     });
   };
 
-  // Fara un slug implicit, deschiderea meniului (inainte sa treci mouse-ul
-  // peste vreo categorie) dezactiveaza toate panourile - coloana dreapta
-  // ramane un dreptunghi alb, gol, chiar din prima clipa (gasit live
-  // 2026-07-31, mult mai vizibil dupa ce meniul a fost latit sa acopere tot
-  // containerul). Prima categorie se activeaza implicit, ca panoul sa fie
-  // mereu populat, la fel ca la hover pe orice categorie.
-  const defaultSlug = items.length > 0 ? items[0].getAttribute('data-header-catmenu-target') : '';
-
-  const openMenu = (slug = defaultSlug) => {
+  // Fara niciun slug la deschidere - meniul porneste restrans la sidebar
+  // (vezi is-leaf-active in setActive()), fara panou lateral, exact ca la
+  // eMAG. Panoul apare abia cand utilizatorul trece mouse-ul peste o
+  // categorie anume care are subcategorii.
+  const openMenu = (slug = '') => {
     clearCloseTimer();
     isOpen = true;
     shell.hidden = false;
@@ -72,7 +72,6 @@
       menu.hidden = false;
     }
     shell.classList.add('is-open');
-    shell.classList.toggle('is-leaf-active', !!slug && !panelSlugs.has(slug));
     if (trigger) {
       trigger.setAttribute('aria-expanded', 'true');
     }
