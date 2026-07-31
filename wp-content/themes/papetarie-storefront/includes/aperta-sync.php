@@ -2309,6 +2309,34 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
 }
 
 /**
+ * Checkpoint pe disc (nu error_log - inaccesibil pe gazduirea shared, vezi
+ * investigarea 2026-07-31) pentru pasii DINAINTE de prima bucata (descarcare
+ * + parsare feed), ca sa vedem exact unde moare rularea daca serverul omoara
+ * din nou procesul fara nicio urma catchable. Scriere imediata (append, fara
+ * buffer) - daca procesul e omorat la mijloc, ultimul checkpoint scris tot
+ * ramane pe disc.
+ */
+function papetarie_storefront_aperta_debug_checkpoint(string $label, float $startedAt): void
+{
+    if (!PAP_APERTA_DEBUG_TIMING) {
+        return;
+    }
+
+    $line = sprintf(
+        "[%s] %s elapsed=%.2fs mem=%.1fMB peak=%.1fMB\n",
+        date('d.m.Y H:i:s'),
+        $label,
+        microtime(true) - $startedAt,
+        memory_get_usage(true) / 1048576,
+        memory_get_peak_usage(true) / 1048576
+    );
+
+    $dir = papetarie_storefront_aperta_feed_dir();
+    wp_mkdir_p($dir);
+    file_put_contents($dir . '/debug-timing.log', $line, FILE_APPEND);
+}
+
+/**
  * Procesare in bucati (Action Scheduler) - fiecare rulare proceseaza cat
  * incape sub PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET_SECONDS, apoi programeaza
  * urmatoarea bucata (vezi sync_products_chunk_cb).
@@ -2322,6 +2350,17 @@ function papetarie_storefront_aperta_sync_products_start_cb(string $trigger = 'a
         return;
     }
 
+    $startedAt = microtime(true);
+    if (PAP_APERTA_DEBUG_TIMING) {
+        // Curatam logul la inceputul fiecarei rulari noi, ca fisierul sa nu
+        // creasca la nesfarsit peste mai multe nopti si sa fie usor de citit
+        // a doua zi (contine doar ultima rulare).
+        $dir = papetarie_storefront_aperta_feed_dir();
+        wp_mkdir_p($dir);
+        file_put_contents($dir . '/debug-timing.log', '');
+    }
+    papetarie_storefront_aperta_debug_checkpoint('products_start_cb: intrare', $startedAt);
+
     // Marcam "running" IMEDIAT, sincron, inainte de orice altceva - altfel,
     // daca mai multe sloturi restante (ex. dintr-un backlog WP-Cron) sunt
     // procesate unul dupa altul in aceeasi rulare a cozii, fiecare ar trece
@@ -2329,10 +2368,30 @@ function papetarie_storefront_aperta_sync_products_start_cb(string $trigger = 'a
     // starea, pornind mai multe lanturi paralele care se calca pe picioare.
     papetarie_storefront_aperta_progress_start('products', 0, $trigger);
 
-    papetarie_storefront_aperta_download_feed('feed');
+    papetarie_storefront_aperta_debug_checkpoint('inainte de download_feed', $startedAt);
+    $downloaded = papetarie_storefront_aperta_download_feed('feed');
+    papetarie_storefront_aperta_debug_checkpoint('dupa download_feed ok=' . ($downloaded ? '1' : '0'), $startedAt);
+
+    if (!$downloaded) {
+        // Feed-ul nu s-a descarcat (Aperta jos/lent sau eroare de retea) - nu
+        // continuam cu parsarea unui feed.csv vechi/inexistent ca si cum ar
+        // fi actual (asta ar sincroniza date invechite in tacere). Rularea
+        // ramane "running" in progres, dar fara nicio bucata programata -
+        // progress_for_display() o va arata drept "intrerupta" dupa fereastra
+        // de gratie de 5 minute (vezi acolo).
+        papetarie_storefront_aperta_debug_checkpoint('ABANDONAT: download_feed a esuat', $startedAt);
+        return;
+    }
+
     // Parsam + consolidam feed-ul o singura data aici, nu la fiecare bucata.
-    papetarie_storefront_aperta_cache_products_grouped(papetarie_storefront_aperta_read_products_grouped());
+    $grouped = papetarie_storefront_aperta_read_products_grouped();
+    papetarie_storefront_aperta_debug_checkpoint('dupa read_products_grouped groups=' . count($grouped), $startedAt);
+
+    papetarie_storefront_aperta_cache_products_grouped($grouped);
+    papetarie_storefront_aperta_debug_checkpoint('dupa cache_products_grouped', $startedAt);
+
     as_enqueue_async_action('pap_aperta_sync_products_chunk', [0], 'aperta-sync');
+    papetarie_storefront_aperta_debug_checkpoint('dupa enqueue chunk 0 - iesire', $startedAt);
 }
 
 /**
@@ -2424,31 +2483,17 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
             break;
         }
 
-        if (PAP_APERTA_DEBUG_TIMING) {
-            error_log(sprintf(
-                '[pap-aperta-timing] chunk offset=%d item=%d/%d cod=%s elapsed=%.1fs mem=%.1fMB - START',
-                $offset,
-                $i,
-                $total,
-                (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i]),
-                microtime(true) - $startedAt,
-                memory_get_usage(true) / 1048576
-            ));
-        }
+        papetarie_storefront_aperta_debug_checkpoint(
+            sprintf('chunk offset=%d item=%d/%d cod=%s - START', $offset, $i, $total, (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i])),
+            $startedAt
+        );
 
         $result = papetarie_storefront_aperta_upsert_product($grouped[$codes[$i]]);
 
-        if (PAP_APERTA_DEBUG_TIMING) {
-            error_log(sprintf(
-                '[pap-aperta-timing] chunk offset=%d item=%d/%d cod=%s elapsed=%.1fs mem=%.1fMB - DONE',
-                $offset,
-                $i,
-                $total,
-                (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i]),
-                microtime(true) - $startedAt,
-                memory_get_usage(true) / 1048576
-            ));
-        }
+        papetarie_storefront_aperta_debug_checkpoint(
+            sprintf('chunk offset=%d item=%d/%d cod=%s - DONE', $offset, $i, $total, (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i])),
+            $startedAt
+        );
 
         $items[] = [
             'sku' => trim((string) $grouped[$codes[$i]][0]['Cod unic']),
