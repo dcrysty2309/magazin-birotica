@@ -114,23 +114,27 @@ function papetarie_storefront_aperta_progress_get(string $flow): array
  * O rulare vie are MEREU o bucata fie programata, fie chiar in executie in
  * Action Scheduler; daca nu exista niciuna, rularea e abandonata.
  */
-function papetarie_storefront_aperta_progress_for_display(string $flow): array
+/**
+ * O rulare vie are MEREU o bucata fie programata, fie chiar in executie in
+ * Action Scheduler; daca, dupa fereastra de gratie de 5 minute (pornirea
+ * descarca + parseaza feed-ul inainte sa programeze prima bucata), nu exista
+ * niciuna, rularea a murit pe parcurs (proces omorat de server, fara nicio
+ * urma catchable - vezi PAP_APERTA_DEBUG_TIMING) si e considerata abandonata.
+ */
+function papetarie_storefront_aperta_progress_is_abandoned(string $flow): bool
 {
     $progress = papetarie_storefront_aperta_progress_get($flow);
 
     if (!in_array($progress['status'], ['starting', 'running'], true)) {
-        return $progress;
+        return false;
     }
 
-    // Fereastra de grație: pornirea descarca + parseaza feed-ul inainte sa
-    // programeze prima bucata, deci la inceput nu exista inca nicio bucata -
-    // nu declaram moarta o rulare abia pornita.
     if (!$progress['started_at'] || (time() - $progress['started_at']) < 5 * MINUTE_IN_SECONDS) {
-        return $progress;
+        return false;
     }
 
     if (!function_exists('as_get_scheduled_actions') || !class_exists('ActionScheduler_Store')) {
-        return $progress;
+        return false;
     }
 
     // Doar hook-ul de BUCATA e un semnal valid de "rulare vie". Cel de start
@@ -147,13 +151,58 @@ function papetarie_storefront_aperta_progress_for_display(string $flow): array
         ], 'ids');
 
         if (!empty($live)) {
-            return $progress;
+            return false;
         }
     }
 
-    $progress['status'] = 'interrupted';
+    return true;
+}
+
+function papetarie_storefront_aperta_progress_for_display(string $flow): array
+{
+    $progress = papetarie_storefront_aperta_progress_get($flow);
+
+    if (papetarie_storefront_aperta_progress_is_abandoned($flow)) {
+        $progress['status'] = 'interrupted';
+    }
 
     return $progress;
+}
+
+/**
+ * Watchdog: elibereaza o rulare abandonata (vezi is_abandoned() mai sus) ca
+ * sa nu mai blocheze un start nou. Fara asta, o rulare de produse picata la
+ * 3 dimineata ramanea blocata pana a doua zi - nimic n-o reincerca activ
+ * intre timp (Action Scheduler programeaza urmatoarea aparitie a cronului
+ * recurent abia peste 24h, nu la esec). Apelata din schedule_cron(), care
+ * oricum ruleaza la fiecare ~10 minute - deci o rulare moarta e reincercata
+ * in maximum 10-15 minute, nu a doua zi (confirmat live: rularea de produse
+ * a murit de 2 nopti la rand, 2026-08-01 si 2026-08-02, fara nicio
+ * reincercare pana la cronul urmator).
+ *
+ * @return bool true daca rularea era abandonata si a fost eliberata acum
+ */
+function papetarie_storefront_aperta_progress_reset_if_abandoned(string $flow): bool
+{
+    if (!papetarie_storefront_aperta_progress_is_abandoned($flow)) {
+        return false;
+    }
+
+    $progress = papetarie_storefront_aperta_progress_get($flow);
+    $startedAt = $progress['started_at'];
+    $progress['status'] = 'interrupted';
+    update_option(papetarie_storefront_aperta_progress_option($flow), $progress, false);
+
+    papetarie_storefront_aperta_debug_checkpoint(
+        sprintf(
+            "watchdog: rularea '%s' era blocata din %s - eliberata, reincercare programata peste 1 minut",
+            $flow,
+            $startedAt ? date('d.m.Y H:i:s', $startedAt) : '?'
+        ),
+        microtime(true)
+    );
+
+    return true;
 }
 
 /**
@@ -2656,27 +2705,60 @@ function papetarie_storefront_aperta_schedule_cron(): void
     }
     set_transient('pap_aperta_cron_healthcheck', 1, 10 * MINUTE_IN_SECONDS);
 
-    $delay = PAP_APERTA_SYNC_DELAY_MINUTES * MINUTE_IN_SECONDS;
+    // Mutex real la nivel de baza de date - fara el, doua cereri concurente
+    // (posibil oricand exista trafic real pe site, chiar si la miezul
+    // noptii) puteau trece AMANDOUA de verificarea "exista deja o actiune
+    // programata?" inainte ca vreuna sa apuce sa o creeze, rezultand in 3-4
+    // actiuni pap_aperta_sync_products_start duplicate pentru exact acelasi
+    // moment (confirmat live 2026-08-01 SI 2026-08-02, acelasi tipar in
+    // ambele nopti). GET_LOCK cu timeout 0 face ca doar UN singur proces sa
+    // poata intra aici la un moment dat - restul ies imediat. MySQL elibereaza
+    // singur lock-ul daca procesul moare inainte sa apuce sa-l elibereze
+    // explicit (la inchiderea conexiunii), deci nu exista risc de blocare
+    // permanenta.
+    global $wpdb;
+    $lockName = 'pap_aperta_schedule_cron';
+    $gotLock = (int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lockName));
 
-    if (!as_next_scheduled_action('pap_aperta_sync_products_start', [], 'aperta-sync')) {
-        $timestamp = papetarie_storefront_aperta_romania_time_today('02:50:00') + $delay;
-        if ($timestamp < time()) {
-            $timestamp += DAY_IN_SECONDS;
-        }
-        as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_sync_products_start', [], 'aperta-sync');
+    if ($gotLock !== 1) {
+        return;
     }
 
-    foreach ([1, 9, 10, 11, 12, 13, 14, 15, 16, 17] as $hour) {
-        $args = ['hour' => $hour];
-        if (as_next_scheduled_action('pap_aperta_sync_stock_start', $args, 'aperta-sync')) {
-            continue;
+    try {
+        $delay = PAP_APERTA_SYNC_DELAY_MINUTES * MINUTE_IN_SECONDS;
+
+        if (!as_next_scheduled_action('pap_aperta_sync_products_start', [], 'aperta-sync')) {
+            $timestamp = papetarie_storefront_aperta_romania_time_today('02:50:00') + $delay;
+            if ($timestamp < time()) {
+                $timestamp += DAY_IN_SECONDS;
+            }
+            as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_sync_products_start', [], 'aperta-sync');
         }
 
-        $timestamp = papetarie_storefront_aperta_romania_time_today(sprintf('%02d:10:00', $hour)) + $delay;
-        if ($timestamp < time()) {
-            $timestamp += DAY_IN_SECONDS;
+        foreach ([1, 9, 10, 11, 12, 13, 14, 15, 16, 17] as $hour) {
+            $args = ['hour' => $hour];
+            if (as_next_scheduled_action('pap_aperta_sync_stock_start', $args, 'aperta-sync')) {
+                continue;
+            }
+
+            $timestamp = papetarie_storefront_aperta_romania_time_today(sprintf('%02d:10:00', $hour)) + $delay;
+            if ($timestamp < time()) {
+                $timestamp += DAY_IN_SECONDS;
+            }
+            as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_sync_stock_start', $args, 'aperta-sync');
         }
-        as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_sync_stock_start', $args, 'aperta-sync');
+
+        // Watchdog: o rulare de produse moarta pe parcurs (proces omorat de
+        // server) ramanea blocata pana a doua zi - nimic n-o reincerca activ
+        // intre timp (vezi progress_reset_if_abandoned()). Aici o eliberam si
+        // programam o reincercare in ~1 minut. schedule_cron() ruleaza oricum
+        // la fiecare ~10 minute (throttle-ul de mai sus), deci o rulare moarta
+        // e reincercata in maximum 10-15 minute, nu a doua zi.
+        if (papetarie_storefront_aperta_progress_reset_if_abandoned('products')) {
+            as_schedule_single_action(time() + MINUTE_IN_SECONDS, 'pap_aperta_sync_products_start', [], 'aperta-sync');
+        }
+    } finally {
+        $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lockName));
     }
 }
 add_action('init', 'papetarie_storefront_aperta_schedule_cron');
