@@ -7058,10 +7058,11 @@ function papetarie_storefront_get_column_group_headings(): array
 {
     return [
         'accesorii-pentru-scris' => [
-            'counts' => [8, 7],
+            'counts' => [7, 4, 4],
             'headings' => [
                 __('Instrumente de scris', 'papetarie-storefront'),
-                __('Markere și accesorii', 'papetarie-storefront'),
+                __('Markere', 'papetarie-storefront'),
+                __('Accesorii', 'papetarie-storefront'),
             ],
         ],
         'organizare-arhivare-prezentare' => [
@@ -7102,6 +7103,13 @@ function papetarie_storefront_get_column_group_headings(): array
                 __('Igienă și accesorii menaj', 'papetarie-storefront'),
             ],
         ],
+        'arta' => [
+            'counts' => [3, 3],
+            'headings' => [
+                __('Culori și vopsele', 'papetarie-storefront'),
+                __('Materiale de decorat', 'papetarie-storefront'),
+            ],
+        ],
     ];
 }
 
@@ -7113,9 +7121,40 @@ function papetarie_storefront_get_column_group_headings(): array
  * lista trebuie revazuta din cand in cand fata de categoriile reale
  * (vezi papetarie_storefront_aperta_fix_menu_order()).
  */
+/**
+ * Harta slug => indice de coloana pentru categoriile cu coloane grupate,
+ * calculata din ordinea fixa + 'counts' (nu din pozitia in lista afisata).
+ * Asta evita ca o categorie fara produse (ascunsa din meniu) sa strice
+ * impartirea pe coloane a celorlalte, impingandu-le cu o pozitie.
+ */
+function papetarie_storefront_get_column_group_slug_map(string $parentSlug): array
+{
+    $orderSlugs = papetarie_storefront_get_menu_order_slugs()[$parentSlug] ?? [];
+    $counts = papetarie_storefront_get_column_group_headings()[$parentSlug]['counts'] ?? [];
+
+    $map = [];
+    $offset = 0;
+
+    foreach ($counts as $columnIndex => $columnSize) {
+        foreach (array_slice($orderSlugs, $offset, $columnSize) as $slug) {
+            $map[$slug] = $columnIndex;
+        }
+        $offset += $columnSize;
+    }
+
+    return $map;
+}
+
 function papetarie_storefront_get_menu_order_slugs(): array
 {
     return [
+        'articole-din-hartie' => [
+            'agende',
+            'hartie-pentru-copiator',
+            'hartie-color',
+            'hartie-speciala',
+            'notesuri-adezive',
+        ],
         'accesorii-pentru-scris' => [
             'pixuri-cu-pasta',
             'pixuri-cu-gel',
@@ -7123,13 +7162,13 @@ function papetarie_storefront_get_menu_order_slugs(): array
             'stilouri-si-rollere-cu-rezerve-de-cerneala',
             'rollere-cu-cerneala',
             'creioane-mecanice-si-mine',
-            'mine-pentru-pixuri',
-            'rezerve-de-cerneala-pic-corector',
+            'linere',
             'markere-universale',
             'markere-permanente',
             'markere-pentru-whiteboard-si-flipchart',
             'textmarkere',
-            'linere',
+            'mine-pentru-pixuri',
+            'rezerve-de-cerneala-pic-corector',
             'corectoare',
             'gume-de-sters',
         ],
@@ -7221,6 +7260,14 @@ function papetarie_storefront_get_menu_order_slugs(): array
             'prosoape-de-hartie-si-dispensere',
             'sapunuri-si-dispensere',
             'sanitare',
+        ],
+        'arta' => [
+            'acrilice',
+            'culori-ulei',
+            'mucki',
+            'craft',
+            'sticla-si-portelan',
+            'textile',
         ],
     ];
 }
@@ -7385,11 +7432,12 @@ function papetarie_storefront_render_mega_menu_panels(array $categories, string 
               <?php $column_count = count($column_headings['counts']); ?>
               <div class="<?php echo esc_attr($panel_columns_class); ?> <?php echo esc_attr($panel_columns_class . '--' . $category['slug']); ?> <?php echo esc_attr($panel_columns_class); ?>--grouped <?php echo esc_attr($panel_columns_class); ?>--cols-<?php echo esc_attr((string) $column_count); ?>">
                 <?php
-                $columns_of_children = [];
-                $offset = 0;
-                foreach ($column_headings['counts'] as $column_size) {
-                    $columns_of_children[] = array_slice($category['children'], $offset, $column_size);
-                    $offset += $column_size;
+                $slug_column_map = papetarie_storefront_get_column_group_slug_map($category['slug']);
+                $columns_of_children = array_fill(0, count($column_headings['counts']), []);
+                $last_column_index = count($column_headings['counts']) - 1;
+                foreach ($category['children'] as $child) {
+                    $column_index = $slug_column_map[$child['slug']] ?? $last_column_index;
+                    $columns_of_children[$column_index][] = $child;
                 }
                 ?>
                 <?php foreach ($columns_of_children as $column_index => $column_children) : ?>
@@ -7490,11 +7538,12 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
                   <?php $column_count = count($column_headings['counts']); ?>
                   <div class="pap-header-catmenu-group-list pap-showcase-panel-columns--grouped pap-showcase-panel-columns--cols-<?php echo esc_attr((string) $column_count); ?>">
                     <?php
-                    $columns_of_children = [];
-                    $offset = 0;
-                    foreach ($column_headings['counts'] as $column_size) {
-                        $columns_of_children[] = array_slice($category['children'], $offset, $column_size);
-                        $offset += $column_size;
+                    $slug_column_map = papetarie_storefront_get_column_group_slug_map($category['slug']);
+                    $columns_of_children = array_fill(0, count($column_headings['counts']), []);
+                    $last_column_index = count($column_headings['counts']) - 1;
+                    foreach ($category['children'] as $child) {
+                        $column_index = $slug_column_map[$child['slug']] ?? $last_column_index;
+                        $columns_of_children[$column_index][] = $child;
                     }
                     ?>
                     <?php foreach ($columns_of_children as $column_index => $column_children) : ?>
