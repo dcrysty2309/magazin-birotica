@@ -2,6 +2,17 @@
 
 declare(strict_types=1);
 
+/**
+ * Dezactiveaza actualizarile automate de plugin-uri - un update automat al
+ * WooCommerce a fost omorat brusc pe la mijloc de server (2026-08-03),
+ * lasand instalarea trunchiata (fisierul principal sters, cel nou nescris)
+ * si picand tot site-ul. Filtrul de mai jos blocheaza orice auto-update de
+ * plugin indiferent de setarea per-plugin din DB (optiunea
+ * auto_update_plugins) - actualizarile raman posibile doar manual, din
+ * Module (Plugin-uri), cand cineva poate urmari ca s-au terminat cu bine.
+ */
+add_filter('auto_update_plugin', '__return_false');
+
 function papetarie_storefront_setup(): void
 {
     add_theme_support(
