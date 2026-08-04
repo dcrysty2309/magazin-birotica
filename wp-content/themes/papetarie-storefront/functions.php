@@ -5796,33 +5796,16 @@ function papetarie_storefront_render_social_login_area(array $args = []): void
     );
 
     $show_register_switch = !empty($args['show_register_switch']);
-    $google_url = (string) apply_filters('papetarie_storefront_google_login_url', '');
-    $social_shortcode = shortcode_exists('nextend_social_login') ? 'nextend_social_login' : '';
-    $button_disabled = ($google_url === '' && $social_shortcode === '');
+
+    if (!$show_register_switch) {
+        return;
+    }
     ?>
     <div class="pap-auth-social">
-      <div class="pap-auth-divider"><span><?php esc_html_e('sau', 'papetarie-storefront'); ?></span></div>
-      <button
-        class="pap-auth-social-button pap-auth-social-button--google<?php echo $button_disabled ? ' pap-auth-social-button--inactive' : ''; ?>"
-        type="button"
-        data-auth-google
-        data-login-url="<?php echo esc_attr($google_url); ?>"
-        <?php echo $button_disabled ? 'disabled aria-disabled="true"' : ''; ?>
-      >
-          <i class="fa-brands fa-google" aria-hidden="true"></i>
-          <span><?php esc_html_e('Continuă cu Google', 'papetarie-storefront'); ?></span>
-      </button>
-      <?php if ($show_register_switch) : ?>
-        <div class="pap-auth-social-footer">
-          <span class="pap-auth-social-prefix"><?php esc_html_e('Nu ai cont?', 'papetarie-storefront'); ?></span>
-          <a class="pap-auth-inline-switch pap-auth-social-switch" href="#" data-auth-switch="register"><?php esc_html_e('Creează unul nou', 'papetarie-storefront'); ?></a>
-        </div>
-      <?php endif; ?>
-      <?php if ($social_shortcode !== '') : ?>
-        <div class="pap-auth-social-shortcode">
-          <?php echo do_shortcode('[' . $social_shortcode . ']'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        </div>
-    <?php endif; ?>
+      <div class="pap-auth-social-footer">
+        <span class="pap-auth-social-prefix"><?php esc_html_e('Nu ai cont?', 'papetarie-storefront'); ?></span>
+        <a class="pap-auth-inline-switch pap-auth-social-switch" href="#" data-auth-switch="register"><?php esc_html_e('Creează unul nou', 'papetarie-storefront'); ?></a>
+      </div>
     </div>
     <?php
 }

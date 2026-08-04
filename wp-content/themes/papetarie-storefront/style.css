@@ -902,7 +902,7 @@ body.theme-papetarie .pap-site-header--checkout .pap-checkout-header__support-co
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #0d2e61;
+  background: var(--pap-orange);
   color: #fff;
   display: flex;
   align-items: center;
@@ -942,14 +942,15 @@ body.theme-papetarie .pap-site-header--checkout .pap-checkout-header__support-co
 
 .pap-tool-count-badge {
   position: absolute;
-  top: -6px;
-  left: 14px;
-  width: 16px;
-  height: 16px;
+  top: -7px;
+  left: 13px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--pap-orange);
+  box-shadow: 0 0 0 2px #fff;
   color: #fff;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
   display: flex;
