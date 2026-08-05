@@ -1003,64 +1003,80 @@
   // si aratam eroarea inline (acelasi mecanism ca la login/register), altfel
   // lasam formularul sa mearga normal mai departe.
   function bindAccountDetailsForm() {
-    var form = document.querySelector('.woocommerce-EditAccountForm');
-    if (!form || form.getAttribute('data-account-details-initialized') === '1') {
-      return;
-    }
-
-    form.setAttribute('data-account-details-initialized', '1');
-
-    form.addEventListener('submit', function (event) {
-      clearInlineValidation(form);
-
-      var hasErrors = false;
-      var email = findField(form, ['[name="account_email"]', '#account_email']);
-      var currentPassword = findField(form, ['[name="password_current"]', '#password_current']);
-      var newPassword = findField(form, ['[name="password_1"]', '#password_1']);
-      var confirmPassword = findField(form, ['[name="password_2"]', '#password_2']);
-
-      if (email && email.value.trim() && !isValidEmail(email.value)) {
-        setInlineValidation(form, ['[name="account_email"]', '#account_email'], 'Introdu un email valid.');
-        hasErrors = true;
+    document.querySelectorAll('.woocommerce-EditAccountForm').forEach(function (form) {
+      if (form.getAttribute('data-account-details-initialized') === '1') {
+        return;
       }
 
-      var wantsPasswordChange = Boolean(
-        (newPassword && newPassword.value.trim())
-        || (confirmPassword && confirmPassword.value.trim())
-        || (currentPassword && currentPassword.value.trim())
-      );
+      form.setAttribute('data-account-details-initialized', '1');
+      var isPasswordForm = form.getAttribute('data-account-form') === 'password';
 
-      if (wantsPasswordChange) {
-        if (!currentPassword || !currentPassword.value.trim()) {
-          setInlineValidation(form, ['[name="password_current"]', '#password_current'], 'Completează parola curentă ca să o schimbi.');
-          hasErrors = true;
+      form.addEventListener('submit', function (event) {
+        clearInlineValidation(form);
+
+        var hasErrors = false;
+        var currentPassword = findField(form, ['[name="password_current"]', '#password_current']);
+        var newPassword = findField(form, ['[name="password_1"]', '#password_1']);
+        var confirmPassword = findField(form, ['[name="password_2"]', '#password_2']);
+
+        if (!isPasswordForm) {
+          var email = findField(form, ['[name="account_email"]', '#account_email']);
+          if (email && email.value.trim() && !isValidEmail(email.value)) {
+            setInlineValidation(form, ['[name="account_email"]', '#account_email'], 'Introdu un email valid.');
+            hasErrors = true;
+          }
         }
 
-        if (!newPassword || !newPassword.value.trim()) {
-          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Introdu parola nouă.');
-          hasErrors = true;
-        } else if (newPassword.value.length < 8) {
-          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parola nouă trebuie să aibă minimum 8 caractere.');
-          hasErrors = true;
+        // On the dedicated password form, the fields are always required —
+        // there's no other reason to submit it. Elsewhere (personal-info
+        // form), password fields don't exist, so this stays inert.
+        var wantsPasswordChange = isPasswordForm || Boolean(
+          (newPassword && newPassword.value.trim())
+          || (confirmPassword && confirmPassword.value.trim())
+          || (currentPassword && currentPassword.value.trim())
+        );
+
+        if (wantsPasswordChange) {
+          if (!currentPassword || !currentPassword.value.trim()) {
+            setInlineValidation(form, ['[name="password_current"]', '#password_current'], 'Completează parola curentă ca să o schimbi.');
+            hasErrors = true;
+          }
+
+          if (!newPassword || !newPassword.value.trim()) {
+            setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Introdu parola nouă.');
+            hasErrors = true;
+          } else if (newPassword.value.length < 8) {
+            setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parola nouă trebuie să aibă minimum 8 caractere.');
+            hasErrors = true;
+          }
+
+          if (!confirmPassword || !confirmPassword.value.trim()) {
+            setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Confirmă parola nouă.');
+            hasErrors = true;
+          } else if (newPassword && newPassword.value && confirmPassword.value !== newPassword.value) {
+            setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parolele nu se potrivesc.');
+            setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Parolele nu se potrivesc.');
+            hasErrors = true;
+          }
         }
 
-        if (!confirmPassword || !confirmPassword.value.trim()) {
-          setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Confirmă parola nouă.');
-          hasErrors = true;
-        } else if (newPassword && newPassword.value && confirmPassword.value !== newPassword.value) {
-          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parolele nu se potrivesc.');
-          setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Parolele nu se potrivesc.');
-          hasErrors = true;
+        if (hasErrors) {
+          event.preventDefault();
+          var firstInvalid = form.querySelector('.pap-is-invalid');
+          if (firstInvalid && typeof firstInvalid.focus === 'function') {
+            firstInvalid.focus({ preventScroll: false });
+          }
+          return;
         }
-      }
 
-      if (hasErrors) {
-        event.preventDefault();
-        var firstInvalid = form.querySelector('.pap-is-invalid');
-        if (firstInvalid && typeof firstInvalid.focus === 'function') {
-          firstInvalid.focus({ preventScroll: false });
+        // Guards against a duplicate "Account details changed successfully"
+        // notice from a fast double-click firing two submits before the
+        // page navigates away.
+        var submitButton = form.querySelector('[name="save_account_details"]');
+        if (submitButton) {
+          submitButton.disabled = true;
         }
-      }
+      });
     });
   }
 

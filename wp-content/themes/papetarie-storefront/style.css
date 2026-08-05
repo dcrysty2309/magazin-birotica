@@ -6863,41 +6863,131 @@ body.theme-papetarie .woocommerce form .form-row select {
   color: var(--pap-ink);
 }
 
+/* Unified WooCommerce notice design (success/info/error) — same icon-badge
+   card everywhere a notice can appear (My Account, cart, address-book modal,
+   etc). Checkout keeps its own higher-specificity .woocommerce-checkout rules
+   further down, which already use these same values, so this doesn't change
+   how checkout looks — it just makes every other page match it instead of
+   falling back to an unstyled, overlapping icon. */
 body.theme-papetarie .woocommerce-message,
 body.theme-papetarie .woocommerce-info,
 body.theme-papetarie .woocommerce-error {
+  position: relative;
   margin: 0 0 18px;
-  padding: 14px 16px;
+  /* !important: .woocommerce-error renders as a <ul>, and generic
+     ".entry-content ul" list-padding resets elsewhere in this file have
+     higher specificity (extra type selector) than a plain descendant rule
+     here, so without it the icon-reserving left padding silently loses. */
+  padding: 14px 18px 14px 54px !important;
+  min-height: 58px;
   border: 1px solid #d9e2ec;
+  border-radius: 0;
   background: #fff;
   color: #17324d;
-  border-radius: 0;
   box-shadow: 0 10px 24px rgba(18, 39, 74, 0.05);
+  list-style: none !important;
+}
+
+body.theme-papetarie .woocommerce-message,
+body.theme-papetarie .woocommerce-info {
+  display: flex;
+  align-items: center;
+}
+
+body.theme-papetarie .woocommerce-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+body.theme-papetarie .woocommerce-error li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #17324d;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+body.theme-papetarie .woocommerce-message a,
+body.theme-papetarie .woocommerce-info a,
+body.theme-papetarie .woocommerce-error li a {
+  color: #1e4f99;
+  text-decoration: none;
+}
+
+body.theme-papetarie .woocommerce-message a:hover,
+body.theme-papetarie .woocommerce-message a:focus-visible,
+body.theme-papetarie .woocommerce-info a:hover,
+body.theme-papetarie .woocommerce-info a:focus-visible,
+body.theme-papetarie .woocommerce-error li a:hover,
+body.theme-papetarie .woocommerce-error li a:focus-visible {
+  text-decoration: underline;
 }
 
 body.theme-papetarie .woocommerce-message::before,
 body.theme-papetarie .woocommerce-info::before,
 body.theme-papetarie .woocommerce-error::before {
-  color: #0d2e61;
   font-family: "Font Awesome 7 Free";
   font-style: normal;
   font-weight: 900;
-  line-height: 1;
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: absolute;
+  left: 18px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+body.theme-papetarie .woocommerce-message::before,
+body.theme-papetarie .woocommerce-info::before {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+body.theme-papetarie .woocommerce-error::before {
+  top: 14px;
+}
+
+body.theme-papetarie .woocommerce-message {
+  border-color: #d9eadf;
+  background: #f7fff9;
 }
 
 body.theme-papetarie .woocommerce-message::before {
   content: "\f058";
+  background: #eafbf0;
+  color: #16a34a;
+}
+
+body.theme-papetarie .woocommerce-info {
+  border-color: #dce5f2;
+  background: #f8fbff;
 }
 
 body.theme-papetarie .woocommerce-info::before {
   content: "\f05a";
+  background: #eaf1fb;
+  color: #1e4f99;
+}
+
+body.theme-papetarie .woocommerce-error {
+  border-color: #fecdd3;
+  background: #fff7f8;
 }
 
 body.theme-papetarie .woocommerce-error::before {
   content: "\f06a";
+  background: #fff1f2;
+  color: #f43f5e;
 }
 
 body.theme-papetarie .woocommerce div.product {
@@ -15017,8 +15107,20 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldse
   display: none !important;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section .pap-form-row {
-  max-width: 420px;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-panel--form {
+  max-width: 720px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-row-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-row-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-meta-card,
