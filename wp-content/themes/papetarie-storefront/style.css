@@ -6987,24 +6987,16 @@ body.theme-papetarie .woocommerce-error::before {
 }
 
 /* WooCommerce sets tabindex="-1" and focuses the first notice on page load
-   for screen readers (focus_populate_live_region in woocommerce.js) — give
-   it an intentional ring instead of the browser's default blue outline. */
+   for screen readers (focus_populate_live_region in woocommerce.js) — no
+   visible ring wanted for it, just drop the browser's default outline. */
 body.theme-papetarie .woocommerce-message:focus,
-body.theme-papetarie .woocommerce-message:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2), 0 10px 24px rgba(18, 39, 74, 0.05);
-}
-
+body.theme-papetarie .woocommerce-message:focus-visible,
 body.theme-papetarie .woocommerce-info:focus,
-body.theme-papetarie .woocommerce-info:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(30, 79, 153, 0.2), 0 10px 24px rgba(18, 39, 74, 0.05);
-}
-
+body.theme-papetarie .woocommerce-info:focus-visible,
 body.theme-papetarie .woocommerce-error:focus,
 body.theme-papetarie .woocommerce-error:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.2), 0 10px 24px rgba(18, 39, 74, 0.05);
+  box-shadow: 0 10px 24px rgba(18, 39, 74, 0.05);
 }
 
 body.theme-papetarie .woocommerce div.product {
@@ -15138,25 +15130,13 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-accou
   }
 }
 
+/* Stacked, not 2-up: once the two cards sit side by side, each one only has
+   half the page's width, so Prenume/Nume and Parolă nouă/Confirmă go one
+   under another rather than getting cramped into two narrow columns. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-row-pair {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
-}
-
-/* Same reasoning as above, one level down: once the two cards are side by
-   side, each one only has half the page's width, so the Prenume/Nume and
-   Parolă nouă/Confirmă pairs need more room before going 2-up in turn. */
-@media (max-width: 1400px) {
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-form-row-pair {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 600px) {
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-row-pair {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-meta-card,
