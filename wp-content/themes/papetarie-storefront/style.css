@@ -14985,9 +14985,12 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-gri
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
-  padding: 24px;
-  border-radius: 16px;
-  background: #f8fafc;
+  margin: 0;
+  padding: 24px 0 0;
+  border: 0;
+  border-top: 1px solid var(--pap-border-color, #e5e7eb);
+  border-radius: 0;
+  background: none;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-meta-card,
@@ -15231,10 +15234,11 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid {
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
   margin: 0;
-  padding: 24px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #f8fafc;
+  padding: 24px 0 0;
+  border: 0;
+  border-top: 1px solid var(--pap-border-color, #e5e7eb);
+  border-radius: 0;
+  background: none;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset legend {
@@ -15269,8 +15273,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-primary-button {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card {
     padding: 18px;
   }
 
@@ -15893,6 +15896,22 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-return-form select {
   line-height: 1.3;
 }
 
+/* Campurile din Detalii cont folosesc acelasi wrapper cu iconita ca la
+   Autentificare/Creare cont (.pap-auth-input-field) - regula de mai sus
+   (mai specifica decat .pap-auth-input-field .input-text) suprascria
+   padding-left-ul rezervat pentru iconita, facand textul sa se suprapuna
+   peste ea. Restauram doar padding-ul lateral necesar pentru iconita/butonul
+   de arata parola, fara sa atingem restul stilului (deja identic). */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form .pap-auth-input-field .input-text,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form .pap-auth-input-field .woocommerce-Input {
+  padding-left: 50px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form .pap-auth-input-field--password .input-text,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form .pap-auth-input-field--password .woocommerce-Input {
+  padding-right: 60px;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-filter-submit,
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-primary-button,
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-help-card__button,
@@ -16193,10 +16212,11 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid {
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
   margin: 0;
-  padding: 24px;
-  border: 1px solid #e2e8f0;
+  padding: 24px 0 0;
+  border: 0;
+  border-top: 1px solid var(--pap-border-color, #e5e7eb);
   border-radius: 0;
-  background: #f8fafc;
+  background: none;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset legend {
@@ -16308,8 +16328,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-support-card {
 
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-stat-card,
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-meta-card,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card {
     padding: 18px;
   }
 

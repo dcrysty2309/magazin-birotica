@@ -996,6 +996,74 @@
     initPasswordFields(root);
   }
 
+  // Formularul de "Detalii cont" (My Account, logat) nu face parte din
+  // fluxul de auth-modal (nu are data-auth-form, nu e trimis prin AJAX) -
+  // se salveaza normal, printr-un POST PHP catre WooCommerce. Validam doar
+  // pe client inainte de submit; daca e ceva in neregula, blocam trimiterea
+  // si aratam eroarea inline (acelasi mecanism ca la login/register), altfel
+  // lasam formularul sa mearga normal mai departe.
+  function bindAccountDetailsForm() {
+    var form = document.querySelector('.woocommerce-EditAccountForm');
+    if (!form || form.getAttribute('data-account-details-initialized') === '1') {
+      return;
+    }
+
+    form.setAttribute('data-account-details-initialized', '1');
+
+    form.addEventListener('submit', function (event) {
+      clearInlineValidation(form);
+
+      var hasErrors = false;
+      var email = findField(form, ['[name="account_email"]', '#account_email']);
+      var currentPassword = findField(form, ['[name="password_current"]', '#password_current']);
+      var newPassword = findField(form, ['[name="password_1"]', '#password_1']);
+      var confirmPassword = findField(form, ['[name="password_2"]', '#password_2']);
+
+      if (email && email.value.trim() && !isValidEmail(email.value)) {
+        setInlineValidation(form, ['[name="account_email"]', '#account_email'], 'Introdu un email valid.');
+        hasErrors = true;
+      }
+
+      var wantsPasswordChange = Boolean(
+        (newPassword && newPassword.value.trim())
+        || (confirmPassword && confirmPassword.value.trim())
+        || (currentPassword && currentPassword.value.trim())
+      );
+
+      if (wantsPasswordChange) {
+        if (!currentPassword || !currentPassword.value.trim()) {
+          setInlineValidation(form, ['[name="password_current"]', '#password_current'], 'Completează parola curentă ca să o schimbi.');
+          hasErrors = true;
+        }
+
+        if (!newPassword || !newPassword.value.trim()) {
+          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Introdu parola nouă.');
+          hasErrors = true;
+        } else if (newPassword.value.length < 8) {
+          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parola nouă trebuie să aibă minimum 8 caractere.');
+          hasErrors = true;
+        }
+
+        if (!confirmPassword || !confirmPassword.value.trim()) {
+          setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Confirmă parola nouă.');
+          hasErrors = true;
+        } else if (newPassword && newPassword.value && confirmPassword.value !== newPassword.value) {
+          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parolele nu se potrivesc.');
+          setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Parolele nu se potrivesc.');
+          hasErrors = true;
+        }
+      }
+
+      if (hasErrors) {
+        event.preventDefault();
+        var firstInvalid = form.querySelector('.pap-is-invalid');
+        if (firstInvalid && typeof firstInvalid.focus === 'function') {
+          firstInvalid.focus({ preventScroll: false });
+        }
+      }
+    });
+  }
+
   function initAllAuthRoots() {
     getAuthRoots().forEach(initAuthRoot);
   }
@@ -1093,6 +1161,11 @@
   document.addEventListener('DOMContentLoaded', function () {
     var hash = window.location.hash.replace('#', '');
     initAllAuthRoots();
+    // Butonul "arata parola" + validarile de pe Detalii cont nu sunt in
+    // interiorul unui [data-auth-root] (nu fac parte din modalul de auth),
+    // deci le initializam separat, direct pe document.
+    initPasswordFields(document);
+    bindAccountDetailsForm();
 
     if (hash === 'login' || hash === 'register') {
       getAuthRoots().forEach(function (root) {

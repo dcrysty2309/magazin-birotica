@@ -2692,7 +2692,12 @@ add_filter('woocommerce_gateway_title', 'papetarie_storefront_filter_gateway_tit
 
 function papetarie_storefront_enqueue_account_scripts(): void
 {
-    if (is_user_logged_in()) {
+    // Neautentificat - mereu (modalul de auth poate fi deschis de oriunde).
+    // Autentificat - doar pe pagina de cont, unde formularul de Detalii cont
+    // refoloseste acelasi buton "arata parola" si aceleasi validari inline.
+    $is_account_page = function_exists('is_account_page') && is_account_page();
+
+    if (is_user_logged_in() && !$is_account_page) {
         return;
     }
 
