@@ -48,6 +48,7 @@ do_action('woocommerce_before_edit_account_form');
             <span class="pap-auth-input-icon" aria-hidden="true"><?php echo papetarie_storefront_auth_input_icon('mail'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
             <input type="email" class="woocommerce-Input woocommerce-Input--email input-text" name="account_email" id="account_email" autocomplete="email" value="<?php echo esc_attr($user->user_email); ?>" aria-required="true" />
           </span>
+          <small class="pap-field-error" aria-hidden="true"></small>
         </p>
       </div>
 
@@ -90,6 +91,7 @@ do_action('woocommerce_before_edit_account_form');
               <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </button>
           </span>
+          <small class="pap-field-error" aria-hidden="true"></small>
         </p>
 
         <div class="pap-account-form-row-pair">
@@ -102,6 +104,7 @@ do_action('woocommerce_before_edit_account_form');
                 <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               </button>
             </span>
+            <small class="pap-field-error" aria-hidden="true"></small>
           </p>
           <p class="woocommerce-form-row form-row pap-form-row">
             <label for="password_2"><?php esc_html_e('Confirmă parola nouă', 'papetarie-storefront'); ?></label>
@@ -112,6 +115,7 @@ do_action('woocommerce_before_edit_account_form');
                 <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               </button>
             </span>
+            <small class="pap-field-error" aria-hidden="true"></small>
           </p>
         </div>
       </div>

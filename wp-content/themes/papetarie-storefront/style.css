@@ -3885,6 +3885,11 @@ body.theme-papetarie .pap-archive-empty p {
   align-items: center;
   justify-content: center;
   line-height: 0;
+  /* On password fields specifically, the sibling <input> (.pap-password-field
+     .woocommerce-Input has its own background-image/background-clip rules)
+     was painting over this icon despite being static-positioned and earlier
+     in the DOM — an explicit stacking order removes any ambiguity. */
+  z-index: 1;
 }
 
 .pap-auth-input-field .pap-auth-input-icon svg {
@@ -15173,21 +15178,36 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldse
   display: none !important;
 }
 
-/* align-items: start keeps the two cards fully independent — without it,
-   CSS Grid's default (stretch) makes both cards match the tallest one's
-   row height, which then cascades down through .pap-account-form (a grid)
-   and .pap-account-form-actions (a flex row, default align-items:stretch)
-   and ends with the *button* stretching to fill that leftover height. So
-   growing the password card (validation errors, the strength meter) was
-   inflating the unrelated "Salvează modificările" button on the other
-   card. Each card now sizes purely to its own content, always. */
+/* Cards stretch to match the taller one's row height (Grid's default
+   align-items), so the two cards read as one unit. Left at that, the
+   stretch cascades: .pap-account-panel (a grid) and .pap-account-form
+   (also a grid) both default to align-content:stretch too, so the extra
+   height doesn't just sit as trailing space — it gets redistributed into
+   their own rows, and .pap-account-form-actions (a flex row, default
+   align-items:stretch) stretches the *button* inside it to fill that.
+   align-content:start on the two nested grids below stops that: leftover
+   height collects once, as blank space after the last row, instead of
+   inflating content at every level. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-page-head {
   grid-column: 1 / -1;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-panel--form,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-form {
+  align-content: start;
+}
+
+/* Reserved, fixed-height slot for inline validation messages (see
+   setInlineValidation/clearInlineValidation in account.js) — pre-rendered
+   empty in the template and only ever emptied, never removed, so a card's
+   height doesn't grow or shrink depending on whether an error is currently
+   shown on its fields. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-field-error {
+  min-height: 1.4em;
 }
 
 /* Below this, splitting into 2 cards leaves too little width per card once

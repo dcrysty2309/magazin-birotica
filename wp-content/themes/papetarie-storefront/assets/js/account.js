@@ -61,7 +61,11 @@
     });
 
     toArray(root.querySelectorAll('.pap-field-error')).forEach(function (errorNode) {
-      errorNode.remove();
+      // Emptied, not removed: some forms (Detalii cont) pre-render this node
+      // with a reserved min-height so the card doesn't grow/shrink every
+      // time a validation message appears or disappears. Removing it would
+      // collapse that reserved space right along with it.
+      errorNode.textContent = '';
     });
   }
 
