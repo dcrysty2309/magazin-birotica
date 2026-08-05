@@ -14979,9 +14979,21 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-gri
   grid-column: span 1;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid,
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid {
   gap: 16px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section {
+  display: grid;
+  gap: 20px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section-title {
+  margin: 0;
+  color: #17324d;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
@@ -15004,7 +15016,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldse
   display: none !important;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset .pap-form-row {
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section .pap-form-row {
   max-width: 420px;
 }
 
@@ -15055,8 +15067,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals__row.is-t
     gap: 32px;
   }
 
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -15241,29 +15252,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form {
   gap: 20px;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
-  margin: 0;
-  padding: 24px 0 0;
-  border: 0;
-  border-top: 1px solid var(--pap-border-color, #e5e7eb);
-  border-radius: 0;
-  background: none;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset legend {
-  padding: 0 10px;
-  color: #17324d;
-  font-size: 18px;
-  line-height: 1.2;
-  font-weight: 700;
-}
-
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-actions {
   display: flex;
   justify-content: flex-start;
@@ -15283,8 +15271,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-primary-button {
 }
 
 @media (max-width: 767px) {
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -16219,29 +16206,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form {
   gap: 20px;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
-  margin: 0;
-  padding: 24px 0 0;
-  border: 0;
-  border-top: 1px solid var(--pap-border-color, #e5e7eb);
-  border-radius: 0;
-  background: none;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset legend {
-  padding: 0 10px;
-  color: #17324d;
-  font-size: 18px;
-  line-height: 1.2;
-  font-weight: 700;
-}
-
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-actions {
   display: flex;
   justify-content: flex-start;
@@ -16386,7 +16350,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-support-card {
   }
 
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid,
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--support .pap-account-support-grid,
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--offers .pap-account-product-grid {
     grid-template-columns: minmax(0, 1fr);
