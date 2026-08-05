@@ -15173,8 +15173,17 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldse
   display: none !important;
 }
 
+/* align-items: start keeps the two cards fully independent — without it,
+   CSS Grid's default (stretch) makes both cards match the tallest one's
+   row height, which then cascades down through .pap-account-form (a grid)
+   and .pap-account-form-actions (a flex row, default align-items:stretch)
+   and ends with the *button* stretching to fill that leftover height. So
+   growing the password card (validation errors, the strength meter) was
+   inflating the unrelated "Salvează modificările" button on the other
+   card. Each card now sizes purely to its own content, always. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-page-head {
