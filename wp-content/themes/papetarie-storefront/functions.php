@@ -860,6 +860,96 @@ function papetarie_storefront_clear_orphaned_cart_notices_on_account_pages(): vo
 }
 add_action('woocommerce_account_content', 'papetarie_storefront_clear_orphaned_cart_notices_on_account_pages', 9999);
 
+/**
+ * Detalii cont has two separate forms (personal info / password) that both
+ * post to the same WC_Form_Handler::save_account_details() and land back on
+ * the same generic "Account details changed successfully." notice — there's
+ * no way to tell which card it belongs to. Each form carries a hidden
+ * pap_account_section field; we tag the redirect URL with it here (before
+ * WC_Form_Handler's own redirect happens, later in the same request) so the
+ * template can render the notice inside the right card instead of as a
+ * banner above the page title.
+ */
+function papetarie_storefront_track_account_section_redirect(string $url, string $endpoint): string
+{
+    if ($endpoint !== 'edit-account') {
+        return $url;
+    }
+
+    if (empty($_POST['action']) || $_POST['action'] !== 'save_account_details' || empty($_POST['pap_account_section'])) {
+        return $url;
+    }
+
+    $section = sanitize_key((string) $_POST['pap_account_section']);
+    if (!in_array($section, ['personal', 'password'], true)) {
+        return $url;
+    }
+
+    return add_query_arg('pap_saved', $section, $url);
+}
+add_filter('woocommerce_get_endpoint_url', 'papetarie_storefront_track_account_section_redirect', 20, 2);
+
+/**
+ * The default woocommerce_output_all_notices (hooked on woocommerce_account_content
+ * at priority 5) renders as a full-width banner above the page title. On
+ * Detalii cont specifically we render a discreet, section-scoped version
+ * instead (see papetarie_storefront_render_account_section_notice), so the
+ * default one needs to stay out of the way here.
+ */
+function papetarie_storefront_edit_account_notice_hooks(): void
+{
+    if (!function_exists('is_account_page') || !is_account_page() || !function_exists('is_wc_endpoint_url') || !is_wc_endpoint_url('edit-account')) {
+        return;
+    }
+
+    remove_action('woocommerce_account_content', 'woocommerce_output_all_notices', 5);
+}
+add_action('wp', 'papetarie_storefront_edit_account_notice_hooks', 20);
+
+/**
+ * Renders the save-result notice inside the given Detalii cont card, only
+ * when $_GET['pap_saved'] matches it. Clears the WC notice queue on output
+ * so a mismatched/absent section falls through to the safety-net call in
+ * form-edit-account.php that prints anything left over in its original spot.
+ */
+function papetarie_storefront_render_account_section_notice(string $section): void
+{
+    if (!function_exists('wc_get_notices')) {
+        return;
+    }
+
+    // Success path: WC_Form_Handler redirects (see
+    // papetarie_storefront_track_account_section_redirect), so the section
+    // comes back as a query arg on the next request. Error path: WC only
+    // redirects when there are zero errors, so on failure this same request
+    // re-renders the form directly — the section has to come from $_POST
+    // (the field we tagged each form with) instead.
+    $requested_section = isset($_GET['pap_saved']) ? sanitize_key((string) $_GET['pap_saved']) : '';
+    if ($requested_section === '' && !empty($_POST['pap_account_section']) && !empty($_POST['action']) && $_POST['action'] === 'save_account_details') {
+        $requested_section = sanitize_key((string) $_POST['pap_account_section']);
+    }
+
+    if ($requested_section !== $section) {
+        return;
+    }
+
+    $notices = wc_get_notices();
+    $type = !empty($notices['error']) ? 'error' : (!empty($notices['success']) ? 'success' : '');
+    if ($type === '') {
+        return;
+    }
+
+    $messages = $notices[$type];
+    ?>
+    <div class="pap-account-form-notice pap-account-form-notice--<?php echo esc_attr($type); ?>" role="status">
+      <?php foreach ($messages as $notice) : ?>
+        <span class="pap-account-form-notice__text"><?php echo wp_kses_post(is_array($notice) ? ($notice['notice'] ?? '') : $notice); ?></span>
+      <?php endforeach; ?>
+    </div>
+    <?php
+    wc_clear_notices();
+}
+
 function papetarie_storefront_override_cart_content(string $content): string
 {
     if (!function_exists('is_cart') || !is_cart() || !function_exists('wc_get_template')) {

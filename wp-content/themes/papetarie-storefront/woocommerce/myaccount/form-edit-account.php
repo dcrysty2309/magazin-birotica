@@ -57,7 +57,10 @@ do_action('woocommerce_before_edit_account_form');
         <?php wp_nonce_field('save_account_details', 'save-account-details-nonce'); ?>
         <button type="submit" class="pap-account-primary-button" name="save_account_details" value="<?php esc_attr_e('Salvează modificările', 'papetarie-storefront'); ?>"><?php esc_html_e('Salvează modificările', 'papetarie-storefront'); ?></button>
         <input type="hidden" name="action" value="save_account_details" />
+        <input type="hidden" name="pap_account_section" value="personal" />
       </p>
+
+      <?php papetarie_storefront_render_account_section_notice('personal'); ?>
 
       <?php do_action('woocommerce_edit_account_form_end'); ?>
     </form>
@@ -119,9 +122,26 @@ do_action('woocommerce_before_edit_account_form');
         <?php wp_nonce_field('save_account_details', 'save-account-details-nonce'); ?>
         <button type="submit" class="pap-account-primary-button" name="save_account_details" value="<?php esc_attr_e('Actualizează parola', 'papetarie-storefront'); ?>"><?php esc_html_e('Actualizează parola', 'papetarie-storefront'); ?></button>
         <input type="hidden" name="action" value="save_account_details" />
+        <input type="hidden" name="pap_account_section" value="password" />
       </p>
+
+      <?php papetarie_storefront_render_account_section_notice('password'); ?>
     </form>
   </section>
 </div>
+
+<?php
+// Safety net: if pap_saved didn't match either card above (e.g. a stray
+// notice from elsewhere, or the query arg got stripped), don't let it
+// silently vanish — fall back to the default rendering.
+if (function_exists('wc_get_notices') && function_exists('wc_print_notices')) {
+    $pap_remaining_notices = wc_get_notices();
+    if (!empty($pap_remaining_notices['error']) || !empty($pap_remaining_notices['success'])) {
+        echo '<div class="woocommerce-notices-wrapper">';
+        wc_print_notices();
+        echo '</div>';
+    }
+}
+?>
 
 <?php do_action('woocommerce_after_edit_account_form'); ?>
