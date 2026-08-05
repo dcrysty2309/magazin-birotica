@@ -14993,6 +14993,21 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldse
   background: none;
 }
 
+/* WooCommerce injects a native, unstyled .show-password-input button on every
+   password field on the account-edit form (its own show/hide toggle). We already
+   render our own themed pap-password-toggle icon, so the native one duplicates it
+   and shows through unstyled (dark square) since it was only ever hidden on the
+   logged-out login/register form below. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset .show-password-input,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset .show-password-input:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset .show-password-input:focus-visible {
+  display: none !important;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset .pap-form-row {
+  max-width: 420px;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-meta-card,
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card {
   border-radius: 18px;
