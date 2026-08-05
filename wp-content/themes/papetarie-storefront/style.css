@@ -14990,6 +14990,8 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section {
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section-title {
   margin: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--pap-border-color, #e5e7eb);
   color: #17324d;
   font-size: 18px;
   line-height: 1.2;
@@ -14998,9 +15000,8 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section-tit
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
   margin: 0;
-  padding: 24px 0 0;
+  padding: 0;
   border: 0;
-  border-top: 1px solid var(--pap-border-color, #e5e7eb);
   border-radius: 0;
   background: none;
 }
