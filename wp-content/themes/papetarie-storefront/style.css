@@ -12912,7 +12912,68 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-step__body fieldset lege
 .pap-password-field {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   width: 100%;
+}
+
+/* WooCommerce's own password-strength-meter.js (wc_password_strength_meter)
+   injects a sibling block — .woocommerce-password-strength, then
+   .woocommerce-password-hint — right after the <input>, inside this same
+   flex row. As a flex item with no flex-basis, its long text just gets
+   squeezed into whatever thin sliver of width is left over and wraps
+   into a tall, narrow column instead of a normal line of text. flex-wrap
+   above lets it fall onto its own full-width line instead. */
+.pap-password-field > .woocommerce-password-strength,
+.pap-password-field > .woocommerce-password-hint {
+  flex: 1 1 100%;
+}
+
+/* The icon/toggle center themselves with top:50% of this wrapper — fine
+   normally, but once the strength meter/hint push the wrapper's height
+   past just the input row, 50% drifts down into the middle of that added
+   height. Pin them to half the input's own fixed height instead. */
+.pap-password-field > .pap-auth-input-icon,
+.pap-password-field > .pap-password-toggle {
+  top: calc(var(--pap-input-height) / 2);
+}
+
+.woocommerce-password-strength {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.woocommerce-password-strength.short,
+.woocommerce-password-strength.bad {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.woocommerce-password-strength.good {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.woocommerce-password-strength.strong {
+  border-color: #bbf7d0;
+  background: #eafbf0;
+  color: #16a34a;
+}
+
+.woocommerce-password-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.4;
 }
 
 .password-input {
@@ -15422,6 +15483,10 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-actions {
   justify-content: flex-start;
   gap: 12px;
   margin: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-primary-button {
+  min-width: 210px;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-primary-button {
