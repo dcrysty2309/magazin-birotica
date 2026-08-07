@@ -2291,10 +2291,30 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
             continue;
         }
 
+        $currentPostStatus = get_post_status($postId);
+
         $product->set_manage_stock(true);
         $product->set_stock_quantity($quantity);
         $product->set_stock_status($expectedStatus);
         $product->save();
+
+        // Decizie Lavinia 2026-08-07: un produs PUBLICAT care ajunge la stoc 0
+        // (sau onbackorder, care tot inseamna 0 bucati fizice) trece automat
+        // la draft - nu vrem clienti care comanda ceva indisponibil. Stocul
+        // (cantitate + status) tot se actualizeaza normal mai sus, indiferent
+        // de post_status - doar vizibilitatea pe site se schimba.
+        $isZeroStock = in_array($expectedStatus, ['outofstock', 'onbackorder'], true);
+        if ($isZeroStock && $currentPostStatus === 'publish') {
+            wp_update_post(['ID' => $postId, 'post_status' => 'draft']);
+        } elseif (!$isZeroStock && $currentPostStatus === 'draft'
+            && in_array($oldStatus, ['outofstock', 'onbackorder'], true)) {
+            // Revenit pe stoc, dar ramane draft - publicarea e decizie
+            // manuala. Il notam intr-o lista citita de job-ul de notificare
+            // zilnica (vezi docs/plan-auto-draft-stoc-zero.md).
+            $restockedToday = get_option('pap_restocked_today', []);
+            $restockedToday[$postId] = time();
+            update_option('pap_restocked_today', $restockedToday);
+        }
 
         $oldLabel = $oldQuantity === null ? '—' : (string) $oldQuantity;
         $applied[] = [
@@ -2633,5 +2653,61 @@ function papetarie_storefront_aperta_schedule_cron(): void
         }
         as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_sync_stock_start', $args, 'aperta-sync');
     }
+
+    if (!as_next_scheduled_action('pap_aperta_send_restock_digest', [], 'aperta-sync')) {
+        $timestamp = papetarie_storefront_aperta_romania_time_today('18:00:00');
+        if ($timestamp < time()) {
+            $timestamp += DAY_IN_SECONDS;
+        }
+        as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_send_restock_digest', [], 'aperta-sync');
+    }
 }
 add_action('init', 'papetarie_storefront_aperta_schedule_cron');
+
+/**
+ * Raport zilnic (18:00 ora Romaniei) cu produsele care au revenit pe stoc in
+ * ziua respectiva si au ramas draft (vezi papetarie_storefront_aperta_apply_stock() -
+ * decizie Lavinia 2026-08-07: publicarea ramane manuala, dar fara notificare
+ * per produs, un singur rezumat pe zi e suficient).
+ */
+function papetarie_storefront_aperta_send_restock_digest_cb(): void
+{
+    $restockedToday = get_option('pap_restocked_today', []);
+
+    if (empty($restockedToday)) {
+        return;
+    }
+
+    $lines = [];
+    foreach ($restockedToday as $postId => $timestamp) {
+        $product = wc_get_product($postId);
+        if (!($product instanceof WC_Product)) {
+            continue;
+        }
+
+        $lines[] = sprintf(
+            '- %s (stoc: %d) — %s',
+            $product->get_name(),
+            $product->get_stock_quantity(),
+            admin_url('post.php?post=' . $postId . '&action=edit')
+        );
+    }
+
+    if (empty($lines)) {
+        // Toate au fost sterse/nu mai exista ca produse WC - nu trimitem un
+        // email gol.
+        update_option('pap_restocked_today', []);
+        return;
+    }
+
+    $to = 'laviniamuntean40@gmail.com';
+    $subject = sprintf('[Notix] %d produse revenite pe stoc azi (%s)', count($lines), date('d.m.Y'));
+    $body = "Produsele de mai jos au revenit pe stoc azi si sunt gata de revizuit/publicat:\n\n"
+        . implode("\n", $lines)
+        . "\n\nToate raman draft pana le publici tu manual.";
+
+    wp_mail($to, $subject, $body);
+
+    update_option('pap_restocked_today', []);
+}
+add_action('pap_aperta_send_restock_digest', 'papetarie_storefront_aperta_send_restock_digest_cb');
