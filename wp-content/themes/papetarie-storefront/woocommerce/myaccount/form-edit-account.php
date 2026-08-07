@@ -8,144 +8,120 @@
 defined('ABSPATH') || exit;
 
 do_action('woocommerce_before_edit_account_form');
+
+// A failed save re-renders this same request directly (WC_Form_Handler only
+// redirects when there are zero errors), so open straight into edit mode
+// instead of flashing the view first — the errors live inside the edit form.
+$pap_notice_type = function_exists('papetarie_storefront_get_account_notice_type') ? papetarie_storefront_get_account_notice_type() : '';
+$pap_start_in_edit = $pap_notice_type === 'error';
+
+$pap_full_name = trim($user->first_name . ' ' . $user->last_name);
+if ($pap_full_name === '') {
+    $pap_full_name = $user->display_name;
+}
 ?>
 
 <div class="pap-account-page pap-account-page--edit-account">
-  <?php papetarie_storefront_render_account_page_head(
-      __('Detalii cont', 'papetarie-storefront'),
-      __('Actualizează datele de profil și parola asociată contului tău.', 'papetarie-storefront')
-  ); ?>
+  <section class="pap-account-panel pap-account-panel--form pap-account-detail-panel<?php echo $pap_start_in_edit ? ' is-editing' : ''; ?>" data-account-detail-panel>
+    <div class="pap-account-detail-head">
+      <h2 class="pap-account-detail-title"><?php esc_html_e('Detalii cont', 'papetarie-storefront'); ?></h2>
+      <button type="button" class="pap-account-detail-edit-toggle" data-account-edit-toggle>
+        <?php esc_html_e('Editează', 'papetarie-storefront'); ?>
+      </button>
+    </div>
 
-  <section class="pap-account-panel pap-account-panel--form pap-account-panel--personal">
-    <form class="woocommerce-EditAccountForm edit-account pap-account-form" action="" method="post" data-account-form="personal" <?php do_action('woocommerce_edit_account_form_tag'); ?>>
+    <?php papetarie_storefront_render_account_notice(); ?>
+
+    <div class="pap-account-detail-view" data-account-detail-view>
+      <div class="pap-account-detail-row">
+        <span class="pap-account-detail-label"><?php esc_html_e('Nume:', 'papetarie-storefront'); ?></span>
+        <span class="pap-account-detail-value"><?php echo esc_html($pap_full_name); ?></span>
+      </div>
+      <div class="pap-account-detail-row">
+        <span class="pap-account-detail-label"><?php esc_html_e('Email:', 'papetarie-storefront'); ?></span>
+        <span class="pap-account-detail-value"><?php echo esc_html($user->user_email); ?></span>
+      </div>
+      <div class="pap-account-detail-row pap-account-detail-row--last">
+        <span class="pap-account-detail-label"><?php esc_html_e('Parolă:', 'papetarie-storefront'); ?></span>
+        <span class="pap-account-detail-value">••••••••</span>
+      </div>
+    </div>
+
+    <?php // novalidate: the account_email input is type="email", so without
+    // this the browser's own constraint validation intercepts the submit
+    // click before our JS submit handler ever runs — the native tooltip
+    // shows instead of the site's inline red error, and .pap-is-invalid
+    // never gets applied at all. ?>
+    <form class="woocommerce-EditAccountForm edit-account pap-account-detail-edit" action="" method="post" novalidate data-account-detail-edit <?php do_action('woocommerce_edit_account_form_tag'); ?>>
       <?php do_action('woocommerce_edit_account_form_start'); ?>
 
-      <div class="pap-account-form-section pap-account-form-section--personal">
-        <h2 class="pap-account-form-section-title"><?php esc_html_e('Date personale', 'papetarie-storefront'); ?></h2>
+      <!-- Figma shows "Nume:" as read-only text even in edit mode — name
+           isn't user-editable here. The first/last name POST fields stay as
+           hidden inputs (not just omitted) because WC_Form_Handler both
+           requires them and overwrites $user->first_name/last_name with
+           whatever comes through, so dropping them from the form entirely
+           would blank out the name on every save. -->
+      <div class="pap-account-detail-name-row">
+        <span class="pap-account-detail-name-label"><?php esc_html_e('Nume:', 'papetarie-storefront'); ?></span>
+        <span class="pap-account-detail-name-value"><?php echo esc_html($pap_full_name); ?></span>
+      </div>
+      <input type="hidden" name="account_first_name" id="account_first_name" value="<?php echo esc_attr($user->first_name); ?>" />
+      <input type="hidden" name="account_last_name" id="account_last_name" value="<?php echo esc_attr($user->last_name); ?>" />
+      <input type="hidden" name="account_display_name" id="account_display_name" value="<?php echo esc_attr($user->display_name); ?>" />
 
-        <div class="pap-account-form-row-pair">
-          <p class="woocommerce-form-row form-row pap-form-row">
-            <label for="account_first_name"><?php esc_html_e('Prenume', 'papetarie-storefront'); ?>&nbsp;<span class="required" aria-hidden="true">*</span></label>
-            <span class="pap-auth-input-field pap-auth-input-field--user">
-              <span class="pap-auth-input-icon" aria-hidden="true"><?php echo papetarie_storefront_auth_input_icon('user'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-              <input type="text" class="woocommerce-Input woocommerce-Input--text input-text" name="account_first_name" id="account_first_name" autocomplete="given-name" value="<?php echo esc_attr($user->first_name); ?>" aria-required="true" />
-            </span>
-          </p>
-          <p class="woocommerce-form-row form-row pap-form-row">
-            <label for="account_last_name"><?php esc_html_e('Nume', 'papetarie-storefront'); ?>&nbsp;<span class="required" aria-hidden="true">*</span></label>
-            <span class="pap-auth-input-field pap-auth-input-field--user">
-              <span class="pap-auth-input-icon" aria-hidden="true"><?php echo papetarie_storefront_auth_input_icon('user'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-              <input type="text" class="woocommerce-Input woocommerce-Input--text input-text" name="account_last_name" id="account_last_name" autocomplete="family-name" value="<?php echo esc_attr($user->last_name); ?>" aria-required="true" />
-            </span>
-          </p>
-        </div>
-
-        <input type="hidden" name="account_display_name" id="account_display_name" value="<?php echo esc_attr($user->display_name); ?>" />
-
-        <p class="woocommerce-form-row form-row pap-form-row">
-          <label for="account_email"><?php esc_html_e('Adresă de email', 'papetarie-storefront'); ?>&nbsp;<span class="required" aria-hidden="true">*</span></label>
-          <span class="pap-auth-input-field pap-auth-input-field--email">
-            <span class="pap-auth-input-icon" aria-hidden="true"><?php echo papetarie_storefront_auth_input_icon('mail'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-            <input type="email" class="woocommerce-Input woocommerce-Input--email input-text" name="account_email" id="account_email" autocomplete="email" value="<?php echo esc_attr($user->user_email); ?>" aria-required="true" />
-          </span>
-          <small class="pap-field-error" aria-hidden="true"></small>
-        </p>
+      <div class="pap-float-field">
+        <input type="email" class="woocommerce-Input woocommerce-Input--email" name="account_email" id="account_email" placeholder=" " autocomplete="email" value="<?php echo esc_attr($user->user_email); ?>" aria-required="true" />
+        <label for="account_email"><?php esc_html_e('Adresa de email', 'papetarie-storefront'); ?></label>
+        <small class="pap-field-error" aria-hidden="true"></small>
       </div>
 
       <?php do_action('woocommerce_edit_account_form_fields'); ?>
 
-      <p class="pap-account-form-actions">
-        <?php wp_nonce_field('save_account_details', 'save-account-details-nonce'); ?>
-        <button type="submit" class="pap-account-primary-button" name="save_account_details" value="<?php esc_attr_e('Salvează modificările', 'papetarie-storefront'); ?>"><?php esc_html_e('Salvează modificările', 'papetarie-storefront'); ?></button>
-        <input type="hidden" name="action" value="save_account_details" />
-        <input type="hidden" name="pap_account_section" value="personal" />
-      </p>
+      <!-- readonly + onfocus removeAttribute: the standard trick to stop
+           Chrome/most browsers from autofilling a saved password into this
+           field on page load — browsers won't autofill a readonly input, so
+           the user has to actually type their current password themselves
+           every time they want to change it, instead of it silently arriving
+           pre-filled. -->
+      <div class="pap-float-field pap-float-field--password" data-password-field>
+        <input type="password" class="woocommerce-Input woocommerce-Input--password" name="password_current" id="password_current" placeholder=" " autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" />
+        <label for="password_current"><?php esc_html_e('Parola curentă', 'papetarie-storefront'); ?></label>
+        <button class="pap-password-toggle pap-password-toggle--float" type="button" data-password-toggle aria-label="<?php esc_attr_e('Arată parola', 'papetarie-storefront'); ?>">
+          <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </button>
+        <small class="pap-field-error" aria-hidden="true"></small>
+      </div>
 
-      <?php papetarie_storefront_render_account_section_notice('personal'); ?>
+      <div class="pap-float-field pap-float-field--password" data-password-field>
+        <input type="password" class="woocommerce-Input woocommerce-Input--password" name="password_1" id="password_1" placeholder=" " autocomplete="new-password" />
+        <label for="password_1"><?php esc_html_e('Parolă nouă', 'papetarie-storefront'); ?></label>
+        <button class="pap-password-toggle pap-password-toggle--float" type="button" data-password-toggle aria-label="<?php esc_attr_e('Arată parola', 'papetarie-storefront'); ?>">
+          <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </button>
+        <small class="pap-field-error" aria-hidden="true"></small>
+      </div>
 
-      <?php do_action('woocommerce_edit_account_form_end'); ?>
-    </form>
-  </section>
-
-  <section class="pap-account-panel pap-account-panel--form pap-account-panel--password">
-    <form class="woocommerce-EditAccountForm edit-account pap-account-form" action="" method="post" data-account-form="password">
-      <div class="pap-account-form-section pap-account-form-section--password pap-account-password-fieldset">
-        <h2 class="pap-account-form-section-title"><?php esc_html_e('Schimbare parolă', 'papetarie-storefront'); ?></h2>
-
-        <?php
-        // Same handler (WC_Form_Handler::save_account_details) always reads/re-saves
-        // name + email from $_POST, so this form carries them along unchanged —
-        // otherwise submitting only a password change would blank them out.
-        ?>
-        <input type="hidden" name="account_first_name" value="<?php echo esc_attr($user->first_name); ?>" />
-        <input type="hidden" name="account_last_name" value="<?php echo esc_attr($user->last_name); ?>" />
-        <input type="hidden" name="account_display_name" value="<?php echo esc_attr($user->display_name); ?>" />
-        <input type="hidden" name="account_email" value="<?php echo esc_attr($user->user_email); ?>" />
-
-        <p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide pap-form-row">
-          <label for="password_current"><?php esc_html_e('Parola curentă', 'papetarie-storefront'); ?></label>
-          <span class="pap-auth-input-field pap-auth-input-field--password pap-password-field" data-password-field>
-            <span class="pap-auth-input-icon" aria-hidden="true"><?php echo papetarie_storefront_auth_input_icon('lock'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-            <input type="password" class="woocommerce-Input woocommerce-Input--password input-text" name="password_current" id="password_current" autocomplete="current-password" />
-            <button class="pap-password-toggle" type="button" data-password-toggle aria-label="<?php esc_attr_e('Arată parola', 'papetarie-storefront'); ?>">
-              <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-            </button>
-          </span>
-          <small class="pap-field-error" aria-hidden="true"></small>
-        </p>
-
-        <div class="pap-account-form-row-pair">
-          <p class="woocommerce-form-row form-row pap-form-row">
-            <label for="password_1"><?php esc_html_e('Parola nouă', 'papetarie-storefront'); ?></label>
-            <span class="pap-auth-input-field pap-auth-input-field--password pap-password-field" data-password-field>
-              <span class="pap-auth-input-icon" aria-hidden="true"><?php echo papetarie_storefront_auth_input_icon('lock'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-              <input type="password" class="woocommerce-Input woocommerce-Input--password input-text" name="password_1" id="password_1" autocomplete="new-password" />
-              <button class="pap-password-toggle" type="button" data-password-toggle aria-label="<?php esc_attr_e('Arată parola', 'papetarie-storefront'); ?>">
-                <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-              </button>
-            </span>
-            <small class="pap-field-error" aria-hidden="true"></small>
-          </p>
-          <p class="woocommerce-form-row form-row pap-form-row">
-            <label for="password_2"><?php esc_html_e('Confirmă parola nouă', 'papetarie-storefront'); ?></label>
-            <span class="pap-auth-input-field pap-auth-input-field--password pap-password-field" data-password-field>
-              <span class="pap-auth-input-icon" aria-hidden="true"><?php echo papetarie_storefront_auth_input_icon('lock'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-              <input type="password" class="woocommerce-Input woocommerce-Input--password input-text" name="password_2" id="password_2" autocomplete="new-password" />
-              <button class="pap-password-toggle" type="button" data-password-toggle aria-label="<?php esc_attr_e('Arată parola', 'papetarie-storefront'); ?>">
-                <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-              </button>
-            </span>
-            <small class="pap-field-error" aria-hidden="true"></small>
-          </p>
-        </div>
+      <div class="pap-float-field pap-float-field--password" data-password-field>
+        <input type="password" class="woocommerce-Input woocommerce-Input--password" name="password_2" id="password_2" placeholder=" " autocomplete="new-password" />
+        <label for="password_2"><?php esc_html_e('Confirmă parola nouă', 'papetarie-storefront'); ?></label>
+        <button class="pap-password-toggle pap-password-toggle--float" type="button" data-password-toggle aria-label="<?php esc_attr_e('Arată parola', 'papetarie-storefront'); ?>">
+          <?php echo papetarie_storefront_password_toggle_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </button>
+        <small class="pap-field-error" aria-hidden="true"></small>
       </div>
 
       <?php do_action('woocommerce_edit_account_form'); ?>
 
-      <p class="pap-account-form-actions">
+      <div class="pap-account-detail-actions">
         <?php wp_nonce_field('save_account_details', 'save-account-details-nonce'); ?>
-        <button type="submit" class="pap-account-primary-button" name="save_account_details" value="<?php esc_attr_e('Actualizează parola', 'papetarie-storefront'); ?>"><?php esc_html_e('Actualizează parola', 'papetarie-storefront'); ?></button>
         <input type="hidden" name="action" value="save_account_details" />
-        <input type="hidden" name="pap_account_section" value="password" />
-      </p>
+        <button type="button" class="pap-account-secondary-button" data-account-edit-cancel><?php esc_html_e('Anulați', 'papetarie-storefront'); ?></button>
+        <button type="submit" class="pap-account-primary-button" name="save_account_details" value="<?php esc_attr_e('Salvare', 'papetarie-storefront'); ?>"><?php esc_html_e('Salvare', 'papetarie-storefront'); ?></button>
+      </div>
 
-      <?php papetarie_storefront_render_account_section_notice('password'); ?>
+      <?php do_action('woocommerce_edit_account_form_end'); ?>
     </form>
   </section>
 </div>
-
-<?php
-// Safety net: if pap_saved didn't match either card above (e.g. a stray
-// notice from elsewhere, or the query arg got stripped), don't let it
-// silently vanish — fall back to the default rendering.
-if (function_exists('wc_get_notices') && function_exists('wc_print_notices')) {
-    $pap_remaining_notices = wc_get_notices();
-    if (!empty($pap_remaining_notices['error']) || !empty($pap_remaining_notices['success'])) {
-        echo '<div class="woocommerce-notices-wrapper">';
-        wc_print_notices();
-        echo '</div>';
-    }
-}
-?>
 
 <?php do_action('woocommerce_after_edit_account_form'); ?>

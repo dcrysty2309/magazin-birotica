@@ -32,6 +32,10 @@ $account_menu_icons = function_exists('papetarie_storefront_account_menu_icon_ma
         'edit-account' => 'sidebar-details',
         'customer-logout' => 'sidebar-logout',
     ];
+
+$account_orders_count = function_exists('papetarie_storefront_account_customer_order_count')
+    ? papetarie_storefront_account_customer_order_count((int) $current_user->ID)
+    : 0;
 ?>
 
 <nav class="woocommerce-MyAccount-navigation pap-account-nav" aria-label="<?php esc_attr_e('Account pages', 'woocommerce'); ?>">
@@ -52,6 +56,9 @@ $account_menu_icons = function_exists('papetarie_storefront_account_menu_icon_ma
             <span class="pap-account-nav-icon" aria-hidden="true"><?php echo function_exists('papetarie_storefront_render_account_icon') ? papetarie_storefront_render_account_icon($account_icon) : ''; ?></span>
           <?php endif; ?>
           <span class="pap-account-nav-label"><?php echo esc_html($label); ?></span>
+          <?php if ($endpoint === 'orders' && $account_orders_count > 0) : ?>
+            <span class="pap-account-nav-badge"><?php echo esc_html((string) $account_orders_count); ?></span>
+          <?php endif; ?>
         </a>
       </li>
     <?php endforeach; ?>

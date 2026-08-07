@@ -32,6 +32,13 @@ Aceste reguli se aplica in acest proiect si au prioritate cand lucrez la layout,
 - Inputul si butonul trebuie sa arate ca o singura piesa coerenta.
 - Nu pune fundaluri sau borduri grele in jurul formularului daca cerinta este un aspect minimalist.
 
+## Mesaje si texte (i18n)
+
+- Orice mesaj vizibil pentru utilizator — succes, eroare, validare, notificare — trebuie sa fie in limba romana. Fara text in engleza, deloc, indiferent daca vine din tema, din WooCommerce sau din WordPress core.
+- Cand un mesaj nou apare in engleza (de la WooCommerce/WordPress), nu-l lasa asa doar pentru ca e generat de platforma — adauga-l in maparea de traduceri.
+- Mecanismul existent pentru asta este filtrul `gettext` din `wp-content/themes/papetarie-storefront/functions.php`, functia `papetarie_storefront_translate_frontend_strings()` — un array simplu text englez => text romanesc. Adauga string-ul exact acolo (atentie: string-uri aparent similare din WooCommerce pot fi de fapt literale diferite, ex. "Please enter a valid email address." vs "Please provide a valid email address.", si au nevoie fiecare de propria intrare).
+- Dupa orice schimbare care poate declansa un mesaj nou de la WooCommerce (validare de cont, checkout, comenzi, parola), testeaza explicit scenariul de eroare/succes in browser ca sa confirmi ca textul afisat e in romana, nu doar ca logica functioneaza.
+
 ## Reguli de lucru
 
 - Daca o modificare afecteaza alinierea, verifica desktop si mobil.

@@ -161,6 +161,27 @@ function papetarie_storefront_dequeue_checkout_legacy_icons(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_checkout_legacy_icons', 20);
 
+/**
+ * WooCommerce auto-enqueues its password-strength meter (which pulls in
+ * WP core's own password-strength-meter.js) on the edit-account page —
+ * the live "Slabă/Puternică" bar + the "Suggest strong password..."
+ * dropdown under Parolă nouă. Not used here, so drop both handles.
+ * Priority 20: WC registers/enqueues on the default wp_enqueue_scripts
+ * priority (10), this has to run after that to actually take effect.
+ */
+function papetarie_storefront_dequeue_password_strength_meter(): void
+{
+    if (!function_exists('is_edit_account_page') || !is_edit_account_page()) {
+        return;
+    }
+
+    wp_dequeue_script('wc-password-strength-meter');
+    wp_deregister_script('wc-password-strength-meter');
+    wp_dequeue_script('password-strength-meter');
+    wp_deregister_script('password-strength-meter');
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_password_strength_meter', 20);
+
 function papetarie_storefront_configure_local_mailer($phpmailer): void
 {
     $mail_host = (string) getenv('PAP_MAIL_HOST');
@@ -861,40 +882,11 @@ function papetarie_storefront_clear_orphaned_cart_notices_on_account_pages(): vo
 add_action('woocommerce_account_content', 'papetarie_storefront_clear_orphaned_cart_notices_on_account_pages', 9999);
 
 /**
- * Detalii cont has two separate forms (personal info / password) that both
- * post to the same WC_Form_Handler::save_account_details() and land back on
- * the same generic "Account details changed successfully." notice — there's
- * no way to tell which card it belongs to. Each form carries a hidden
- * pap_account_section field; we tag the redirect URL with it here (before
- * WC_Form_Handler's own redirect happens, later in the same request) so the
- * template can render the notice inside the right card instead of as a
- * banner above the page title.
- */
-function papetarie_storefront_track_account_section_redirect(string $url, string $endpoint): string
-{
-    if ($endpoint !== 'edit-account') {
-        return $url;
-    }
-
-    if (empty($_POST['action']) || $_POST['action'] !== 'save_account_details' || empty($_POST['pap_account_section'])) {
-        return $url;
-    }
-
-    $section = sanitize_key((string) $_POST['pap_account_section']);
-    if (!in_array($section, ['personal', 'password'], true)) {
-        return $url;
-    }
-
-    return add_query_arg('pap_saved', $section, $url);
-}
-add_filter('woocommerce_get_endpoint_url', 'papetarie_storefront_track_account_section_redirect', 20, 2);
-
-/**
  * The default woocommerce_output_all_notices (hooked on woocommerce_account_content
  * at priority 5) renders as a full-width banner above the page title. On
- * Detalii cont specifically we render a discreet, section-scoped version
- * instead (see papetarie_storefront_render_account_section_notice), so the
- * default one needs to stay out of the way here.
+ * Detalii cont specifically we render a discreet, in-panel version instead
+ * (see papetarie_storefront_render_account_notice), so the default one
+ * needs to stay out of the way here.
  */
 function papetarie_storefront_edit_account_notice_hooks(): void
 {
@@ -907,39 +899,43 @@ function papetarie_storefront_edit_account_notice_hooks(): void
 add_action('wp', 'papetarie_storefront_edit_account_notice_hooks', 20);
 
 /**
- * Renders the save-result notice inside the given Detalii cont card, only
- * when $_GET['pap_saved'] matches it. Clears the WC notice queue on output
- * so a mismatched/absent section falls through to the safety-net call in
- * form-edit-account.php that prints anything left over in its original spot.
+ * Non-destructive peek at the pending WC notice type, so the template can
+ * decide whether to open Detalii cont already in edit mode (a failed save
+ * re-renders the form directly, no redirect — see WC_Form_Handler) without
+ * consuming the notice before papetarie_storefront_render_account_notice()
+ * actually prints it.
  */
-function papetarie_storefront_render_account_section_notice(string $section): void
+function papetarie_storefront_get_account_notice_type(): string
 {
     if (!function_exists('wc_get_notices')) {
-        return;
-    }
-
-    // Success path: WC_Form_Handler redirects (see
-    // papetarie_storefront_track_account_section_redirect), so the section
-    // comes back as a query arg on the next request. Error path: WC only
-    // redirects when there are zero errors, so on failure this same request
-    // re-renders the form directly — the section has to come from $_POST
-    // (the field we tagged each form with) instead.
-    $requested_section = isset($_GET['pap_saved']) ? sanitize_key((string) $_GET['pap_saved']) : '';
-    if ($requested_section === '' && !empty($_POST['pap_account_section']) && !empty($_POST['action']) && $_POST['action'] === 'save_account_details') {
-        $requested_section = sanitize_key((string) $_POST['pap_account_section']);
-    }
-
-    if ($requested_section !== $section) {
-        return;
+        return '';
     }
 
     $notices = wc_get_notices();
-    $type = !empty($notices['error']) ? 'error' : (!empty($notices['success']) ? 'success' : '');
+    if (!empty($notices['error'])) {
+        return 'error';
+    }
+
+    if (!empty($notices['success'])) {
+        return 'success';
+    }
+
+    return '';
+}
+
+/**
+ * Renders the save-result notice inline inside the Detalii cont panel
+ * instead of as a banner above the page title, then clears the WC notice
+ * queue.
+ */
+function papetarie_storefront_render_account_notice(): void
+{
+    $type = papetarie_storefront_get_account_notice_type();
     if ($type === '') {
         return;
     }
 
-    $messages = $notices[$type];
+    $messages = wc_get_notices()[$type];
     ?>
     <div class="pap-account-form-notice pap-account-form-notice--<?php echo esc_attr($type); ?>" role="status">
       <?php foreach ($messages as $notice) : ?>
@@ -2984,6 +2980,23 @@ function papetarie_storefront_translate_frontend_strings(string $translated, str
         'An account is already registered with your email address. Please log in or use a different email address.' => 'Cont existent. Autentifică-te sau folosește alt email.',
         'An account is already registered with your email address.' => 'Cont existent. Folosește alt email.',
         'Please enter a valid account username and/or password.' => 'Datele de autentificare sunt incorecte.',
+        'Account details changed successfully.' => 'Datele contului au fost actualizate cu succes.',
+        '%s is a required field.' => '%s este un câmp obligatoriu.',
+        'First name' => 'Prenume',
+        'Last name' => 'Nume',
+        'Display name' => 'Nume afișat',
+        'Email address' => 'Adresa de email',
+        // WC_Form_Handler::save_account_details() notices — distinct literal
+        // strings from the ones above (e.g. "provide" vs "enter", "This
+        // email address..." vs "An account is already registered..."), so
+        // each needs its own map entry even though the meaning overlaps.
+        'Please provide a valid email address.' => 'Introdu o adresă de email validă.',
+        'This email address is already registered.' => 'Această adresă de email este deja folosită de alt cont.',
+        'Please fill out all password fields.' => 'Completează toate câmpurile de parolă.',
+        'Please enter your current password.' => 'Introdu parola curentă.',
+        'Please re-enter your password.' => 'Confirmă parola nouă.',
+        'New passwords do not match.' => 'Parolele nu se potrivesc.',
+        'Your current password is incorrect.' => 'Parola curentă este incorectă.',
     ];
 
     return $map[$text] ?? $translated;
@@ -6565,6 +6578,15 @@ function papetarie_storefront_handle_auth_login_ajax(): void
             'notice_html' => papetarie_storefront_render_auth_notice_html_from_session(),
         ], 401);
     }
+
+    // wp_signon() sets the auth cookie for the *next* request (Set-Cookie
+    // response header) but doesn't refresh the $current_user global for
+    // *this* one — without this, every is_user_logged_in()/
+    // wp_get_current_user() call below (auth_state, the account_html
+    // fragment) still reads the pre-login, logged-out state, so the AJAX
+    // response reports success with is_logged_in still false and the
+    // header widget still rendered as "Autentificare".
+    wp_set_current_user($user->ID);
 
     if (function_exists('WC') && WC()->cart) {
         WC()->cart->calculate_totals();

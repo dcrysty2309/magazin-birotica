@@ -13487,29 +13487,32 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) input[type='password'] 
 .pap-account-nav-profile {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 16px 24px 24px;
+  gap: 12px;
+  padding: 20px 20px 16px;
   box-sizing: border-box;
+  background: #fff;
+  border-bottom: 1px solid #dde1e8;
+  border-radius: 4px 4px 0 0;
 }
 
 .pap-account-avatar {
-  width: 64px;
-  height: 64px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
-  flex: 0 0 64px;
+  flex: 0 0 44px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(180deg, #eef0ff 0%, #e7efff 100%);
-  color: #1e3a8a;
+  background: #ff5b1f;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .pap-account-avatar img {
@@ -13522,22 +13525,22 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) input[type='password'] 
 
 .pap-account-nav-copy {
   display: grid;
-  gap: 10px;
+  gap: 4px;
   min-width: 0;
   flex: 1 1 auto;
 }
 
 .pap-account-nav-copy strong {
-  font-size: var(--pap-important-text-size);
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
-  color: #17324d;
+  color: #0d2e61;
   white-space: nowrap;
 }
 
 .pap-account-nav-copy span {
-  color: #516173;
-  font-size: var(--pap-secondary-text-size);
+  color: #6b7a95;
+  font-size: 11px;
   line-height: 1.35;
   overflow: visible;
   text-overflow: clip;
@@ -13546,25 +13549,50 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) input[type='password'] 
 }
 
 .pap-account-nav .pap-account-nav-icon {
-  width: 28px;
-  min-width: 28px;
-  flex: 0 0 28px;
+  width: 15px;
+  min-width: 15px;
+  flex: 0 0 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
 }
 
+/* Icon-only override on the active row: the label stays navy (#0d2e61,
+   set on the <a> and inherited), but the icon itself switches to the
+   orange accent — a direct declaration on the icon here beats the
+   inherited color regardless of selector specificity, so this only needs
+   to exist once, not duplicated per is-active block like the rest. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li.is-active .pap-account-nav-icon {
+  color: #ff5b1f;
+}
+
 .pap-account-nav .pap-account-nav-icon i {
-  font-size: 22px;
+  font-size: 15px;
   line-height: 1;
 }
 
 .pap-account-nav .pap-account-nav-icon svg {
   display: block;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+}
+
+.pap-account-nav-badge {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: #0d2e61;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.pap-account-nav li.is-active .pap-account-nav-badge {
+  background: #ff5b1f;
 }
 
 .pap-account-nav a::before,
@@ -13993,31 +14021,61 @@ body.theme-papetarie.woocommerce-account.logged-in .woocommerce-MyAccount-conten
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav {
   display: grid;
-  gap: 16px;
+  gap: 0;
   padding: 0;
   background: #fff;
   border: 1px solid #dbe4f0;
-  border-radius: 0;
+  border-radius: 4px;
   box-shadow: 0 10px 24px rgba(18, 39, 74, 0.05);
+  overflow: hidden;
 }
 
+/* border-top: 0 on purpose — WooCommerce core's
+   ".hentry .entry-content .woocommerce-MyAccount-navigation ul" (3 classes +
+   1 element) puts a faint border-top on the whole list; our selector below
+   has 4 classes + 1 element so it already out-specifies it once declared,
+   same landmine as the li border-bottom fixed right below. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-list {
   display: grid;
   gap: 0;
   margin: 0;
-  padding: 0;
+  padding: 8px 0;
   list-style: none;
+  border-top: 0;
 }
 
+/* border: 0 on purpose — WooCommerce core's
+   ".hentry .entry-content .woocommerce-MyAccount-navigation ul li" puts a
+   faint border-bottom on every row (lower specificity, but nothing here
+   ever contested the property, so it applied anyway). Invisible on its
+   own, but right before "Deconectare" it sat flush against this list's own
+   intentional divider border-top, reading as one doubled/thicker line. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li {
   margin: 0;
   padding: 0;
   width: 100%;
   box-sizing: border-box;
+  border: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li + li {
   margin-top: 0;
+}
+
+/* !important: WooCommerce core ships
+   ".hentry .entry-content .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link a"
+   with padding: 0.875em 0 and display: block — same 4 classes as every
+   ".pap-account-nav a" rule in this file but one extra element in its
+   chain (ul, li, a vs just a), so it out-specifies all of them. The
+   padding was flattening every nav row to ~12px 0; the "display: block"
+   was worse — it silently killed the flex row entirely, so "gap" and
+   "align-items" on the icon/label pair had nothing to act on (a block
+   element ignores both), which is why the icon and label sat only ~3.5px
+   apart instead of the intended 10px and never lined up vertically. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a {
+  display: flex !important;
+  padding: 15px 20px !important;
+  gap: 10px !important;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a {
@@ -14026,33 +14084,21 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a {
   align-items: center;
   justify-content: flex-start;
   flex-wrap: nowrap;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  height: 64px;
-  min-height: 64px;
-  padding: 0 24px;
-  border: 1px solid transparent;
+  height: auto;
+  min-height: 0;
+  padding: 15px 20px;
+  border: 0;
+  border-left: 3px solid transparent;
   border-radius: 0;
   background: transparent;
-  color: #17324d;
+  color: #374151;
   text-decoration: none;
   cursor: pointer;
   line-height: 1;
   white-space: nowrap;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav .pap-account-nav-link {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 16px;
-  width: 100%;
-  padding: 0 24px;
-  box-sizing: border-box;
-  line-height: 1;
-  white-space: nowrap;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li.is-active a,
@@ -14063,31 +14109,34 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a:focus-visi
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li.is-active a {
-  background: #eef4ff;
+  background: #fff7f4;
+  border-left-color: #ff5b1f;
+  color: #0d2e61;
+  font-weight: 600;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav .pap-account-nav-icon {
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
+  width: 15px;
+  min-width: 15px;
+  height: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: inherit;
-  flex: 0 0 24px;
+  flex: 0 0 15px;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav .pap-account-nav-icon i {
-  font-size: 22px;
+  font-size: 15px;
   line-height: 1;
   color: inherit;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav .pap-account-nav-icon svg {
   display: block;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a::before,
@@ -14097,9 +14146,9 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a::after {
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav .pap-account-nav-label {
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1.3;
-  font-weight: 500;
+  font-weight: inherit;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-help-card {
@@ -14921,46 +14970,50 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav {
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-profile {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 16px 24px 24px;
+  gap: 12px;
+  padding: 20px 20px 16px;
   box-sizing: border-box;
+  background: #fff;
+  border-bottom: 1px solid #dde1e8;
+  border-radius: 4px 4px 0 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-avatar {
-  width: 64px;
-  height: 64px;
-  min-width: 64px;
-  flex: 0 0 64px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  flex: 0 0 44px;
   border-radius: 50%;
-  background: linear-gradient(180deg, #eef0ff 0%, #e7efff 100%);
-  color: #1e3a8a;
+  background: #ff5b1f;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-copy {
-  gap: 10px;
+  gap: 4px;
   flex: 1 1 auto;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-copy strong {
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.2;
   font-weight: 700;
+  color: #0d2e61;
   white-space: nowrap;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-copy span {
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1.35;
-  color: #64748b;
+  color: #6b7a95;
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
@@ -14969,16 +15022,19 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-copy span {
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-list {
   gap: 0;
-  padding-top: 24px;
+  padding-top: 8px;
+  border-top: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a {
-  height: 64px;
-  min-height: 64px;
-  padding: 0 24px;
+  height: auto;
+  min-height: 0;
+  padding: 15px 20px;
   border-radius: 0;
   background: transparent;
+  border-left: 3px solid transparent;
   border-color: transparent;
+  color: #374151;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li.is-active a,
@@ -14989,7 +15045,10 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a:focus-visi
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li.is-active a {
-  background: #eef4ff;
+  background: #fff7f4;
+  border-left-color: #ff5b1f;
+  color: #0d2e61;
+  font-weight: 600;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-help-card {
@@ -15144,112 +15203,327 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-gri
   gap: 16px;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section {
-  display: grid;
-  gap: 20px;
+/* Detalii cont: a single panel with a read-only view and an edit form,
+   toggled via .is-editing on the panel (data-account-edit-toggle /
+   data-account-edit-cancel in account.js). PHP sets .is-editing directly
+   when a submit just failed, so the form opens straight to the errors
+   instead of flashing the view first. */
+/* Compound ".pap-account-panel.pap-account-detail-panel" (not just
+   ".pap-account-detail-panel") on purpose: a later, unscoped duplicate of
+   plain ".pap-account-panel" further down this file (~line 16169) ties on
+   specificity with a single-class selector and would win on source order,
+   silently reinstating the generic 24px panel padding. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-panel.pap-account-detail-panel {
+  display: block;
+  gap: 0;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #dde1e8;
+  border-radius: 6px;
+  box-shadow: none;
+  overflow: hidden;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-section-title {
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #f5f6f8;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-title {
   margin: 0;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--pap-border-color, #e5e7eb);
-  color: #17324d;
-  font-size: 18px;
-  line-height: 1.2;
+  color: #0d2e61;
+  font-size: 15px;
+  line-height: 1.5;
   font-weight: 700;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset {
-  margin: 0;
-  padding: 0;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-edit-toggle {
   border: 0;
-  border-radius: 0;
   background: none;
+  padding: 0;
+  color: #ff5b1f;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-edit-toggle:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-edit-toggle:focus-visible {
+  text-decoration: underline;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-view {
+  display: grid;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-edit {
+  display: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-panel.is-editing .pap-account-detail-view {
+  display: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-panel.is-editing .pap-account-detail-edit {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  margin-bottom: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-panel.is-editing .pap-account-detail-edit-toggle {
+  display: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-row--last {
+  border-bottom: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-label {
+  width: 130px;
+  min-width: 130px;
+  flex-shrink: 0;
+  color: #0d2e61;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-value {
+  flex: 1;
+  min-width: 0;
+  color: #374151;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-value em {
+  color: #94a3b8;
+  font-style: normal;
+}
+
+/* Floating-label inputs. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field {
+  position: relative;
+}
+
+/* !important: the global "body.theme-papetarie input:not(...)" rule stacks
+   7 :not() clauses purely to win the specificity war, so its
+   min-height/max-height/height/padding-top/padding-bottom clamp these
+   floating-label inputs to the generic 47px field height no matter what a
+   plain descendant selector declares here. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field input {
+  display: block;
+  width: 100%;
+  min-height: 55px !important;
+  max-height: none !important;
+  height: 55px !important;
+  padding: 28px 14px 6px !important;
+  border: 1.5px solid #dde1e8;
+  border-radius: 6px;
+  background: #fff;
+  color: #0d2e61;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: normal;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field--password input {
+  padding-right: 44px !important;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field input:focus {
+  outline: none;
+  border-color: #0d2e61;
+}
+
+/* "top: 27.5px" (half of the input's fixed 55px height), not "top: 50%",
+   on purpose: 50% resolves against .pap-float-field's own height, which
+   grows taller the moment .pap-field-error below the input gets text —
+   the label would then center on the *wrapper* (input + visible error
+   line) instead of the input alone and visibly sink down with a big gap
+   above it, exactly when a field gets marked invalid and empty. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field label {
+  position: absolute;
+  left: 14px;
+  top: 27.5px;
+  transform: translateY(-50%);
+  color: #6b7a95;
+  font-size: 13px;
+  line-height: 1;
+  pointer-events: none;
+  transition: all 0.15s ease;
+}
+
+/* ":focus-within"/":has()" (not "input + label") on purpose: WooCommerce's
+   password-toggle script wraps password <input>s in their own
+   "<span class="password-input">", so the input is no longer an adjacent
+   sibling of the label the way plain text/email fields are. */
+/* top: 13px (label) + padding-top: 28px (value, above) leave a clear ~5px
+   gap between the floated label and the value text — at the old 17px/22px
+   pairing the label's own line box actually overlapped the value line. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field:focus-within label,
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field:has(input:not(:placeholder-shown)) label {
+  top: 13px;
+  transform: translateY(0);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field.pap-is-invalid input {
+  border-color: #dc2626;
+}
+
+/* No permanent min-height: Figma only renders the error paragraph node when
+   a field actually has an error, so an empty slot should take zero space,
+   not a fixed reserved gap that pushes every field's label off-center. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .pap-field-error {
+  display: block;
+  margin: 4px 0 0 2px;
+  color: #dc2626;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .pap-field-error:empty {
+  display: none;
+  margin: 0;
+}
+
+/* top: 27.5px (half the input's fixed 55px height), not top: 50% — same
+   reason as the floating label above: 50% resolves against
+   .pap-float-field's own height, which grows the moment .pap-field-error
+   below the input gets text, so the eye icon would sink toward the bottom
+   of the visible input box instead of staying centered on it. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-password-toggle--float {
+  position: absolute;
+  right: 12px;
+  top: 27.5px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  min-width: 0;
+  opacity: 1;
+  pointer-events: auto;
+  color: #6b7a95;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-password-toggle--float .pap-password-toggle-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* WooCommerce injects a native, unstyled .show-password-input button on every
-   password field on the account-edit form (its own show/hide toggle). We already
-   render our own themed pap-password-toggle icon, so the native one duplicates it
-   and shows through unstyled (dark square) since it was only ever hidden on the
-   logged-out login/register form below. */
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset .show-password-input,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset .show-password-input:hover,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-password-fieldset .show-password-input:focus-visible {
+   password field on the account-edit form (its own show/hide toggle). We
+   already render our own themed pap-password-toggle icon, so the native one
+   would duplicate it and show through unstyled otherwise. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-edit .show-password-input,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-edit .show-password-input:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-edit .show-password-input:focus-visible {
   display: none !important;
 }
 
-/* Cards stretch to match the taller one's row height (Grid's default
-   align-items), so the two cards read as one unit. Left at that, the
-   stretch cascades: .pap-account-panel (a grid) and .pap-account-form
-   (also a grid) both default to align-content:stretch too, so the extra
-   height doesn't just sit as trailing space — it gets redistributed into
-   their own rows, and .pap-account-form-actions (a flex row, default
-   align-items:stretch) stretches the *button* inside it to fill that.
-   align-content:start on the two nested grids below stops that: leftover
-   height collects once, as blank space after the last row, instead of
-   inflating content at every level. */
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-name-row {
+  display: flex;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #dde1e8;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-page-head {
-  grid-column: 1 / -1;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-name-label {
+  flex-shrink: 0;
+  padding-right: 8px;
+  color: #0d2e61;
+  font-size: 14px;
+  font-weight: 700;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-panel--form,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-form {
-  align-content: start;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-name-value {
+  color: #374151;
+  font-size: 14px;
 }
 
-/* Reserved, fixed-height slot for inline validation messages (see
-   setInlineValidation/clearInlineValidation in account.js) — pre-rendered
-   empty in the template and only ever emptied, never removed, so a card's
-   height doesn't grow or shrink depending on whether an error is currently
-   shown on its fields. */
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-field-error {
-  min-height: 1.4em;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
 }
 
-/* Below this, splitting into 2 cards leaves too little width per card once
-   the account sidebar (present starting at the 1024px breakpoint) is
-   subtracted — stack them full-width instead. */
-@media (max-width: 1200px) {
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account {
-    grid-template-columns: minmax(0, 1fr);
-  }
+/* Both buttons scoped through .pap-account-detail-actions (not just the
+   bare .pap-account-primary-button/.pap-account-secondary-button classes)
+   on purpose: those bare classes are reused elsewhere on the account pages
+   with their own min-height/width rules of equal specificity that land
+   later in this file and would otherwise win the cascade tie, then
+   flex "align-items: stretch" would silently pull the *other* button up to
+   match. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-actions .pap-account-primary-button {
+  min-height: 36px;
+  padding: 0 24px;
+  border-radius: 5px;
+  font-size: 13px;
 }
 
-/* Stacked, not 2-up: once the two cards sit side by side, each one only has
-   half the page's width, so Prenume/Nume and Parolă nouă/Confirmă go one
-   under another rather than getting cramped into two narrow columns. */
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-row-pair {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-actions .pap-account-secondary-button {
+  min-height: 36px;
+  padding: 0 20px;
+  border: 1px solid #dde1e8;
+  border-radius: 5px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-/* Discreet, in-card save-result notice — replaces the full-width banner
-   that used to render above the page title. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-secondary-button:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-secondary-button:focus-visible {
+  background: #f8fafc;
+}
+
+/* In-card save-result notice. Padded/inset to 20px like every other row in
+   this panel (the panel itself is padding:0, see .pap-account-detail-panel)
+   and given its own tinted card background instead of sitting flush against
+   the card edge as bare colored text — matches the tinted-card language the
+   rest of the site already uses for notices, just scoped to this panel's
+   own 20px rhythm instead of the sitewide 54px icon-gutter version. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 4px;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 6px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice::before {
   content: "";
-  margin-top: 1px;
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 9px 9px;
+  background-size: 10px 10px;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice__text {
@@ -15257,21 +15531,23 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice__tex
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice--success {
+  background: #f0fdf4;
   color: #16a34a;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice--success::before {
-  background-color: #eafbf0;
+  background-color: #dcfce7;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice--error {
+  background: #fef2f2;
   color: #dc2626;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice--error::before {
-  background-color: #fff1f2;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f43f5e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E");
+  background-color: #fee2e2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E");
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-meta-card,
@@ -15514,10 +15790,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-actions {
   margin: 0;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account .pap-account-primary-button {
-  min-width: 210px;
-}
-
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-primary-button {
   min-height: 48px;
   padding: 0 20px;
@@ -15612,20 +15884,23 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav {
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-profile {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 20px 18px;
+  gap: 12px;
+  padding: 20px 20px 16px;
   box-sizing: border-box;
+  background: #fff;
+  border-bottom: 1px solid #dde1e8;
+  border-radius: 4px 4px 0 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-avatar {
-  width: 64px;
-  height: 64px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
-  flex: 0 0 64px;
+  flex: 0 0 44px;
   border-radius: 50%;
-  border: 1px solid #d9e2ec;
-  background: #f4f7fb;
-  margin-top: 4px;
+  border: 0;
+  background: #ff5b1f;
+  margin-top: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-avatar img,
@@ -15644,16 +15919,16 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-copy {
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-copy strong {
-  font-size: 16px;
-  line-height: 1.25;
+  font-size: 13px;
+  line-height: 1.2;
   font-weight: 700;
-  color: #17324d;
+  color: #0d2e61;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-copy span {
-  color: #516173;
-  font-size: 14px;
-  line-height: 1.4;
+  color: #6b7a95;
+  font-size: 11px;
+  line-height: 1.35;
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
@@ -15665,8 +15940,9 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav-list {
   width: 100%;
   gap: 0;
   margin: 0;
-  padding: 24px 0 0;
+  padding: 8px 0;
   list-style: none;
+  border-top: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li {
@@ -15674,6 +15950,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li {
   width: 100%;
   padding: 0;
   box-sizing: border-box;
+  border: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li + li {
@@ -15686,15 +15963,16 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a {
   align-items: center;
   justify-content: flex-start;
   flex-wrap: nowrap;
-  gap: 16px;
+  gap: 10px;
   width: 100%;
-  height: 64px;
-  min-height: 64px;
-  padding: 0 24px;
-  border: 1px solid transparent;
+  height: auto;
+  min-height: 0;
+  padding: 15px 20px;
+  border: 0;
+  border-left: 3px solid transparent;
   border-radius: 0;
   background: transparent;
-  color: #17324d;
+  color: #374151;
   text-decoration: none;
   cursor: pointer;
   line-height: 1;
@@ -15710,13 +15988,16 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a:focus-visi
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li.is-active a {
-  background: #eef4ff;
+  background: #fff7f4;
+  border-left-color: #ff5b1f;
+  color: #0d2e61;
+  font-weight: 600;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav .pap-account-nav-icon {
-  width: 28px;
-  min-width: 28px;
-  height: 28px;
+  width: 15px;
+  min-width: 15px;
+  height: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15740,9 +16021,9 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a::after {
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav .pap-account-nav-label {
   display: inline-flex;
   align-items: center;
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
-  font-weight: 500;
+  font-weight: inherit;
   white-space: nowrap;
 }
 
@@ -16627,10 +16908,10 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-support-card {
   }
 
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav a {
-    height: 64px;
-    min-height: 64px;
+    height: auto;
+    min-height: 0;
     width: 100%;
-    padding: 0 24px;
+    padding: 15px 20px;
   }
 
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-actions {

@@ -85,7 +85,7 @@
     field.classList.add('pap-is-invalid');
     field.setAttribute('aria-invalid', 'true');
 
-    var row = field.closest('.pap-form-row, .form-row, fieldset, .pap-auth-terms, label');
+    var row = field.closest('.pap-form-row, .form-row, fieldset, .pap-auth-terms, label, .pap-float-field');
     if (!row) {
       return;
     }
@@ -222,7 +222,13 @@
     }
 
     if (hasErrors) {
-      var firstInvalid = form.querySelector('.pap-is-invalid');
+      // "input.pap-is-invalid" (not the bare ".pap-is-invalid" class, which
+      // setInlineValidation() also adds to the wrapping row/.pap-float-field
+      // div): querySelector returns document-order matches, and since the
+      // wrapper is an ancestor of the input it would win first — .focus()
+      // on a plain <div> is a silent no-op, so the field never actually got
+      // focus and its floating label never floated.
+      var firstInvalid = form.querySelector('input.pap-is-invalid, select.pap-is-invalid, textarea.pap-is-invalid');
       if (firstInvalid && typeof firstInvalid.focus === 'function') {
         firstInvalid.focus({ preventScroll: false });
       }
@@ -1006,81 +1012,129 @@
   // pe client inainte de submit; daca e ceva in neregula, blocam trimiterea
   // si aratam eroarea inline (acelasi mecanism ca la login/register), altfel
   // lasam formularul sa mearga normal mai departe.
+  function initAccountDetailToggle() {
+    var panel = document.querySelector('[data-account-detail-panel]');
+    if (!panel || panel.getAttribute('data-account-toggle-initialized') === '1') {
+      return;
+    }
+
+    panel.setAttribute('data-account-toggle-initialized', '1');
+
+    var form = panel.querySelector('[data-account-detail-edit]');
+    var editToggle = panel.querySelector('[data-account-edit-toggle]');
+    var cancelButton = panel.querySelector('[data-account-edit-cancel]');
+
+    if (editToggle) {
+      editToggle.addEventListener('click', function () {
+        // The success/error notice describes the *previous* save — leaving
+        // it up while a new edit is in progress reads as if the edit
+        // already succeeded (or is still broken), which is stale and
+        // misleading. No page reload happens on this toggle, so it has to
+        // be cleared here rather than relying on a fresh page render.
+        var notice = panel.querySelector('.pap-account-form-notice');
+        if (notice) {
+          notice.remove();
+        }
+
+        panel.classList.add('is-editing');
+        var firstField = form ? form.querySelector('input:not([type="hidden"])') : null;
+        if (firstField) {
+          firstField.focus({ preventScroll: true });
+        }
+      });
+    }
+
+    if (cancelButton && form) {
+      cancelButton.addEventListener('click', function () {
+        form.reset();
+        clearInlineValidation(form);
+        panel.classList.remove('is-editing');
+      });
+    }
+  }
+
   function bindAccountDetailsForm() {
-    document.querySelectorAll('.woocommerce-EditAccountForm').forEach(function (form) {
-      if (form.getAttribute('data-account-details-initialized') === '1') {
+    initAccountDetailToggle();
+
+    var form = document.querySelector('[data-account-detail-edit]');
+    if (!form || form.getAttribute('data-account-details-initialized') === '1') {
+      return;
+    }
+
+    form.setAttribute('data-account-details-initialized', '1');
+
+    form.addEventListener('submit', function (event) {
+      clearInlineValidation(form);
+
+      var hasErrors = false;
+      var email = findField(form, ['[name="account_email"]', '#account_email']);
+      var currentPassword = findField(form, ['[name="password_current"]', '#password_current']);
+      var newPassword = findField(form, ['[name="password_1"]', '#password_1']);
+      var confirmPassword = findField(form, ['[name="password_2"]', '#password_2']);
+
+      // First/last name aren't user-editable here (see form-edit-account.php
+      // — they're hidden inputs carrying the existing value through), so the
+      // only still-editable required field left is email.
+      if (!email || !email.value.trim()) {
+        setInlineValidation(form, ['[name="account_email"]', '#account_email'], 'Introdu emailul.');
+        hasErrors = true;
+      } else if (!isValidEmail(email.value)) {
+        setInlineValidation(form, ['[name="account_email"]', '#account_email'], 'Introdu un email valid.');
+        hasErrors = true;
+      }
+
+      // Any one of the 3 password fields having content counts as intent to
+      // change the password — all 3 or none, no partial saves. "Parola
+      // curentă" starts readonly (see form-edit-account.php) specifically so
+      // browsers can't autofill it on page load, so a value in it now can
+      // only come from the user actually typing — it's a real signal, not
+      // stray autofill to silently discard.
+      var wantsPasswordChange = Boolean(
+        (currentPassword && currentPassword.value.trim())
+        || (newPassword && newPassword.value.trim())
+        || (confirmPassword && confirmPassword.value.trim())
+      );
+
+      if (wantsPasswordChange) {
+        if (!currentPassword || !currentPassword.value.trim()) {
+          setInlineValidation(form, ['[name="password_current"]', '#password_current'], 'Completează parola curentă ca să o schimbi.');
+          hasErrors = true;
+        }
+
+        if (!newPassword || !newPassword.value.trim()) {
+          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Introdu parola nouă.');
+          hasErrors = true;
+        } else if (newPassword.value.length < 8) {
+          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parola nouă trebuie să aibă minimum 8 caractere.');
+          hasErrors = true;
+        }
+
+        if (!confirmPassword || !confirmPassword.value.trim()) {
+          setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Confirmă parola nouă.');
+          hasErrors = true;
+        } else if (newPassword && newPassword.value && confirmPassword.value !== newPassword.value) {
+          setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parolele nu se potrivesc.');
+          setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Parolele nu se potrivesc.');
+          hasErrors = true;
+        }
+      }
+
+      if (hasErrors) {
+        event.preventDefault();
+        var firstInvalid = form.querySelector('.pap-is-invalid');
+        if (firstInvalid && typeof firstInvalid.focus === 'function') {
+          firstInvalid.focus({ preventScroll: false });
+        }
         return;
       }
 
-      form.setAttribute('data-account-details-initialized', '1');
-      var isPasswordForm = form.getAttribute('data-account-form') === 'password';
-
-      form.addEventListener('submit', function (event) {
-        clearInlineValidation(form);
-
-        var hasErrors = false;
-        var currentPassword = findField(form, ['[name="password_current"]', '#password_current']);
-        var newPassword = findField(form, ['[name="password_1"]', '#password_1']);
-        var confirmPassword = findField(form, ['[name="password_2"]', '#password_2']);
-
-        if (!isPasswordForm) {
-          var email = findField(form, ['[name="account_email"]', '#account_email']);
-          if (email && email.value.trim() && !isValidEmail(email.value)) {
-            setInlineValidation(form, ['[name="account_email"]', '#account_email'], 'Introdu un email valid.');
-            hasErrors = true;
-          }
-        }
-
-        // On the dedicated password form, the fields are always required —
-        // there's no other reason to submit it. Elsewhere (personal-info
-        // form), password fields don't exist, so this stays inert.
-        var wantsPasswordChange = isPasswordForm || Boolean(
-          (newPassword && newPassword.value.trim())
-          || (confirmPassword && confirmPassword.value.trim())
-          || (currentPassword && currentPassword.value.trim())
-        );
-
-        if (wantsPasswordChange) {
-          if (!currentPassword || !currentPassword.value.trim()) {
-            setInlineValidation(form, ['[name="password_current"]', '#password_current'], 'Completează parola curentă ca să o schimbi.');
-            hasErrors = true;
-          }
-
-          if (!newPassword || !newPassword.value.trim()) {
-            setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Introdu parola nouă.');
-            hasErrors = true;
-          } else if (newPassword.value.length < 8) {
-            setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parola nouă trebuie să aibă minimum 8 caractere.');
-            hasErrors = true;
-          }
-
-          if (!confirmPassword || !confirmPassword.value.trim()) {
-            setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Confirmă parola nouă.');
-            hasErrors = true;
-          } else if (newPassword && newPassword.value && confirmPassword.value !== newPassword.value) {
-            setInlineValidation(form, ['[name="password_1"]', '#password_1'], 'Parolele nu se potrivesc.');
-            setInlineValidation(form, ['[name="password_2"]', '#password_2'], 'Parolele nu se potrivesc.');
-            hasErrors = true;
-          }
-        }
-
-        if (hasErrors) {
-          event.preventDefault();
-          var firstInvalid = form.querySelector('.pap-is-invalid');
-          if (firstInvalid && typeof firstInvalid.focus === 'function') {
-            firstInvalid.focus({ preventScroll: false });
-          }
-          return;
-        }
-
-        // Guards against a duplicate "Account details changed successfully"
-        // notice from a fast double-click firing two submits before the
-        // page navigates away.
-        var submitButton = form.querySelector('[name="save_account_details"]');
-        if (submitButton) {
-          submitButton.disabled = true;
-        }
-      });
+      // Guards against a duplicate "Account details changed successfully"
+      // notice from a fast double-click firing two submits before the
+      // page navigates away.
+      var submitButton = form.querySelector('[name="save_account_details"]');
+      if (submitButton) {
+        submitButton.disabled = true;
+      }
     });
   }
 
