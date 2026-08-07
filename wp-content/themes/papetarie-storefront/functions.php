@@ -3031,13 +3031,14 @@ add_action('wp', 'papetarie_storefront_unhook_auth_notices', 20);
 function papetarie_storefront_catalog_orderby_labels(array $options): array
 {
     return [
+        'title' => __('Alfabetic (A-Z)', 'papetarie-storefront'),
         'price' => __('Preț crescător', 'papetarie-storefront'),
         'price-desc' => __('Preț descrescător', 'papetarie-storefront'),
     ];
 }
 add_filter('woocommerce_catalog_orderby', 'papetarie_storefront_catalog_orderby_labels');
 add_filter('woocommerce_default_catalog_orderby_options', 'papetarie_storefront_catalog_orderby_labels');
-add_filter('woocommerce_default_catalog_orderby', static fn (): string => 'price');
+add_filter('woocommerce_default_catalog_orderby', static fn (): string => 'title');
 
 // 60 products per page on shop/category archives before pagination kicks in
 // (see docs/pagination.md for the full reasoning behind this threshold).
@@ -5413,6 +5414,9 @@ function papetarie_storefront_icon(string $name): string
         'info-circle' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.1" fill="currentColor"/></svg>',
         'alert-triangle' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 22 20.5H2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1.05" fill="currentColor"/></svg>',
         'alert-circle' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.05" fill="currentColor"/></svg>',
+        'palette' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 8 0 0 0 0 16c1.1 0 2-.7 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-3.9-4-6-9-6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor"/><circle cx="9.5" cy="7" r="1.1" fill="currentColor"/><circle cx="14" cy="7" r="1.1" fill="currentColor"/></svg>',
+        'craft' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.8 7.4 20 18M7.8 16.6 20 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+        'spray' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8V5.5A1.5 1.5 0 0 1 10.5 4h1A1.5 1.5 0 0 1 13 5.5V8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 6.5h4l1.5-1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 8h8l2 3v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 5 20V11l2-3Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.5 12.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
     ];
 
     return $icons[$name] ?? '';
@@ -7004,6 +7008,10 @@ function papetarie_storefront_mega_menu_icon(string $slug, string $name): string
         'accesorii-pentru-scris' => 'pen',
         'organizare-arhivare-prezentare' => 'organize',
         'periferice' => 'it',
+        'arta' => 'palette',
+        'creativitate' => 'craft',
+        'bagajerie' => 'bag',
+        'curatenie-si-sanitare' => 'spray',
     ];
 
     if (isset($map[$slug])) {
