@@ -1978,6 +1978,58 @@ function papetarie_storefront_clear_checkout_temporary_address_on_logout(): void
 }
 add_action('wp_logout', 'papetarie_storefront_clear_checkout_temporary_address_on_logout');
 
+/**
+ * The two logout cleanups above close the "log out, next account inherits
+ * the draft" gap - but they only fire on an explicit logout. A shared
+ * device where someone types a name/phone/address into checkout as a guest
+ * (or gets abandoned mid-session), then a DIFFERENT person simply logs into
+ * their own account without anyone ever clicking "Deconectare" first, never
+ * hits wp_logout at all - yet WC()->customer (session-cookie-scoped, not
+ * tied to the WP user) still holds the previous occupant's billing/shipping
+ * name, phone and address, and WooCommerce's own default checkout field
+ * values fall back to reading straight from it. Verified live on notix.ro:
+ * logging into a brand-new, never-before-used account showed another real
+ * person's name/phone/address pre-filled in the checkout form. wp_login
+ * fires on every authentication regardless of whether a prior logout
+ * happened, so it's the right place to wipe this - the theme's own
+ * address-book snapshot logic repopulates the form correctly afterward for
+ * whichever account actually just logged in.
+ */
+function papetarie_storefront_clear_checkout_identity_on_login(): void
+{
+    if (function_exists('papetarie_storefront_clear_guest_checkout_cookies_on_logout')) {
+        papetarie_storefront_clear_guest_checkout_cookies_on_logout();
+    }
+
+    if (function_exists('papetarie_storefront_address_book_checkout_clear_temporary_state')) {
+        papetarie_storefront_address_book_checkout_clear_temporary_state();
+    }
+
+    if (!function_exists('WC') || !WC() || !(WC()->customer instanceof WC_Customer)) {
+        return;
+    }
+
+    $customer = WC()->customer;
+    $customer->set_billing_first_name('');
+    $customer->set_billing_last_name('');
+    $customer->set_billing_phone('');
+    $customer->set_billing_address_1('');
+    $customer->set_billing_address_2('');
+    $customer->set_billing_city('');
+    $customer->set_billing_state('');
+    $customer->set_billing_postcode('');
+    $customer->set_shipping_first_name('');
+    $customer->set_shipping_last_name('');
+    $customer->set_shipping_phone('');
+    $customer->set_shipping_address_1('');
+    $customer->set_shipping_address_2('');
+    $customer->set_shipping_city('');
+    $customer->set_shipping_state('');
+    $customer->set_shipping_postcode('');
+    $customer->save();
+}
+add_action('wp_login', 'papetarie_storefront_clear_checkout_identity_on_login');
+
 function papetarie_storefront_checkout_guest_shipping_snapshot(): array
 {
     if (
@@ -8766,6 +8818,52 @@ function papetarie_storefront_checkout_validate(array $data, \WP_Error $errors):
     }
 }
 add_action('woocommerce_after_checkout_validation', 'papetarie_storefront_checkout_validate', 10, 2);
+
+/**
+ * A validation error queued in WC()->session->wc_notices normally only
+ * lives until the next full page render, which prints it and clears the
+ * queue in the same step. But if that print-and-clear step gets skipped for
+ * a given request (an AJAX call that never reaches wc_print_notices, a
+ * request that dies before rendering), the notice stays queued and can
+ * resurface later, attached to a completely different, valid submission -
+ * exactly what made "Introdu telefonul de livrare." appear on notix.ro even
+ * though the phone was correctly filled in and no code here validates a
+ * "shipping_phone" field (this theme's checkout has no such field; only
+ * billing_phone exists). Rather than chase that one message, this drops any
+ * queued checkout error tied to a field id that isn't currently registered,
+ * so a stale notice from a since-changed field can never resurface again.
+ */
+function papetarie_storefront_drop_stale_checkout_error_notices(): void
+{
+    if (!function_exists('WC') || !WC() || !WC()->session || !function_exists('is_checkout') || !is_checkout()) {
+        return;
+    }
+
+    $all_notices = WC()->session->get('wc_notices', []);
+    if (!is_array($all_notices) || empty($all_notices['error']) || !is_array($all_notices['error'])) {
+        return;
+    }
+
+    $registered_field_ids = [];
+    foreach (WC()->checkout()->get_checkout_fields() as $fieldset) {
+        $registered_field_ids = array_merge($registered_field_ids, array_keys($fieldset));
+    }
+
+    $filtered = [];
+    foreach ($all_notices['error'] as $notice) {
+        $field_id = is_array($notice) ? (string) ($notice['data']['id'] ?? '') : '';
+        if ($field_id !== '' && !in_array($field_id, $registered_field_ids, true)) {
+            continue;
+        }
+        $filtered[] = $notice;
+    }
+
+    if (count($filtered) !== count($all_notices['error'])) {
+        $all_notices['error'] = $filtered;
+        WC()->session->set('wc_notices', $all_notices);
+    }
+}
+add_action('woocommerce_before_checkout_form', 'papetarie_storefront_drop_stale_checkout_error_notices', 5);
 
 function papetarie_storefront_save_billing_address_contact_fields(int $user_id, string $load_address): void
 {

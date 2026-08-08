@@ -11872,6 +11872,14 @@ body.theme-papetarie.woocommerce-checkout .wc-block-components-notice-banner.is-
 body.theme-papetarie.woocommerce-checkout .woocommerce-error {
   display: flex;
   flex-direction: column;
+  /* The generic ".woocommerce-error { justify-content: center }" rule
+     earlier in this file still wins for this property (this block never
+     sets it), so on a short, single-line message the min-height below
+     pushes the text down to vertical-center it - while the icon is pinned
+     with a fixed "top: 14px" below and never moves, breaking alignment
+     between them. Pinning this to flex-start keeps the text flush with the
+     icon regardless of message length. */
+  justify-content: flex-start;
   gap: 10px;
   margin: 0 0 18px;
   padding: 14px 18px 14px 54px;
