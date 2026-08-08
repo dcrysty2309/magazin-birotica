@@ -121,6 +121,22 @@ if ($pap_full_name === '') {
 
       <?php do_action('woocommerce_edit_account_form_end'); ?>
     </form>
+
+    <!-- Phone isn't collected here on purpose (see functions.php — it's tied
+         to delivery, not to account identity), but that's easy to miss when
+         everything else about "your info" lives on this card. This note
+         points people to where it actually lives instead of leaving them to
+         search for a field that was never here. -->
+    <p class="pap-account-detail-hint">
+      <?php
+      $pap_addresses_url = function_exists('wc_get_endpoint_url') ? wc_get_endpoint_url('edit-address') : '';
+      printf(
+          /* translators: %s: link to the Adrese account page */
+          esc_html__('Telefonul de contact pentru livrări se administrează din pagina %s.', 'papetarie-storefront'),
+          '<a href="' . esc_url($pap_addresses_url) . '">' . esc_html__('Adrese', 'papetarie-storefront') . '</a>' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+      );
+      ?>
+    </p>
   </section>
 </div>
 

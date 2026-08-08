@@ -23,7 +23,6 @@
   let lastTrigger = null;
 
   const getModal = () => document.querySelector('[data-address-book-modal]');
-  const getListContainer = () => document.querySelector('[data-address-book-list]');
 
   const getDataUrl = () => {
     const script = document.currentScript;
@@ -65,42 +64,44 @@
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-  const getRow = ($field) => {
-    const $wrapper = $field.closest('.pap-address-form-row');
-    return $wrapper.length ? $wrapper : $field.closest('.form-row');
-  };
+  // ".pap-float-field" — same wrapper Detalii cont uses (form-edit-account.php),
+  // so error state here is the identical ".pap-is-invalid" class on the
+  // wrapper + input, with the message written into the wrapper's own
+  // pre-rendered ".pap-field-error" node, matching account.js's
+  // setInlineValidation()/clearInlineValidation() pattern.
+  const getRow = ($field) => $field.closest('.pap-float-field');
 
   const clearFieldError = ($field) => {
     const $row = getRow($field);
-    $field.removeAttr('aria-invalid aria-describedby');
-    $row
-      .removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
-    $row.find('.checkout-inline-error-message').remove();
+    $field.removeClass('pap-is-invalid').removeAttr('aria-invalid aria-describedby');
+    $row.removeClass('pap-is-invalid');
+    $row.find('.pap-field-error').text('');
   };
 
-  const setFieldError = ($field, message, errorClass) => {
+  const setFieldError = ($field, message) => {
     const $row = getRow($field);
     const descriptionId = `${$field.attr('id') || $field.attr('name') || 'address-field'}_description`;
-    clearFieldError($field);
-    $field.attr('aria-invalid', 'true').attr('aria-describedby', descriptionId);
-    $row.addClass(`woocommerce-invalid ${errorClass}`);
-    let $error = $row.find('.checkout-inline-error-message').first();
+    $field.addClass('pap-is-invalid').attr('aria-invalid', 'true').attr('aria-describedby', descriptionId);
+    $row.addClass('pap-is-invalid');
 
+    let $error = $row.find('.pap-field-error').first();
     if (!$error.length) {
-      $error = $('<small>', {
-        class: 'checkout-inline-error-message',
-        'aria-live': 'polite',
-        'aria-atomic': 'true',
-      }).appendTo($row);
+      $error = $('<small>', { class: 'pap-field-error', 'aria-hidden': 'true' }).appendTo($row);
     }
 
-    $error.attr('id', descriptionId);
-    $error.text(message);
+    $error.attr('id', descriptionId).text(message);
   };
 
   const setFieldValid = ($field) => {
     clearFieldError($field);
-    getRow($field).addClass('woocommerce-validated');
+  };
+
+  const clearInlineValidation = ($form) => {
+    $form.find('.pap-is-invalid').each((_, node) => {
+      const $node = $(node);
+      $node.removeClass('pap-is-invalid').removeAttr('aria-invalid aria-describedby');
+    });
+    $form.find('.pap-field-error').text('');
   };
 
   const getCityOptions = (countyValue) => {
@@ -159,14 +160,14 @@
     }
 
     const value = String($field.val() || '').trim();
-    const required = $field.closest('.form-row').is('.validate-required');
+    const required = !!$field.prop('required');
     const type = String($field.attr('type') || '').toLowerCase();
     const name = String($field.attr('name') || '').toLowerCase();
     const id = String($field.attr('id') || '').toLowerCase();
 
     if ($field.is('select')) {
       if (required && value === '') {
-        setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
+        setFieldError($field, messages.required);
         return false;
       }
       setFieldValid($field);
@@ -175,7 +176,7 @@
 
     if (type === 'checkbox' || type === 'radio') {
       if (required && !$field.is(':checked')) {
-        setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
+        setFieldError($field, messages.required);
         return false;
       }
       setFieldValid($field);
@@ -184,18 +185,18 @@
 
     if (type === 'email' || name.includes('email') || id.includes('email')) {
       if (required && value === '') {
-        setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
+        setFieldError($field, messages.required);
         return false;
       }
 
       if (value !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        setFieldError($field, messages.email, 'woocommerce-invalid-email');
+        setFieldError($field, messages.email);
         return false;
       }
     }
 
     if (required && value === '') {
-      setFieldError($field, messages.required, 'woocommerce-invalid-required-field');
+      setFieldError($field, messages.required);
       return false;
     }
 
@@ -207,14 +208,14 @@
     if (name.includes('phone') || id.includes('phone')) {
       const digits = value.replace(/\D/g, '');
       if (digits.length < 8) {
-        setFieldError($field, messages.phone, 'woocommerce-invalid-phone');
+        setFieldError($field, messages.phone);
         return false;
       }
     }
 
     if (name.includes('postcode') || id.includes('postcode') || name.includes('zip')) {
       if (!/^[0-9]{6}$/.test(value.replace(/\s+/g, ''))) {
-        setFieldError($field, messages.postcode, 'woocommerce-invalid-postcode');
+        setFieldError($field, messages.postcode);
         return false;
       }
     }
@@ -226,7 +227,7 @@
   const validateForm = ($form) => {
     let isValid = true;
 
-    $form.find('.pap-address-form-row :input').each((_, field) => {
+    $form.find('.pap-float-field :input').each((_, field) => {
       const $field = $(field);
       if ($field.is('[type="hidden"]')) {
         return;
@@ -248,7 +249,7 @@
         const normalizedCity = normalizeValue(cityValue);
         const matches = options.some((option) => normalizeValue(option) === normalizedCity);
         if (!matches) {
-          setFieldError($cityField, 'Localitatea nu aparține județului selectat.', 'woocommerce-invalid-required-field');
+          setFieldError($cityField, 'Localitatea nu aparține județului selectat.');
           isValid = false;
         }
       }
@@ -283,10 +284,7 @@
     $form.get(0).reset();
     $form.find('[name="pap_address_id"]').val('');
     $form.find('[name="pap_address_book_action"]').val('save');
-    $form.find('[name="pap_address_is_default"]').prop('checked', false);
-    $form.find('[aria-invalid="true"]').removeAttr('aria-invalid aria-describedby');
-    $form.find('.woocommerce-invalid, .woocommerce-validated').removeClass('woocommerce-invalid woocommerce-invalid-required-field woocommerce-invalid-email woocommerce-invalid-phone woocommerce-invalid-postcode woocommerce-validated');
-    $form.find('.checkout-inline-error-message').remove();
+    clearInlineValidation($form);
     syncCitySelect($form);
   };
 
@@ -302,16 +300,13 @@
     setValue('[name="pap_address_id"]', entry.id || '');
     setValue('[name="first_name"]', entry.first_name || '');
     setValue('[name="last_name"]', entry.last_name || '');
-    setValue('[name="email"]', entry.email || '');
     setValue('[name="phone"]', entry.phone || '');
     setValue('[name="state"]', entry.state || '');
     syncCitySelect($form);
     setValue('[name="city"]', entry.city || '');
     setValue('[name="address_1"]', entry.address_1 || '');
     setValue('[name="postcode"]', entry.postcode || '');
-    setValue('[name="delivery_notes"]', entry.delivery_notes || '');
     setValue('[name="country"]', entry.country || 'RO');
-    $form.find('[name="pap_address_is_default"]').prop('checked', !!entry.is_default);
 
     window.setTimeout(() => syncCitySelect($form), 0);
     window.setTimeout(() => syncCitySelect($form), 120);
@@ -328,7 +323,7 @@
       return;
     }
 
-    title.textContent = mode === 'edit' ? 'Editează adresă' : 'Adaugă adresă';
+    title.textContent = mode === 'edit' ? 'Editează adresa' : 'Adaugă adresă';
   };
 
   const openModal = async (mode, address, trigger) => {
@@ -417,15 +412,6 @@
     }
   };
 
-  const updateList = (html) => {
-    const container = getListContainer();
-    if (!container || typeof html !== 'string') {
-      return;
-    }
-
-    container.innerHTML = html;
-  };
-
   const requestAddressBook = async (form) => {
     const formData = new FormData(form);
     formData.set('action', ajaxAction);
@@ -477,7 +463,7 @@
       $(document).on('change select2:select select2:clear', '[data-address-book-state]', sync);
     }
 
-    $form.find('.pap-address-form-row :input').each((_, field) => {
+    $form.find('.pap-float-field :input').each((_, field) => {
       const $field = $(field);
       $field.on('blur change', () => validateField($field));
     });
@@ -492,14 +478,15 @@
 
       setBusyState($form, true);
       try {
-        const data = await requestAddressBook($form);
-        if (data.addresses_html) {
-          updateList(data.addresses_html);
-        }
-        closeModal();
+        // Full reload, not an AJAX list-patch: the single "Adresa mea" card
+        // needs to re-render either the filled view (name/lines/actions) or
+        // the empty state depending on the result, and a reload guarantees
+        // both stay byte-for-byte identical to a normal page render instead
+        // of a second, hand-maintained JS rendering of the same markup.
+        await requestAddressBook($form.get(0));
+        window.location.reload();
       } catch (error) {
         setNotice($form, error && error.message ? error.message : 'Nu am putut salva adresa.', 'error');
-      } finally {
         setBusyState($form, false);
       }
     });
@@ -534,14 +521,11 @@
           throw new Error(json && json.data && json.data.message ? json.data.message : 'Nu am putut șterge adresa.');
         }
 
-        if (json.data && json.data.addresses_html) {
-          updateList(json.data.addresses_html);
-        }
+        window.location.reload();
       } catch (error) {
         if (window.console && typeof window.console.error === 'function') {
           window.console.error(error);
         }
-      } finally {
         $button.prop('disabled', false);
       }
     });

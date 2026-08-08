@@ -26,6 +26,20 @@
     return !!(root && root.closest('[data-auth-modal]'));
   }
 
+  // Autentificarea prin modal nu reincarca pagina (vezi restul fisierului) -
+  // corect pentru aproape orice pagina (produs, cos, checkout), unde userul
+  // vrea sa ramana exact unde era. Singura exceptie e 404: nu are sens sa
+  // ramai logat pe o pagina de eroare, asa ca il trimitem spre Contul meu.
+  function redirectAwayFrom404IfNeeded() {
+    if (!document.body.classList.contains('error404')) {
+      return false;
+    }
+
+    var accountUrl = (window.papAccountUi && window.papAccountUi.loginUrl) || '/my-account/';
+    window.location.href = accountUrl;
+    return true;
+  }
+
   function findField(form, selectors) {
     var field = null;
 
@@ -703,6 +717,10 @@
         currentUserPayloadPromise.then(function (currentUserData) {
           var payload = currentUserData || data;
 
+          if (redirectAwayFrom404IfNeeded()) {
+            return;
+          }
+
           applyCurrentUserPayload(payload);
           replaceAccountTool(payload.account_html || buildLoggedInAccountToolHtml(payload && payload.auth_state ? payload.auth_state : null));
           if (payload.cart_drawer || payload.cart_page) {
@@ -883,6 +901,10 @@
           if (window.dispatchEvent) {
             window.dispatchEvent(new CustomEvent('pap:auth-register-success', { detail: data }));
           }
+          return;
+        }
+
+        if (redirectAwayFrom404IfNeeded()) {
           return;
         }
 

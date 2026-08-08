@@ -4502,6 +4502,32 @@ body.admin-bar .pap-cart-drawer-panel {
   line-height: 1.18;
 }
 
+.pap-cart-drawer-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.pap-cart-drawer-badge {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.pap-cart-drawer.is-empty .pap-cart-drawer-badge {
+  display: inline-flex;
+}
+
 .pap-cart-drawer-close {
   width: 32px;
   height: 32px;
@@ -4509,26 +4535,23 @@ body.admin-bar .pap-cart-drawer-panel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  top: 13px;
-  right: 13px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: #64748b;
-  font-size: 24px;
+  border: 1px solid #dde1e8;
+  border-radius: 6px;
+  background: #f0f2f5;
+  color: #0d2e61;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
   padding: 0;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   opacity: 1;
 }
 
 .pap-cart-drawer-close:hover,
 .pap-cart-drawer-close:focus-visible {
-  background: #f8fafc;
-  color: #64748b;
-  border: 0;
+  background: #fff;
+  color: #ff5b1f;
+  border-color: #ff5b1f;
 }
 
 .pap-cart-drawer-body {
@@ -4587,56 +4610,49 @@ body.admin-bar .pap-cart-drawer-panel {
 .pap-cart-drawer-empty-title {
   display: block;
   margin: 0;
-  color: #163a6b;
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.15;
+  color: #0d2e61;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: -0.2px;
 }
 
 .pap-cart-drawer-empty-message {
   margin: 0;
-  color: #6e7d95;
-  font-size: 15px;
-  line-height: 1.8;
-  max-width: 320px;
+  color: #6b7a95;
+  font-size: 13px;
+  line-height: 1.7;
+  max-width: 280px;
   width: 100%;
 }
 
 .pap-cart-drawer-empty-illustration {
   position: relative;
-  width: 140px;
-  height: 140px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #f4f7fb;
-  color: #163a6b;
+  background: #f0f2f5;
+  color: #0d2e61;
   overflow: visible;
-}
-
-.pap-cart-drawer-empty-circle {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1px solid rgba(62, 95, 138, 0.08);
 }
 
 .pap-cart-drawer-empty-icon {
   position: relative;
   z-index: 2;
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  font-size: 48px;
+  font-size: 32px;
   line-height: 1;
-  color: #5c6f8d;
-  transform: translateX(-4px);
+  color: #0d2e61;
 }
 
 .pap-cart-drawer-empty-icon svg {
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
 }
 
 .pap-cart-drawer-empty-button,
@@ -4644,35 +4660,30 @@ body.admin-bar .pap-cart-drawer-panel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 210px;
-  height: 47px;
-  padding: 0 20px;
-  border: 1px solid #d9e1ec;
-  border-radius: 2px;
+  height: 40px;
+  padding: 0 24px;
+  border: 1.5px solid #dde1e8;
+  border-radius: 4px;
   background: #fff;
-  color: #163a6b;
-  font-size: 14px;
-  font-weight: 400;
-  gap: 10px;
+  color: #0d2e61;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
   box-shadow: none;
   cursor: pointer;
   text-decoration: none;
 }
 
-.pap-cart-drawer-empty-button {
-  gap: 10px;
-}
-
 .pap-cart-drawer-empty-button-icon {
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
 }
 
 .pap-cart-drawer-empty-button:hover,
 .pap-cart-drawer-empty-button:focus-visible {
-  border-color: #3e5f8a;
-  background: #f8fbff;
-  color: #163a6b;
+  border-color: #ff5b1f;
+  background: #fff7f4;
+  color: #0d2e61;
   outline: none;
 }
 
@@ -7874,6 +7885,21 @@ body.theme-papetarie.woocommerce-checkout #payment #place_order {
 body.theme-papetarie.woocommerce-checkout .pap-checkout-action--secondary {
   width: auto;
   min-width: 0;
+  /* Acelasi stil discret (contur) ca butonul "Modifica" de pe rezumat
+     (.pap-secondary-action) - fara asta mostenea fundalul plin generic
+     de buton, si doua fundaluri pline unul langa altul ("Inapoi la
+     adrese" + "Confirma adresa") faceau actiunea principala sa nu mai
+     iasa in evidenta. */
+  background: #fff;
+  border: 1px solid #cfd9e8;
+  color: var(--pap-navy);
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-action--secondary:hover,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-action--secondary:focus-visible {
+  background: #fff;
+  border-color: var(--pap-orange);
+  color: var(--pap-orange-deep);
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-action--secondary,
@@ -8970,10 +8996,22 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields label {
   letter-spacing: 0.02em;
 }
 
+/* Select2 hardcodes the container's width as an inline px style at init
+   time (reading the select's computed width right then) instead of a real
+   CSS 100% — the Județ/Localitate fields start inside a display:none
+   section (WC's "Modifică" toggle) that hasn't been sized yet, so it
+   freezes in at ~0px and never recovers once the section is shown. !important
+   is the only thing that can beat that inline style back to a real 100%. */
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container {
+  width: 100% !important;
+}
+
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields input.input-text,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields textarea,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container .select2-selection--single {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container .select2-selection--single,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container .select2-selection--single {
   width: 100%;
   min-height: var(--pap-input-height);
   height: var(--pap-input-height);
@@ -8982,6 +9020,21 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-co
   background: #fff;
   color: #17324d;
   border-radius: 0;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container .select2-selection--single,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container .select2-selection--single {
+  display: flex;
+  align-items: center;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-selection__rendered,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-selection__rendered {
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: normal;
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields input.input-text::placeholder,
@@ -9016,6 +9069,22 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-co
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields input[type='checkbox'],
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields input[type='radio'] {
   accent-color: var(--pap-orange);
+}
+
+/* Select2/selectWoo swaps the native Județ/Localitate popup (some counties
+   run into the hundreds of localities) for a searchable, height-capped
+   dropdown — hide its default arrow (a plain select already gets one via the
+   background-image rule above) and cover the disabled state (Localitate
+   starts disabled until a județ is chosen). */
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-selection__arrow,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-selection__arrow {
+  display: none;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container--disabled .select2-selection--single,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container--disabled .select2-selection--single {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card--payment {
@@ -11853,9 +11922,12 @@ body.theme-papetarie.woocommerce-checkout .woocommerce-error li a:focus-visible 
 
 body.theme-papetarie.woocommerce-checkout .woocommerce-error.pap-auth-notice {
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding-left: 18px;
+  padding: 14px 18px;
+  min-height: 58px;
+  max-height: none;
+  overflow: visible;
 }
 
 body.theme-papetarie.woocommerce-checkout .woocommerce-error.pap-auth-notice::before {
@@ -11943,29 +12015,6 @@ body.theme-papetarie.woocommerce-checkout .form-row.woocommerce-validated .selec
   border-color: #c8d6e5;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .checkout-inline-error-message {
-  display: block;
-  margin: 6px 0 0;
-  color: #b42318;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .pap-address-form-row.woocommerce-invalid input.input-text,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .pap-address-form-row.woocommerce-invalid select,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .pap-address-form-row.woocommerce-invalid textarea,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .pap-address-form-row.woocommerce-invalid .select2-selection--single {
-  border-color: #d92d20 !important;
-  box-shadow: 0 0 0 1px rgba(217, 45, 32, 0.10) !important;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .pap-address-form-row.woocommerce-validated input.input-text,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .pap-address-form-row.woocommerce-validated select,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .pap-address-form-row.woocommerce-validated textarea,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .pap-address-form-row.woocommerce-validated .select2-selection--single {
-  border-color: #c8d6e5;
-}
-
 body.theme-papetarie.woocommerce-account.logged-in .woocommerce {
   display: grid;
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
@@ -11983,7 +12032,7 @@ body.theme-papetarie.woocommerce-account.logged-in .woocommerce-MyAccount-conten
 
 body.theme-papetarie.woocommerce-account.logged-in .woocommerce-MyAccount-navigation ul {
   margin: 0;
-  padding: 0;
+  padding: 0 0 16px;
   list-style: none;
 }
 
@@ -12810,7 +12859,7 @@ body.theme-papetarie .pap-auth-modal table:not(.has-background) tbody tr:nth-chi
   box-sizing: border-box;
 }
 
-.pap-checkout-readonly-field__hint {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-readonly-field__hint {
   margin: 6px 0 0;
   font-size: 12px;
   line-height: 1.4;
@@ -15179,30 +15228,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form select {
   border-color: #dbe4f0;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row-wide,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row-first.form-row-wide,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row-last.form-row-wide,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row {
-  grid-column: 1 / -1;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row-first {
-  grid-column: span 1;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row-last {
-  grid-column: span 1;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid {
-  gap: 16px;
-}
-
 /* Detalii cont: a single panel with a read-only view and an edit form,
    toggled via .is-editing on the panel (data-account-edit-toggle /
    data-account-edit-cancel in account.js). PHP sets .is-editing directly
@@ -15311,6 +15336,27 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-value {
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-value em {
   color: #94a3b8;
   font-style: normal;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint {
+  margin: 0;
+  padding: 12px 20px;
+  background: #f5f6f8;
+  border-top: 1px solid #dde1e8;
+  color: #6b7a95;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint a {
+  color: #ff5b1f;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint a:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint a:focus-visible {
+  text-decoration: underline;
 }
 
 /* Floating-label inputs. */
@@ -15597,15 +15643,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals__row.is-t
     gap: 32px;
   }
 
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row-first,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row-last,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid .form-row-wide {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (max-width: 767px) {
@@ -15636,8 +15673,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals__row.is-t
   }
 
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-stat-grid,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-meta-grid,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-meta-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
   }
@@ -15735,12 +15771,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-accou
   gap: 32px;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card {
   display: grid;
   gap: 18px;
@@ -15802,10 +15832,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-primary-button {
 }
 
 @media (max-width: 767px) {
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card {
     padding: 18px;
   }
@@ -16350,39 +16376,36 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge {
   align-items: center;
   justify-content: center;
   width: fit-content;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 0;
-  font-size: 14px;
-  line-height: 1;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  line-height: 1.5;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-success {
-  background: #dcfce7;
-  color: #15803d;
+  background: rgba(22, 163, 74, 0.09);
+  color: #16a34a;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-processing {
-  background: #dbeafe;
+  background: rgba(13, 46, 97, 0.09);
   color: #0d2e61;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-pending {
-  background: #fef3c7;
+  background: rgba(217, 119, 6, 0.09);
   color: #b45309;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-cancelled {
-  background: #e2e8f0;
-  color: #475569;
+  background: rgba(220, 38, 38, 0.09);
+  color: #dc2626;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-neutral {
-  background: #f1f5f9;
-  color: #334155;
+  background: rgba(107, 122, 149, 0.09);
+  color: #6b7a95;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-row-action {
@@ -16699,12 +16722,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals__row.is-t
   font-size: 22px;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card {
   display: grid;
   gap: 18px;
@@ -16890,7 +16907,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-support-card {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid,
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--support .pap-account-support-grid,
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--offers .pap-account-product-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -17067,172 +17083,23 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-page-head__actio
   margin-top: 0;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-panel {
-  display: grid;
-  gap: 30px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-panel__content {
-  display: grid;
-  gap: 0;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--addresses .pap-account-panel--addresses {
-  min-height: 250px;
-  align-content: stretch;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 20px;
-  min-height: 100%;
-  padding: 28px 24px;
-  border: 1px solid #dbe4f0;
-  background: #fff;
-  text-align: center;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__icon {
-  display: flex;
-  justify-content: center;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__icon-circle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 84px;
-  height: 84px;
-  border-radius: 999px;
-  background: #eaf2ff;
-  color: #0d2e61;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__icon-circle svg {
-  width: 52px;
-  height: 52px;
+/* Compound ".pap-account-panel.pap-account-panel--addresses" (not just
+   ".pap-account-panel--addresses") for the same reason as
+   ".pap-account-panel.pap-account-detail-panel" above: it needs to beat the
+   later unscoped ".pap-account-panel" (~line 16212) on specificity, not just
+   source order, otherwise the generic 24px padding + white bg + shadow
+   panel chrome comes back and double-wraps the already self-contained
+   ".pap-account-address-card--single" card in a second white box. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-panel.pap-account-panel--addresses {
   display: block;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__body {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  max-width: 380px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__body h3 {
-  margin: 0;
-  color: #17324d;
-  font-size: 24px;
-  line-height: 1.2;
-  font-weight: 700;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__body p {
-  margin: 0;
-  color: #52627a;
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__action {
-  min-width: 200px;
-  margin-top: 6px;
-  color: #0d2e61;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-tabs {
-  display: flex;
-  align-items: flex-end;
-  gap: 28px;
-  border-bottom: 1px solid #dbe4f0;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-tabs__tab {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 2px 16px;
-  border-bottom: 3px solid transparent;
-  color: #64748b;
-  font-size: 17px;
-  line-height: 1.2;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-tabs__tab.is-active {
-  border-bottom-color: #ff5b1f;
-  color: #17324d;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-sections {
-  display: grid;
-  gap: 18px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-section {
-  display: grid;
   gap: 0;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-section h2 {
-  margin: 0;
-  color: #17324d;
-  font-size: 20px;
-  line-height: 1.2;
-  font-weight: 700;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-info-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 20px 24px;
-  border: 1px solid #dbeafe;
+  padding: 0;
+  background: transparent;
+  border: none;
   border-radius: 0;
-  background: #eff6ff;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-info-alert__icon {
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  flex: 0 0 20px;
-  margin-top: 2px;
-  color: #0d2e61;
-  display: inline-block;
-  font-size: 20px;
-  line-height: 1;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-info-alert__copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-info-alert__title {
-  color: #17324d;
-  font-size: 15px;
-  line-height: 1.4;
-  font-weight: 700;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-info-alert__text {
-  margin: 0;
-  color: #17324d;
-  font-size: 16px;
-  line-height: 1.6;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  box-shadow: none;
+  min-height: 0;
+  align-content: normal;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card__head {
@@ -17271,6 +17138,302 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card__ba
   letter-spacing: 0.04em;
 }
 
+/* "Adresa mea" single-card view (Figma node 167:253 / empty state 168:587) —
+   same flat, thin-border card language as "Detalii cont" (grey #f5f6f8
+   header bar + white body), not the older rounded/padded card the shared
+   ".pap-account-address-card" rules above still serve. The "--single"
+   modifier gives every selector below one extra class of specificity over
+   those shared rules, so nothing here needs !important. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single {
+  display: block;
+  padding: 0;
+  border: 1px solid #dde1e8;
+  border-radius: 6px;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__head {
+  display: block;
+  padding: 14px 20px;
+  background: #f5f6f8;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__head h3 {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__content {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__name {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__lines {
+  display: grid;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__lines p {
+  margin: 0;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__actions form {
+  margin: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-row-action {
+  min-height: 32px;
+  padding: 0 14px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0d2e61;
+}
+
+/* Compound override: ".pap-account-address-card--single .pap-account-row-action"
+   above (2 classes) otherwise beats the plain ".pap-account-row-action--danger"
+   (1 class) on specificity and forces "Sterge" to navy instead of red. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-row-action--danger {
+  color: #b42318;
+}
+
+/* Empty state (Figma 168:587): same card head as the filled view, centered
+   icon/copy/button body instead of the name+lines+actions row. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__empty {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 26px;
+  background: #f0f2f5;
+  color: #0d2e61;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__empty-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__empty-copy {
+  display: grid;
+  gap: 4px;
+  max-width: 360px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__empty-copy h4 {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__empty-copy p {
+  margin: 0;
+  color: #6b7a95;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__empty-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  margin-top: 4px;
+  min-height: 36px;
+  padding: 0 20px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Modal field layout — plain floating fields stack full-width; the two
+   paired rows (Prenume/Nume, Județ/Localitate) opt into a 2-column grid. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-address-form-stack {
+  display: grid;
+  gap: 12px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-address-form-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-address-form-grid-2col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Float-field select variant: a <select> always shows a value (never an
+   empty "placeholder-shown" state like a text input), so its label stays
+   permanently in the floated position instead of animating on focus/fill. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field select {
+  display: block;
+  width: 100%;
+  min-height: 55px !important;
+  height: 55px !important;
+  padding: 28px 32px 6px 14px !important;
+  border: 1.5px solid #dde1e8;
+  border-radius: 6px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7a95' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+  background-size: 12px 7px;
+  color: #0d2e61;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: normal;
+  box-sizing: border-box;
+  appearance: none;
+  cursor: pointer;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field select:focus {
+  outline: none;
+  border-color: #0d2e61;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Select2/selectWoo replaces the huge native option list (Județ/Localitate
+   can run into the hundreds of entries) with a searchable, height-capped
+   dropdown — this re-skins its closed-state trigger to match the plain
+   .pap-float-field select box above 1:1 (same 55px box, border, chevron). */
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .select2-container {
+  width: 100% !important;
+  display: block;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .select2-container .select2-selection--single {
+  display: flex;
+  align-items: center;
+  min-height: 55px;
+  height: 55px;
+  padding: 22px 32px 0 14px;
+  border: 1.5px solid #dde1e8;
+  border-radius: 6px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7a95' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+  background-size: 12px 7px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .select2-container--disabled .select2-selection--single {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .select2-container--focus .select2-selection--single,
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .select2-container--open .select2-selection--single {
+  border-color: #0d2e61;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .select2-selection__rendered {
+  padding: 0;
+  margin: 0;
+  color: #0d2e61;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: normal;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field .select2-selection__arrow {
+  display: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field--select label {
+  top: 13px;
+  transform: translateY(0);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field--select.pap-is-invalid select {
+  border-color: #dc2626;
+}
+
+/* Float-field textarea variant: same visual language, but the box grows to
+   fit the content instead of clamping to the single-line input height. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field textarea {
+  display: block;
+  width: 100%;
+  min-height: 90px;
+  padding: 28px 14px 10px !important;
+  border: 1.5px solid #dde1e8;
+  border-radius: 6px;
+  background: #fff;
+  color: #0d2e61;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field textarea:focus {
+  outline: none;
+  border-color: #0d2e61;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field--textarea label {
+  top: 13px;
+  transform: translateY(0);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-float-field--textarea.pap-is-invalid textarea {
+  border-color: #dc2626;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-row-action--danger {
   border-color: #fecdd3;
   color: #b42318;
@@ -17280,11 +17443,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-row-action--dang
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-row-action--danger:focus-visible {
   border-color: #fda4af;
   color: #991b1b;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-shell {
-  display: grid;
-  gap: 24px;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form {
@@ -17317,21 +17475,20 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal[hi
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.72);
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__dialog {
   position: relative;
   z-index: 1;
-  width: min(720px, calc(100vw - 32px));
+  width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   background: #fff;
-  border-radius: 0;
-  box-shadow: 0 28px 80px rgba(13, 46, 97, 0.18);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__head {
@@ -17339,42 +17496,45 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__h
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
-  padding: 24px;
-  border-bottom: 1px solid #e4ebf2;
+  padding: 24px 24px 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__head-copy {
   display: grid;
-  gap: 6px;
+  gap: 0;
   min-width: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__head h2 {
   margin: 0;
-  color: #17324d;
-  font-size: 26px;
-  line-height: 1.2;
+  color: #0d2e61;
+  font-size: 20px;
+  line-height: 1.5;
   font-weight: 700;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__head p {
-  margin: 0;
-  color: #64748b;
-  font-size: 15px;
-  line-height: 1.55;
+  margin: 4px 0 0;
+  color: #6b7a95;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__close {
   appearance: none;
-  border: 1px solid #dbe4f0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dde1e8;
   background: #fff;
-  color: #17324d;
-  width: 40px;
-  height: 40px;
-  border-radius: 0;
-  font-size: 24px;
+  color: #0d2e61;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__close:hover,
@@ -17385,8 +17545,8 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__c
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__body {
   display: grid;
-  gap: 18px;
-  padding: 24px;
+  gap: 20px;
+  padding: 20px 24px 24px;
   overflow: auto;
 }
 
@@ -17416,54 +17576,20 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__n
   color: #b91c1c;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid--modal {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid--modal .pap-form-row {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  align-content: start;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form .form-row {
-  width: auto;
-  float: none;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form fieldset,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form fieldset legend {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid--modal .pap-form-row--address_1,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid--modal .pap-form-row--address_1 {
-  grid-column: 1 / -1;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid--modal .pap-form-row--postcode,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid--modal .pap-form-row--delivery_notes {
-  grid-column: auto;
-}
-
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 6px;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 0;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form textarea {
-  min-height: var(--pap-input-height);
-  max-height: none;
-  height: var(--pap-input-height);
-  padding-top: 14px;
-  padding-bottom: 14px;
-  resize: vertical;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-actions .pap-account-secondary-button {
+  min-height: 36px;
+  padding: 0 20px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-secondary-button {
@@ -17482,10 +17608,10 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-secondary-button
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-actions .pap-account-primary-button {
-  min-height: 47px;
-  padding: 0 20px;
-  border-radius: 0;
-  font-size: 15px;
+  min-height: 36px;
+  padding: 0 24px;
+  border-radius: 5px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -17498,34 +17624,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-secondary-button
 @media (max-width: 767px) {
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--addresses .pap-account-panel--addresses {
     min-height: 0;
-  }
-
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card {
-    padding: 24px 18px;
-    gap: 18px;
-  }
-
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__icon-circle {
-    width: 76px;
-    height: 76px;
-  }
-
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__icon-circle svg {
-    width: 46px;
-    height: 46px;
-  }
-
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__body h3 {
-    font-size: 22px;
-  }
-
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__body p {
-    font-size: 14px;
-  }
-
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-empty-state-card__action {
-    width: 100%;
-    min-width: 0;
   }
 }
 
@@ -17600,14 +17698,6 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-address-selector[hidden]
     flex-direction: column;
   }
 
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-grid,
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-grid--address {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-grid--modal {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-saved-addresses__grid {
     grid-template-columns: minmax(0, 1fr);
@@ -17618,13 +17708,16 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-saved-addresses__grid {
   }
 
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__dialog {
-    width: min(720px, calc(100vw - 24px));
+    width: min(560px, calc(100vw - 24px));
     max-height: calc(100vh - 24px);
   }
 
-  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__head,
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__head {
+    padding: 18px 18px 0;
+  }
+
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__body {
-    padding: 18px;
+    padding: 16px 18px 18px;
   }
 
   body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-form-actions {
@@ -20497,4 +20590,765 @@ body.theme-papetarie .pap-review-modal__footer {
 .pap-color-swatch:focus-visible {
   outline: 2px solid #2f6fb3;
   outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Account dashboard / orders list / order detail / 404 — Figma redesign.
+   Shared "minicard"/"simplecard" components below are the same flat,
+   thin-border, grey-header-bar language already used on Adrese and Detalii
+   cont (border #dde1e8, radius 6px, header bg #f5f6f8). "simplecard" is the
+   15px-title page-level card (Adresa mea / Comenzile mele / Comanda #X);
+   "minicard" is the 13px-title sub-card used in pairs or trios inside a
+   page (dashboard's two cards, order detail's Sumar/Adresă/Metodă cards).
+   ========================================================================== */
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-head {
+  margin-bottom: 16px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-head h1 {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -0.44px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-head p {
+  margin: 2px 0 0;
+  color: #6b7a95;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* ---- minicard: paired sub-cards (dashboard, order detail) ---- */
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #dde1e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 20px;
+  background: #f5f6f8;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__head h2 {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__head a {
+  color: #ff5b1f;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__head a:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__head a:focus-visible {
+  text-decoration: underline;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__body {
+  flex: 1;
+  padding: 16px 18px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__body--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 18px;
+  text-align: center;
+  height: 100%;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__order-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__order-row strong {
+  color: #0d2e61;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__meta {
+  margin: 6px 0 0;
+  color: #6b7a95;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer strong {
+  color: #0d2e61;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer a {
+  color: #ff5b1f;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer a:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer a:focus-visible {
+  text-decoration: underline;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__name {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__lines {
+  margin-top: 6px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__lines p {
+  margin: 0;
+  color: #374151;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__empty-text {
+  margin: 0;
+  color: #6b7a95;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__empty-action {
+  color: #ff5b1f;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__empty-action:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__empty-action:focus-visible {
+  text-decoration: underline;
+}
+
+/* ---- minicard body used for the "Sumar plată" totals list ---- */
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__body--totals {
+  display: grid;
+  gap: 10px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals-row span {
+  color: #6b7a95;
+  font-size: 13px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals-row strong {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals-row.is-total {
+  padding-top: 10px;
+  border-top: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals-row.is-total span {
+  color: #0d2e61;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals-row.is-total strong {
+  color: #0d2e61;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ---- simplecard: page-level single card (Comenzile mele / Comanda #X) ---- */
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard {
+  background: #fff;
+  border: 1px solid #dde1e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #f5f6f8;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__head h2 {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__head-date {
+  color: #6b7a95;
+  font-size: 12px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 48px 20px;
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 8px;
+  border-radius: 26px;
+  background: #f0f2f5;
+  color: #0d2e61;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__empty-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__empty h3 {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__empty p {
+  margin: 0;
+  color: #6b7a95;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+/* ---- orders list table ---- */
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(90px, 1fr) 130px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head {
+  background: #fafbfc;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head span {
+  color: #6b7a95;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row {
+  padding: 14px 20px;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row:last-child {
+  border-bottom: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__number {
+  color: #0d2e61;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__date {
+  color: #374151;
+  font-size: 13px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__total {
+  color: #0d2e61;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Dată = coloana a 2-a, Status = a 3-a, atat in antet cat si in randuri -
+   centrate ca sa nu mai stea lipite de "Comandă", fara sa ating markup-ul
+   PHP (ordinea coloanelor e fixa prin grid-template-columns de mai sus). */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head > *:nth-child(2),
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row > *:nth-child(2) {
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head > *:nth-child(3) {
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row > *:nth-child(3) {
+  justify-self: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head > *:nth-child(4) {
+  text-align: right;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table .pap-account-row-action {
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0d2e61;
+}
+
+/* ---- order detail: item lines + Sumar/Adresă/Metodă grid ---- */
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-lines {
+  width: 100%;
+  overflow-x: auto;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-lines__head,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-lines__row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 60px 110px 110px;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-lines__head {
+  padding-top: 9px;
+  padding-bottom: 9px;
+  background: #fafbfc;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-lines__head span {
+  color: #6b7a95;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-lines__head span:not(:first-child) {
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-lines__row {
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-lines__row:last-child {
+  border-bottom: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__thumb {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 5px;
+  border: 1px solid #dde1e8;
+  background: #f0f2f5;
+  object-fit: cover;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__thumb--placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7a95;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__thumb--placeholder svg {
+  width: 18px;
+  height: 18px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__copy strong {
+  color: #0d2e61;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__thumb-link {
+  display: block;
+  flex: 0 0 48px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__copy a {
+  text-decoration: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__copy a:hover strong {
+  text-decoration: underline;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__unavailable {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(217, 119, 6, 0.09);
+  color: #b45309;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__copy span {
+  margin-top: 2px;
+  color: #6b7a95;
+  font-size: 11px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__qty,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__unit {
+  color: #374151;
+  font-size: 13px;
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-line__total {
+  color: #0d2e61;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-detail-grid__payment {
+  grid-column: 1;
+}
+
+@media (max-width: 1024px) {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-grid,
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-detail-grid__payment {
+    grid-column: auto;
+  }
+}
+
+/* ==========================================================================
+   404 page
+   ========================================================================== */
+
+.pap-404-page {
+  background: #f0f2f5;
+  padding: 24px 24px 80px;
+}
+
+.pap-404-hero {
+  max-width: 620px;
+  margin: 0 auto;
+  padding-top: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.pap-404-hero__figure {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.pap-404-hero__number {
+  color: #0d2e61;
+  opacity: 0.06;
+  font-size: 160px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -6px;
+}
+
+.pap-404-hero__icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  color: #0d2e61;
+}
+
+.pap-404-hero h1 {
+  margin: 0 0 10px;
+  color: #0d2e61;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.pap-404-hero p {
+  margin: 0 0 32px;
+  max-width: 380px;
+  color: #6b7a95;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.pap-404-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 56px;
+}
+
+.pap-404-hero__primary,
+.pap-404-hero__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 160px;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pap-404-hero__primary {
+  height: 44px;
+  background: #0d2e61;
+  color: #fff;
+}
+
+.pap-404-hero__primary svg {
+  width: 13px;
+  height: 13px;
+}
+
+.pap-404-hero__primary:hover,
+.pap-404-hero__primary:focus-visible {
+  background: #0a2450;
+  color: #fff;
+}
+
+.pap-404-hero__secondary {
+  height: 47px;
+  background: #fff;
+  border: 1.5px solid #dde1e8;
+  color: #0d2e61;
+}
+
+.pap-404-hero__secondary:hover,
+.pap-404-hero__secondary:focus-visible {
+  border-color: #ff5b1f;
+}
+
+.pap-404-hero__categories {
+  width: 100%;
+  max-width: 560px;
+  padding-top: 32px;
+  border-top: 1px solid #dde1e8;
+}
+
+.pap-404-hero__categories > span {
+  display: block;
+  margin-bottom: 16px;
+  color: #6b7a95;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.pap-404-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pap-404-hero__chip {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #dde1e8;
+  border-radius: 15px;
+  background: #fff;
+  color: #0d2e61;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.pap-404-hero__chip:hover,
+.pap-404-hero__chip:focus-visible {
+  border-color: #ff5b1f;
+  color: #ff5b1f;
+}
+
+/* Select2/selectWoo dropdown panel — used to replace the native Județ/
+   Localitate <select> popup (some counties have 700+ localities) with a
+   searchable, height-capped one. The panel itself is appended to <body> by
+   select2 (not nested under any .pap-* wrapper), so this is deliberately
+   unscoped/global rather than tied to a specific page's markup; the base
+   select2.css already caps .select2-results__options at 200px with a
+   scrollbar, this just re-skins the colors/spacing to match the site. */
+body.theme-papetarie .select2-dropdown {
+  border-color: #dde1e8;
+  border-radius: 6px;
+  box-shadow: 0 10px 24px rgba(18, 39, 74, 0.12);
+  font-family: inherit;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+body.theme-papetarie .select2-search--dropdown {
+  padding: 8px;
+}
+
+body.theme-papetarie .select2-search--dropdown .select2-search__field {
+  border: 1.5px solid #dde1e8;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #0d2e61;
+}
+
+body.theme-papetarie .select2-search--dropdown .select2-search__field:focus {
+  outline: none;
+  border-color: #0d2e61;
+}
+
+body.theme-papetarie .select2-results__option {
+  padding: 9px 14px;
+  color: #17324d;
+  font-size: 13px;
+}
+
+body.theme-papetarie .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background: #fff1e8;
+  color: #ff5b1f;
+}
+
+body.theme-papetarie .select2-container--default .select2-results__option[aria-selected='true'] {
+  background: #f0f2f5;
+  color: #0d2e61;
+  font-weight: 600;
+}
+
+body.theme-papetarie .select2-results__option[aria-disabled='true'] {
+  color: #9ca3af;
+}
+
+body.theme-papetarie .select2-results__message {
+  padding: 12px 14px;
+  color: #6b7a95;
+  font-size: 13px;
 }

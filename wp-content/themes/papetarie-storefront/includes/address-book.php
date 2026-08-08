@@ -34,13 +34,6 @@ function papetarie_storefront_address_book_fields(): array
             'type' => 'text',
             'autocomplete' => 'family-name',
         ],
-        'email' => [
-            'label' => __('Email', 'papetarie-storefront'),
-            'placeholder' => __('nume@exemplu.ro', 'papetarie-storefront'),
-            'required' => true,
-            'type' => 'email',
-            'autocomplete' => 'email',
-        ],
         'phone' => [
             'label' => __('Telefon', 'papetarie-storefront'),
             'placeholder' => __('0712 345 678', 'papetarie-storefront'),
@@ -433,11 +426,6 @@ function papetarie_storefront_address_book_delete_entry(int $user_id, string $ad
     return true;
 }
 
-function papetarie_storefront_address_book_has_items(int $user_id): bool
-{
-    return !empty(papetarie_storefront_address_book_get_all($user_id));
-}
-
 function papetarie_storefront_address_book_default_address(int $user_id): ?array
 {
     $addresses = papetarie_storefront_address_book_get_all($user_id);
@@ -693,7 +681,7 @@ function papetarie_storefront_address_book_format_lines(array $address): array
     $company = trim((string) ($address['company'] ?? ''));
     $address_line = trim((string) ($address['address_1'] ?? ''));
     $address_line_2 = trim((string) ($address['address_2'] ?? ''));
-    $state_code = sanitize_key((string) ($address['state'] ?? ''));
+    $state_code = strtoupper(sanitize_key((string) ($address['state'] ?? '')));
     $country_code = strtoupper(trim((string) ($address['country'] ?? '')));
     $counties = function_exists('papetarie_storefront_romania_counties') ? papetarie_storefront_romania_counties() : [];
     $countries = function_exists('papetarie_storefront_country_options') ? papetarie_storefront_country_options() : [];
@@ -1011,12 +999,6 @@ function papetarie_storefront_address_book_validate(array $posted, \WP_Error $er
         $errors->add('address_last_name_required', __('Completează numele.', 'papetarie-storefront'));
     }
 
-    if (($clean['email'] ?? '') === '') {
-        $errors->add('address_email_required', __('Introdu emailul.', 'papetarie-storefront'));
-    } elseif (!is_email((string) $clean['email'])) {
-        $errors->add('address_email_invalid', __('Introdu o adresă de email validă.', 'papetarie-storefront'));
-    }
-
     if (($clean['phone'] ?? '') === '') {
         $errors->add('address_phone_required', __('Introdu telefonul.', 'papetarie-storefront'));
     } else {
@@ -1081,66 +1063,15 @@ function papetarie_storefront_address_book_validate(array $posted, \WP_Error $er
         $errors->add('address_line_1_required', __('Completează adresa.', 'papetarie-storefront'));
     }
 
+    // Emailul nu se mai cere in formularul de adresa (era o dublura fata de
+    // Detalii cont si sursa de confuzie - "de ce imi cere iar emailul?").
+    // Contul e singura sursa adevarata: preluat automat aici, nu de la
+    // utilizator, ca billing_email (si tot ce citeste $address['email'] mai
+    // jos in checkout) sa ramana mereu corect si sincronizat cu contul.
+    $current_user = wp_get_current_user();
+    $clean['email'] = $current_user instanceof WP_User ? sanitize_email($current_user->user_email) : '';
+
     return $clean;
-}
-
-function papetarie_storefront_address_book_render_input(string $key, array $field, string $value, array $context = []): void
-{
-    $required = !empty($field['required']);
-    $args = [
-        'label' => $field['label'] ?? $key,
-        'required' => $required,
-        'class' => ['form-row-wide', 'pap-address-form-field', 'pap-address-form-field--' . $key],
-        'input_class' => ['input-text'],
-        'custom_attributes' => [],
-        'type' => $field['type'] ?? 'text',
-    ];
-
-    if (!empty($field['placeholder'])) {
-        $args['placeholder'] = $field['placeholder'];
-    }
-
-    if (!empty($field['autocomplete'])) {
-        $args['custom_attributes']['autocomplete'] = $field['autocomplete'];
-    }
-
-    if ($key === 'country') {
-        $args['type'] = 'select';
-        $args['options'] = function_exists('papetarie_storefront_country_options') ? papetarie_storefront_country_options() : ['RO' => __('România', 'papetarie-storefront')];
-    } elseif ($key === 'state') {
-        $args['type'] = 'select';
-        $args['options'] = ['' => $field['placeholder'] ?? __('Alege județul', 'papetarie-storefront')] + (function_exists('papetarie_storefront_romania_counties') ? papetarie_storefront_romania_counties() : []);
-        $args['custom_attributes']['data-address-book-state'] = '1';
-    } elseif ($key === 'city') {
-        $args['type'] = 'select';
-        $args['custom_attributes']['data-address-book-city'] = '1';
-        $state = trim((string) ($context['state'] ?? ''));
-        if ($state !== '') {
-            $args['options'] = ['' => $field['placeholder'] ?? __('Alege localitatea', 'papetarie-storefront')]
-                + (function_exists('papetarie_storefront_checkout_city_options_for_county') ? papetarie_storefront_checkout_city_options_for_county($state) : []);
-        } else {
-            $args['options'] = ['' => __('Alege județul întâi', 'papetarie-storefront')];
-            $args['custom_attributes']['disabled'] = 'disabled';
-            $args['custom_attributes']['aria-disabled'] = 'true';
-        }
-    }
-
-    if ($key === 'country') {
-        $args['custom_attributes']['data-address-book-country'] = '1';
-    }
-
-    if (($field['type'] ?? 'text') === 'textarea') {
-        $args['custom_attributes']['rows'] = 4;
-    }
-
-    $args['return'] = true;
-    $field_html = woocommerce_form_field($key, $args, $value);
-
-    printf(
-        '<div class="pap-address-form-row pap-address-form-row--%1$s">%2$s</div>',
-        esc_attr($key),
-        $field_html // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-    );
 }
 
 function papetarie_storefront_address_book_base_url(): string
@@ -1175,27 +1106,6 @@ function papetarie_storefront_address_book_tab_url(string $tab, array $query_arg
     return papetarie_storefront_address_book_form_url($query_args);
 }
 
-function papetarie_storefront_render_info_alert(string $message, array $args = []): string
-{
-    $title = isset($args['title']) ? trim((string) $args['title']) : '';
-    $icon_class = isset($args['icon_class']) ? trim((string) $args['icon_class']) : 'fa-regular fa-circle-info';
-
-    ob_start();
-    ?>
-    <div class="pap-info-alert" role="status" aria-live="polite">
-      <i class="pap-info-alert__icon <?php echo esc_attr($icon_class); ?>" aria-hidden="true"></i>
-      <div class="pap-info-alert__copy">
-        <?php if ($title !== '') : ?>
-          <strong class="pap-info-alert__title"><?php echo esc_html($title); ?></strong>
-        <?php endif; ?>
-        <p class="pap-info-alert__text"><?php echo wp_kses_post($message); ?></p>
-      </div>
-    </div>
-    <?php
-
-    return (string) ob_get_clean();
-}
-
 function papetarie_storefront_address_book_render_form_notice(): void
 {
     $notices = function_exists('wc_print_notices') ? wc_print_notices(true) : '';
@@ -1209,59 +1119,101 @@ function papetarie_storefront_address_book_render_form_notice(): void
     <?php
 }
 
+/**
+ * Floating-label field markup — same ".pap-float-field" pattern Detalii cont
+ * uses (see form-edit-account.php), so the address modal's inputs look and
+ * behave identically: label floats up on focus/fill, ".pap-field-error"
+ * carries inline validation text, address-book.js targets the same
+ * ".pap-is-invalid"/".pap-field-error" hooks account.js uses elsewhere.
+ */
+function papetarie_storefront_address_book_render_float_field(string $key, array $field, string $value, array $extra_attrs = [], array $options = []): void
+{
+    $type = (string) ($field['type'] ?? 'text');
+    $required = !empty($field['required']);
+    $label = (string) ($field['label'] ?? $key);
+    $field_id = 'address-book-' . $key;
+
+    if (!empty($field['autocomplete']) && !isset($extra_attrs['autocomplete'])) {
+        $extra_attrs['autocomplete'] = $field['autocomplete'];
+    }
+    if ($required) {
+        $extra_attrs['required'] = 'required';
+    }
+
+    $attr_pairs = [];
+    foreach ($extra_attrs as $attr_name => $attr_value) {
+        if ($attr_value === null || $attr_value === false || $attr_value === '') {
+            continue;
+        }
+        $attr_pairs[] = sprintf('%1$s="%2$s"', esc_attr((string) $attr_name), esc_attr((string) $attr_value));
+    }
+    $attrs_html = implode(' ', $attr_pairs);
+
+    $wrapper_class = 'pap-float-field pap-address-form-field pap-address-form-field--' . $key;
+    if ($type === 'select') {
+        $wrapper_class .= ' pap-float-field--select';
+    } elseif ($type === 'textarea') {
+        $wrapper_class .= ' pap-float-field--textarea';
+    }
+    ?>
+    <div class="<?php echo esc_attr($wrapper_class); ?>">
+      <?php if ($type === 'select') : ?>
+        <select name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($field_id); ?>" class="woocommerce-Input woocommerce-Input--select" <?php echo $attrs_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+          <?php foreach ($options as $option_value => $option_label) : ?>
+            <option value="<?php echo esc_attr((string) $option_value); ?>" <?php selected($value, (string) $option_value); ?>><?php echo esc_html((string) $option_label); ?></option>
+          <?php endforeach; ?>
+        </select>
+      <?php elseif ($type === 'textarea') : ?>
+        <textarea name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($field_id); ?>" class="woocommerce-Input woocommerce-Input--textarea" placeholder=" " rows="3" <?php echo $attrs_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>><?php echo esc_textarea($value); ?></textarea>
+      <?php else : ?>
+        <input type="<?php echo esc_attr($type); ?>" class="woocommerce-Input woocommerce-Input--<?php echo esc_attr($type); ?>" name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($field_id); ?>" placeholder=" " value="<?php echo esc_attr($value); ?>" <?php echo $attrs_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> />
+      <?php endif; ?>
+      <label for="<?php echo esc_attr($field_id); ?>"><?php echo esc_html($label); ?><?php echo $required ? ' *' : ''; ?></label>
+      <small class="pap-field-error" aria-hidden="true"></small>
+    </div>
+    <?php
+}
+
 function papetarie_storefront_address_book_render_form_fields(array $source): void
 {
     $fields = papetarie_storefront_address_book_fields();
-    foreach ($fields as $key => $field) :
-        $value = (string) ($source[$key] ?? '');
-        $custom_attributes = (array) ($field['custom_attributes'] ?? []);
-        $options = [];
-        if ($key === 'email' && $value === '') {
-            $value = papetarie_storefront_address_book_checkout_email(get_current_user_id());
-        }
-        if ($key === 'state') {
-            $value = strtoupper(sanitize_key($value));
-            $options = ['' => $field['placeholder'] ?? __('Alege județul', 'papetarie-storefront')] + (function_exists('papetarie_storefront_romania_counties') ? papetarie_storefront_romania_counties() : []);
-        } elseif ($key === 'country') {
-            $value = strtoupper($value ?: 'RO');
-        } elseif ($key === 'city') {
-            $state_value = sanitize_key((string) ($source['state'] ?? ''));
-            if ($state_value !== '' && function_exists('papetarie_storefront_checkout_city_options_for_county')) {
-                $city_options = papetarie_storefront_checkout_city_options_for_county($state_value);
-                $options = ['' => $field['placeholder'] ?? __('Alege localitatea', 'papetarie-storefront')] + $city_options;
-                $custom_attributes['aria-disabled'] = 'false';
-                $custom_attributes['disabled'] = null;
-                foreach (array_keys($city_options) as $city_option) {
-                    if (function_exists('papetarie_storefront_normalize_city_key') && papetarie_storefront_normalize_city_key((string) $city_option) === papetarie_storefront_normalize_city_key($value)) {
-                        $value = (string) $city_option;
-                        break;
-                    }
-                }
-            } else {
-                $options = ['' => __('Alege județul întâi', 'papetarie-storefront')];
-                $custom_attributes['disabled'] = 'disabled';
-                $custom_attributes['aria-disabled'] = 'true';
+
+    $state_value = strtoupper(sanitize_key((string) ($source['state'] ?? '')));
+    $state_options = ['' => $fields['state']['placeholder'] ?? __('Alege județul', 'papetarie-storefront')]
+        + (function_exists('papetarie_storefront_romania_counties') ? papetarie_storefront_romania_counties() : []);
+
+    $city_value = (string) ($source['city'] ?? '');
+    $city_attrs = ['data-address-book-city' => '1'];
+    if ($state_value !== '' && function_exists('papetarie_storefront_checkout_city_options_for_county')) {
+        $city_options = papetarie_storefront_checkout_city_options_for_county($state_value);
+        $city_select_options = ['' => $fields['city']['placeholder'] ?? __('Alege localitatea', 'papetarie-storefront')] + $city_options;
+        foreach (array_keys($city_options) as $city_option) {
+            if (function_exists('papetarie_storefront_normalize_city_key') && papetarie_storefront_normalize_city_key((string) $city_option) === papetarie_storefront_normalize_city_key($city_value)) {
+                $city_value = (string) $city_option;
+                break;
             }
         }
-        ?>
-        <?php echo papetarie_storefront_render_checkout_form_field(
-            $key,
-            array_merge($field, [
-                'class' => ['pap-address-form-field', 'pap-address-form-field--' . $key, 'pap-form-row--' . $key],
-                'input_class' => ['input-text'],
-                'custom_attributes' => array_merge(
-                    $custom_attributes,
-                    $key === 'state' ? ['data-address-book-state' => '1'] : [],
-                    $key === 'city' ? ['data-address-book-city' => '1'] : [],
-                    $key === 'country' ? ['data-address-book-country' => '1'] : [],
-                    $key === 'delivery_notes' ? ['rows' => 4] : []
-                ),
-                'options' => $options,
-            ]),
-            $value,
-            false
-        ); ?>
-    <?php endforeach;
+    } else {
+        $city_select_options = ['' => __('Alege județul întâi', 'papetarie-storefront')];
+        $city_attrs['disabled'] = 'disabled';
+        $city_attrs['aria-disabled'] = 'true';
+    }
+    ?>
+    <div class="pap-address-form-grid-2col">
+      <?php papetarie_storefront_address_book_render_float_field('first_name', $fields['first_name'], (string) ($source['first_name'] ?? '')); ?>
+      <?php papetarie_storefront_address_book_render_float_field('last_name', $fields['last_name'], (string) ($source['last_name'] ?? '')); ?>
+    </div>
+
+    <?php papetarie_storefront_address_book_render_float_field('phone', $fields['phone'], (string) ($source['phone'] ?? '')); ?>
+
+    <div class="pap-address-form-grid-2col">
+      <?php papetarie_storefront_address_book_render_float_field('state', $fields['state'], $state_value, ['data-address-book-state' => '1'], $state_options); ?>
+      <?php papetarie_storefront_address_book_render_float_field('city', $fields['city'], $city_value, $city_attrs, $city_select_options); ?>
+    </div>
+
+    <?php papetarie_storefront_address_book_render_float_field('address_1', $fields['address_1'], (string) ($source['address_1'] ?? '')); ?>
+    <?php papetarie_storefront_address_book_render_float_field('postcode', $fields['postcode'], (string) ($source['postcode'] ?? '')); ?>
+    <?php
 }
 
 function papetarie_storefront_address_book_render_form(array $address = [], string $mode = 'add'): void
@@ -1286,128 +1238,20 @@ function papetarie_storefront_address_book_render_form(array $address = [], stri
 
         <div class="pap-account-address-modal__notice-wrap" data-address-book-form-notice></div>
 
-        <div class="pap-account-address-form-grid pap-account-address-form-grid--modal">
+        <div class="pap-address-form-stack">
           <?php papetarie_storefront_address_book_render_form_fields($source); ?>
         </div>
 
         <div class="pap-account-address-form-actions">
           <button type="button" class="pap-account-secondary-button" data-address-book-modal-close>
-            <?php esc_html_e('Anulează', 'papetarie-storefront'); ?>
+            <?php esc_html_e('Anulați', 'papetarie-storefront'); ?>
           </button>
           <button type="submit" class="pap-account-primary-button">
-            <?php echo esc_html($is_edit ? __('Salvează adresa', 'papetarie-storefront') : __('Salvează adresa', 'papetarie-storefront')); ?>
+            <?php esc_html_e('Salvare', 'papetarie-storefront'); ?>
           </button>
         </div>
       </form>
     <?php
-}
-
-function papetarie_storefront_address_book_render_list(array $addresses): void
-{
-    if (empty($addresses)) {
-        return;
-    }
-    ?>
-    <div class="pap-account-address-grid">
-      <?php foreach ($addresses as $address) : ?>
-        <?php
-        $lines = papetarie_storefront_address_book_format_lines($address);
-        $address_id = (string) ($address['id'] ?? '');
-        $address_json = wp_json_encode($address, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        ?>
-        <article class="pap-account-address-card">
-          <div class="pap-account-address-card__head">
-            <div class="pap-account-address-card__head-copy">
-              <h3><?php echo esc_html(papetarie_storefront_address_book_label($address)); ?></h3>
-              <?php if (!empty($address['is_default'])) : ?>
-                <span class="pap-account-address-card__badge"><?php esc_html_e('Implicită', 'papetarie-storefront'); ?></span>
-              <?php endif; ?>
-            </div>
-            <a
-              class="pap-account-row-action"
-              href="<?php echo esc_url(papetarie_storefront_address_book_form_url(['pap_address_action' => 'edit', 'pap_address_id' => $address_id, 'pap_address_type' => 'shipping'])); ?>"
-              data-address-book-open-modal
-              data-address-book-mode="edit"
-              data-address-book-id="<?php echo esc_attr($address_id); ?>"
-              data-address-book-entry="<?php echo esc_attr($address_json ?: '{}'); ?>"
-            >
-              <?php esc_html_e('Editează', 'papetarie-storefront'); ?>
-            </a>
-          </div>
-
-          <div class="pap-account-address-card__content">
-            <?php if (!empty($lines)) : ?>
-              <?php foreach ($lines as $line) : ?>
-                <p><?php echo esc_html($line); ?></p>
-              <?php endforeach; ?>
-            <?php else : ?>
-              <p><?php esc_html_e('Adresa este goală.', 'papetarie-storefront'); ?></p>
-            <?php endif; ?>
-          </div>
-
-          <div class="pap-account-address-card__actions">
-            <form method="post" action="<?php echo esc_url(papetarie_storefront_address_book_base_url()); ?>" data-address-delete-form>
-              <?php wp_nonce_field('pap_address_book_save', 'pap_address_book_nonce'); ?>
-              <input type="hidden" name="pap_address_book_action" value="delete">
-              <input type="hidden" name="pap_address_id" value="<?php echo esc_attr($address_id); ?>">
-              <input type="hidden" name="pap_address_type" value="shipping">
-              <button
-                type="submit"
-                class="pap-account-row-action pap-account-row-action--danger"
-                onclick="return confirm('<?php echo esc_js(__('Sigur vrei să ștergi această adresă?', 'papetarie-storefront')); ?>');"
-              >
-                <?php esc_html_e('Șterge', 'papetarie-storefront'); ?>
-              </button>
-            </form>
-          </div>
-        </article>
-      <?php endforeach; ?>
-  </div>
-  <?php
-}
-
-function papetarie_storefront_address_book_render_empty_section(): void
-{
-    $message = __('Nu ai adăugat încă nicio adresă de livrare. Apasă pe „Adaugă adresă” pentru a salva prima adresă.', 'papetarie-storefront');
-    papetarie_storefront_render_account_tab_section(
-        'pap-account-address-section',
-        static function () use ($message): void {
-            echo papetarie_storefront_render_info_alert($message); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-        }
-    );
-}
-
-function papetarie_storefront_address_book_render_active_section(array $addresses): void
-{
-    papetarie_storefront_render_account_tab_section(
-        'pap-account-address-section',
-        static function () use ($addresses): void {
-            papetarie_storefront_address_book_render_list($addresses);
-        }
-    );
-}
-
-function papetarie_storefront_address_book_render_panel_content(array $addresses): void
-{
-    if (empty($addresses)) {
-        papetarie_storefront_address_book_render_empty_section();
-        return;
-    }
-
-    papetarie_storefront_address_book_render_active_section($addresses);
-}
-
-function papetarie_storefront_address_book_render_panel_html(array $addresses): string
-{
-    ob_start();
-    if (empty($addresses)) {
-        echo papetarie_storefront_render_info_alert(
-            __('Nu ai adăugat încă nicio adresă de livrare. Apasă pe „Adaugă adresă” pentru a salva prima adresă.', 'papetarie-storefront')
-        ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-    } else {
-        papetarie_storefront_address_book_render_list($addresses);
-    }
-    return (string) ob_get_clean();
 }
 
 function papetarie_storefront_address_book_render_modal_html(array $address = [], string $mode = 'add', bool $is_open = false): string
@@ -1415,7 +1259,7 @@ function papetarie_storefront_address_book_render_modal_html(array $address = []
     $address = array_merge(papetarie_storefront_address_book_empty_entry(), $address);
     $mode = in_array($mode, ['add', 'edit'], true) ? $mode : 'add';
     $should_open = (bool) $is_open;
-    $title = $mode === 'edit' ? __('Editează adresă', 'papetarie-storefront') : __('Adaugă adresă', 'papetarie-storefront');
+    $title = $mode === 'edit' ? __('Editează adresa', 'papetarie-storefront') : __('Adaugă adresă', 'papetarie-storefront');
     $subtitle = __('Completează datele pentru livrare.', 'papetarie-storefront');
     $action_url = papetarie_storefront_address_book_form_url([
         'pap_address_action' => $mode,
@@ -1440,7 +1284,6 @@ function papetarie_storefront_address_book_render_modal_html(array $address = []
             <h2 id="pap-account-address-modal-title"><?php echo esc_html($title); ?></h2>
             <p><?php echo esc_html($subtitle); ?></p>
           </div>
-          <button type="button" class="pap-account-address-modal__close" aria-label="<?php esc_attr_e('Închide', 'papetarie-storefront'); ?>" data-address-book-modal-close>×</button>
         </div>
         <div class="pap-account-address-modal__body">
           <?php papetarie_storefront_address_book_render_form_notice(); ?>
@@ -1481,7 +1324,6 @@ function papetarie_storefront_address_book_process_request(array $request): arra
 
         return [
             'message' => __('Adresa a fost ștearsă.', 'papetarie-storefront'),
-            'addresses_html' => papetarie_storefront_address_book_render_panel_html(papetarie_storefront_address_book_get_all($user_id)),
         ];
     }
 
@@ -1526,7 +1368,6 @@ function papetarie_storefront_address_book_process_request(array $request): arra
 
     return [
         'message' => $address_id !== '' ? __('Adresa a fost salvată.', 'papetarie-storefront') : __('Adresa a fost adăugată.', 'papetarie-storefront'),
-        'addresses_html' => papetarie_storefront_address_book_render_panel_html(papetarie_storefront_address_book_get_all($user_id)),
     ];
 }
 
@@ -1665,6 +1506,14 @@ function papetarie_storefront_handle_address_book_ajax_request(): void
         ], 400);
     }
 
+    // Aceeasi notificare WC ca la salvarea Detaliilor de cont (formular
+    // clasic, cu reload) - modalul de aici salveaza prin AJAX si apoi da
+    // window.location.reload() (address-book.js), asa ca notice-ul adaugat
+    // acum in sesiunea WC apare pe pagina reincarcata exact ca acolo.
+    if (!empty($result['message'])) {
+        wc_add_notice((string) $result['message'], 'success');
+    }
+
     wp_send_json_success($result);
 }
 add_action('wp_ajax_papetarie_storefront_address_book', 'papetarie_storefront_handle_address_book_ajax_request');
@@ -1703,37 +1552,3 @@ function papetarie_storefront_enqueue_address_book_script(): void
     );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_address_book_script');
-
-function papetarie_storefront_render_account_addresses_page(): void
-{
-    if (!is_user_logged_in()) {
-        echo '<p>' . esc_html__('Trebuie să fii autentificat pentru a vedea adresele salvate.', 'papetarie-storefront') . '</p>';
-        return;
-    }
-
-    $addresses = papetarie_storefront_address_book_get_all(get_current_user_id());
-    $mode = papetarie_storefront_address_book_current_mode();
-    $edit_id = papetarie_storefront_address_book_current_id();
-    $active_address = $mode === 'edit' && $edit_id !== ''
-        ? papetarie_storefront_address_book_get(get_current_user_id(), $edit_id)
-        : papetarie_storefront_address_book_empty_entry();
-    $form_state = papetarie_storefront_address_book_get_form_state();
-    if (!empty($form_state)) {
-        $active_address = array_merge($active_address, $form_state);
-    }
-    ?>
-    <div class="pap-account-page pap-account-page--addresses">
-      <?php papetarie_storefront_render_account_page_head(
-          __('Adrese', 'papetarie-storefront'),
-          __('Gestionează adresele tale de livrare.', 'papetarie-storefront'),
-          '<a class="pap-account-primary-button" href="' . esc_url(papetarie_storefront_address_book_form_url(['pap_address_action' => 'add', 'pap_address_type' => 'shipping'])) . '" data-address-book-open-modal data-address-book-mode="add">' . esc_html__('Adaugă adresă', 'papetarie-storefront') . '</a>'
-      ); ?>
-      <section class="pap-account-panel pap-account-panel--addresses pap-account-address-panel">
-        <div class="pap-account-address-panel__content" data-address-book-list>
-          <?php echo papetarie_storefront_address_book_render_panel_html($addresses); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        </div>
-      </section>
-      <?php echo papetarie_storefront_address_book_render_modal_html($active_address, $mode, in_array($mode, ['add', 'edit'], true)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-    </div>
-    <?php
-}

@@ -156,10 +156,29 @@ function papetarie_storefront_dequeue_checkout_legacy_icons(): void
         return;
     }
 
+    // Same landmine as 'storefront-style' above: 'storefront-woocommerce-style'
+    // (registered by the parent theme with deps ['storefront-style', 'storefront-icons'])
+    // stays enqueued on checkout, so fully deregistering 'storefront-icons' without
+    // first dropping it from that deps array leaves a dangling dependency handle -
+    // WP_Styles::do_item() then trips _doing_it_wrong() when it can't find it.
+    global $wp_styles;
+    if ($wp_styles instanceof WP_Styles && isset($wp_styles->registered['storefront-woocommerce-style'])) {
+        $deps = &$wp_styles->registered['storefront-woocommerce-style']->deps;
+        $deps = array_values(array_diff($deps, ['storefront-icons']));
+    }
+
     wp_dequeue_style('storefront-icons');
     wp_deregister_style('storefront-icons');
 }
-add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_checkout_legacy_icons', 20);
+// Prioritate 30, nu 20: Storefront_WooCommerce::woocommerce_scripts() (care
+// inregistreaza 'storefront-woocommerce-style' cu deps ['storefront-style',
+// 'storefront-icons']) e agatat tot pe prioritatea 20, dar ruleaza DUPA
+// aceasta functie in ordinea de inregistrare - la 20 impotriva a 20,
+// 'storefront-woocommerce-style' inca nu exista cand ajunge aici, deci
+// verificarea de mai sus pica silentios si 'storefront-icons' e sters
+// inainte sa fie inregistrat stilul care il cere ca dependinta. La 30 ruleaza
+// sigur dupa.
+add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_checkout_legacy_icons', 30);
 
 /**
  * WooCommerce auto-enqueues its password-strength meter (which pulls in
@@ -879,7 +898,15 @@ function papetarie_storefront_clear_orphaned_cart_notices_on_account_pages(): vo
 
     papetarie_storefront_clear_orphaned_cart_notices();
 }
-add_action('woocommerce_account_content', 'papetarie_storefront_clear_orphaned_cart_notices_on_account_pages', 9999);
+// Was hooked on woocommerce_account_content at priority 9999 - too late.
+// papetarie_storefront_render_account_notice() (Detalii cont / Adresa de
+// livrare) reads and clears wc_get_notices() as part of rendering that same
+// woocommerce_account_content action at its default priority, so by the
+// time this ran, a leftover cart notice (e.g. "X removed. Undo?" from an
+// item removed on a previous page view) had already been displayed and
+// mislabeled as a save/delete confirmation for the current page. Hooking on
+// 'wp' runs this before any account content renders at all.
+add_action('wp', 'papetarie_storefront_clear_orphaned_cart_notices_on_account_pages', 15);
 
 /**
  * The default woocommerce_output_all_notices (hooked on woocommerce_account_content
@@ -890,7 +917,15 @@ add_action('woocommerce_account_content', 'papetarie_storefront_clear_orphaned_c
  */
 function papetarie_storefront_edit_account_notice_hooks(): void
 {
-    if (!function_exists('is_account_page') || !is_account_page() || !function_exists('is_wc_endpoint_url') || !is_wc_endpoint_url('edit-account')) {
+    if (!function_exists('is_account_page') || !is_account_page() || !function_exists('is_wc_endpoint_url')) {
+        return;
+    }
+
+    // "edit-address" (Adrese) gets the same discreet in-panel treatment as
+    // "edit-account" (Detalii cont) - see papetarie_storefront_render_account_notice(),
+    // called from my-address.php right after the card head, same spot as
+    // form-edit-account.php.
+    if (!is_wc_endpoint_url('edit-account') && !is_wc_endpoint_url('edit-address')) {
         return;
     }
 
@@ -1051,6 +1086,35 @@ function papetarie_storefront_enqueue_checkout_scripts(): void
     );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_checkout_scripts');
+
+/**
+ * Județ/Localitate <select> fields render as the native OS popup (some
+ * counties have 700+ localities) — enhance them with WooCommerce's bundled
+ * selectWoo (Select2 fork), already enqueued on cart/checkout/account pages,
+ * into a searchable, height-capped dropdown instead.
+ */
+function papetarie_storefront_enqueue_enhanced_selects_script(): void
+{
+    if (!function_exists('is_checkout') || !function_exists('is_account_page')) {
+        return;
+    }
+
+    if (!is_checkout() && !is_account_page()) {
+        return;
+    }
+
+    $script_path = get_stylesheet_directory() . '/assets/js/pap-enhanced-selects.js';
+    $script_version = file_exists($script_path) ? (string) filemtime($script_path) : wp_get_theme()->get('Version');
+
+    wp_enqueue_script(
+        'papetarie-storefront-enhanced-selects',
+        get_stylesheet_directory_uri() . '/assets/js/pap-enhanced-selects.js',
+        ['jquery', 'selectWoo'],
+        $script_version,
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_enhanced_selects_script', 20);
 
 function papetarie_storefront_checkout_title_filter(string $title, int $post_id = 0): string
 {
@@ -1894,6 +1958,26 @@ function papetarie_storefront_clear_guest_checkout_cookies_on_logout(): void
 }
 add_action('wp_logout', 'papetarie_storefront_clear_guest_checkout_cookies_on_logout');
 
+/**
+ * Ciorna de adresa de la checkout (pentru useri logati) traieste in
+ * WC()->session - o sesiune legata de cookie-ul de browser, nu de userul
+ * autentificat, si nu era curatata la logout (doar cookie-urile fluxului de
+ * guest erau). Pe un calculator/telefon partajat, cineva care abandoneaza
+ * checkout-ul fara sa plaseze comanda, apoi se delogheaza, lasa numele,
+ * telefonul si adresa tastate acolo vizibile urmatorului cont care se
+ * logheaza pe acelasi browser, pana expira sesiunea WC (~48h) sau cineva
+ * plaseaza o comanda. Se curata deja automat dupa o comanda plasata cu
+ * succes (woocommerce_checkout_order_processed) - lipsea doar pe ruta de
+ * logout fara comanda finalizata.
+ */
+function papetarie_storefront_clear_checkout_temporary_address_on_logout(): void
+{
+    if (function_exists('papetarie_storefront_address_book_checkout_clear_temporary_state')) {
+        papetarie_storefront_address_book_checkout_clear_temporary_state();
+    }
+}
+add_action('wp_logout', 'papetarie_storefront_clear_checkout_temporary_address_on_logout');
+
 function papetarie_storefront_checkout_guest_shipping_snapshot(): array
 {
     if (
@@ -2265,45 +2349,42 @@ function papetarie_storefront_checkout_standard_account_address_snapshot(): arra
         $user_email = sanitize_email((string) $user->user_email);
     }
 
-    $build_candidate = static function (string $prefix) use ($user_email, $user_id): array {
-        $getter = static fn (string $field): string => trim((string) get_user_meta($user_id, $prefix . '_' . $field, true));
+    // Was reading raw billing_*/shipping_* user meta - the pre-address-book
+    // legacy WC fields, only ever populated by an actual completed checkout.
+    // The address book (papetarie_storefront_address_book_default_address,
+    // the same source every other account page reads) is the real place an
+    // address lives now, so any account whose only address came from Adrese
+    // - not from a prior order - always saw those legacy fields empty and
+    // fell through to the editable form instead of the summary, even though
+    // "Adresa mea" clearly showed a saved address.
+    $address = function_exists('papetarie_storefront_address_book_default_address')
+        ? papetarie_storefront_address_book_default_address($user_id)
+        : [];
 
-        return [
-            'first_name' => $getter('first_name'),
-            'last_name' => $getter('last_name'),
-            'phone' => $getter('phone'),
-            'state' => $getter('state'),
-            'city' => $getter('city'),
-            'postcode' => $getter('postcode'),
-            'address_1' => $getter('address_1'),
-            'address_2' => $getter('address_2'),
-            'email' => $user_email,
-        ];
-    };
+    if (empty($address) || trim((string) ($address['address_1'] ?? '')) === '') {
+        return [];
+    }
 
-    $is_complete = static function (array $candidate): bool {
-        $required = ['first_name', 'last_name', 'phone', 'state', 'city', 'address_1', 'postcode'];
+    $candidate = [
+        'first_name' => trim((string) ($address['first_name'] ?? '')),
+        'last_name' => trim((string) ($address['last_name'] ?? '')),
+        'phone' => trim((string) ($address['phone'] ?? '')),
+        'state' => trim((string) ($address['state'] ?? '')),
+        'city' => trim((string) ($address['city'] ?? '')),
+        'postcode' => trim((string) ($address['postcode'] ?? '')),
+        'address_1' => trim((string) ($address['address_1'] ?? '')),
+        'address_2' => trim((string) ($address['address_2'] ?? '')),
+        'email' => $user_email,
+    ];
 
-        foreach ($required as $field) {
-            if (trim((string) ($candidate[$field] ?? '')) === '') {
-                return false;
-            }
+    $required = ['first_name', 'last_name', 'phone', 'state', 'city', 'address_1', 'postcode'];
+    foreach ($required as $field) {
+        if ($candidate[$field] === '') {
+            return [];
         }
-
-        return true;
-    };
-
-    $shipping = $build_candidate('shipping');
-    if ($is_complete($shipping)) {
-        return $shipping;
     }
 
-    $billing = $build_candidate('billing');
-    if ($is_complete($billing)) {
-        return $billing;
-    }
-
-    return [];
+    return $candidate;
 }
 
 function papetarie_storefront_checkout_address_card_icon_svg(string $kind): string
@@ -2521,152 +2602,6 @@ function papetarie_storefront_checkout_step_state(string $step): string
 
     return 'active';
 }
-
-function papetarie_storefront_sync_standard_checkout_address_from_legacy(int $user_id): void
-{
-    if ($user_id <= 0 || !function_exists('WC') || !WC() || !(WC()->customer instanceof WC_Customer)) {
-        return;
-    }
-
-    $needs_sync = !papetarie_storefront_checkout_standard_address_has_content();
-    $legacy_address = null;
-
-    if (function_exists('papetarie_storefront_address_book_default_address')) {
-        $legacy_address = papetarie_storefront_address_book_default_address($user_id);
-    }
-
-    if (!$legacy_address && function_exists('papetarie_storefront_address_book_get_all')) {
-        $all_addresses = papetarie_storefront_address_book_get_all($user_id, false);
-        $legacy_address = !empty($all_addresses) && is_array($all_addresses[0]) ? $all_addresses[0] : null;
-    }
-
-    if (!$legacy_address || !is_array($legacy_address)) {
-        return;
-    }
-
-    $legacy_address = wp_parse_args($legacy_address, [
-        'first_name' => '',
-        'last_name' => '',
-        'email' => '',
-        'phone' => '',
-        'company' => '',
-        'country' => 'RO',
-        'state' => '',
-        'city' => '',
-        'postcode' => '',
-        'address_1' => '',
-        'address_2' => '',
-    ]);
-
-    if (papetarie_storefront_checkout_standard_address_has_content()) {
-        delete_user_meta($user_id, papetarie_storefront_address_book_meta_key());
-        delete_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key());
-        return;
-    }
-
-    if (!$needs_sync) {
-        return;
-    }
-
-    $customer = WC()->customer;
-    $user = get_userdata($user_id);
-    $billing_first_name = trim((string) $legacy_address['first_name']);
-    $billing_last_name = trim((string) $legacy_address['last_name']);
-    $fallback_email = $user instanceof WP_User ? (string) $user->user_email : '';
-    $billing_email = sanitize_email((string) ($legacy_address['email'] ?: $customer->get_billing_email() ?: $fallback_email));
-    $billing_phone = trim((string) $legacy_address['phone']);
-    $billing_company = trim((string) $legacy_address['company']);
-    $billing_country = strtoupper(trim((string) $legacy_address['country'])) ?: 'RO';
-    $billing_state = strtoupper(sanitize_key((string) $legacy_address['state']));
-    $billing_city = trim((string) $legacy_address['city']);
-    $billing_postcode = trim((string) $legacy_address['postcode']);
-    $billing_address_1 = trim((string) $legacy_address['address_1']);
-    $billing_address_2 = trim((string) $legacy_address['address_2']);
-
-    if ($billing_first_name === '' && $billing_last_name === '' && $billing_address_1 === '' && $billing_city === '' && $billing_postcode === '') {
-        return;
-    }
-
-    $updates = [
-        'billing_first_name' => $billing_first_name,
-        'billing_last_name' => $billing_last_name,
-        'billing_email' => $billing_email,
-        'billing_phone' => $billing_phone,
-        'billing_company' => $billing_company,
-        'billing_country' => $billing_country,
-        'billing_state' => $billing_state,
-        'billing_city' => $billing_city,
-        'billing_postcode' => $billing_postcode,
-        'billing_address_1' => $billing_address_1,
-        'billing_address_2' => $billing_address_2,
-        'shipping_first_name' => $billing_first_name,
-        'shipping_last_name' => $billing_last_name,
-        'shipping_company' => $billing_company,
-        'shipping_country' => $billing_country,
-        'shipping_state' => $billing_state,
-        'shipping_city' => $billing_city,
-        'shipping_postcode' => $billing_postcode,
-        'shipping_address_1' => $billing_address_1,
-        'shipping_address_2' => $billing_address_2,
-    ];
-
-    foreach ($updates as $key => $value) {
-        update_user_meta($user_id, $key, $value);
-    }
-
-    update_user_meta($user_id, 'first_name', $billing_first_name);
-    update_user_meta($user_id, 'last_name', $billing_last_name);
-    if ($billing_email !== '') {
-        update_user_meta($user_id, 'billing_email', $billing_email);
-    }
-
-    $customer->set_billing_first_name($billing_first_name);
-    $customer->set_billing_last_name($billing_last_name);
-    $customer->set_billing_email($billing_email);
-    $customer->set_billing_phone($billing_phone);
-    $customer->set_billing_company($billing_company);
-    $customer->set_billing_country($billing_country);
-    $customer->set_billing_state($billing_state);
-    $customer->set_billing_city($billing_city);
-    $customer->set_billing_postcode($billing_postcode);
-    $customer->set_billing_address_1($billing_address_1);
-    $customer->set_billing_address_2($billing_address_2);
-    $customer->set_shipping_first_name($billing_first_name);
-    $customer->set_shipping_last_name($billing_last_name);
-    $customer->set_shipping_company($billing_company);
-    $customer->set_shipping_country($billing_country);
-    $customer->set_shipping_state($billing_state);
-    $customer->set_shipping_city($billing_city);
-    $customer->set_shipping_postcode($billing_postcode);
-    $customer->set_shipping_address_1($billing_address_1);
-    $customer->set_shipping_address_2($billing_address_2);
-    $customer->save();
-
-    delete_user_meta($user_id, papetarie_storefront_address_book_meta_key());
-    delete_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key());
-}
-
-add_action('wp_loaded', static function (): void {
-    if (!function_exists('is_user_logged_in') || !is_user_logged_in()) {
-        return;
-    }
-
-    if (function_exists('is_admin') && is_admin()) {
-        return;
-    }
-
-    $should_sync = (function_exists('is_account_page') && is_account_page())
-        || (function_exists('is_checkout') && is_checkout());
-
-    if (!$should_sync) {
-        return;
-    }
-
-    $user_id = get_current_user_id();
-    if ($user_id > 0) {
-        papetarie_storefront_sync_standard_checkout_address_from_legacy($user_id);
-    }
-}, 20);
 
 function papetarie_storefront_get_checkout_shipping_address_html(): string
 {
@@ -2918,6 +2853,7 @@ function papetarie_storefront_translate_frontend_strings(string $translated, str
     }
 
     $map = [
+        'Order #%s' => 'Comandă #%s',
         'Login' => 'Autentificare',
         'Register' => 'Creare cont',
         'Lost your password?' => 'Ai uitat parola?',
@@ -2944,7 +2880,7 @@ function papetarie_storefront_translate_frontend_strings(string $translated, str
         'My account' => 'Contul meu',
         'Dashboard' => 'Panou',
         'Orders' => 'Comenzile mele',
-        'Addresses' => 'Adrese',
+        'Addresses' => 'Adresă de livrare',
         'Account details' => 'Detalii cont',
         'Downloads' => 'Descărcări',
         'Payment methods' => 'Metode de plată',
@@ -5034,14 +4970,13 @@ function papetarie_storefront_render_cart_drawer_empty_state(): void
     echo '<div class="pap-cart-drawer-empty" aria-live="polite">'
         . '<div class="pap-cart-drawer-empty-inner">'
         . '<div class="pap-cart-drawer-empty-illustration" aria-hidden="true">'
-        . '<span class="pap-cart-drawer-empty-circle"></span>'
-        . '<i class="fa-solid fa-cart-shopping pap-cart-drawer-empty-icon" aria-hidden="true"></i>'
+        . '<i class="fa-solid fa-bag-shopping pap-cart-drawer-empty-icon" aria-hidden="true"></i>'
         . '</div>'
         . '<strong class="pap-cart-drawer-empty-title">' . esc_html__('Coșul tău este gol', 'papetarie-storefront') . '</strong>'
-        . '<p class="pap-cart-drawer-empty-message">' . esc_html__('Adaugă produse pentru a începe comanda.') . '<br>' . esc_html__('Poți găsi rapid consumabile, papetărie') . '<br>' . esc_html__('și echipamente de birou.') . '</p>'
+        . '<p class="pap-cart-drawer-empty-message">' . esc_html__('Adaugă produse pentru a începe comanda. Poți găsi rapid consumabile, papetărie și echipamente de birou.', 'papetarie-storefront') . '</p>'
         . '<button type="button" class="button pap-cart-drawer-empty-button" data-cart-drawer-empty-continue>'
-        . '<i class="fa-solid fa-arrow-right pap-cart-drawer-empty-button-icon" aria-hidden="true"></i>'
         . '<span>' . esc_html__('Continuă cumpărăturile', 'papetarie-storefront') . '</span>'
+        . '<i class="fa-solid fa-arrow-right pap-cart-drawer-empty-button-icon" aria-hidden="true"></i>'
         . '</button>'
         . '</div>'
         . '</div>';
@@ -5058,7 +4993,10 @@ function papetarie_storefront_render_cart_drawer(): void
           <div class="pap-cart-drawer-head-copy">
             <h2><?php esc_html_e('Coșul meu', 'papetarie-storefront'); ?></h2>
           </div>
-          <button type="button" class="pap-cart-drawer-close" data-cart-drawer-close aria-label="<?php esc_attr_e('Închide coșul', 'papetarie-storefront'); ?>">&times;</button>
+          <div class="pap-cart-drawer-head-actions">
+            <span class="pap-cart-drawer-badge" aria-hidden="true">● <?php esc_html_e('Gol', 'papetarie-storefront'); ?></span>
+            <button type="button" class="pap-cart-drawer-close" data-cart-drawer-close aria-label="<?php esc_attr_e('Închide coșul', 'papetarie-storefront'); ?>">&times;</button>
+          </div>
         </header>
 
         <div class="pap-cart-drawer-body">
@@ -7811,12 +7749,25 @@ function papetarie_storefront_checkout_fields(array $fields): array
         $fields['billing']['billing_first_name']['label'] = __('Prenume', 'papetarie-storefront');
         $fields['billing']['billing_first_name']['placeholder'] = __('Prenume', 'papetarie-storefront');
         $fields['billing']['billing_first_name']['priority'] = 10;
+        // WC core defaults this field's class to ['form-row-first'] (its own
+        // 47%-width float layout), which fights the theme's grid-based
+        // ".pap-form-row--split" pairing and squashes the field to half the
+        // width of every other paired field on the form. No other field here
+        // carries this legacy class, which is why only Prenume/Nume were affected.
+        $fields['billing']['billing_first_name']['class'] = array_values(array_diff(
+            (array) ($fields['billing']['billing_first_name']['class'] ?? []),
+            ['form-row-first', 'form-row-last']
+        ));
     }
 
     if (isset($fields['billing']['billing_last_name'])) {
         $fields['billing']['billing_last_name']['label'] = __('Nume', 'papetarie-storefront');
         $fields['billing']['billing_last_name']['placeholder'] = __('Nume', 'papetarie-storefront');
         $fields['billing']['billing_last_name']['priority'] = 20;
+        $fields['billing']['billing_last_name']['class'] = array_values(array_diff(
+            (array) ($fields['billing']['billing_last_name']['class'] ?? []),
+            ['form-row-first', 'form-row-last']
+        ));
     }
 
     $fields['billing']['billing_cui'] = [
@@ -8725,6 +8676,7 @@ function papetarie_storefront_checkout_validate(array $data, \WP_Error $errors):
     $billing_city = isset($data['billing_city']) ? trim((string) $data['billing_city']) : '';
     $billing_address_1 = isset($data['billing_address_1']) ? trim((string) $data['billing_address_1']) : '';
     $billing_postcode = isset($data['billing_postcode']) ? trim((string) $data['billing_postcode']) : '';
+    $billing_phone = isset($data['billing_phone']) ? trim((string) $data['billing_phone']) : '';
     $shipping_state = isset($data['shipping_state']) ? sanitize_text_field((string) $data['shipping_state']) : '';
     $shipping_city = isset($data['shipping_city']) ? trim((string) $data['shipping_city']) : '';
     $shipping_address_1 = isset($data['shipping_address_1']) ? trim((string) $data['shipping_address_1']) : '';
@@ -8800,6 +8752,18 @@ function papetarie_storefront_checkout_validate(array $data, \WP_Error $errors):
     } elseif (!preg_match('/^[0-9]{6}$/', preg_replace('/\s+/', '', $address_postcode))) {
         $errors->add('shipping_postcode_invalid', __('Introdu un cod poștal valid.', 'papetarie-storefront'));
     }
+
+    // Aceeasi regula ca la Adrese (includes/address-book.php) - minim 8
+    // cifre - ca telefonul de contact pentru livrare sa fie la fel de strict
+    // validat oriunde e introdus, nu doar la editarea adresei salvate.
+    if ($billing_phone === '') {
+        $errors->add('billing_phone_required', __('Introdu telefonul.', 'papetarie-storefront'));
+    } else {
+        $billing_phone_digits = preg_replace('/\D+/', '', $billing_phone);
+        if (strlen($billing_phone_digits) < 8) {
+            $errors->add('billing_phone_invalid', __('Numărul de telefon nu pare valid.', 'papetarie-storefront'));
+        }
+    }
 }
 add_action('woocommerce_after_checkout_validation', 'papetarie_storefront_checkout_validate', 10, 2);
 
@@ -8847,7 +8811,7 @@ function papetarie_storefront_account_menu_items(array $items): array
     return [
         'dashboard' => __('Acasă', 'papetarie-storefront'),
         'orders' => __('Comenzile mele', 'papetarie-storefront'),
-        'edit-address' => __('Adrese', 'papetarie-storefront'),
+        'edit-address' => __('Adresă de livrare', 'papetarie-storefront'),
         'edit-account' => __('Detalii cont', 'papetarie-storefront'),
         'customer-logout' => __('Deconectare', 'papetarie-storefront'),
     ];
@@ -8923,8 +8887,55 @@ function papetarie_storefront_render_account_icon(string $name, string $extra_cl
     );
 }
 
+// Contor propriu, independent de ID-ul intern WordPress (care pornea de la
+// numere mari/urate gen 23667). Incrementare atomica prin UPDATE ... LAST_INSERT_ID()
+// - evita ca doua comenzi plasate simultan sa primeasca acelasi numar, fara
+// nevoie de un lock separat. NU e numar de factura fiscala (magazinul nu e
+// platitor de TVA), doar un identificator de comanda usor de citit/comunicat.
+function papetarie_storefront_next_order_sequence_number(): int
+{
+    global $wpdb;
+
+    $option_name = 'pap_order_number_counter';
+
+    if (false === get_option($option_name, false)) {
+        add_option($option_name, 0, '', false);
+    }
+
+    $wpdb->query($wpdb->prepare(
+        "UPDATE {$wpdb->options} SET option_value = LAST_INSERT_ID(option_value + 1) WHERE option_name = %s",
+        $option_name
+    ));
+
+    return (int) $wpdb->get_var('SELECT LAST_INSERT_ID()');
+}
+
+function papetarie_storefront_assign_order_sequence_number($order_id): void
+{
+    $order = wc_get_order($order_id);
+    if (!$order instanceof WC_Order) {
+        return;
+    }
+
+    if ($order->get_meta('_pap_order_seq', true) !== '') {
+        return;
+    }
+
+    $order->update_meta_data('_pap_order_seq', papetarie_storefront_next_order_sequence_number());
+    $order->save();
+}
+add_action('woocommerce_new_order', 'papetarie_storefront_assign_order_sequence_number', 20, 1);
+
 function papetarie_storefront_account_order_display_number(WC_Order $order): string
 {
+    $sequence_number = (int) $order->get_meta('_pap_order_seq', true);
+
+    if ($sequence_number > 0) {
+        return '#NOTIX-' . str_pad((string) $sequence_number, 4, '0', STR_PAD_LEFT);
+    }
+
+    // Comenzi (foarte vechi, dinainte de acest sistem) fara numar secvential
+    // atribuit inca - fallback la vechiul format, ca sa nu ramana fara numar afisat.
     $raw_number = (string) $order->get_order_number();
     $normalized_number = preg_replace('/^SH-?/i', '', $raw_number);
 
@@ -8935,48 +8946,13 @@ function papetarie_storefront_account_order_display_number(WC_Order $order): str
     return '#SH-' . $normalized_number;
 }
 
-function papetarie_storefront_account_order_summary_secondary(WC_Order $order): string
-{
-    $status_data = papetarie_storefront_account_order_status_data($order);
-    $date = $order->get_date_created() ? wp_date('j F Y', $order->get_date_created()->getTimestamp()) : '';
-
-    switch ($order->get_status()) {
-        case 'completed':
-            return $date
-                ? sprintf(
-                    /* translators: %s: order date. */
-                    __('Finalizată pe %s.', 'papetarie-storefront'),
-                    $date
-                )
-                : __('Finalizată.', 'papetarie-storefront');
-        case 'processing':
-            return __('În procesare.', 'papetarie-storefront');
-        case 'pending':
-        case 'on-hold':
-            return __('În așteptare.', 'papetarie-storefront');
-        case 'cancelled':
-        case 'refunded':
-        case 'failed':
-            return __('Anulată.', 'papetarie-storefront');
-        default:
-            return $date
-                ? sprintf(
-                    /* translators: %s: order date. */
-                    __('%1$s pe %2$s.', 'papetarie-storefront'),
-                    $status_data['label'],
-                    $date
-                )
-                : $status_data['label'];
-    }
-}
-
 function papetarie_storefront_account_order_status_data(WC_Order $order): array
 {
     $status = $order->get_status();
 
     $map = [
         'completed' => [
-            'label' => __('Livrată', 'papetarie-storefront'),
+            'label' => __('Livrat', 'papetarie-storefront'),
             'class' => 'is-success',
         ],
         'processing' => [
@@ -8992,15 +8968,15 @@ function papetarie_storefront_account_order_status_data(WC_Order $order): array
             'class' => 'is-pending',
         ],
         'cancelled' => [
-            'label' => __('Anulată', 'papetarie-storefront'),
+            'label' => __('Anulat', 'papetarie-storefront'),
             'class' => 'is-cancelled',
         ],
         'refunded' => [
-            'label' => __('Anulată', 'papetarie-storefront'),
-            'class' => 'is-cancelled',
+            'label' => __('Rambursat', 'papetarie-storefront'),
+            'class' => 'is-neutral',
         ],
         'failed' => [
-            'label' => __('Anulată', 'papetarie-storefront'),
+            'label' => __('Anulat', 'papetarie-storefront'),
             'class' => 'is-cancelled',
         ],
     ];
@@ -9051,77 +9027,46 @@ function papetarie_storefront_account_order_payment_suffix(WC_Order $order): str
     }
 
     if ($last4 !== '') {
-        return sprintf('%1$s • .... %2$s', $payment_method_title, $last4);
+        return sprintf('%1$s •••• %2$s', $payment_method_title, $last4);
     }
 
     return $payment_method_title;
-}
-
-function papetarie_storefront_account_shipping_method_label(WC_Order $order): string
-{
-    $shipping_methods = [];
-
-    foreach ($order->get_items('shipping') as $shipping_item) {
-        if ($shipping_item instanceof WC_Order_Item_Shipping) {
-            $label = trim((string) $shipping_item->get_name());
-            if ($label !== '') {
-                $shipping_methods[] = $label;
-            }
-        }
-    }
-
-    if (!$shipping_methods) {
-        $shipping_methods[] = __('Curier rapid', 'papetarie-storefront');
-    }
-
-    return implode(', ', array_unique($shipping_methods));
-}
-
-function papetarie_storefront_account_shipping_company_label(WC_Order $order): string
-{
-    $shipping_company = trim((string) $order->get_shipping_company());
-    $shipping_first_name = trim((string) $order->get_shipping_first_name());
-    $shipping_last_name = trim((string) $order->get_shipping_last_name());
-    $shipping_city = trim((string) $order->get_shipping_city());
-
-    if ($shipping_company !== '') {
-        return $shipping_company;
-    }
-
-    $name = trim($shipping_first_name . ' ' . $shipping_last_name);
-    $parts = array_filter([$name, $shipping_city]);
-
-    if ($parts) {
-        return implode(' Â· ', $parts);
-    }
-
-    $billing_company = trim((string) $order->get_billing_company());
-    if ($billing_company !== '') {
-        return $billing_company;
-    }
-
-    return __('Fan Courier', 'papetarie-storefront');
 }
 
 function papetarie_storefront_account_order_totals_rows(WC_Order $order): array
 {
     $subtotal = (float) $order->get_subtotal();
     $shipping_total = (float) $order->get_shipping_total();
+    $discount_total = (float) $order->get_discount_total();
 
-    return [
+    $rows = [
         [
             'label' => __('Subtotal', 'papetarie-storefront'),
             'value' => papetarie_storefront_format_plain_currency_amount($subtotal),
         ],
-        [
-            'label' => __('Transport', 'papetarie-storefront'),
-            'value' => papetarie_storefront_format_plain_currency_amount($shipping_total),
-        ],
-        [
-            'label' => __('Total comandă', 'papetarie-storefront'),
-            'value' => papetarie_storefront_format_plain_currency_amount((float) $order->get_total()),
-        ],
     ];
+
+    // Fara asta, Subtotal + Transport nu mai da Total platit de fiecare
+    // data cand a fost folosit un cupon (magazinul are cupoane active la
+    // cos/checkout) - clientul ar vedea o suma care nu se aduna.
+    if ($discount_total > 0) {
+        $rows[] = [
+            'label' => __('Discount', 'papetarie-storefront'),
+            'value' => '−' . papetarie_storefront_format_plain_currency_amount($discount_total),
+        ];
+    }
+
+    $rows[] = [
+        'label' => __('Transport', 'papetarie-storefront'),
+        'value' => papetarie_storefront_format_plain_currency_amount($shipping_total),
+    ];
+
+    $rows[] = [
+        'label' => __('Total plătit', 'papetarie-storefront'),
+        'value' => papetarie_storefront_format_plain_currency_amount((float) $order->get_total()),
+    ];
+
+    return $rows;
 }
 
 function papetarie_storefront_account_order_item_rows(WC_Order $order): array
@@ -9138,10 +9083,26 @@ function papetarie_storefront_account_order_item_rows(WC_Order $order): array
         $subtotal = (float) $order->get_line_subtotal($item, true, true);
         $total = (float) $item->get_total() + (float) $item->get_total_tax();
 
+        // Produsele cu stoc 0 trec automat pe "draft" (vezi aperta-sync.php)
+        // si raman asa pana sunt republicate manual - un produs dintr-o
+        // comanda mai veche poate sa nu mai fie deloc vizibil azi. Link +
+        // fara eticheta doar daca inca exista, e publicat SI e pe stoc chiar
+        // acum (is_in_stock() tine cont si de backorder) - altfel eticheta
+        // "Indisponibil momentan" si fara link, ca sa nu trimitem niciodata
+        // spre o pagina moarta. Verificarea e live la fiecare afisare a
+        // paginii, deci daca produsul revine pe stoc si e republicat,
+        // eticheta dispare si link-ul apare din nou automat, fara alta
+        // interventie.
+        $product_available = $product instanceof WC_Product
+            && $product->get_status() === 'publish'
+            && $product->is_in_stock();
+
         $rows[] = [
             'name' => $item->get_name(),
             'sku' => $product instanceof WC_Product ? $product->get_sku() : '',
             'image' => $product instanceof WC_Product ? $product->get_image_id() : 0,
+            'url' => $product_available ? get_permalink($product->get_id()) : '',
+            'available' => $product_available,
             'unit_price' => papetarie_storefront_format_plain_currency_amount($quantity > 0 ? $subtotal / $quantity : $subtotal),
             'quantity' => (string) $quantity,
             'total' => papetarie_storefront_format_plain_currency_amount($total),
@@ -9245,61 +9206,6 @@ function papetarie_storefront_account_customer_order_count(int $user_id): int
     ]));
 }
 
-function papetarie_storefront_account_dashboard_stats(int $user_id): array
-{
-    $recent_orders = papetarie_storefront_account_customer_orders($user_id, [
-        'limit' => -1,
-    ]);
-    $order_count = papetarie_storefront_account_customer_order_count($user_id);
-    $last_order = null;
-
-    foreach ($recent_orders as $recent_order) {
-        if ($recent_order instanceof WC_Order) {
-            $last_order = $recent_order;
-            break;
-        }
-    }
-
-    return [
-        [
-            'label' => __('Comenzi', 'papetarie-storefront'),
-            'value' => (string) $order_count,
-            'secondary' => $order_count > 0
-                ? __('Comenzi plasate.', 'papetarie-storefront')
-                : __('Nu ai comenzi încă.', 'papetarie-storefront'),
-            'icon' => 'cart',
-            'tone' => 'blue',
-            'href' => wc_get_account_endpoint_url('orders'),
-            'aria_label' => $order_count > 0
-                ? sprintf(
-                    /* translators: %s: order count. */
-                    __('Comenzi: %s. Comenzi plasate.', 'papetarie-storefront'),
-                    (string) $order_count
-                )
-                : __('Comenzi: 0. Nu ai comenzi încă.', 'papetarie-storefront'),
-        ],
-        [
-            'label' => __('Ultima comandă', 'papetarie-storefront'),
-            'value' => $last_order instanceof WC_Order
-                ? (function_exists('papetarie_storefront_account_order_display_number') ? papetarie_storefront_account_order_display_number($last_order) : ('#' . $last_order->get_order_number()))
-                : '—',
-            'secondary' => $last_order instanceof WC_Order
-                ? papetarie_storefront_account_order_summary_secondary($last_order)
-                : __('Nicio comandă aici.', 'papetarie-storefront'),
-            'icon' => 'paper',
-            'tone' => 'green',
-            'href' => $last_order instanceof WC_Order ? $last_order->get_view_order_url() : wc_get_account_endpoint_url('orders'),
-            'aria_label' => $last_order instanceof WC_Order
-                ? sprintf(
-                    /* translators: %s: order number. */
-                    __('Ultima comandă %s. %s', 'papetarie-storefront'),
-                    function_exists('papetarie_storefront_account_order_display_number') ? papetarie_storefront_account_order_display_number($last_order) : ('#' . $last_order->get_order_number()),
-                    papetarie_storefront_account_order_summary_secondary($last_order)
-                )
-                : __('Ultima comandă. Nicio comandă aici.', 'papetarie-storefront'),
-        ],
-    ];
-}
 
 function papetarie_storefront_customer_real_order_count_filter($order_count, WC_Customer $customer)
 {
@@ -9382,38 +9288,6 @@ function papetarie_storefront_render_account_page_head(string $title, string $de
         </div>
       <?php endif; ?>
     </div>
-    <?php
-}
-
-function papetarie_storefront_render_account_tabs(array $tabs, string $active_tab, string $aria_label = '', string $nav_class = 'pap-account-address-tabs', string $tab_class = 'pap-account-address-tabs__tab'): void
-{
-    $active_tab = sanitize_key($active_tab);
-    $nav_class = trim($nav_class) !== '' ? $nav_class : 'pap-account-address-tabs';
-    $tab_class = trim($tab_class) !== '' ? $tab_class : 'pap-account-address-tabs__tab';
-    ?>
-    <nav class="<?php echo esc_attr($nav_class); ?>"<?php echo $aria_label !== '' ? ' aria-label="' . esc_attr($aria_label) . '"' : ''; ?>>
-      <?php foreach ($tabs as $tab_key => $tab) : ?>
-        <?php
-        $tab_key = sanitize_key((string) $tab_key);
-        $label = (string) ($tab['label'] ?? '');
-        $url = (string) ($tab['url'] ?? '');
-        $is_active = $tab_key === $active_tab;
-        ?>
-        <a class="<?php echo esc_attr($tab_class . ($is_active ? ' is-active' : '')); ?>" href="<?php echo esc_url($url); ?>"<?php echo $is_active ? ' aria-current="page"' : ''; ?>>
-          <?php echo esc_html($label); ?>
-        </a>
-      <?php endforeach; ?>
-    </nav>
-    <?php
-}
-
-function papetarie_storefront_render_account_tab_section(string $section_class, callable $renderer): void
-{
-    $section_class = trim($section_class) !== '' ? $section_class : 'pap-account-section';
-    ?>
-    <section class="<?php echo esc_attr($section_class); ?>">
-      <?php $renderer(); ?>
-    </section>
     <?php
 }
 
