@@ -1103,6 +1103,16 @@ function papetarie_storefront_aperta_sideload_image(string $url, int $productId)
     // normala, dar nu lasa un singur raspuns lent sa opreasca tot importul.
     $capTimeout = static function (array $args) {
         $args['timeout'] = min($args['timeout'] ?? 20, 20);
+        // Serverul Aperta respinge cu "403 Forbidden" cererile fara un
+        // User-Agent de browser (acelasi motiv pentru care descarcarea
+        // feed-ului insusi seteaza unul mai jos) - fara asta, WordPress
+        // trimite implicit un User-Agent generic si o parte din poze pica
+        // silentios cu 403 in loc sa se descarce, chiar daca alte poze ale
+        // aceluiasi produs, cerute in acelasi lot, trec (protectia lor pare
+        // sa fie inconsistenta/pe bursturi, nu un blocaj total). Confirmat
+        // live 2026-08-09: "stilou-schneider-688-verde.jpg" respinsa cu 403
+        // fara User-Agent, 200 OK cu unul de browser.
+        $args['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
         return $args;
     };
     add_filter('http_request_args', $capTimeout);
