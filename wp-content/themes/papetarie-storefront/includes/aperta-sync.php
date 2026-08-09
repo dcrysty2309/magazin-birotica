@@ -1894,6 +1894,12 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     // intamplare. Asa, incercarea se repeta la fiecare sincronizare pana
     // reuseste.
     $feedHasImages = false;
+    // "Imagine produs" poate contine mai multe URL-uri despartite prin "|"
+    // (vezi papetarie_storefront_aperta_image_urls) - numaram cate ofera
+    // randul principal, ca sa putem detecta un produs caruia ii lipsesc
+    // poze de galerie, nu doar unul fara nicio poza deloc.
+    $expectedImageCount = papetarie_storefront_aperta_image_urls((string) ($first['Imagine produs'] ?? ''));
+    $expectedImageCount = count($expectedImageCount);
     foreach ($rows as $row) {
         if (trim((string) ($row['Imagine produs'] ?? '')) !== '') {
             $feedHasImages = true;
@@ -1910,7 +1916,19 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
         // fara nicio sansa sa capete vreodata imagine principala) ar fi
         // reprocesate integral la fiecare rulare, la infinit - inclusiv pana la
         // 88 de descarcari de poze fiecare (gasit live 2026-07-30).
-        $imagesLookComplete = !$feedHasImages || $wasTrashed || has_post_thumbnail($productId);
+        // NU e suficient sa verificam doar has_post_thumbnail() - asta e
+        // adevarat dupa ce produsul a primit DOAR prima poza, chiar daca
+        // feed-ul ofera si poze de galerie neluate niciodata (gasit live
+        // 2026-08-09: ~46% din feed are 2+ poze per rand, dar has_post_thumbnail
+        // facea "imagesLookComplete" adevarat dupa prima poza si sarea peste
+        // restul definitiv). Numaram cate poze are deja produsul (thumbnail +
+        // galerie) si le comparam cu cate ofera feed-ul.
+        $currentImageCount = has_post_thumbnail($productId) ? 1 : 0;
+        $galleryIds = get_post_meta($productId, '_product_image_gallery', true);
+        if (is_string($galleryIds) && $galleryIds !== '') {
+            $currentImageCount += count(array_filter(explode(',', $galleryIds)));
+        }
+        $imagesLookComplete = !$feedHasImages || $wasTrashed || $currentImageCount >= $expectedImageCount;
         if ($storedHash === $rowHash && $imagesLookComplete) {
             return [
                 'product_id' => $productId,
