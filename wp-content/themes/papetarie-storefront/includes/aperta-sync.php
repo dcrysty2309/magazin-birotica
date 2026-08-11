@@ -1166,6 +1166,64 @@ function papetarie_storefront_aperta_sideload_images(array $urls, int $productId
     return $ids;
 }
 
+/**
+ * Amprenta de continut a unui attachment - Aperta uneste uneori acelasi
+ * fisier de imagine sub URL-uri diferite (ex. aceeasi coperta de produs
+ * folosita ca a treia poza la doua variante de culoare diferite) - dedup-ul
+ * existent, dupa URL, nu prinde asta fiindca URL-urile chiar sunt diferite.
+ * Amprenta se calculeaza o singura data (cache in postmeta), nu la fiecare
+ * sincronizare.
+ */
+function papetarie_storefront_aperta_image_content_hash(int $attachmentId): ?string
+{
+    $cached = get_post_meta($attachmentId, '_pap_aperta_image_hash', true);
+    if (is_string($cached) && $cached !== '') {
+        return $cached;
+    }
+
+    $path = get_attached_file($attachmentId);
+    if (!$path || !file_exists($path)) {
+        return null;
+    }
+
+    $hash = md5_file($path);
+    if ($hash === false) {
+        return null;
+    }
+
+    update_post_meta($attachmentId, '_pap_aperta_image_hash', $hash);
+
+    return $hash;
+}
+
+/**
+ * Elimina duplicatele DUPA CONTINUT dintr-o lista ordonata de attachment
+ * ID-uri, pastrand prima aparitie - folosit doar pentru galeria comuna a
+ * unui produs (thumbnail-ul fiecarei variatii ramane neatins, ca fiecare
+ * varianta sa aiba tot o poza chiar daca e identica cu a alteia).
+ *
+ * @param array<int, int> $ids
+ * @return array<int, int>
+ */
+function papetarie_storefront_aperta_dedupe_image_ids(array $ids): array
+{
+    $seenHashes = [];
+    $deduped = [];
+
+    foreach ($ids as $id) {
+        $hash = papetarie_storefront_aperta_image_content_hash($id);
+        if ($hash !== null && isset($seenHashes[$hash])) {
+            continue;
+        }
+        if ($hash !== null) {
+            $seenHashes[$hash] = true;
+        }
+        $deduped[] = $id;
+    }
+
+    return $deduped;
+}
+
 // NOTA: 'any' in WP_Query/get_posts EXCLUDE 'trash' (particularitate WP,
 // nu include tot ce pare "orice status"). Includem explicit 'trash' aici,
 // altfel sincronizarea nu vede produsele excluse manual (curatenia facuta
@@ -2026,6 +2084,7 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
 
         $imageUrls = papetarie_storefront_aperta_image_urls((string) ($first['Imagine produs'] ?? ''));
         $imageIds = papetarie_storefront_aperta_sideload_images($imageUrls, $productId);
+        $imageIds = papetarie_storefront_aperta_dedupe_image_ids($imageIds);
         if (!empty($imageIds)) {
             $simple->set_image_id($imageIds[0]);
             $simple->set_gallery_image_ids(array_slice($imageIds, 1));
@@ -2300,9 +2359,18 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
     }
 
     if ($firstImageId !== null) {
+        // Dedup pe grupul intreg (thumbnail parinte + galeria comuna), nu
+        // doar per-varianta - Aperta poate trimite exact aceeasi poza (ex.
+        // coperta produsului) sub URL-uri diferite pentru variante diferite,
+        // iar fiecare ajunge in galeria comuna prin cate un apel separat de
+        // sideload_images(). Thumbnail-ul FIECAREI variatii ramane neatins
+        // (setat separat mai sus) - doar galeria comuna a parintelui se
+        // curata de duplicate.
+        $combinedIds = papetarie_storefront_aperta_dedupe_image_ids(array_merge([$firstImageId], array_keys($galleryImageIds)));
+
         $parent = new WC_Product_Variable($productId);
-        $parent->set_image_id($firstImageId);
-        $parent->set_gallery_image_ids(array_keys($galleryImageIds));
+        $parent->set_image_id($combinedIds[0]);
+        $parent->set_gallery_image_ids(array_slice($combinedIds, 1));
         $parent->save();
     }
 
