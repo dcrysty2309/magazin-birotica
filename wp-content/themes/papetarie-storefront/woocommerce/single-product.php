@@ -440,15 +440,24 @@ get_header();
 
       function showLightboxImage(index) {
         var thumb = lightboxThumbs[index];
-        if (!thumb || !lightboxStageImage) {
+        if (!lightboxStageImage) {
           return;
         }
 
-        lightboxIndex = index;
         zoomScale = 1;
         rotateDeg = 0;
         applyTransform();
 
+        if (!thumb) {
+          // Produsele cu o singura poza nu au niciun thumb in lightbox (PHP
+          // randeaza rândul de thumbs doar cand sunt 2+ poze) - fara acest
+          // fallback, imaginea din lightbox ramanea cu src="" din markup-ul
+          // initial (poza "sparta" la deschidere - gasit live 2026-08-12).
+          lightboxStageImage.src = mainImage ? mainImage.src : '';
+          return;
+        }
+
+        lightboxIndex = index;
         lightboxThumbs.forEach(function (item) {
           item.classList.remove('is-active');
         });
