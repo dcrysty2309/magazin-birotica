@@ -114,7 +114,7 @@ $pap_footer_link = static function (string $url, string $icon, string $color, st
                 'menu_class' => 'pap-footer-menu',
                 'fallback_cb' => static function () use ($pap_footer_link): void {
                     echo '<ul class="pap-footer-menu">'
-                        . $pap_footer_link('#', 'headset-outline', '#0d2e61', 'Contact')
+                        . $pap_footer_link(home_url('/contact/'), 'headset-outline', '#0d2e61', 'Contact')
                         . $pap_footer_link(home_url('/livrare/'), 'truck-outline', '#0d5e4a', 'Livrare')
                         . $pap_footer_link(home_url('/politica-de-retur/'), 'undo', '#ff5b1f', 'Politica de retur')
                         . $pap_footer_link(home_url('/intrebari-frecvente/'), 'help', '#f3373d', 'Intrebari frecvente')
