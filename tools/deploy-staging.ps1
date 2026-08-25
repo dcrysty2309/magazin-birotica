@@ -96,7 +96,7 @@ function Upload-Tree {
         }
 
         Write-Host "Uploading $relativePath"
-        & curl --ssl-reqd --ftp-create-dirs --ftp-skip-pasv-ip --retry 3 --retry-delay 2 --user "${FtpUser}:${FtpPassword}" -T $file.FullName $remoteUrl | Out-Null
+        & curl.exe --ssl-reqd --ftp-create-dirs --ftp-skip-pasv-ip --retry 3 --retry-delay 2 --user "${FtpUser}:${FtpPassword}" -T $file.FullName $remoteUrl | Out-Null
         if ($LASTEXITCODE -ne 0) {
             throw "Upload eșuat pentru $relativePath"
         }
@@ -157,7 +157,7 @@ function Assert-RemoteFileMatchesLocal {
     $tempPath = Join-Path ([System.IO.Path]::GetTempPath()) ("deploy-verify-" + [System.IO.Path]::GetRandomFileName())
 
     try {
-        & curl --silent --show-error --fail --location --output $tempPath --url $probeUrl
+        & curl.exe --silent --show-error --fail --location --output $tempPath --url $probeUrl
         if ($LASTEXITCODE -ne 0) {
             throw "Verificarea remote pentru $Label a eșuat (curl exit code $LASTEXITCODE)."
         }
@@ -245,7 +245,7 @@ function Upload-SingleFile {
     }
 
     Write-Host "Uploading $Label"
-    & curl --ssl-reqd --ftp-create-dirs --ftp-skip-pasv-ip --retry 3 --retry-delay 2 --user "${FtpUser}:${FtpPassword}" -T $LocalPath ("ftp://$FtpHost$RemotePath") | Out-Null
+    & curl.exe --ssl-reqd --ftp-create-dirs --ftp-skip-pasv-ip --retry 3 --retry-delay 2 --user "${FtpUser}:${FtpPassword}" -T $LocalPath ("ftp://$FtpHost$RemotePath") | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Upload eșuat pentru $Label"
     }
@@ -310,7 +310,7 @@ else {
                     cleanup_runner = 1
                 })
                 Write-Host " - package URL: $packageUrl"
-                $curlOutput = & curl --silent --show-error --fail --location --max-time 1200 --url $packageUrl
+                $curlOutput = & curl.exe --silent --show-error --fail --location --max-time 1200 --url $packageUrl
                 if ($LASTEXITCODE -ne 0) {
                     throw "curl a returnat exit code $LASTEXITCODE la extragerea pachetului."
                 }
@@ -378,8 +378,8 @@ Verificarea pe filesystem pentru pachetul ZIP nu corespunde cu fișierul local.
 
             if (-not $KeepRemoteRunner) {
                 Write-Host "Deleting remote runner/zip..."
-                & curl --ssl-reqd --user "${FtpUser}:${FtpPassword}" -Q "DELE $remoteRunnerPath" "ftp://$FtpHost/" | Out-Null
-                & curl --ssl-reqd --user "${FtpUser}:${FtpPassword}" -Q "DELE $remoteZipPath" "ftp://$FtpHost/" | Out-Null
+                & curl.exe --ssl-reqd --user "${FtpUser}:${FtpPassword}" -Q "DELE $remoteRunnerPath" "ftp://$FtpHost/" | Out-Null
+                & curl.exe --ssl-reqd --user "${FtpUser}:${FtpPassword}" -Q "DELE $remoteZipPath" "ftp://$FtpHost/" | Out-Null
             }
         }
     }
@@ -402,7 +402,7 @@ if (-not $DryRun) {
         while ($attempt -lt 3) {
             $attempt++
             try {
-                $statusCode = & curl -L --silent --show-error --output $NullSink --write-out "%{http_code}" --header "Cache-Control: no-cache" --url $url
+                $statusCode = & curl.exe -L --silent --show-error --output $NullSink --write-out "%{http_code}" --header "Cache-Control: no-cache" --url $url
                 if ($LASTEXITCODE -ne 0) {
                     throw "curl a returnat exit code $LASTEXITCODE."
                 }

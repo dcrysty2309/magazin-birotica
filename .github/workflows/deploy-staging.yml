@@ -1,0 +1,36 @@
+name: Deploy Staging Theme
+
+concurrency:
+  group: deploy-staging-main
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'wp-content/themes/papetarie-storefront/**'
+      - 'tools/deploy-staging.ps1'
+      - '.github/workflows/deploy-staging.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    runs-on: windows-latest
+    environment: staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy staging theme to server
+        shell: powershell
+        env:
+          STAGING_FTP_HOST: ${{ secrets.STAGING_FTP_HOST }}
+          STAGING_FTP_USER: ${{ secrets.STAGING_FTP_USER }}
+          STAGING_FTP_PASSWORD: ${{ secrets.STAGING_FTP_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:STAGING_FTP_HOST) -or [string]::IsNullOrWhiteSpace($env:STAGING_FTP_USER) -or [string]::IsNullOrWhiteSpace($env:STAGING_FTP_PASSWORD)) {
+            throw "Staging secrets are missing. Check the 'staging' environment secrets in GitHub Actions."
+          }
+          powershell -ExecutionPolicy Bypass -File .\tools\deploy-staging.ps1 -SkipPlugins
