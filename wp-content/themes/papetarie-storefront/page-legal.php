@@ -16,6 +16,7 @@ $pap_legal_map = [
     'despre-noi'                    => ['icon' => 'heart-outline',      'color' => '#8a32b0', 'deep' => '#5c1f76', 'eyebrow' => 'Notix'],
     'garantie'                      => ['icon' => 'check-circle',       'color' => '#0d5e4a', 'deep' => '#083d30', 'eyebrow' => 'Comenzi și retur'],
     'politica-de-cookie-uri'        => ['icon' => 'cookie',             'color' => '#ff5b1f', 'deep' => '#f0440b', 'eyebrow' => 'Informații legale'],
+    'contact'                       => ['icon' => 'headset-outline',    'color' => '#0d2e61', 'deep' => '#09224a', 'eyebrow' => 'Ajutor'],
 ];
 $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'color' => '#0d2e61', 'deep' => '#09224a', 'eyebrow' => 'Informații'];
 ?>
@@ -26,11 +27,10 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'col
     background: linear-gradient(135deg, color-mix(in srgb, var(--hex-color) 55%, #123a72) 0%, var(--hex-color) 45%, var(--hex-deep) 100%);
     padding: 48px 20px 42px;
   }
-  .pap-legal-hero-inner { max-width: 1040px; margin: 0 auto; display: flex; align-items: center; gap: 20px; position: relative; z-index: 2; }
   .pap-legal-hero-hex { position: absolute; inset: 0; opacity: .14; }
+  .pap-legal-hero-inner { max-width: 1040px; margin: 0 auto; display: flex; align-items: center; gap: 20px; position: relative; z-index: 2; }
   .pap-legal-hero-icon {
-    flex-shrink: 0; width: 60px; height: 52px;
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    flex-shrink: 0; width: 56px; height: 56px; border-radius: 50%;
     background: rgba(255,255,255,.18);
     display: flex; align-items: center; justify-content: center;
   }
@@ -48,23 +48,13 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'col
   .pap-legal-content { flex: 1; min-width: 0; max-width: 680px; font-family: var(--pap-font-sans); }
   .pap-legal-content p, .pap-legal-content li { font-size: 15px; line-height: 1.7; color: #3d4a63; }
   .pap-legal-content ul { padding-left: 20px; }
-  .pap-legal-content h2 { position: relative; padding-left: 50px; margin: 34px 0 12px; font-size: 19px; font-weight: 800; color: var(--pap-navy); scroll-margin-top: 20px; min-height: 30px; display: flex; align-items: center; }
+  .pap-legal-content h2 { margin: 30px 0 10px; font-size: 16.5px; font-weight: 800; color: var(--pap-navy); scroll-margin-top: 20px; }
   .pap-legal-content h2:first-of-type { margin-top: 0; }
-  .pap-legal-content h2::before {
-    content: ''; position: absolute; left: 0; top: 0;
-    width: 34px; height: 30px;
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  }
-  .pap-legal-content h2:nth-of-type(5n+1)::before { background: linear-gradient(160deg,#123a72,#0d2e61); }
-  .pap-legal-content h2:nth-of-type(5n+2)::before { background: linear-gradient(160deg,#a95bd1,#8a32b0); }
-  .pap-legal-content h2:nth-of-type(5n+3)::before { background: linear-gradient(160deg,#ff8b4d,#ff5b1f); }
-  .pap-legal-content h2:nth-of-type(5n+4)::before { background: linear-gradient(160deg,#3fa085,#0d5e4a); }
-  .pap-legal-content h2:nth-of-type(5n+5)::before { background: linear-gradient(160deg,#f3737a,#f3373d); }
   .pap-legal-content h3 { font-family: var(--pap-font-sans); font-size: 14.5px; font-weight: 800; color: var(--pap-navy); margin: 16px 0 8px; }
 
   .pap-legal-note { display: flex; gap: 12px; align-items: flex-start; background: #fff8ec; border: 1px solid #f5e0ae; border-radius: 12px; padding: 14px 18px; margin: 0 0 30px; }
-  .pap-legal-note-icon { flex-shrink: 0; width: 26px; height: 23px; margin-top: 2px; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); background: #e0a512; position: relative; }
-  .pap-legal-note-icon::after { content: '!'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 13px; font-family: var(--pap-font-sans); }
+  .pap-legal-note-icon { flex-shrink: 0; margin-top: 1px; color: #e0a512; font-weight: 900; font-size: 15px; font-family: var(--pap-font-sans); }
+  .pap-legal-note-icon::after { content: '!'; }
   .pap-legal-note-text { margin: 0 !important; font-size: 13px !important; color: #7a5c1f !important; line-height: 1.55 !important; }
 
   @media (max-width: 860px) {

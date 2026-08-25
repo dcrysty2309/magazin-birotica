@@ -6,8 +6,7 @@ $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/
 $logo_image = get_stylesheet_directory_uri() . '/assets/images/logo-notix.png';
 
 $pap_footer_link = static function (string $url, string $icon, string $color, string $label): string {
-    $iconMarkup = function_exists('papetarie_storefront_icon') ? papetarie_storefront_icon($icon) : '';
-    return '<li><a href="' . esc_url($url) . '"><span class="pap-footer-link-icon" style="--ic:' . esc_attr($color) . '">' . $iconMarkup . '</span>' . esc_html($label) . '</a></li>';
+    return '<li><a href="' . esc_url($url) . '">' . esc_html($label) . '</a></li>';
 };
 ?>
 </div>
@@ -72,14 +71,6 @@ $pap_footer_link = static function (string $url, string $icon, string $color, st
             flex-shrink: 0; font-size: 9px; font-weight: 800; letter-spacing: .04em;
             background: #0d2e61; color: #fff; padding: 3px 9px; border-radius: 999px; text-transform: uppercase;
           }
-          .pap-footer-menu a { display: flex; align-items: center; gap: 18px; }
-          .pap-footer-link-icon {
-            flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-            width: 16px; height: 14px;
-            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-            background: var(--ic, #0d2e61);
-          }
-          .pap-footer-link-icon svg { width: 8px; height: 8px; color: #fff; }
         </style>
 
       </div>
