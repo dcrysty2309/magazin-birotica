@@ -25,10 +25,10 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'col
   .pap-legal-hero {
     position: relative; overflow: hidden;
     background: linear-gradient(135deg, color-mix(in srgb, var(--hex-color) 55%, #123a72) 0%, var(--hex-color) 45%, var(--hex-deep) 100%);
-    padding: 48px 20px 42px;
+    padding: 48px 0 42px;
   }
   .pap-legal-hero-hex { position: absolute; inset: 0; opacity: .14; }
-  .pap-legal-hero-inner { max-width: 1040px; margin: 0 auto; display: flex; align-items: center; gap: 20px; position: relative; z-index: 2; }
+  .pap-legal-hero-inner { display: flex; align-items: center; gap: 20px; position: relative; z-index: 2; }
   .pap-legal-hero-icon {
     flex-shrink: 0; width: 56px; height: 56px; border-radius: 50%;
     background: rgba(255,255,255,.18);
@@ -38,7 +38,7 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'col
   .pap-legal-hero-eyebrow { font-family: var(--pap-font-sans); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.7); margin-bottom: 6px; }
   .pap-legal-hero-title { font-family: var(--pap-font-sans); font-size: 28px; font-weight: 900; color: #fff; margin: 0; }
 
-  .pap-legal-body { display: flex; gap: 40px; padding: 44px 0 60px; align-items: flex-start; }
+  .pap-legal-body { display: flex; gap: 40px; padding-block: 44px 60px; align-items: flex-start; }
   .pap-legal-toc { width: 220px; flex-shrink: 0; position: sticky; top: 24px; }
   .pap-legal-toc:empty { display: none; }
   .pap-legal-toc-title { font-family: var(--pap-font-sans); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #8a96a8; margin-bottom: 14px; }
@@ -46,7 +46,7 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'col
   .pap-legal-toc a:hover { color: var(--pap-navy); border-left-color: var(--hex-color); }
 
   .pap-legal-content { flex: 1; min-width: 0; max-width: 680px; font-family: var(--pap-font-sans); }
-  .pap-legal-content p, .pap-legal-content li { font-size: 15px; line-height: 1.7; color: #3d4a63; }
+  .pap-legal-content p, .pap-legal-content li { font-size: 14px; line-height: 1.7; color: #3d4a63; }
   .pap-legal-content ul { padding-left: 20px; }
   .pap-legal-content h2 { margin: 30px 0 10px; font-size: 16.5px; font-weight: 800; color: var(--pap-navy); scroll-margin-top: 20px; }
   .pap-legal-content h2:first-of-type { margin-top: 0; }
@@ -72,7 +72,7 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'col
       </pattern></defs>
       <rect width="100%" height="100%" fill="url(#papLegalHex)"/>
     </svg>
-    <div class="pap-legal-hero-inner">
+    <div class="pap-shell pap-legal-hero-inner">
       <div class="pap-legal-hero-icon"><?php echo papetarie_storefront_icon($pap_legal_conf['icon']); ?></div>
       <div>
         <div class="pap-legal-hero-eyebrow"><?php echo esc_html($pap_legal_conf['eyebrow']); ?></div>
