@@ -66,7 +66,7 @@ Text Domain: papetarie-storefront
 }
 
 body.theme-papetarie {
-  background: rgb(240, 242, 245);
+  background: var(--pap-soft);
   color: var(--pap-text);
   font-family: var(--pap-font-sans);
   min-height: 100vh;
@@ -414,6 +414,29 @@ body.theme-papetarie .site-content {
   line-height: 1.35;
 }
 
+.pap-topbar-message-short {
+  display: none;
+}
+
+/* Global <p> typography (body.theme-papetarie p { font-size: 14px }) beats
+   the inherited 12px from .pap-topbar because it targets the <p> directly -
+   direct declarations always win over inherited ones, regardless of
+   specificity. Re-declare it explicitly at the intended size. */
+body.theme-papetarie .pap-topbar-message p {
+  font-size: 12px;
+}
+
+/* Adding .pap-topbar-message-short as a second <p> means -full is no longer
+   :last-child, so the global "p:last-child gets margin-bottom:0" rule (which
+   used to apply when -full was the only paragraph) stops matching it and the
+   generic body.theme-papetarie p margin-bottom:12px wins instead (higher
+   specificity than the plain ".pap-topbar-message p" rule above). Re-zero it
+   explicitly here so the visible message stays vertically centered. */
+body.theme-papetarie .pap-topbar-message-full,
+body.theme-papetarie .pap-topbar-message-short {
+  margin: 0;
+}
+
 .pap-topbar-icon {
   display: inline-flex;
   align-items: center;
@@ -423,8 +446,8 @@ body.theme-papetarie .site-content {
 }
 
 .pap-topbar-icon svg {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
@@ -434,8 +457,8 @@ body.theme-papetarie .site-content {
   color: #b25a2d;
   font-size: 18px;
   line-height: 1;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -902,7 +925,7 @@ body.theme-papetarie .pap-site-header--checkout .pap-checkout-header__support-co
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #6b7280;
+  background: var(--pap-navy);
   color: #fff;
   display: flex;
   align-items: center;
@@ -981,7 +1004,7 @@ body.theme-papetarie .pap-site-header--checkout .pap-checkout-header__support-co
   color: #0d2e61;
 }
 
-.pap-header-tools span {
+.pap-tool-copy span {
   font-size: var(--pap-header-tool-meta-size);
   color: #6b7a95;
   line-height: 1.15;
@@ -990,6 +1013,52 @@ body.theme-papetarie .pap-site-header--checkout .pap-checkout-header__support-co
 
 .pap-tool-copy strong {
   white-space: nowrap;
+}
+
+/* Mobile hamburger trigger + off-canvas nav drawer chrome. Hidden by
+   default (desktop); switched on only under the compact-header breakpoint
+   further down (@media max-width: 980px). */
+.pap-mobile-menu-trigger,
+.pap-mobile-nav-head,
+.pap-mobile-nav-section-title {
+  display: none;
+}
+
+.pap-mobile-menu-trigger-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 18px;
+  height: 14px;
+}
+
+.pap-mobile-menu-trigger-icon span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.pap-mobile-nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  background: rgba(13, 46, 97, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.pap-mobile-nav-overlay[hidden] {
+  display: none;
+}
+
+.pap-mobile-nav-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .pap-nav-row {
@@ -1170,7 +1239,7 @@ body.home .pap-category-trigger {
   background: #fff;
   color: var(--pap-ink);
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr) 16px;
   gap: 10px;
   align-items: center;
   min-height: 46px;
@@ -1180,6 +1249,68 @@ body.home .pap-category-trigger {
   cursor: pointer;
   text-decoration: none;
   transition: background 0.18s ease, color 0.18s ease;
+}
+
+/* This element also carries .pap-showcase-nav-item (dual-purpose markup,
+   shared with the homepage category list - see functions.php/
+   front-page.php). That class defines its own 2-column grid (icon+label,
+   no chevron) with the same specificity as the rule above, and - because
+   it's declared later in this file - was winning at EVERY width, not just
+   mobile: the chevron this session added had nowhere to sit in a 2-column
+   grid and wrapped to its own row. Re-declared here with one extra
+   selector so it reliably wins instead, on desktop as much as mobile
+   (mobile has its own separate, still-higher-specificity 22px-icon
+   override further down) - matched to .pap-showcase-nav-item's own
+   geometry/typography (the homepage module is the reference the header
+   flyout must look like, not the other way around), just widened to a
+   3rd column for the chevron the homepage module doesn't need. */
+.pap-header-catmenu-shell .pap-header-catmenu-item {
+  grid-template-columns: 14px minmax(0, 1fr) 16px;
+  min-height: 37.5px;
+  padding: 9px 16px;
+  border-bottom: 1px solid #f1f4f8;
+  color: var(--pap-text);
+}
+
+.pap-header-catmenu-shell .pap-header-catmenu-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pap-header-catmenu-shell .pap-header-catmenu-label {
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.pap-header-catmenu-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: #9aa8bd;
+  transition: transform 0.18s ease;
+}
+
+/* Desktop hover already reveals the flyout panel directly - the level-1
+   row itself doesn't need a "tap to expand" affordance there. Mobile
+   still needs it (tap-to-drill-down, no hover), see the max-width:980px
+   override further down. Scoped to a direct child of .pap-header-catmenu-
+   item so this doesn't touch the group/column accordion chevrons
+   (.pap-header-catmenu-chevron--group/--column), which live inside a
+   different element and stay on their own visibility rules. */
+.pap-header-catmenu-item > .pap-header-catmenu-chevron {
+  display: none;
+}
+
+.pap-header-catmenu-chevron svg {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.18s ease;
+}
+
+.pap-header-catmenu-item[aria-expanded="true"] .pap-header-catmenu-chevron svg {
+  transform: rotate(90deg);
 }
 
 .pap-header-catmenu-item:hover,
@@ -1235,13 +1366,26 @@ body.home .pap-category-trigger {
 }
 
 .pap-header-catmenu-panel-title {
-  margin: 0 0 12px;
+  /* No margin-bottom - unlike .pap-showcase-panel-columns-column-heading
+     (which needs its own margin, since it's nested inside the column and
+     never a direct grid child of the panel), this title IS a direct child
+     of .pap-header-catmenu-panel, which already applies a 12px gap
+     between its grid children. A margin here would stack on top of that
+     gap, landing the list ~12px lower than the same content under a
+     column-heading. */
+  margin: 0;
   color: #97a6bb;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   line-height: 1.2;
+}
+
+/* Not present on the live site's desktop flyout for a plain category
+   (verified against notix.ro) - hidden at every width, not just mobile. */
+.pap-header-catmenu-see-all {
+  display: none;
 }
 
 .pap-header-catmenu-group-list {
@@ -1261,15 +1405,19 @@ body.home .pap-category-trigger {
 
 .pap-header-catmenu-group-title {
   color: var(--pap-ink);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 400;
   line-height: 1.25;
   text-decoration: none;
 }
 
-.pap-header-catmenu-group-title:hover,
-.pap-header-catmenu-sublist a:hover {
-  color: var(--pap-orange);
+/* Real-hover devices only - on touch, :hover can stick after a tap and
+   read as a stale/incorrect color change with no way to clear it. */
+@media (hover: hover) and (pointer: fine) {
+  .pap-header-catmenu-group-title:hover,
+  .pap-header-catmenu-sublist a:hover {
+    color: var(--pap-orange);
+  }
 }
 
 .pap-header-catmenu-sublist {
@@ -1293,11 +1441,13 @@ body.home .pap-category-trigger {
   line-height: 1.45;
 }
 
-.pap-header-catmenu-shell.is-leaf-active .pap-header-catmenu {
-  grid-template-columns: 207px;
-  width: 207px;
-  min-height: 0;
-  max-height: none;
+@media (min-width: 861px) {
+  .pap-header-catmenu-shell.is-leaf-active .pap-header-catmenu {
+    grid-template-columns: 207px;
+    width: 207px;
+    min-height: 0;
+    max-height: none;
+  }
 }
 
 .pap-header-catmenu-shell.is-leaf-active .pap-header-catmenu-right {
@@ -1320,20 +1470,271 @@ body.tax-product_cat .pap-header-catmenu-panel {
   overflow: visible;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 980px) {
   .pap-header-catmenu {
     width: calc(100vw - 32px);
-    grid-template-columns: 1fr;
     max-height: none;
+    border: 0;
+  }
+
+  /* .pap-header-catmenu-shell.is-leaf-active .pap-header-catmenu (desktop,
+     collapses the flyout to just its 207px sidebar column when no category
+     is hovered) has higher specificity (3 classes) than a bare
+     .pap-header-catmenu selector and is still in scope up to 980px - it was
+     winning here and squeezing the whole mobile list into a 207px column
+     with the rest of the 430px drawer sitting empty. Out-specificity it. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu {
+    grid-template-columns: 1fr;
   }
 
   .pap-header-catmenu-left {
     border-right: 0;
-    border-bottom: 1px solid #edf2f7;
+  }
+
+  /* Single scroll region: the drawer itself scrolls (.pap-nav-row), so the
+     desktop-only internal scroll areas of the list/panel must be switched
+     off on mobile - otherwise you get a scrollable panel nested inside a
+     scrollable drawer. */
+  .pap-header-catmenu-list {
+    overflow: visible;
+  }
+
+  .pap-header-catmenu-right {
+    overflow: visible;
+  }
+
+  .pap-header-catmenu-panels {
+    min-height: 0;
   }
 
   .pap-header-catmenu-panel {
-    padding: 18px 20px 20px;
+    height: auto;
+    overflow: visible;
+    padding: 4px 20px 24px;
+  }
+
+  /* Drill-down navigation: level-1 list and level-2 panel are two separate
+     "screens" that swap in place instead of the desktop's side-by-side
+     columns - only one is visible at a time, with a back button to return.
+     JS toggles .is-drilldown on .pap-nav-row (the whole drawer) when a
+     category with children is tapped (see header-menu.js), so the
+     level-1-only chrome (section titles, info links) hides along with the
+     list - level 2 takes over the entire white surface, nothing from
+     level 1 stays visible behind it. */
+  .pap-nav-row:not(.is-drilldown) .pap-header-catmenu-right {
+    display: none;
+  }
+
+  .pap-nav-row.is-drilldown .pap-header-catmenu-left {
+    display: none;
+  }
+
+  /* Redundant once the back button already names the category - avoids a
+     second, bigger heading directly under it. */
+  .pap-header-catmenu-panel-title {
+    display: none;
+  }
+
+  .pap-header-catmenu-back:not([hidden]) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 20px;
+    margin: 0 0 4px;
+    border: 0;
+    border-bottom: 1px solid #edf2f7;
+    background: #fff;
+    color: var(--pap-navy);
+    font-size: 16px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  /* Fixed-width icon column (22px, matching .pap-header-catmenu-item's
+     icon column) so the label lands on the same text-start axis as every
+     other level-2/level-1 label (20px panel/item padding + 22px icon
+     column + 10px gap = 52px from the drawer edge - see
+     .pap-header-catmenu-group-title below and .pap-header-catmenu-item's
+     22px icon column). The glyph itself is left-aligned within that
+     column (not centered) so the arrow sits flush on the same 20px edge
+     as every section title/heading below it, instead of floating a few
+     px further in. */
+  .pap-header-catmenu-back-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 22px;
+    flex: 0 0 22px;
+  }
+
+  .pap-header-catmenu-back-icon svg {
+    width: 14px;
+    height: 14px;
+    transform: rotate(180deg);
+  }
+
+  /* Removed per explicit request - the level-2 screen now goes straight
+     from the back header into the subcategory list, nothing else. */
+  .pap-header-catmenu-see-all {
+    display: none;
+  }
+
+  /* ---- Row density: 48-56px rows, regular-weight labels (eMAG-style
+     density, not the sparse 80-100px rows the old accordion styling left
+     behind).
+     .pap-header-catmenu-item/-icon/-label also carry the homepage
+     showcase-nav's classes (dual-purpose markup - see
+     functions.php/front-page.php) which define their own competing
+     grid/size rules with the same specificity; scope through .pap-nav-row
+     so these mobile drawer rules reliably win regardless of source order. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) 16px;
+    min-height: 52px;
+    padding: 0 20px;
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Re-enable the level-1 chevron on mobile only - it's a real "tap to
+     drill down" affordance there (no hover to reveal the panel), unlike
+     desktop where it's hidden (see the base .pap-header-catmenu-item >
+     .pap-header-catmenu-chevron rule). */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item > .pap-header-catmenu-chevron {
+    display: inline-flex;
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-label {
+    font-size: 15px;
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  /* The desktop layout stretches each level-2 group to the panel's full
+     height (min-height: 100%) so grouped columns line up - stacked in a
+     single mobile list that turns every group into a nearly-empty
+     screen-height block, which is the huge vertical gap bug. */
+  .pap-header-catmenu-group {
+    min-height: 0;
+    padding: 0;
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 50px;
+    /* Text-start axis: same 32px (22px icon column + 10px gap) that would
+       be occupied by an icon at level 1, so the label lines up with level
+       1's label rather than its icon. */
+    padding-left: 32px;
+    font-size: 15px;
+    font-weight: 400;
+    /* Same color collapsed or expanded - only the chevron (below) changes
+       on expand. No separate "expanded" text color/weight, no background:
+       a plain white row in both states. */
+    color: var(--pap-navy);
+  }
+
+  .pap-header-catmenu-group--expandable:not(.is-expanded) .pap-header-catmenu-sublist {
+    display: none;
+  }
+
+  .pap-header-catmenu-sublist {
+    /* Deeper than the 32px group-title text axis, so a leaf item reads as
+       nested under its group instead of lining up with it. */
+    padding-left: 48px;
+  }
+
+  .pap-header-catmenu-sublist a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+  }
+
+  /* Column-heading groups (e.g. "Articole pentru birou" -> "Instrumente și
+     accesorii de birou" / "Echipamente de birou") - each heading becomes
+     its own accordion trigger, collapsed by default, exactly one open at a
+     time (JS closes any other open column when one is tapped). Same
+     aria-expanded contract and chevron base class as the group-title
+     accordion above, so both share one expanded-state look below instead
+     of two near-duplicate rulesets. Plain white row in both states - no
+     background fill, no border, same text color/weight collapsed or
+     expanded. The only thing that changes on expand is the chevron. */
+  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    background: transparent;
+    cursor: pointer;
+    /* Color/font-size/weight/letter-spacing/uppercase are intentionally
+       NOT overridden here - same muted gray label look as the desktop
+       flyout (base rule further down), collapsed or expanded. Only the
+       chevron differs on expand (below). */
+  }
+
+  /* ---- Shared chevron geometry (level-2 group + column-heading triggers):
+     same size, same resting color, same rotation contract. Kept as one
+     rule instead of duplicating it per trigger type. ---- */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-chevron--group,
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-chevron--column {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    color: #9aa8bd;
+  }
+
+  .pap-header-catmenu-chevron--group svg,
+  .pap-header-catmenu-chevron--column svg {
+    width: 12px;
+    height: 12px;
+    /* Collapsed default: pointing down ("tap to expand"). */
+    transform: rotate(90deg);
+    transition: transform 0.18s ease;
+  }
+
+  /* aria-expanded drives every stateful style below - never :hover, never
+     :focus. Hover/focus are handled separately further down. */
+  .pap-header-catmenu-group-title[aria-expanded="true"] .pap-header-catmenu-chevron--group svg,
+  .pap-showcase-panel-columns-column-heading[aria-expanded="true"] .pap-header-catmenu-chevron--column svg {
+    /* Expanded: pointing up ("tap to collapse"). */
+    transform: rotate(-90deg);
+  }
+
+  /* Expanded state's only accent: the chevron turns orange. Label color/
+     weight/background stay identical to collapsed - see the base rules
+     above. Separate from is-active (current-page category, styled via
+     .pap-header-catmenu-item.is-active elsewhere) - distinct selectors,
+     never combined. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title[aria-expanded="true"] .pap-header-catmenu-chevron--group,
+  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading[aria-expanded="true"] .pap-header-catmenu-chevron--column {
+    color: var(--pap-orange);
+  }
+
+  /* Keyboard focus only (not mouse/touch activation) - a discreet inset
+     ring, not the old background fill. */
+  .pap-header-catmenu-group-title:focus-visible,
+  .pap-showcase-panel-columns-column-heading:focus-visible {
+    outline: 2px solid var(--pap-orange);
+    outline-offset: -2px;
+  }
+
+  .pap-showcase-panel-columns-column:not(.is-expanded) .pap-showcase-panel-columns-column-groups {
+    display: none;
   }
 }
 
@@ -1420,7 +1821,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   display: grid;
   flex: 1 1 auto;
   align-content: start;
-  padding: 6px 0;
+  padding: 0;
 }
 
 .pap-showcase-nav-item {
@@ -1433,24 +1834,44 @@ body.tax-product_cat .pap-header-catmenu-panel {
   grid-template-columns: 14px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  color: #374151;
+  color: var(--pap-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.pap-showcase-nav-item:hover,
-.pap-showcase-nav-item.is-active {
+.pap-showcase-nav-item:hover {
   background: #f8fbff;
   color: var(--pap-orange-deep);
 }
 
+.pap-showcase-nav-item.is-active {
+  background: var(--pap-soft);
+  color: var(--pap-ink);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--pap-orange);
+}
+
+.pap-showcase-nav-item.is-active .pap-showcase-nav-icon {
+  color: var(--pap-orange);
+}
+
+.pap-showcase-nav-item.is-active:hover {
+  color: var(--pap-orange-deep);
+}
+
 .pap-showcase-nav-item[data-showcase-has-children='0']:hover,
-.pap-showcase-nav-item[data-showcase-has-children='0']:focus,
+.pap-showcase-nav-item[data-showcase-has-children='0']:focus {
+  background: #fff;
+  color: var(--pap-orange-deep);
+}
+
 .pap-showcase-nav-item[data-showcase-has-children='0'].is-active {
   background: #fff;
   color: var(--pap-orange-deep);
+  font-weight: 700;
+  box-shadow: none;
 }
 
 .pap-showcase-nav-icon {
@@ -1649,15 +2070,34 @@ body.tax-product_cat .pap-header-catmenu-panel {
 }
 
 .pap-showcase-panel-columns-column-heading {
-  margin: 0 0 8px;
+  /* Markup is a <button> (mobile needs it as an accordion trigger) - reset
+     it back to a plain label so desktop's static heading is unaffected.
+     Matched 1:1 to .pap-header-catmenu-panel-title (the simple-category
+     heading, no column split) - same margin-bottom, and min-height
+     dropped entirely: it was 29px vs the plain title's natural 14.4px, so
+     anything below a column-heading (grouped categories, e.g. "Articole
+     pentru birou") sat ~14px lower than the same content under a plain
+     title (e.g. "Articole școlare"), despite both headings starting at
+     the same y. */
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: default;
+  font: inherit;
+  margin: 0 0 12px;
   color: #97a6bb;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   line-height: 1.2;
-  min-height: 29px;
   white-space: nowrap;
+}
+
+.pap-header-catmenu-chevron--column {
+  display: none;
 }
 
 .pap-showcase-panel-columns-column-groups {
@@ -1696,8 +2136,8 @@ body.tax-product_cat .pap-header-catmenu-panel {
 .pap-showcase-panel-empty strong {
   color: var(--pap-ink);
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 400;
   line-height: 1.25;
 }
 
@@ -1948,10 +2388,13 @@ body.tax-product_cat .pap-header-catmenu-panel {
   box-shadow: 0 10px 28px rgba(18, 39, 74, 0.05);
 }
 
-.pap-featured,
 .pap-needs,
 .pap-benefits-boutique {
   padding-top: 34px;
+}
+
+.pap-featured {
+  padding-top: 17px;
 }
 
 .pap-section-head h2,
@@ -2262,14 +2705,14 @@ body.theme-papetarie .entry-content .pap-product-card h3 {
   background: #fff;
   border: 1px solid #dde1e8;
   border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--pap-card-shadow, 0 10px 24px rgba(18, 39, 74, 0.05));
   overflow: hidden;
 }
 
 .pap-packages__gradient-bar {
   height: 2px;
   width: 100%;
-  background: linear-gradient(90deg, var(--pap-orange) 0%, var(--pap-navy) 100%);
+  background: linear-gradient(to right, var(--pap-navy) 60%, var(--pap-orange));
 }
 
 .pap-packages__card-body {
@@ -2311,6 +2754,7 @@ body.theme-papetarie .entry-content .pap-product-card h3 {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--pap-card-shadow, 0 10px 24px rgba(18, 39, 74, 0.05));
 }
 
 .pap-package-photo {
@@ -3363,6 +3807,26 @@ body.theme-papetarie .pap-archive-empty p {
     gap: 12px;
   }
 
+  /* .pap-home-add-to-cart has flex:0 0 auto (never shrinks) and its price
+     sibling can only shrink so far - on a 2-column mobile card there simply
+     isn't room for icon+"Adaugă"+padding next to the price, and the button
+     bleeds past the card edge. Icon-only keeps it functional and inside
+     the card; the label is still there for screen readers/desktop. */
+  .pap-archive-grid .pap-product-action-label {
+    display: none;
+  }
+
+  .pap-archive-grid .pap-home-add-to-cart {
+    padding: 0 10px;
+    gap: 0;
+  }
+
+  .pap-archive-check-option,
+  .pap-archive-radio-option {
+    min-height: 40px;
+    padding: 0;
+  }
+
   .pap-archive-empty {
     padding: 40px 28px 36px;
     min-height: clamp(300px, 34vh, 380px);
@@ -3610,11 +4074,21 @@ body.theme-papetarie .pap-archive-empty p {
 }
 
 .pap-featured-nav-prev {
-  left: -72px;
+  left: 8px;
 }
 
 .pap-featured-nav-next {
-  right: -72px;
+  right: 8px;
+}
+
+@media (min-width: 1660px) {
+  .pap-featured-nav-prev {
+    left: -72px;
+  }
+
+  .pap-featured-nav-next {
+    right: -72px;
+  }
 }
 
 .pap-featured-nav:hover {
@@ -4507,25 +4981,6 @@ body.admin-bar .pap-cart-drawer-panel {
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
-}
-
-.pap-cart-drawer-badge {
-  display: none;
-  align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 10px;
-  border: 1px solid #fcd34d;
-  border-radius: 4px;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.pap-cart-drawer.is-empty .pap-cart-drawer-badge {
-  display: inline-flex;
 }
 
 .pap-cart-drawer-close {
@@ -5841,7 +6296,14 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
   }
 
   .pap-header-main {
-    padding: 16px 0;
+    /* padding-block only - .pap-header-main is also .pap-shell (provides
+       the 24px lateral padding-inline that keeps it aligned with
+       .pap-nav-inner below it). The old "padding: 16px 0" shorthand reset
+       ALL four sides, zeroing that inherited lateral padding out and
+       making the header row's content start flush with its own edge
+       while nav/content below it stayed inset 24px - the header
+       appeared wider/misaligned below this breakpoint. */
+    padding-block: 16px;
   }
 
   .pap-showcase-stage {
@@ -5935,7 +6397,9 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
 
   .pap-topbar-inner {
     min-height: auto;
-    padding: 8px 0;
+    /* padding-block only - same .pap-shell lateral-padding-reset bug as
+       .pap-header-main above. */
+    padding-block: 4px;
   }
 
   .pap-topbar-message {
@@ -5943,11 +6407,17 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
     text-align: left;
   }
 
+  .pap-topbar-close {
+    width: 32px;
+    height: 32px;
+  }
+
   .pap-header-main {
     flex-direction: column;
     align-items: stretch;
     min-height: auto;
-    padding: 14px 0;
+    /* padding-block only - see the max-width:1280px rule above for why. */
+    padding-block: 14px;
   }
 
   .pap-search {
@@ -5998,7 +6468,7 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
   }
 
   .pap-category-trigger {
-    justify-content: space-between;
+    justify-content: flex-start;
     padding-inline: 16px;
     min-height: 50px;
   }
@@ -6563,30 +7033,11 @@ body.theme-papetarie .pap-product-card {
   aspect-ratio: auto;
   overflow: visible;
 }
-body.theme-papetarie .pap-footer-brand {
-  grid-column: 1 !important;
-}
-
-body.theme-papetarie .pap-footer-links-group:first-of-type {
-  grid-column: 2 !important;
-}
-
-body.theme-papetarie .pap-footer-links-group:last-of-type {
-  grid-column: 3 !important;
-}
-
-body.theme-papetarie .pap-footer-newsletter {
-  grid-column: 4 !important;
-}
 body.theme-papetarie .pap-footer-inner {
   padding-inline: 24px !important;
 }
 body.theme-papetarie .pap-footer-meta-inner {
   padding-inline: 24px !important;
-}
-body.theme-papetarie .pap-footer-inner {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) !important;
-  gap: 64px !important;
 }
 body.theme-papetarie .pap-footer-meta {
   margin-top: 0 !important;
@@ -6640,19 +7091,11 @@ body.theme-papetarie .pap-footer--checkout .pap-footer-inner {
   font-weight: 500;
 }
 
-.pap-header-benefit-item + .pap-header-benefit-item {
-  padding-left: 17px;
-}
-
-.pap-header-benefit-item + .pap-header-benefit-item::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
+.pap-header-benefit-divider {
+  flex: 0 0 auto;
   width: 1px;
   height: 16px;
   background: #dde1e8;
-  transform: translateY(-50%);
 }
 
 .pap-header-benefit-icon {
@@ -6682,12 +7125,11 @@ body.theme-papetarie .pap-footer--checkout .pap-footer-inner {
     flex: 0 0 50%;
   }
 
-  .pap-header-benefit-item:nth-child(3)::before,
-  .pap-header-benefit-item:nth-child(1)::before {
-    content: none;
+  .pap-header-benefit-divider {
+    display: none;
   }
 
-  .pap-header-benefit-item:nth-child(n+3) {
+  .pap-header-benefit-item:nth-of-type(n+3) {
     padding-top: 10px;
     border-top: 1px solid #dde1e8;
   }
@@ -6863,7 +7305,7 @@ body.theme-papetarie.woocommerce-account.woocommerce-reset-password .woocommerce
   display: none !important;
 }
 
-body.theme-papetarie input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']),
+body.theme-papetarie input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']):not([type='search']),
 body.theme-papetarie select,
 body.theme-papetarie .wpforms-container input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']),
 body.theme-papetarie .wpforms-container select,
@@ -8664,13 +9106,341 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
 }
 
 @media (max-width: 980px) {
-  body.theme-papetarie .pap-main-nav,
-  body.theme-papetarie .pap-help-links {
-    display: none !important;
+  /* Drawer container: .pap-nav-row/-head/-inner form a fixed-header +
+     scrolling-content column. .pap-nav-row is the flex column, its two
+     direct children split the fixed/scrolling roles - no position:sticky,
+     no z-index stacking games, scrolling is structurally confined to
+     .pap-nav-inner because it is the only flex item allowed to grow and
+     the only one with overflow-y:auto. */
+  body.theme-papetarie .pap-nav-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    /* Being a flex item with a definite height (below) gives this grid
+       leftover block-axis space whenever content is shorter than the
+       drawer (e.g. level 2 with only a few rows) - grid's default
+       align-content:normal computes to stretch/center that single row
+       into the middle of the drawer instead of the top. Pin it. */
+    align-content: start;
+    gap: 14px;
+    padding: 14px 0 24px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
-  body.theme-papetarie .pap-nav-inner {
+  body.theme-papetarie .pap-category-trigger,
+  body.theme-papetarie .pap-help-links,
+  body.theme-papetarie .pap-main-nav,
+  body.theme-papetarie .pap-primary-menu,
+  body.theme-papetarie .pap-utility-menu {
+    width: 100%;
+  }
+
+  /* No separate "Toate categoriile" tap step on mobile - the drawer opens
+     straight into the category list (JS auto-expands the category shell
+     when the drawer itself opens, see header-menu.js openDrawer()). The
+     trigger button stays in the DOM (still used by the desktop hover
+     flyout) but has nothing to do here. */
+  body.theme-papetarie .pap-category-trigger {
+    display: none;
+  }
+
+  /* .pap-category-menu-anchor is display:flex on desktop to sit the
+     trigger button and its flyout side by side. With the trigger hidden
+     above, the shell becomes the only flex item and (without an explicit
+     width) shrinks to its intrinsic content size instead of filling the
+     drawer - block layout gives it the full width for free. */
+  body.theme-papetarie .pap-category-menu-anchor {
+    display: block;
+  }
+
+  body.theme-papetarie .pap-main-nav,
+  body.theme-papetarie .pap-help-links {
+    display: block;
+  }
+
+  body.theme-papetarie .pap-primary-menu,
+  body.theme-papetarie .pap-utility-menu {
+    display: grid;
+    gap: 0;
+  }
+
+  body.theme-papetarie .pap-primary-menu a,
+  body.theme-papetarie .pap-utility-menu a {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ---- Compact topbar ----
+     .pap-topbar-inner is swept into the old shared ".pap-topbar-inner,
+     .pap-nav-inner, ... { display: grid }" mobile rule with no
+     grid-template-columns - same bug class as .pap-nav-inner had: with no
+     explicit column, the message and the close button each land on their
+     own implicit grid row instead of sitting side by side. Force it back
+     to a single flex row: [icon+text][X]. */
+  body.theme-papetarie .pap-topbar-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: auto;
+    /* padding-block only - same .pap-shell lateral-padding-reset bug as
+       .pap-header-main. Kept tight (4px) so the total bar height stays
+       capped at ~40px (32px close button + 4px top/bottom). */
+    padding-block: 4px;
+  }
+
+  body.theme-papetarie .pap-topbar-message {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  body.theme-papetarie .pap-topbar-message-full {
+    display: none;
+  }
+
+  body.theme-papetarie .pap-topbar-message-short {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body.theme-papetarie .pap-topbar-close {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+  }
+
+  /* ---- Compact single-row header: [hamburger][logo][account][cart], search on its own row ---- */
+  :root {
+    --pap-header-logo-max: 128px;
+    --pap-header-logo-height: 30px;
+    --pap-header-search-height: 42px;
+  }
+
+  body.theme-papetarie .pap-mobile-menu-trigger {
+    display: inline-flex;
+    align-items: center;
     justify-content: flex-start;
+    width: 29px;
+    height: 40px;
+    flex: 0 0 29px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--pap-navy);
+    cursor: pointer;
+    grid-area: burger;
+  }
+
+  body.theme-papetarie .pap-header-main {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "burger logo tools" "search search search";
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 10px;
+    min-height: auto;
+    /* padding-block only - same .pap-shell lateral-padding-reset bug as
+       the desktop rules above, just on mobile: "padding: 10px 0" was
+       zeroing the inherited 24px/20px padding-inline, so the hamburger
+       sat flush against the edge instead of aligned with the topbar
+       text above it. */
+    padding-block: 10px;
+  }
+
+  body.theme-papetarie .pap-logo {
+    grid-area: logo;
+    flex: 1 1 auto;
+  }
+
+  body.theme-papetarie .pap-search {
+    grid-area: search;
+    width: 100%;
+    flex: unset;
+    max-width: 100%;
+    grid-template-columns: minmax(0, 1fr) 48px;
+  }
+
+  body.theme-papetarie .pap-search input {
+    padding: 0 14px;
+  }
+
+  body.theme-papetarie .pap-header-tools {
+    grid-area: tools;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-left: 0;
+  }
+
+  body.theme-papetarie .pap-header-tools a,
+  body.theme-papetarie .pap-header-tools button {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px;
+    justify-content: center;
+  }
+
+  body.theme-papetarie .pap-tool-copy {
+    display: none;
+  }
+
+  body.theme-papetarie .pap-tool-card-cart::before {
+    display: none;
+  }
+
+  /* ---- Off-canvas nav drawer (categories + primary + utility links) ----
+     Single white panel top to bottom. Navy is reserved for the drawer
+     header, text and icons - it is not a background color for the panel
+     itself, so there is no "white card floating over a navy sheet" look. */
+  body.theme-papetarie .pap-mobile-nav-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 0 0 auto;
+    min-height: 58px;
+    padding: 10px 12px 10px 20px;
+    color: #fff;
+    background: var(--pap-navy);
+  }
+
+  body.theme-papetarie .pap-mobile-nav-head-title {
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  body.theme-papetarie .pap-mobile-nav-close {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #fff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  body.theme-papetarie .pap-mobile-nav-close:hover,
+  body.theme-papetarie .pap-mobile-nav-close:focus-visible {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  body.theme-papetarie .pap-nav-row {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10030;
+    width: min(430px, 92vw);
+    height: 100vh;
+    height: 100dvh;
+    background: #fff;
+    color: var(--pap-navy);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    overflow: hidden;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.18);
+  }
+
+  body.theme-papetarie .pap-nav-row.is-open {
+    transform: translateX(0);
+  }
+
+  /* Section labels above the category list and the info links - the only
+     thing separating the two groups, so no divider styling is needed on
+     .pap-main-nav any more. Hidden while a category is drilled into
+     (level 2 must own the whole white surface, see .is-drilldown below). */
+  body.theme-papetarie .pap-mobile-nav-section-title {
+    display: block;
+    padding: 0 20px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  body.theme-papetarie .pap-nav-row.is-drilldown .pap-mobile-nav-section-title {
+    display: none;
+  }
+
+  /* "Informații" (Despre noi / Produse promoționale / SEAP / Ai nevoie de
+     ajutor?) is pulled out of the mobile drawer for now - temporary, per
+     explicit request, until it's decided where these links belong. The
+     desktop nav bar keeps using the same markup unchanged. */
+  body.theme-papetarie .pap-nav-row [data-mobile-nav-links-title],
+  body.theme-papetarie .pap-nav-row .pap-main-nav,
+  body.theme-papetarie .pap-nav-row .pap-help-links {
+    display: none;
+  }
+
+  /* The category sub-menu normally sizes itself off the full viewport
+     (calc(100vw - 32px)) for its old inline-below-trigger placement. Inside
+     the narrower drawer panel that overflows the panel's own edge - size it
+     off the drawer's content width instead. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu {
+    width: 100%;
+  }
+
+  /* Desktop positions the shell absolute (floating flyout under the
+     trigger button). Inside the drawer it needs to be normal in-flow
+     content instead - it opens automatically with the drawer (no trigger
+     to anchor to, see openDrawer() in header-menu.js) and the links below
+     it (Despre noi, SEAP...) must be pushed down, not covered. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-shell {
+    position: static;
+  }
+
+  /* Desktop sets these white for the navy nav bar (.pap-main-nav a,
+     .pap-help-links a { color: #fff }) - the drawer is white now, so they
+     need the ink color back explicitly (color: inherit on the shared
+     .pap-primary-menu/.pap-utility-menu a rule loses to that more specific
+     desktop selector). */
+  body.theme-papetarie .pap-main-nav a,
+  body.theme-papetarie .pap-help-links a {
+    color: var(--pap-navy);
+  }
+
+  body.theme-papetarie .pap-primary-menu a,
+  body.theme-papetarie .pap-utility-menu a {
+    min-height: 52px;
+    padding: 0 20px;
+    font-size: 15px;
+    font-weight: 400;
+  }
+
+  /* The homepage "browse by category" list (.pap-showcase-nav) duplicates
+     what's now reachable via the hamburger drawer's own "Toate
+     categoriile" panel. Below the same breakpoint where that drawer takes
+     over navigation, drop this module instead of showing the same 9
+     category rows twice before the user even reaches the hero slide.
+     .pap-showcase-panels is that list's paired "detail" column - on mobile
+     the default-active category's panel renders inline (no hover needed),
+     so it has to go too, or it's left dangling with no list above it to
+     explain what it is. */
+  /* Scoped to .pap-showcase-grid (front-page.php only) - .pap-showcase-nav
+     is a dual-purpose class also used by the header drawer's own category
+     list (functions.php pap-header-catmenu-left), which must stay visible. */
+  body.theme-papetarie .pap-showcase-grid .pap-showcase-nav,
+  body.theme-papetarie .pap-showcase-panels {
+    display: none;
   }
 }
 
@@ -9003,7 +9773,8 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields label {
    freezes in at ~0px and never recovers once the section is shown. !important
    is the only thing that can beat that inline style back to a real 100%. */
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-container {
   width: 100% !important;
 }
 
@@ -9011,7 +9782,9 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields input.input
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields textarea,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container .select2-selection--single,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container .select2-selection--single {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container .select2-selection--single,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company select,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-container .select2-selection--single {
   width: 100%;
   min-height: var(--pap-input-height);
   height: var(--pap-input-height);
@@ -9023,13 +9796,15 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-co
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container .select2-selection--single,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container .select2-selection--single {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container .select2-selection--single,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-container .select2-selection--single {
   display: flex;
   align-items: center;
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-selection__rendered,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-selection__rendered {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-selection__rendered,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-selection__rendered {
   padding: 0;
   margin: 0;
   font-size: 14px;
@@ -9045,14 +9820,18 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields textarea::p
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.is-placeholder,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.is-placeholder ~ .select2-container .select2-selection__rendered,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.is-placeholder,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.is-placeholder ~ .select2-container .select2-selection__rendered {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.is-placeholder ~ .select2-container .select2-selection__rendered,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company select.is-placeholder,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company select.is-placeholder ~ .select2-container .select2-selection__rendered {
   color: var(--pap-placeholder);
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.has-value,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select.has-value ~ .select2-container .select2-selection__rendered,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.has-value,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.has-value ~ .select2-container .select2-selection__rendered {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select.has-value ~ .select2-container .select2-selection__rendered,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company select.has-value,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company select.has-value ~ .select2-container .select2-selection__rendered {
   color: #17324d;
 }
 
@@ -9060,7 +9839,10 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields input.input
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select:focus,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields textarea:focus,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container--focus .select2-selection--single,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container--open .select2-selection--single {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container--open .select2-selection--single,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company select:focus,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-container--focus .select2-selection--single,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-container--open .select2-selection--single {
   border-color: #0d2e61;
   box-shadow: 0 0 0 1px rgba(23, 55, 100, 0.12);
   background: #fff;
@@ -9075,14 +9857,20 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields input[type=
    run into the hundreds of localities) for a searchable, height-capped
    dropdown — hide its default arrow (a plain select already gets one via the
    background-image rule above) and cover the disabled state (Localitate
-   starts disabled until a județ is chosen). */
+   starts disabled until a județ is chosen). Scopat si la ".pap-checkout-
+   company" ca sa arate identic si Județul/Localitatea firmei si selectul
+   "Alege firma salvată" (cardul de Facturare traieste acum in afara
+   ".pap-checkout-address-form", vezi papetarie_storefront_get_checkout_
+   company_card_html() in functions.php). */
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-selection__arrow,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-selection__arrow {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-selection__arrow,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-selection__arrow {
   display: none;
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container--disabled .select2-selection--single,
-body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container--disabled .select2-selection--single {
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form .select2-container--disabled .select2-selection--single,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-container--disabled .select2-selection--single {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -12712,6 +13500,16 @@ body.theme-papetarie.woocommerce-account:not(.logged-in) .pap-auth-shell--reset-
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
+@media (max-width: 400px) {
+  /* Shared by short pairs (Prenume/Nume) and long ones (Parolă/Confirmare
+     parolă) - at ~130px per column the password placeholders ("Introdu
+     parola", "Confirmă parola") clip to a few letters. Stack instead of
+     shrinking text further. */
+  .pap-form-row--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .pap-form-row--stack {
   display: grid;
   gap: 12px;
@@ -14060,7 +14858,13 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-shell-inner {
   display: grid;
   grid-template-columns: minmax(280px, 300px) minmax(0, 1fr);
   gap: 32px;
-  align-items: start;
+  /* "stretch" (implicit grid, nu mai trebuie scris explicit) - "start" facea
+     coloana de continut sa se opreasca la inaltimea proprie, mai scunda
+     decat sidebar-ul ori de cate ori continutul e putin (ex. "Firmele mele"
+     fara nicio firma salvata) - cardul de continut ramanea vizibil mai scurt
+     decat sidebar-ul de langa el (raportat 2026-08-18). O a doua declaratie
+     a acestei reguli, mai jos in fisier, avea acelasi "align-items: start" -
+     schimbata si acolo. */
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-sidebar {
@@ -14267,6 +15071,18 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-help-card {
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-page {
   display: grid;
   gap: 32px;
+  /* ".pap-account-content" (parintele, <main>) e acum la fel de inalt ca
+     sidebar-ul (vezi ".pap-account-shell-inner", "align-items: stretch"),
+     dar e un simplu bloc, nu un flex/grid container - fara asta, singurul
+     lui copil (elementul asta, cel cu bordura/fundalul alb pe care ochiul
+     il percepe drept "cardul") nu mostenea acea inaltime, ramanand cat
+     continutul lui propriu (ex. starea goala "Nicio firma salvata" - vizibil
+     mai scund decat sidebar-ul, raportat 2026-08-24 dupa primul fix, care
+     rezolvase doar wrapper-ul invizibil din jur, nu si cardul vizibil de
+     dedesubt). "min-height" (nu "height") - creste liber cand are mai mult
+     continut decat sidebar-ul (ex. o lista lunga de comenzi), nu-l
+     constrange niciodata sub cat are nevoie. */
+  min-height: 100%;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-page-head {
@@ -15582,6 +16398,44 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice::bef
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice__text {
   display: block;
+  flex: 1 1 auto;
+}
+
+/* Close (×) button - shares the notice's own text color so it never needs a
+   separate color per variant (success/error), just fades it slightly via
+   opacity so it reads as secondary next to the message text. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice__close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice__close:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice__close:focus-visible {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice__close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice.pap-account-form-notice--dismissed {
+  display: none;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-form-notice--success {
@@ -15779,6 +16633,18 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-accou
   gap: 32px;
 }
 
+/* ".pap-account-page" e grid cu "min-height: 100%" (intinde pagina sa
+   ajunga la inaltimea sidebarului) - implicit, grid-ul isi intinde si
+   copiii (align-items: stretch), ceea ce era exact ce voiam pentru cardurile
+   cu stare goala de la "Adresa mea"/"Firmele mele"/"Comenzile mele". Aici
+   insa cardul "Detalii cont" e un tabel de date cu inaltime naturala fixa,
+   nu are stare goala de centrat - intinderea lui doar lasa un gol alb la
+   final cand sidebarul (cu 5-6 linkuri) e mai inalt decat continutul
+   cardului. Revenim la inaltimea naturala doar pe aceasta pagina. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account {
+  align-items: start;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card {
   display: grid;
   gap: 18px;
@@ -15883,7 +16749,8 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-shell-inner {
   display: grid;
   grid-template-columns: minmax(268px, 292px) minmax(0, 1fr);
   gap: 32px;
-  align-items: start;
+  /* Vezi comentariul de la prima declaratie a acestei reguli, mai sus in
+     fisier - acelasi motiv, "stretch" implicit in loc de "start". */
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-sidebar {
@@ -16121,6 +16988,9 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-page {
   display: grid;
   width: 100%;
   gap: 30px;
+  /* Vezi comentariul de la prima declaratie a acestei reguli, mai sus in
+     fisier - acelasi motiv. */
+  min-height: 100%;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-page-head {
@@ -17153,12 +18023,31 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card__ba
    modifier gives every selector below one extra class of specificity over
    those shared rules, so nothing here needs !important. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  /* ".pap-account-address-card" (regula de baza, mostenita) seteaza
+     "gap: 18px" pentru grila ei de elemente - aici capul si body-ul sunt
+     deja separate vizual prin "border-bottom" pe cap, un gap suplimentar
+     doar impinge body-ul in jos si strica centrarea starii goale. */
+  gap: 0;
   padding: 0;
   border: 1px solid #dde1e8;
   border-radius: 6px;
   box-shadow: none;
   overflow: hidden;
+  /* Cutia VIZIBILA (bordura alb-albastruie de mai sus) - parintele ei
+     (".pap-account-panel--addresses", "display: block") nu o intinde
+     automat sa umple inaltimea mostenita prin lant de la sidebar (vezi
+     ".pap-account-shell-inner" si ".pap-account-page"). Al treilea nivel la
+     care apare aceeasi problema (bloc simplu + copil unic care nu se
+     intinde) - raportat 2026-08-24 dupa ce primele doua fix-uri (wrapper-e
+     invizibile) tot n-au atins cutia care chiar se vede.
+     "display: flex; flex-direction: column" (in loc de "block") + body-ul
+     de mai jos cu "flex: 1 1 auto" e ce ii permite capului (inaltime fixa)
+     sa ramana sus si body-ului sa umple efectiv restul cutiei, altfel
+     "min-height: 100%" doar face cutia mai inalta fara sa dea acel spatiu
+     in plus vreunui copil - a ramas gol dedesubtul body-ului. */
+  min-height: 100%;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__head {
@@ -17182,6 +18071,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--si
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
+  flex: 1 1 auto;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__content {
@@ -17244,6 +18134,14 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--si
   gap: 12px;
   padding: 40px 20px;
   text-align: center;
+  /* Parintele direct al acestui bloc e mereu flex (cardul insusi pe "Adresa
+     mea", unde e copil direct al cardului; body-ul pe "Firmele mele", unde e
+     invelit intr-un ".pap-account-address-card__body") - "margin: auto"
+     pe un item flex ii cere motorului sa consume tot spatiul liber ramas ca
+     margine, ceea ce il centreaza pe AMBELE axe indiferent de directia
+     flex a parintelui (row sau column), fara sa mai fie nevoie de reguli
+     separate de centrare per pagina. */
+  margin: auto;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__empty-icon {
@@ -17316,14 +18214,593 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-address-form-grid-2col {
   }
 }
 
+/* "Firmele mele" reutilizeaza direct ".pap-account-panel--addresses" in
+   markup (my-company.php). Body-ul de baza (mai sus in fisier) e flex-row,
+   gandit pentru randul unic nume+linii/actiuni de la "Adresa mea" - aici
+   body-ul contine fie starea goala (icon/copy/buton), fie grila de firme,
+   niciuna randuri, deci trece pe flex-column: grila de firme primeste
+   automat toata latimea (align-items:stretch e implicit pe axa
+   perpendiculara, orizontala aici), iar starea goala se centreaza prin
+   "margin: auto" pe ".pap-account-address-card__empty" de mai jos - acelasi
+   truc care functioneaza si pe "Adresa mea" unde ea e copil direct al
+   cardului, nu al acestui body. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--companies .pap-account-address-card__body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid + carduri firma - conform designului Figma (node 191:2): fiecare
+   card e un tabel cheie-valoare complet (Denumire/CUI/Reg.Com./Adresa/
+   Localitate/Judet), nu doar cateva linii de text libere ca inainte. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 720px) {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card {
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid #c8cdd6;
+  border-radius: 2px;
+  background: #fff;
+  overflow: hidden;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #f0f2f5;
+  color: #6b7a95;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__head-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__name {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #0d2e61;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__regcom {
+  margin: 4px 0 0;
+  color: #6b7a95;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__body {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  flex: 1 1 auto;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__table {
+  display: flex;
+  flex-direction: column;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__row:last-child {
+  border-bottom: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__row-label {
+  padding-top: 1px;
+  color: #6b7a95;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__row-value {
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 14px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__actions form {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: 30px;
+  padding: 0 16px;
+  border: 1px solid #dde1e8;
+  border-radius: 6px;
+  background: #fff;
+  color: #0d2e61;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__action-btn:hover {
+  border-color: #0d2e61;
+  background: #f8fafc;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__action-btn--muted {
+  color: #6b7a95;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__action-btn--muted:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__default-form {
+  margin: 6px 0 0;
+  width: 100%;
+  text-align: center;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__default-link {
+  width: 100%;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: #6b7a95;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card__default-link:hover {
+  color: #0d2e61;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card--add {
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+  border-style: dashed;
+  color: #6b7a95;
+  font-size: 13px;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card--add__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: #f0f2f5;
+  color: #6b7a95;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card--add__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card--add:hover {
+  border-color: #0d2e61;
+  color: #0d2e61;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-card--add:hover .pap-account-company-card--add__icon {
+  color: #0d2e61;
+}
+
+/* "inline-flex + width:fit-content" - fara asta, label-ul se intinde pe toata
+   coloana lui din grid si devine clickabil (bifeaza checkbox-ul) si pe zona
+   goala din dreapta textului "Plătitor de TVA". */
+body.theme-papetarie.woocommerce-account.logged-in .pap-company-vat-payer {
+  display: inline-flex !important;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  align-self: center;
+  font-size: 13px;
+  color: #374151;
+}
+
+/* Checkout - blocul "Doresc factura pe firma" (vezi
+   papetarie_storefront_render_checkout_company_block() din functions.php).
+   ".pap-checkout-company-fields[hidden]" e ascuns implicit de atributul HTML
+   nativ, nu de o clasa CSS - JS-ul (company-book.js) doar comuta atributul. */
+.pap-checkout-company {
+  /* Fara margin-top propriu - e mereu singurul copil direct al lui
+     ".pap-checkout-card__body" (vezi papetarie_storefront_get_checkout_
+     company_card_html() in functions.php), care are deja "padding: 20px" pe
+     toate laturile. Un margin-top propriu aici s-ar aduna peste acel padding,
+     pornind cardul "Facturare" mai jos decat restul cardurilor de pe pagina
+     (Pas 1, Pas 3 etc.), care nu au aceasta marja in plus. */
+  margin-top: 0;
+  /* Fara "display: flex" aici, cutia (element de bloc obisnuit) avea ~6px
+     spatiu fantoma DEDESUBTUL checkbox-ului "Doresc factura pe firma" -
+     checkbox-ul insusi era perfect centrat in propriul rand, dar acel rand
+     (inline-flex, deci participa la un context de formatare pe linii) statea
+     intr-o "linie" mai inalta decat continutul lui, mostenita de la
+     line-height-ul normal al blocului parinte - un caz clasic de "spatiu
+     fantoma sub continut inline" (aceeasi familie de bug ca "imaginile au un
+     gol misterios dedesubt"). Testat live 2026-08-18: "flow-root" (fix
+     standard pentru margin-collapse) nu schimba nimic - confirma ca nu era
+     vorba de asta; doar transformarea PARINTELUI insusi intr-un container
+     flex elimina complet spatiul, fiindca elementele flex nu mai formeaza
+     linii in felul asta. "flex-direction: column" pastreaza checkbox-ul si
+     campurile (cand apar) stivuite vertical, ca inainte; "align-items:
+     flex-start" opreste eticheta sa se intinda la latimea completa (default
+     "stretch" intr-un flex pe coloana). */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.pap-checkout-company-fields:not([hidden]) {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px 0;
+  /* ".pap-checkout-company" (parinte) e acum flex-coloana cu "align-items:
+     flex-start" (vezi comentariul de-acolo) - fara "stretch" explicit aici,
+     acest camp s-ar restrange la latimea propriului continut (~344px in loc
+     de latimea completa a cardului), strangand toate grid-urile din interior
+     (Judet/Localitate etc. pe doua coloane) mult prea inguste. */
+  align-self: stretch;
+}
+
+/* "Alege firma salvată" - eticheta si select-ul sunt copii direcți ai
+   grid-ului ".pap-form-row--stack" (nu inrautiti impreuna intr-un singur
+   copil, cum e cazul in restul paginii), asa ca gap-ul grid-ului (12px) se
+   aduna peste margin-bottom-ul propriu al etichetei (".pap-form-row label",
+   6px) - 18px in loc de 6px, vizibil mai mare decat restul etichetelor. */
+.pap-checkout-company-fields .pap-form-row--stack {
+  gap: 6px;
+}
+
+.pap-checkout-company-fields .pap-form-row--stack > label {
+  margin-bottom: 0;
+}
+
+/* Blocul "firma noua" (CUI + toggle manual + campurile de mai jos) - ascuns
+   implicit cand dropdown-ul "Alege firma salvată" are deja o firma reala
+   selectata (vezi $show_new_entry in functions.php si handler-ul de
+   ".pap-checkout-company-select" din company-book.js). */
+.pap-checkout-company-new-entry:not([hidden]) {
+  display: grid;
+  gap: 12px;
+}
+
+/* Sectiunea "manuala" (nume firma/reg.com/adresa sediu) - ascunsa
+   implicit de [hidden] pana la lookup ANAF sau bifarea checkbox-ului
+   "Completează datele manual" (vezi revealManualFieldsFor() in
+   company-book.js). */
+.pap-checkout-company-manual-fields:not([hidden]) {
+  display: grid;
+  gap: 12px;
+}
+
+/* Rand CUI + buton "Completează automat" - varianta pentru checkout a
+   ".pap-company-cui-row"/".pap-company-autocomplete-btn" din Contul meu
+   (acelea sunt scopate la body.woocommerce-account, nu se aplica aici).
+   "align-items: flex-end" (varianta veche) alinia butonul cu marginea de JOS
+   a randului - functiona doar din intamplare cat timp randul n-avea nimic in
+   plus dedesubt. De cum apare mesajul de eroare ("Completeaza acest camp.")
+   sub input (parte din acelasi ".pap-form-row", care creste in inaltime),
+   "flex-end" recalculeaza fata de noua margine de jos, mai jos - butonul
+   "cobora" vizibil odata cu eroarea (raportat 2026-08-18). "flex-start" +
+   un "margin-top" pe buton, egal cu inaltimea etichetei CUI plus spatiul de
+   dedesubt (masurat live: eticheta ~18px + 6px gol pana la input = 24px),
+   il ancoreaza fata de eticheta (mereu prezenta, dimensiune fixa), nu fata
+   de eroare (aparuta/disparuta, inaltime variabila). */
+body.theme-papetarie.woocommerce-checkout .pap-company-cui-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-company-cui-row .pap-form-row {
+  /* CUI e un cod scurt (max ~10-13 caractere) - fara "max-width", campul
+     creste (flex:1) sa umple tot randul ramas dupa buton, aratand ca un
+     camp de text lung (ex. adresa), nu ca un cod. Plafonat, spatiul ramas
+     din rand ramane pur si simplu gol, langa buton. */
+  flex: 1;
+  max-width: 220px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* ".pap-account-secondary-button" n-are nicio regula de baza in afara
+   Contului meu (toate definitiile din fisier sunt scopate la
+   "body.woocommerce-account.logged-in"), deci pe checkout butonul cadea pe
+   stilul implicit al browserului (fundal negru/gri). Copiem aici explicit
+   aceleasi culori/aspect ca varianta din Contul meu (alb, bordura #d9e2ec,
+   text #17324d, hover portocaliu), nu doar layout-ul. */
+body.theme-papetarie.woocommerce-checkout .pap-company-cui-row .pap-account-secondary-button.pap-company-autocomplete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: var(--pap-input-height);
+  min-height: 0;
+  /* Vezi comentariul de la ".pap-company-cui-row" - ancoreaza butonul la
+     inaltimea etichetei (fixa), nu la marginea de jos a randului (variabila
+     cand apare eroarea sub input). */
+  margin-top: 24px;
+  padding: 0 18px;
+  border: 1px solid #d9e2ec;
+  border-radius: 0;
+  background: #fff;
+  color: #17324d;
+  font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-company-cui-row .pap-account-secondary-button.pap-company-autocomplete-btn:hover,
+body.theme-papetarie.woocommerce-checkout .pap-company-cui-row .pap-account-secondary-button.pap-company-autocomplete-btn:focus-visible {
+  border-color: #ff5b1f;
+  color: #d9480f;
+}
+
+/* Selectorul neprefixat + cele doua prefixate (Contul meu, checkout), mai
+   specifice ca sa bata regula generica de "body.theme-papetarie p { margin:
+   ... }" a temei (0,1,1), care altfel castiga fata de un selector cu o
+   singura clasa (0,1,0) si adauga ~14px nedoriti sub mesajul de status -
+   prefixul de Cont meu exista de mult, cel de checkout lipsea (confirmat
+   2026-08-18: checkout mostenea cei 14px, Contul meu nu). Margine 0, nu
+   negativa - acest paragraf e copil direct al unui grid cu "gap: 12px" (vezi
+   ".pap-checkout-company-new-entry"), care singur da deja spatiere uniforma
+   fata de vecini; orice margine proprie aici s-ar aduna PESTE acel gap, nu
+   l-ar inlocui. Fara "min-height" permanent - aceeasi regula ca la
+   ".pap-field-error" (vezi linia ~15442): un slot gol nu trebuie sa ocupe
+   spatiu in ierarhia vizuala, doar cand chiar are text. */
+.pap-company-lookup-status,
+body.theme-papetarie.woocommerce-account.logged-in .pap-company-lookup-status,
+body.theme-papetarie.woocommerce-checkout .pap-company-lookup-status {
+  display: block;
+  margin: 0;
+  font-size: 12px;
+  color: #6b7a95;
+}
+
+.pap-company-lookup-status:empty,
+body.theme-papetarie.woocommerce-account.logged-in .pap-company-lookup-status:empty,
+body.theme-papetarie.woocommerce-checkout .pap-company-lookup-status:empty {
+  display: none;
+  margin: 0;
+}
+
+/* Rezumat "Se facturează pe: X · CUI Y" - vezi papetarie_storefront_render_
+   checkout_company_block() in functions.php. Mereu vizibil cat timp exista
+   o denumire de firma, indiferent daca ".pap-checkout-company-manual-
+   fields" de mai jos e extins sau colapsat - singura confirmare persistenta
+   a cui apartine factura odata ce campurile sunt ascunse. */
+body.theme-papetarie.woocommerce-checkout .pap-company-billing-summary {
+  /* Margine 0 - copil direct al grid-ului ".pap-checkout-company-new-entry"
+     (gap: 12px), care singur da deja spatiere uniforma fata de vecini. */
+  margin: 0;
+  font-size: 13px;
+  color: #5f7290;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-company-billing-summary strong {
+  color: #0d2e61;
+  font-weight: 600;
+}
+
+/* Randul care tine impreuna rezumatul si link-ul de toggle (vezi comentariul
+   PHP de langa ".pap-company-billing-row") - flex cu wrap, ca sa cada pe
+   doua randuri de la sine pe ecrane inguste, in loc sa se suprapuna. */
+body.theme-papetarie.woocommerce-checkout .pap-company-billing-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+/* Element real, nu ::before pe buton (vezi comentariul PHP de langa
+   ".pap-company-billing-row-sep") - "gap" de pe randul flex de mai sus da
+   deja spatiul de pe ambele laturi, nu mai are nevoie de margine proprie. */
+body.theme-papetarie.woocommerce-checkout .pap-company-billing-row-sep {
+  color: #c3cee0;
+}
+
+/* Modalul "Adaugă/Editează firmă" din Contul meu - CUI + buton pe un rand,
+   apoi checkbox-ul care dezvaluie restul campurilor (vezi
+   papetarie_storefront_company_book_render_form_fields()). "align-items:
+   flex-start" (nu "stretch") - wrapper-ul de float-field creste cand apare
+   mesajul de eroare sub CUI (".pap-field-error" e tot in interiorul lui), iar
+   "stretch" intindea butonul dupa acea inaltime variabila, facandu-l mai
+   inalt decat campul de 55px de fiecare data cand exista o eroare. Butonul
+   isi are acum inaltimea proprie, fixa. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-company-cui-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-company-cui-row .pap-float-field {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Dubleaza clasa ".pap-account-secondary-button" in selector (nu doar
+   ".pap-company-autocomplete-btn") ca sa castige la specificitate egala fata
+   de regula ei de baza "min-height: 47px" care vine mai jos in fisier -
+   altfel ordinea din sursa o face pe aceea sa castige, indiferent ce
+   min-height punem aici. "flex: 0 0 auto" (nu 1 1 auto) - butonul isi tine
+   latimea naturala dupa text, nu creste sa umple spatiul ramas (asta facea
+   butonul de 2x mai lat decat campul CUI). Inaltimea e fixa la 55px (nu
+   stretch) - la fel cu campul CUI, dar independenta de eroarea lui. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-secondary-button.pap-company-autocomplete-btn {
+  flex: 0 0 auto;
+  height: 55px !important;
+  min-height: 0;
+  padding: 0 18px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* ".pap-manual-toggle-link" - butonul "Nu găsești firma? Completează datele
+   manual" / "← Completează automat după CUI" (Contul meu + checkout). Nu mai
+   e checkbox (nu e o stare on/off, e o schimbare de mod) - e un buton-link
+   simplu care isi schimba doar textul (vezi setManualToggleLabel() in
+   company-book.js). Stil unscoped, reutilizabil pe orice pagina. */
+.pap-manual-toggle-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  margin: 4px 0 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  color: #6b7a95;
+  text-decoration: underline;
+  cursor: pointer;
+  appearance: none;
+}
+
+.pap-manual-toggle-link:hover,
+.pap-manual-toggle-link:focus-visible {
+  color: var(--pap-orange-deep, #d9480f);
+  outline: none;
+}
+
+/* La checkout, acelasi link il stilizam ca pe hint-ul de sub campul de email
+   (".pap-checkout-readonly-field__hint" - "Emailul contului tău. Îl schimbi
+   din Contul meu") - text mic, discret, cu link-ul in albastrul standard, nu
+   subliniat implicit. Scopat strict la checkout ca sa nu atinga instanta din
+   modalul "Adaugă firmă" din Contul meu (ramane cu stilul ei original). */
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .pap-manual-toggle-link {
+  /* Margine 0 - copil direct al grid-ului ".pap-checkout-company-new-entry"
+     (gap: 12px), care singur da deja spatiere uniforma fata de vecini. */
+  margin: 0;
+  font-size: 12px;
+  color: #1e4f99;
+  text-decoration: none;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .pap-manual-toggle-link:hover,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company .pap-manual-toggle-link:focus-visible {
+  color: #1e4f99;
+  text-decoration: underline;
+}
+
+/* Checkbox-urile din modalul de firma mostenesc "padding: 12px 14px" de la
+   regula generica ".pap-account-form input" (pentru inputurile text), care
+   nu e !important - dar cumulat cu "box-sizing: border-box" umfla vizual
+   checkbox-ul mult peste cei 22px intentionati din ".pap-checkbox-input".
+   Redeclaram padding 0 aici, scopat suficient de specific (".pap-account-form
+   .pap-checkbox-input") ca sa bata regula generica indiferent de ordine. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-form .pap-checkbox-input {
+  padding: 0 !important;
+  min-height: 18px !important;
+}
+
+/* ":not([hidden])" e obligatoriu - altfel regula proprie de "display: grid"
+   bate regula default a browserului pentru "[hidden]" (display:none) si
+   sectiunea ramane vizibila chiar si cu atributul hidden pus de JS. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-company-manual-fields:not([hidden]) {
+  display: grid;
+  gap: 12px;
+}
+
 /* Float-field select variant: a <select> always shows a value (never an
    empty "placeholder-shown" state like a text input), so its label stays
    permanently in the floated position instead of animating on focus/fill. */
+/* "border-width: 1px !important" - inconsistenta veche, nu doar aici:
+   ".pap-account-form input" (linia ~16452) suprascrie latimea bordurii
+   inputurilor text la 1px, dar nu si pe cea a select-urilor (ordinea din
+   fisier face ca regula asta, ".pap-float-field select", sa castige acolo cu
+   1.5px) - de-aia Judet/Localitate arata cu bordura vizibil mai groasa decat
+   campurile text de langa ele, inclusiv pe "Adresele mele", nu doar aici. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-float-field select {
   display: block;
   width: 100%;
   min-height: 55px !important;
   height: 55px !important;
+  border-width: 1px !important;
   padding: 28px 32px 6px 14px !important;
   border: 1.5px solid #dde1e8;
   border-radius: 6px;
@@ -17888,24 +19365,24 @@ body.theme-papetarie .pap-checkout-flow-card__expect strong {
 body.theme-papetarie .pap-footer {
   margin-top: 34px !important;
   background: #fff !important;
-  border-top: 0 !important;
+  border-top: 1px solid var(--pap-line) !important;
   padding: 0 !important;
   color: #4b5e7a !important;
 }
 
 body.theme-papetarie .pap-footer-inner {
   display: grid !important;
-  grid-template-columns: 307px 192px 192px minmax(0, 1fr) !important;
-  gap: 48px !important;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr 1.15fr !important;
+  gap: 32px !important;
   align-items: start !important;
-  padding-top: 44px !important;
+  padding-top: 52px !important;
   padding-bottom: 40px !important;
 }
 
 body.theme-papetarie .pap-footer-brand {
   display: flex !important;
   flex-direction: column !important;
-  gap: 12px !important;
+  gap: 16px !important;
   padding: 0 !important;
   margin: 0 !important;
   background: transparent !important;
@@ -17914,23 +19391,51 @@ body.theme-papetarie .pap-footer-brand {
 }
 
 body.theme-papetarie .pap-footer-logo {
-  display: inline-flex !important;
-  align-items: center !important;
+  display: block !important;
+  width: 110px !important;
+  height: 30px !important;
   max-width: none !important;
-}
-
-body.theme-papetarie .pap-footer-logo img,
-body.theme-papetarie .pap-footer-logo .custom-logo {
-  max-width: 180px !important;
-  max-height: 36px !important;
+  background-repeat: no-repeat !important;
+  background-position: left center !important;
+  background-size: contain !important;
 }
 
 body.theme-papetarie .pap-footer-description {
   margin: 0 !important;
-  max-width: 230px !important;
+  max-width: 28ch !important;
   color: #6b7a95 !important;
   font-size: 13px !important;
-  line-height: 1.65 !important;
+  line-height: 1.6 !important;
+}
+
+body.theme-papetarie .pap-footer-social {
+  display: flex !important;
+  gap: 10px !important;
+  margin-top: 2px !important;
+}
+
+body.theme-papetarie .pap-footer-social a {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--pap-soft) !important;
+  border: 1px solid var(--pap-line) !important;
+  color: var(--pap-navy) !important;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease !important;
+}
+
+body.theme-papetarie .pap-footer-social a:hover {
+  background: var(--pap-orange) !important;
+  border-color: var(--pap-orange) !important;
+  color: #fff !important;
+}
+
+body.theme-papetarie .pap-footer-social svg {
+  width: 15px !important;
+  height: 15px !important;
 }
 
 body.theme-papetarie .pap-footer-links-group {
@@ -17967,7 +19472,7 @@ body.theme-papetarie .pap-footer-links a,
 body.theme-papetarie .pap-footer-menu a {
   display: block !important;
   color: #4b5e7a !important;
-  font-size: 14px !important;
+  font-size: 13.5px !important;
   font-weight: 400 !important;
   text-decoration: none !important;
 }
@@ -17975,6 +19480,8 @@ body.theme-papetarie .pap-footer-menu a {
 body.theme-papetarie .pap-footer-links a:hover,
 body.theme-papetarie .pap-footer-menu a:hover {
   color: var(--pap-orange-deep) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
 }
 
 body.theme-papetarie .pap-footer-newsletter {
@@ -18003,29 +19510,34 @@ body.theme-papetarie .pap-footer-widget-title {
 body.theme-papetarie .pap-footer-newsletter-copy {
   margin: 0 !important;
   color: #6b7a95 !important;
-  font-size: 13px !important;
-  line-height: 1.6 !important;
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
 }
 
 body.theme-papetarie .pap-footer-newsletter-form {
   display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
   overflow: visible !important;
 }
 
+body.theme-papetarie .pap-footer-newsletter-form[hidden] {
+  display: none !important;
+}
+
 body.theme-papetarie .pap-footer-newsletter-form input {
-  flex: 1 1 auto !important;
+  width: 100% !important;
   min-width: 0 !important;
-  height: 36px !important;
+  height: 40px !important;
   box-sizing: border-box !important;
-  border: 1px solid #dde1e8 !important;
-  border-right: 0 !important;
-  border-radius: 3px 0 0 3px !important;
+  border: 1px solid var(--pap-border) !important;
+  border-radius: 0 !important;
   background: #fafafa !important;
-  padding: 0 11px !important;
-  font-size: 12px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
   color: #374151 !important;
 }
 
@@ -18033,17 +19545,32 @@ body.theme-papetarie .pap-footer-newsletter-form input::placeholder {
   color: rgba(55, 65, 81, 0.5) !important;
 }
 
+body.theme-papetarie .pap-footer-newsletter-feedback {
+  margin: 0 !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+
+body.theme-papetarie .pap-footer-newsletter-feedback[data-state="success"] {
+  color: var(--pap-green) !important;
+}
+
+body.theme-papetarie .pap-footer-newsletter-feedback[data-state="error"] {
+  color: var(--pap-red) !important;
+}
+
 body.theme-papetarie .pap-footer-newsletter-form button {
-  flex: 0 0 auto !important;
-  height: 36px !important;
+  width: 100% !important;
+  height: 40px !important;
   border: 0 !important;
-  border-radius: 0 3px 3px 0 !important;
+  border-radius: 0 !important;
   background: var(--pap-orange) !important;
   color: #fff !important;
-  font-size: 12px !important;
+  font-size: 12.5px !important;
   font-weight: 700 !important;
   padding: 0 14px !important;
   cursor: pointer !important;
+  white-space: nowrap !important;
 }
 
 body.theme-papetarie .pap-footer-newsletter-form button:hover {
@@ -18054,7 +19581,7 @@ body.theme-papetarie .pap-footer-meta {
   margin-top: 0 !important;
   padding: 0 !important;
   width: 100% !important;
-  border-top: 0 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   background: var(--pap-navy) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -18062,28 +19589,42 @@ body.theme-papetarie .pap-footer-meta {
 
 body.theme-papetarie .pap-footer-meta-inner {
   min-height: 0 !important;
-  padding: 14px 0 !important;
+  padding-block: 10px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 16px !important;
+  gap: 18px !important;
   flex-wrap: wrap !important;
 }
 
 body.theme-papetarie .pap-footer-meta p {
   margin: 0 !important;
-  color: rgba(255, 255, 255, 0.45) !important;
+  color: #7c8db0 !important;
   font-size: 12px !important;
   font-weight: 400 !important;
 }
 
 body.theme-papetarie .pap-footer-meta-links {
   display: flex !important;
-  gap: 20px !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+}
+
+body.theme-papetarie .pap-footer-anpc-badges {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+}
+
+body.theme-papetarie .pap-footer-anpc-badges img {
+  display: block !important;
+  height: 40px !important;
+  width: auto !important;
 }
 
 body.theme-papetarie .pap-footer-meta a {
-  color: rgba(255, 255, 255, 0.45) !important;
+  color: #93a3c2 !important;
   font-size: 12px !important;
   text-decoration: none !important;
 }
@@ -18556,6 +20097,13 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   background: #fff;
   box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.05);
   padding: 25px 25px 21px;
+  /* Grid items default to min-width:auto, refusing to shrink below their
+     content's intrinsic width. The variations <table>'s color-swatch flex
+     row has no wrap constraint of its own (see table.variations rule
+     below), so without this the whole chain (table > form > actions-row >
+     this) balloons to an unwrapped ~3000px and silently overflows off the
+     .pap-product-summary grid column. */
+  min-width: 0;
 }
 
 .pap-product-info-top {
@@ -19133,7 +20681,11 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.sho
 
 @media (max-width: 900px) {
   .pap-product-summary {
-    grid-template-columns: 1fr;
+    /* Bare 1fr has an automatic min-size of "auto" (content-based), not 0 -
+       a single wide-content grid item (e.g. the unwrapped color-swatch
+       table below) can still force this track wider than the viewport.
+       minmax(0, 1fr) is the actual "shrink to container" track. */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .pap-product-gallery-main {
@@ -19484,32 +21036,62 @@ body.theme-papetarie .pap-search-bar-submit svg {
   height: 15px !important;
 }
 
+/* Checkbox/radio custom, complet independent de stilul nativ al browserului
+   (appearance:none pe toate cele 3 prefixe). Componenta UI unica si
+   reutilizabila - orice input cu clasa ".pap-checkbox-input"/".pap-radio-input"
+   din tot site-ul (nu doar Contul meu) trece prin regulile astea, o singura
+   sursa de adevar, nimic duplicat per pagina. Marime 18x18 - cat inaltimea
+   vizuala a unui rand de text normal (13px), nu domina textul de langa el.
+   Toate regulile sunt !important fiindca trebuie sa castige indiferent de
+   alte reguli generice de formular (ex. ".pap-account-form input") care ar
+   suprascrie altfel padding/marime - vezi nota de langa
+   ".pap-account-form .pap-checkbox-input". */
 body.theme-papetarie .pap-checkbox-input,
 body.theme-papetarie .pap-radio-input {
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
-  width: 14px !important;
-  height: 14px !important;
-  min-width: 14px !important;
-  min-height: 14px !important;
+  display: inline-block !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
   margin: 0 !important;
-  border: 1px solid #767676 !important;
+  padding: 0 !important;
+  border: 1px solid #dbe4f0 !important;
+  border-radius: 0 !important;
   background: #fff !important;
   cursor: pointer !important;
   flex: 0 0 auto !important;
   position: relative !important;
   box-sizing: border-box !important;
+  overflow: visible !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 
 body.theme-papetarie .pap-checkbox-input {
-  border-radius: 2px !important;
+  border-radius: 3px !important;
 }
 
 body.theme-papetarie .pap-radio-input {
   border-radius: 50% !important;
 }
 
+body.theme-papetarie .pap-checkbox-input:hover,
+body.theme-papetarie .pap-radio-input:hover {
+  border-color: var(--pap-orange) !important;
+}
+
+body.theme-papetarie .pap-checkbox-input:focus-visible,
+body.theme-papetarie .pap-radio-input:focus-visible {
+  outline: none !important;
+  border-color: var(--pap-orange) !important;
+  box-shadow: 0 0 0 3px rgba(255, 91, 31, 0.25) !important;
+}
+
+/* Starea :checked schimba doar background/border, niciodata dimensiunea -
+   width/height raman cele din regula de baza de mai sus, deci bifarea unui
+   checkbox nu misca deloc layout-ul din jur (text, alte campuri). */
 body.theme-papetarie .pap-checkbox-input:checked {
   background: var(--pap-orange) !important;
   border-color: var(--pap-orange) !important;
@@ -19520,22 +21102,28 @@ body.theme-papetarie .pap-radio-input:checked {
   border-color: var(--pap-orange) !important;
 }
 
+/* Bifa construita din CSS (border-bottom + border-right, rotit 45deg), nu
+   caracter Unicode - randeaza identic in Chrome/Safari/Firefox si nu
+   depinde de fontul sistemului sau de disponibilitatea unei iconite.
+   Pozitionare in pixeli ficsi, masurata si validata vizual direct pe
+   notix.ro (nu calculata din formula) - left/top/width/height de mai jos
+   sunt intentionat hardcodate la aceste valori exacte. */
 body.theme-papetarie .pap-checkbox-input:checked::after {
   content: "" !important;
   position: absolute !important;
-  left: 4px !important;
-  top: 1px !important;
+  left: 5px !important;
+  top: 2px !important;
   width: 4px !important;
   height: 8px !important;
   border: solid #fff !important;
-  border-width: 0 1.5px 1.5px 0 !important;
+  border-width: 0 2px 2px 0 !important;
   transform: rotate(45deg) !important;
 }
 
 body.theme-papetarie .pap-radio-input:checked::after {
   content: "" !important;
   position: absolute !important;
-  inset: 3px !important;
+  inset: 4px !important;
   border-radius: 50% !important;
   background: var(--pap-orange) !important;
 }
@@ -20567,11 +22155,32 @@ body.theme-papetarie .pap-review-modal__footer {
   }
 }
 
+/* WooCommerce's default variations <table> has no width constraint of its
+   own, so it - and the .pap-color-swatches flex-wrap container inside one
+   of its <td>s - sizes to its unwrapped, one-row content width instead of
+   the page. On desktop that content happened to fit so this never showed;
+   on mobile the table swells to 3000px+ and gets silently clipped by the
+   product-summary column's overflow-x:hidden, hiding most swatches with no
+   visible sign anything is missing. Force the table itself back to the
+   container's width so its cells - and flex-wrap - have something real to
+   wrap within. */
+form.variations_form table.variations,
+form.cart table.variations {
+  width: 100%;
+  table-layout: fixed;
+}
+
+form.variations_form table.variations td.value,
+form.cart table.variations td.value {
+  width: auto;
+}
+
 .pap-color-swatches {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin: 4px 0;
+  max-width: 100%;
 }
 
 .pap-color-swatch {
@@ -20823,10 +22432,17 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-totals-row.is-to
 /* ---- simplecard: page-level single card (Comenzile mele / Comanda #X) ---- */
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard {
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border: 1px solid #dde1e8;
   border-radius: 6px;
   overflow: hidden;
+  /* Acelasi bug ca la ".pap-account-address-card--single": cardul era
+     "display: block" implicit, nu se intindea sa umple inaltimea mostenita
+     de la sidebar, deci "justify-content: center" de pe
+     ".pap-account-simplecard__empty" nu avea spatiu liber de distribuit. */
+  min-height: 100%;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__head {
@@ -20866,6 +22482,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__empt
   gap: 4px;
   padding: 48px 20px;
   text-align: center;
+  flex: 1 1 auto;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__empty-icon {
@@ -21309,46 +22926,101 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-detail-gri
    scrollbar, this just re-skins the colors/spacing to match the site. */
 body.theme-papetarie .select2-dropdown {
   border-color: #dde1e8;
-  border-radius: 6px;
+  border-radius: 0;
   box-shadow: 0 10px 24px rgba(18, 39, 74, 0.12);
   font-family: inherit;
+  /* margin-top desparte vizual panoul de camp - fara el panoul se lipeste
+     direct de marginea de jos a input-ului (element pozitionat absolut, deci
+     margin il muta efectiv, nu se prabuseste) si arata ca un bug, nu ca doua
+     elemente distincte (camp + panou plutitor deasupra lui). */
+  /* Select2 isi calculeaza pozitia INAINTE ca acest margin sa fie aplicat
+     (masoara inaltimea panoului fara el), asa ca doar o parte din valoare
+     ajunge sa fie vizibila ca gap real - empiric, ~10px sursa => ~5-6px
+     vizibil. Valoarea de mai jos e aleasa sa lase un gap vizibil, nu cea
+     "corecta" din punct de vedere logic. */
+  margin-top: 10px;
   font-size: 14px;
   overflow: hidden;
 }
 
-body.theme-papetarie .select2-search--dropdown {
-  padding: 8px;
+/* Varianta "deasupra" (cand nu e loc dedesubt) are nevoie de gap-ul pe
+   partea opusa - "margin-top" de mai sus ar impinge panoul SPRE camp aici,
+   nu departe de el. */
+body.theme-papetarie .select2-dropdown--above {
+  margin-top: -10px;
+  margin-bottom: 10px;
 }
 
-body.theme-papetarie .select2-search--dropdown .select2-search__field {
-  border: 1.5px solid #dde1e8;
+/* select2.css scoate implicit bordura dinspre camp ("border-top: none" la
+   "--below", "border-bottom: none" la "--above"), presupunand ca panoul
+   sta lipit de camp. Acum ca panoul pluteste separat (margin-top/bottom de
+   mai sus), ii trebuie bordura completa pe toate laturile, altfel arata
+   taiat sus. */
+body.theme-papetarie .select2-dropdown--below {
+  border-top: 1px solid #dde1e8;
+}
+
+body.theme-papetarie .select2-dropdown--above {
+  border-bottom: 1px solid #dde1e8;
+}
+
+body.theme-papetarie .select2-search--dropdown {
+  padding: 6px;
+}
+
+/* "!important" pe border-color peste tot in acest bloc - exista o regula
+   globala "input[type=search]:focus{border-color:var(--pap-navy) !important}"
+   (style.css:6536) care altfel ar castiga in starea de focus si ar face
+   bordura sa sara la alta nuanta/grosime fata de starea normala (asta era
+   "cele doua albastre" raportate - un albastru la repaus, altul la focus). */
+body.theme-papetarie .select2-search--dropdown .select2-search__field,
+body.theme-papetarie .select2-search--dropdown .select2-search__field:focus,
+body.theme-papetarie .select2-search--dropdown .select2-search__field:focus-visible {
+  border: 1.5px solid #dde1e8 !important;
   border-radius: 4px;
-  padding: 8px 10px;
+  padding: 5px 10px 5px 32px;
   font-family: inherit;
   font-size: 13px;
   color: #0d2e61;
-}
-
-body.theme-papetarie .select2-search--dropdown .select2-search__field:focus {
-  outline: none;
-  border-color: #0d2e61;
+  outline: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  /* Lupa care marcheaza campul ca fiind de cautare (nu doar un input oarecare) - */
+  /* SVG inline, nu font-awesome, ca sa nu depindem de markup-ul intern al select2. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7a95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 8px center;
+  background-size: 13px 13px;
 }
 
 body.theme-papetarie .select2-results__option {
   padding: 9px 14px;
   color: #17324d;
   font-size: 13px;
+  /* Optiunile primesc focus real (navigare cu tastatura) - fara asta,
+     browserul deseneaza propriul inel albastru de focus peste fundalul gri
+     de mai jos, aratand ca doua tratamente vizuale diferite pe acelasi
+     element in loc de unul singur. */
+  outline: none;
 }
 
-body.theme-papetarie .select2-container--default .select2-results__option--highlighted[aria-selected] {
-  background: #fff1e8;
-  color: #ff5b1f;
-}
-
-body.theme-papetarie .select2-container--default .select2-results__option[aria-selected='true'] {
-  background: #f0f2f5;
+/* IMPORTANT: in acest build de select2, "aria-selected='true'" marcheaza
+   optiunea EVIDENTIATA curent (hover/navigare cu tastatura), nu neaparat
+   valoarea reala selectata - aia e "data-selected='true'" (le-am vazut
+   live pe doua optiuni diferite simultan: cea sub cursor avea
+   aria-selected=true + data-selected=false). De-aia scopam pe
+   "data-selected" pentru valoarea reala, nu pe "aria-selected".
+   ".--highlighted" acopera hover-ul separat, cu acelasi stil (un singur
+   look pentru ambele stari) - dar cu culoare de text explicita, altfel
+   mosteneste "color: #fff" alb din select2.css de baza, ilizibil pe fond
+   deschis. "body.theme-papetarie" in plus fata de restul regulilor din
+   blocul asta - fara el specificitatea era EGALA cu regula de baza a lui
+   select2.css (care se incarca dupa stilul nostru), asa ca aia castiga la
+   egalitate prin ordine, nu a noastra. */
+body.theme-papetarie .select2-container--default .select2-results__option[data-selected='true'],
+body.theme-papetarie .select2-container--default .select2-results__option--highlighted {
+  background-color: #f0f2f5;
   color: #0d2e61;
-  font-weight: 600;
 }
 
 body.theme-papetarie .select2-results__option[aria-disabled='true'] {
@@ -21359,4 +23031,14 @@ body.theme-papetarie .select2-results__message {
   padding: 12px 14px;
   color: #6b7a95;
   font-size: 13px;
+}
+
+/* Cautarea mereu vizibila adauga ~63px la inaltimea panoului (fata de cand
+   era ascunsa) - fara asta, panoul nu mai incape SUB camp in aceleasi
+   pozitii de scroll in care incapea inainte, si se deschide deasupra mult
+   mai des (acopera vizual campurile de deasupra). Reducem inaltimea listei
+   de rezultate ca sa compensam, revenind la un footprint apropiat de cel
+   dinainte (200px rezultate + fara cautare ~= 140px rezultate + cautare). */
+body.theme-papetarie .select2-container--default .select2-results > .select2-results__options {
+  max-height: 140px;
 }

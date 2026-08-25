@@ -58,11 +58,15 @@ add_action('widgets_init', 'papetarie_storefront_widgets_init');
 if (is_admin()) {
     require_once __DIR__ . '/admin-category-ordering.php';
     require_once __DIR__ . '/admin-aperta-sync.php';
+    require_once __DIR__ . '/admin-newsletter.php';
+    require_once __DIR__ . '/admin-oblio.php';
 }
 
 require_once __DIR__ . '/includes/address-book.php';
+require_once __DIR__ . '/includes/company-book.php';
 require_once __DIR__ . '/includes/aperta-sync.php';
 require_once __DIR__ . '/includes/color-swatches.php';
+require_once __DIR__ . '/includes/newsletter.php';
 
 function papetarie_storefront_enqueue_styles(): void
 {
@@ -757,7 +761,7 @@ function papetarie_storefront_enqueue_header_menu_script(): void
     wp_enqueue_script(
         'papetarie-storefront-header-menu',
         get_stylesheet_directory_uri() . '/assets/js/header-menu.js',
-        [],
+        ['papetarie-storefront-modal-manager'],
         // filemtime, nu versiunea fixa a temei - altfel orice editare a acestui
         // fisier ramane cache-uita in browser pana cineva bumpuieste manual
         // versiunea temei (gasit live 2026-07-31: un fix real nu se aplica
@@ -921,11 +925,23 @@ function papetarie_storefront_edit_account_notice_hooks(): void
         return;
     }
 
-    // "edit-address" (Adrese) gets the same discreet in-panel treatment as
-    // "edit-account" (Detalii cont) - see papetarie_storefront_render_account_notice(),
-    // called from my-address.php right after the card head, same spot as
-    // form-edit-account.php.
-    if (!is_wc_endpoint_url('edit-account') && !is_wc_endpoint_url('edit-address')) {
+    // "edit-address" (Adrese) and "firmele-mele" (Firmele mele) get the same
+    // discreet in-panel treatment as "edit-account" (Detalii cont) - see
+    // papetarie_storefront_render_account_notice(), called from
+    // my-address.php / my-company.php right after the card head, same spot
+    // as form-edit-account.php.
+    //
+    // "firmele-mele" can't use is_wc_endpoint_url() like the other two -
+    // that function only recognizes endpoints registered through
+    // WC()->query->get_query_vars() (WooCommerce's own endpoint map, driven
+    // by the woocommerce_myaccount_*_endpoint options), and "firmele-mele"
+    // was registered as a plain WP rewrite endpoint instead (see
+    // add_rewrite_endpoint('firmele-mele', ...) above), so it's never a key
+    // in that map and is_wc_endpoint_url('firmele-mele') is always false.
+    // Check the raw $wp->query_vars entry WP itself sets for the endpoint.
+    global $wp;
+    $is_firmele_mele = isset($wp->query_vars['firmele-mele']);
+    if (!is_wc_endpoint_url('edit-account') && !is_wc_endpoint_url('edit-address') && !$is_firmele_mele) {
         return;
     }
 
@@ -976,6 +992,7 @@ function papetarie_storefront_render_account_notice(): void
       <?php foreach ($messages as $notice) : ?>
         <span class="pap-account-form-notice__text"><?php echo wp_kses_post(is_array($notice) ? ($notice['notice'] ?? '') : $notice); ?></span>
       <?php endforeach; ?>
+      <button type="button" class="pap-account-form-notice__close" data-account-notice-close aria-label="<?php echo esc_attr__('Închide mesajul', 'papetarie-storefront'); ?>">&times;</button>
     </div>
     <?php
     wc_clear_notices();
@@ -1613,7 +1630,7 @@ function papetarie_storefront_get_checkout_shipping_methods_card_html(): string
     <section class="pap-checkout-card pap-checkout-card--shipping-methods pap-checkout-step pap-checkout-step--shipping-methods is-step-<?php echo esc_attr($step_state); ?>" data-pap-checkout-section="shipping-methods" data-pap-checkout-step="shipping-methods" data-pap-step-state="<?php echo esc_attr($step_state); ?>" aria-disabled="<?php echo esc_attr($step_state === 'disabled' ? 'true' : 'false'); ?>">
       <div class="pap-checkout-card__head">
         <div class="pap-checkout-section-title-row">
-          <span class="pap-checkout-section-badge" aria-hidden="true">2</span>
+          <span class="pap-checkout-section-badge" aria-hidden="true">3</span>
           <div class="pap-checkout-section-title-col">
             <h3><?php esc_html_e('Tip de livrare', 'papetarie-storefront'); ?></h3>
             <p class="pap-checkout-card__intro"><?php esc_html_e('Verifică metoda de livrare și costul transportului.', 'papetarie-storefront'); ?></p>
@@ -2790,8 +2807,6 @@ function papetarie_storefront_enqueue_account_scripts(): void
         'papAccountUi',
         [
             'loginUrl' => function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : wp_login_url(),
-            'socialShortcode' => shortcode_exists('nextend_social_login') ? 'nextend_social_login' : '',
-            'googleLoginUrl' => (string) apply_filters('papetarie_storefront_google_login_url', ''),
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'ajaxAction' => 'pap_auth_login',
             'currentUserAction' => 'pap_auth_current_user',
@@ -2906,6 +2921,7 @@ function papetarie_storefront_translate_frontend_strings(string $translated, str
 
     $map = [
         'Order #%s' => 'Comandă #%s',
+        'Here’s a reminder of what you’ve ordered:' => 'Rezumatul comenzii tale:',
         'Login' => 'Autentificare',
         'Register' => 'Creare cont',
         'Lost your password?' => 'Ai uitat parola?',
@@ -2985,6 +3001,8 @@ function papetarie_storefront_translate_frontend_strings(string $translated, str
         'Please re-enter your password.' => 'Confirmă parola nouă.',
         'New passwords do not match.' => 'Parolele nu se potrivesc.',
         'Your current password is incorrect.' => 'Parola curentă este incorectă.',
+        'Add to cart' => 'Adaugă în coș',
+        'Select options' => 'Alege opțiuni',
     ];
 
     return $map[$text] ?? $translated;
@@ -4342,14 +4360,80 @@ function papetarie_storefront_email_styles(string $css): string
         body, table, td, p, a, span, div {
             font-family: 'Open Sans', Arial, sans-serif !important;
         }
+        a {
+            color: #173764 !important;
+        }
         .email-template-wrapper,
         .email-content {
             border-radius: 0 !important;
         }
         a.button {
-            background: #173764 !important;
-            border-color: #173764 !important;
-            border-radius: 0 !important;
+            background: #ff5b1f !important;
+            border-color: #ff5b1f !important;
+            color: #ffffff !important;
+            border-radius: 2px !important;
+            text-decoration: none !important;
+        }
+        table[border=\"1\"],
+        table[border=\"1\"] td,
+        table[border=\"1\"] th {
+            border: none !important;
+        }
+        table[border=\"1\"] thead th {
+            border-bottom: 2px solid #173764 !important;
+            padding-bottom: 10px !important;
+        }
+        .order-item-data td {
+            vertical-align: top !important;
+        }
+        .order-item-data td:first-child {
+            width: 56px !important;
+            min-width: 56px !important;
+        }
+        .order-item-data td:first-child img {
+            display: block !important;
+            width: 48px !important;
+            height: 48px !important;
+            object-fit: cover !important;
+            margin: 0 !important;
+        }
+        .order-item-data h3 {
+            margin: 0 !important;
+        }
+        table.email-order-details tbody tr.order_item td:nth-child(2) {
+            text-align: center !important;
+        }
+        .order-totals th,
+        .order-totals td {
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
+        }
+        .order-totals-total td {
+            font-size: inherit !important;
+        }
+        .order-totals:first-child th,
+        .order-totals:first-child td {
+            padding-top: 14px !important;
+        }
+        .order-totals-last th,
+        .order-totals-last td {
+            padding-bottom: 14px !important;
+        }
+        #template_footer #credit {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #header_wrapper {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        #body_content_inner_cell {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        #template_header_image {
+            padding: 0 !important;
         }
     ";
 
@@ -4359,9 +4443,96 @@ add_filter('woocommerce_email_styles', 'papetarie_storefront_email_styles');
 
 function papetarie_storefront_email_footer_text(): string
 {
-    return __('Magazin papetărie și birotică.', 'papetarie-storefront');
+    return __('Notix — papetărie și birotică.<br>Contact: 0722 123 456 &middot; <a href="mailto:contact@notix.ro" style="color:#173764;">contact@notix.ro</a>', 'papetarie-storefront');
 }
 add_filter('woocommerce_email_footer_text', 'papetarie_storefront_email_footer_text');
+
+/**
+ * Antetul emailurilor WooCommerce foloseste implicit un mov (#8526ff) ramas
+ * din tema originala, nepotrivit cu navy-ul folosit la buton - il aliniem.
+ */
+function papetarie_storefront_email_base_color(): string
+{
+    return '#173764';
+}
+add_filter('woocommerce_email_base_color', 'papetarie_storefront_email_base_color');
+
+/**
+ * Formateaza adresa de facturare/livrare a unei comenzi intr-un bloc compact
+ * (nume, apoi strada+oras+judet+cod pe un singur rand, apoi contact cu
+ * etichete bold) - inlocuieste get_formatted_billing/shipping_address(), care
+ * pune fiecare component de adresa pe randul lui.
+ */
+function papetarie_storefront_format_compact_address(WC_Order $order, string $type): string
+{
+    $get = static fn (string $field) => (string) call_user_func([$order, "get_{$type}_{$field}"]);
+
+    $lines = [];
+    $name = trim($get('first_name') . ' ' . $get('last_name'));
+    if ($name !== '') {
+        $lines[] = esc_html($name);
+    }
+    $company = $get('company');
+    if ($company !== '') {
+        $lines[] = esc_html($company);
+    }
+
+    $stateCode = $get('state');
+    $countryCode = $get('country');
+    $stateName = $stateCode;
+    if ($stateCode !== '' && $countryCode !== '' && function_exists('WC')) {
+        $states = WC()->countries->get_states($countryCode);
+        $stateName = $states[$stateCode] ?? $stateCode;
+    }
+
+    $addressParts = array_filter([$get('address_1'), $get('address_2'), $get('city'), $stateName, $get('postcode')], fn ($part) => $part !== '');
+    if ($addressParts) {
+        $lines[] = esc_html(implode(', ', $addressParts));
+    }
+
+    $html = implode('<br>', $lines);
+
+    $labelStyle = 'display:inline-block;width:60px;';
+    $contactLines = [];
+    $phone = $get('phone');
+    if ($phone !== '') {
+        $contactLines[] = '<span style="' . $labelStyle . '">' . esc_html__('Telefon:', 'papetarie-storefront') . '</span>' . esc_html($phone);
+    }
+    if ($type === 'billing' && $order->get_billing_email()) {
+        $contactLines[] = '<span style="' . $labelStyle . '">' . esc_html__('Email:', 'papetarie-storefront') . '</span>' . esc_html($order->get_billing_email());
+    }
+    if ($contactLines) {
+        $html .= '<div style="margin-top:14px;">' . implode('<br>', $contactLines) . '</div>';
+    }
+
+    return $html;
+}
+
+/**
+ * Imbraca un email custom (nu unul din clasele WC_Email native) in acelasi
+ * wrapper vizual (antet, culoare, footer) ca restul emailurilor de comanda -
+ * wrap_message() singur nu aplica si stilurile CSS ca inline styles (pas
+ * necesar pentru compatibilitate cu clientii de email care ignora <style>),
+ * de-aia mai trecem printr-un style_inline() de pe orice instanta WC_Email
+ * existenta (metoda e generica, nu tine de tipul specific de email).
+ */
+function papetarie_storefront_wrap_email_html(string $heading, string $bodyHtml): string
+{
+    if (!function_exists('WC')) {
+        return $bodyHtml;
+    }
+
+    $mailer = WC()->mailer();
+    $html = $mailer->wrap_message($heading, $bodyHtml);
+
+    $emails = $mailer->get_emails();
+    $anyEmail = reset($emails);
+    if ($anyEmail && method_exists($anyEmail, 'style_inline')) {
+        $html = $anyEmail->style_inline($html);
+    }
+
+    return $html;
+}
 
 function papetarie_storefront_cart_count(): string
 {
@@ -5046,7 +5217,6 @@ function papetarie_storefront_render_cart_drawer(): void
             <h2><?php esc_html_e('Coșul meu', 'papetarie-storefront'); ?></h2>
           </div>
           <div class="pap-cart-drawer-head-actions">
-            <span class="pap-cart-drawer-badge" aria-hidden="true">● <?php esc_html_e('Gol', 'papetarie-storefront'); ?></span>
             <button type="button" class="pap-cart-drawer-close" data-cart-drawer-close aria-label="<?php esc_attr_e('Închide coșul', 'papetarie-storefront'); ?>">&times;</button>
           </div>
         </header>
@@ -6001,20 +6171,26 @@ function papetarie_storefront_auth_send_activation_email(int $user_id, string $t
     }
 
     $activation_url = papetarie_storefront_auth_get_activation_url($user_id, $token);
-    $subject = __('Confirmă-ți contul SupplyHub', 'papetarie-storefront');
-    $message = sprintf(
-        '<p>%1$s</p><p><a href="%2$s">%3$s</a></p><p>%4$s</p>',
-        esc_html__('Mulțumim pentru înregistrare. Pentru a activa contul, confirmă adresa de email accesând butonul de mai jos.', 'papetarie-storefront'),
+    $subject = __('Confirmă-ți contul Notix', 'papetarie-storefront');
+    $heading = __('Confirmă-ți contul', 'papetarie-storefront');
+    $body = sprintf(
+        '<p>%1$s</p>
+        <p style="text-align:center;margin:28px 0 4px;"><a class="button" href="%2$s" style="display:inline-block;background-color:#ff5b1f;color:#ffffff;padding:14px 32px;font-size:16px;font-weight:700;text-decoration:none;border-radius:2px;">%3$s</a></p>
+        <p style="text-align:center;font-size:12px;color:#6b7280;margin-top:0;">%4$s</p>
+        <p style="font-size:13px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:16px;margin-top:24px;">%5$s</p>',
+        esc_html__('Contul tău este aproape gata. Confirmă adresa de email pentru a-l activa.', 'papetarie-storefront'),
         esc_url($activation_url),
         esc_html__('Confirmă contul', 'papetarie-storefront'),
-        esc_html__('Dacă nu ai cerut acest cont, poți ignora acest mesaj.', 'papetarie-storefront')
+        esc_html__('Linkul este valabil 2 zile.', 'papetarie-storefront'),
+        esc_html__('Nu ai solicitat crearea acestui cont? Ignoră acest email — contul nu va fi activat.', 'papetarie-storefront')
     );
+    $message = papetarie_storefront_wrap_email_html($heading, $body);
 
     return (bool) wp_mail(
         $user->user_email,
         $subject,
         $message,
-        ['Content-Type: text/html; charset=UTF-8']
+        ['Content-Type: text/html; charset=UTF-8', 'From: Notix <noreply@notix.ro>']
     );
 }
 
@@ -6932,6 +7108,7 @@ function papetarie_storefront_register_account_endpoints(): void
     add_rewrite_endpoint('oferte', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('suport', EP_ROOT | EP_PAGES);
     add_rewrite_endpoint('retururi', EP_ROOT | EP_PAGES);
+    add_rewrite_endpoint('firmele-mele', EP_ROOT | EP_PAGES);
 }
 add_action('init', 'papetarie_storefront_register_account_endpoints');
 
@@ -7149,6 +7326,13 @@ function papetarie_storefront_short_category_name(string $slug, string $name): s
         'accesorii-it' => 'Accesorii IT',
         'articole-scolare' => 'Școlare',
         'echipamente-birou' => 'Echipamente',
+        // These 4 overflow the fixed 207px desktop sidebar column and get
+        // ellipsis-truncated (same on every page - .pap-header-catmenu-item
+        // is one shared component, not something that varies by template).
+        'articole-pentru-birou' => 'Articole birou',
+        'accesorii-pentru-scris' => 'Accesorii scris',
+        'organizare-arhivare-prezentare' => 'Organizare',
+        'curatenie-si-sanitare' => 'Curățenie',
     ];
 
     return $map[$slug] ?? $name;
@@ -7585,10 +7769,21 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
     $column_group_headings = papetarie_storefront_get_column_group_headings();
 
     $render_child = static function (array $child): void {
+        $has_grandchildren = !empty($child['children']);
         ?>
-        <div class="pap-header-catmenu-group">
-          <a class="pap-header-catmenu-group-title" href="<?php echo esc_url($child['url']); ?>">
+        <div class="pap-header-catmenu-group<?php echo $has_grandchildren ? ' pap-header-catmenu-group--expandable' : ''; ?>">
+          <a
+            class="pap-header-catmenu-group-title"
+            href="<?php echo esc_url($child['url']); ?>"
+            <?php if ($has_grandchildren) : ?>
+              data-header-catmenu-group-toggle
+              aria-expanded="false"
+            <?php endif; ?>
+          >
             <?php echo esc_html($child['name']); ?>
+            <?php if ($has_grandchildren) : ?>
+              <span class="pap-header-catmenu-chevron pap-header-catmenu-chevron--group" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+            <?php endif; ?>
           </a>
           <?php if (!empty($child['children'])) : ?>
             <ul class="pap-header-catmenu-sublist">
@@ -7606,7 +7801,7 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
     };
 
     ?>
-    <div id="pap-header-category-menu" class="pap-header-catmenu-shell" data-header-catmenu-shell hidden>
+    <div id="pap-header-category-menu" class="pap-header-catmenu-shell" data-header-catmenu-shell data-header-catmenu-active-slug="<?php echo esc_attr($active_slug); ?>" hidden>
       <div class="pap-header-catmenu">
         <aside class="pap-showcase-nav pap-header-catmenu-left" aria-label="<?php esc_attr_e('Categorii principale', 'papetarie-storefront'); ?>">
           <div class="pap-showcase-nav-list pap-header-catmenu-list">
@@ -7624,12 +7819,19 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
               >
                 <span class="pap-showcase-nav-icon pap-header-catmenu-icon" aria-hidden="true"><?php echo papetarie_storefront_icon($category['icon']); ?></span>
                 <span class="pap-showcase-nav-label pap-header-catmenu-label"><?php echo esc_html(papetarie_storefront_short_category_name($category['slug'], $category['name'])); ?></span>
+                <?php if (!empty($category['children'])) : ?>
+                  <span class="pap-header-catmenu-chevron" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+                <?php endif; ?>
               </a>
             <?php endforeach; ?>
           </div>
         </aside>
 
         <div class="pap-header-catmenu-right">
+          <button type="button" class="pap-header-catmenu-back" data-header-catmenu-back hidden>
+            <span class="pap-header-catmenu-back-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+            <span data-header-catmenu-back-label></span>
+          </button>
           <div class="pap-header-catmenu-panels">
             <?php foreach ($categories as $category) : ?>
               <?php if (empty($category['children'])) { continue; } ?>
@@ -7643,6 +7845,9 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
                 <?php if (!$column_headings) : ?>
                   <div class="pap-header-catmenu-panel-title"><?php echo esc_html($category['name']); ?></div>
                 <?php endif; ?>
+                <a class="pap-header-catmenu-see-all" href="<?php echo esc_url($category['url']); ?>">
+                  <?php esc_html_e('Vezi toate produsele', 'papetarie-storefront'); ?>
+                </a>
                 <?php if ($column_headings) : ?>
                   <?php $column_count = count($column_headings['counts']); ?>
                   <div class="pap-header-catmenu-group-list pap-showcase-panel-columns--grouped pap-showcase-panel-columns--cols-<?php echo esc_attr((string) $column_count); ?>">
@@ -7657,10 +7862,16 @@ function papetarie_storefront_render_header_category_menu(array $categories, str
                     ?>
                     <?php foreach ($columns_of_children as $column_index => $column_children) : ?>
                       <div class="pap-showcase-panel-columns-column">
-                        <div class="pap-showcase-panel-columns-column-heading">
+                        <button
+                          type="button"
+                          class="pap-showcase-panel-columns-column-heading"
+                          data-header-catmenu-column-toggle
+                          aria-expanded="false"
+                        >
                           <?php echo esc_html($column_headings['headings'][$column_index]); ?>
-                        </div>
-                        <div class="pap-showcase-panel-columns-column-groups">
+                          <span class="pap-header-catmenu-chevron pap-header-catmenu-chevron--column" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+                        </button>
+                        <div class="pap-showcase-panel-columns-column-groups" data-header-catmenu-column-groups>
                           <?php foreach ($column_children as $child) : ?>
                             <?php $render_child($child); ?>
                           <?php endforeach; ?>
@@ -7777,8 +7988,6 @@ function papetarie_storefront_checkout_fields(array $fields): array
         'billing_company',
         'billing_cui',
         'billing_reg_no',
-        'billing_bank_name',
-        'billing_iban',
     ];
 
     foreach ($company_fields as $field_key) {
@@ -7827,8 +8036,13 @@ function papetarie_storefront_checkout_fields(array $fields): array
         'label' => __('CUI', 'papetarie-storefront'),
         'placeholder' => __('RO12345678', 'papetarie-storefront'),
         'required' => false,
-        'class' => ['form-row-first', 'pap-company-only'],
+        // Deliberat FARA "form-row-first" - clasa asta e a WC core, aduce cu
+        // ea propriul layout pe 47%/float (vezi fix-ul identic mai sus la
+        // billing_first_name/billing_last_name) care ii bate latimea peste
+        // grid-ul ".pap-form-row--split" si strange campul la jumatate.
+        'class' => ['pap-company-only'],
         'priority' => 91,
+        'custom_attributes' => ['data-company-book-cui' => '1'],
     ];
 
     $fields['billing']['billing_reg_no'] = [
@@ -7836,26 +8050,42 @@ function papetarie_storefront_checkout_fields(array $fields): array
         'label' => __('Nr. registru comerțului', 'papetarie-storefront'),
         'placeholder' => __('J00/0000/2026', 'papetarie-storefront'),
         'required' => false,
-        'class' => ['form-row-last', 'pap-company-only'],
+        'class' => ['pap-company-only'],
         'priority' => 92,
     ];
 
-    $fields['billing']['billing_bank_name'] = [
-        'type' => 'text',
-        'label' => __('Bancă', 'papetarie-storefront'),
-        'placeholder' => __('Nume bancă', 'papetarie-storefront'),
+    // Adresa sediului social - separata de adresa de livrare (vezi
+    // papetarie_storefront_checkout_validate() si
+    // papetarie_storefront_render_checkout_company_block()). Optiunile reale
+    // pentru "options" sunt recalculate la randare (in
+    // render_checkout_company_block()), ca sa reflecte judetul curent -
+    // definitiile de-aici sunt doar fallback-ul static, la fel ca la
+    // billing_state/billing_city de mai jos.
+    $fields['billing']['billing_company_state'] = [
+        'type' => 'select',
+        'label' => __('Județ (sediu firmă)', 'papetarie-storefront'),
+        'options' => ['' => __('Alege județul', 'papetarie-storefront')] + $counties,
         'required' => false,
-        'class' => ['form-row-first', 'pap-company-only'],
-        'priority' => 93,
+        'class' => ['pap-company-only', 'wc-enhanced-select'],
+        'priority' => 95,
     ];
 
-    $fields['billing']['billing_iban'] = [
-        'type' => 'text',
-        'label' => __('IBAN', 'papetarie-storefront'),
-        'placeholder' => __('RO00AAAA0000000000000000', 'papetarie-storefront'),
+    $fields['billing']['billing_company_city'] = [
+        'type' => 'select',
+        'label' => __('Localitate (sediu firmă)', 'papetarie-storefront'),
+        'options' => ['' => __('Alege județul întâi', 'papetarie-storefront')],
         'required' => false,
-        'class' => ['form-row-last', 'pap-company-only'],
-        'priority' => 94,
+        'class' => ['pap-company-only', 'wc-enhanced-select'],
+        'priority' => 96,
+    ];
+
+    $fields['billing']['billing_company_address'] = [
+        'type' => 'text',
+        'label' => __('Adresă (sediu social)', 'papetarie-storefront'),
+        'placeholder' => __('Strada Exemplu 12', 'papetarie-storefront'),
+        'required' => false,
+        'class' => ['form-row-wide', 'pap-company-only'],
+        'priority' => 97,
     ];
 
     if (isset($fields['billing']['billing_address_1'])) {
@@ -7986,6 +8216,273 @@ function papetarie_storefront_checkout_fields(array $fields): array
     return $fields;
 }
 add_filter('woocommerce_checkout_fields', 'papetarie_storefront_checkout_fields');
+
+/**
+ * Blocul "Doresc factură pe firmă" de pe checkout - randat identic in
+ * ramura de guest si cea de user logat din form-shipping.php (ambele au
+ * $checkout si $billing_fields in scop). Nu redenumeste adresa de livrare
+ * intr-o adresa separata de firma - foloseste adresa unica deja existenta a
+ * comenzii (billing = shipping, deja unificate in acest checkout), doar
+ * adauga identitatea de facturare (denumire, CUI, reg. com.) peste ea.
+ * Vezi papetarie_storefront_oblio_issue_document() pentru cum
+ * ajung aceste campuri pe factura Oblio.
+ */
+function papetarie_storefront_render_checkout_company_block(WC_Checkout $checkout, array $billing_fields): string
+{
+    $company_field_keys = ['billing_company', 'billing_cui', 'billing_reg_no', 'billing_company_state', 'billing_company_city', 'billing_company_address'];
+    $has_value = false;
+    foreach ($company_field_keys as $key) {
+        if (trim((string) $checkout->get_value($key)) !== '') {
+            $has_value = true;
+            break;
+        }
+    }
+
+    $saved_companies = [];
+    if (is_user_logged_in() && function_exists('papetarie_storefront_company_book_get_all')) {
+        $saved_companies = papetarie_storefront_company_book_get_all(get_current_user_id());
+    }
+
+    // Distinct de "$has_value" de mai sus, care intentionat ia in calcul si
+    // datele salvate din comenzi anterioare (ca sa porneasca checkbox-ul
+    // bifat pentru un client care a mai facturat pe firma) - aici conteaza
+    // STRICT daca ACEASTA cerere e o re-incarcare dupa o eroare de validare,
+    // cu userul in mijlocul completarii manuale (adica exista efectiv in
+    // $_POST). Altfel, orice client cu o firma implicita salvata (deci cu
+    // billing_cui etc. populate din user-meta, ramase de la o comanda
+    // anterioara) ar vedea mereu blocul de completare manuala aratat degeaba
+    // peste dropdown-ul cu firma deja preselectata - exact bug-ul raportat.
+    $has_posted_new_entry_value = false;
+    foreach ($company_field_keys as $key) {
+        if (isset($_POST[$key]) && trim((string) wp_unslash($_POST[$key])) !== '') { // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+            $has_posted_new_entry_value = true;
+            break;
+        }
+    }
+
+    // Daca exista firme salvate si nu s-a reincarcat pagina dupa o eroare de
+    // validare (adica e primul randare), dropdown-ul "Alege firma salvată"
+    // porneste selectat pe firma implicita - in acel caz ascundem blocul de
+    // "firma noua" (CUI + campuri manuale) ca sa nu arate doua fluxuri
+    // paralele deodata ("ori alegi din listă, ori completezi una nouă", nu
+    // ambele simultan). Cand nu exista nicio firma salvata (guest sau cont
+    // fara firme), sau la re-randare dupa eroare, blocul de firma noua
+    // porneste vizibil direct.
+    $show_new_entry = empty($saved_companies) || $has_posted_new_entry_value;
+
+    $company_state_value = strtoupper(sanitize_key((string) $checkout->get_value('billing_company_state')));
+    $company_city_value = (string) $checkout->get_value('billing_company_city');
+    $counties = papetarie_storefront_romania_counties();
+    $company_state_options = ['' => __('Alege județul', 'papetarie-storefront')] + $counties;
+
+    $company_city_attrs = ['data-company-book-city' => '1'];
+    if ($company_state_value !== '' && function_exists('papetarie_storefront_checkout_city_options_for_county')) {
+        $company_city_options_list = papetarie_storefront_checkout_city_options_for_county($company_state_value);
+        $company_city_options = ['' => __('Alege localitatea', 'papetarie-storefront')] + $company_city_options_list;
+        foreach (array_keys($company_city_options_list) as $company_city_option) {
+            if (function_exists('papetarie_storefront_normalize_city_key') && papetarie_storefront_normalize_city_key((string) $company_city_option) === papetarie_storefront_normalize_city_key($company_city_value)) {
+                $company_city_value = (string) $company_city_option;
+                break;
+            }
+        }
+    } else {
+        $company_city_options = ['' => __('Alege județul întâi', 'papetarie-storefront')];
+        $company_city_attrs['disabled'] = 'disabled';
+        $company_city_attrs['aria-disabled'] = 'true';
+    }
+
+    // Cand exista o firma implicita si e primul randare (nu s-a reincarcat
+    // dupa o eroare de validare), o preselectam silentios in dropdown -
+    // JS-ul trebuie sa completeze campurile ascunse billing_company_* din
+    // datele ei (vezi "data-checkout-company-preselected" mai jos), chiar
+    // daca nu se afiseaza absolut nimic vizual in plus pe ecran: userul a
+    // ales deja firma din dropdown, nu mai trebuie sa "confirme" vizual
+    // datele ei - sistemul stie ID-ul firmei si foloseste direct datele
+    // salvate la facturare.
+    $preselected_default = !empty($saved_companies) && !$show_new_entry;
+
+    ob_start();
+    ?>
+    <div class="pap-checkout-company">
+      <label class="pap-checkout-company-toggle pap-form-check-label">
+        <input type="checkbox" class="pap-checkbox-input" id="pap_invoice_on_company" name="pap_invoice_on_company" value="1" data-checkout-company-toggle <?php checked($has_value); ?>>
+        <span><?php esc_html_e('Doresc factură pe firmă', 'papetarie-storefront'); ?></span>
+      </label>
+
+      <div class="pap-checkout-company-fields" data-checkout-company-fields <?php echo $has_value ? '' : 'hidden'; ?>>
+        <?php if (!empty($saved_companies)) : ?>
+          <div class="pap-form-row pap-form-row--stack">
+            <label for="pap_checkout_company_select"><?php esc_html_e('Alege firma salvată', 'papetarie-storefront'); ?></label>
+            <select id="pap_checkout_company_select" name="pap_checkout_company_select" class="woocommerce-Input woocommerce-Input--select" data-checkout-company-select <?php echo $preselected_default ? 'data-checkout-company-preselected="1"' : ''; ?>>
+              <?php foreach ($saved_companies as $saved_company) : ?>
+                <option value="<?php echo esc_attr((string) ($saved_company['id'] ?? '')); ?>" <?php selected(!empty($saved_company['is_default'])); ?>>
+                  <?php echo esc_html(function_exists('papetarie_storefront_company_book_label') ? papetarie_storefront_company_book_label($saved_company) : ($saved_company['denumire'] ?? '')); ?>
+                </option>
+              <?php endforeach; ?>
+              <option value=""><?php esc_html_e('+ Adaugă firmă nouă', 'papetarie-storefront'); ?></option>
+            </select>
+          </div>
+        <?php endif; ?>
+
+        <?php
+        // Progresiv, ca in modalul "Adaugă firmă" din Contul meu: doar CUI-ul
+        // e vizibil initial, restul campurilor (nume firma, reg. com.,
+        // adresa sediului) stau ascunse pana cand fie lookup-ul ANAF le
+        // precompleteaza (succes SAU esec - vezi revealManualFieldsFor() in
+        // company-book.js), fie userul bifeaza explicit "Completează datele
+        // manual". Tot acest bloc ("firma noua") e la randul lui ascuns cand
+        // dropdown-ul de mai sus are deja o firma salvata selectata implicit
+        // (vezi $show_new_entry) - "Alege firma salvată" schimba vizibilitatea
+        // din JS (bindCheckoutCompanyDelegation()).
+        ?>
+        <div class="pap-checkout-company-new-entry" data-checkout-company-new-entry <?php echo $show_new_entry ? '' : 'hidden'; ?>>
+          <div class="pap-company-cui-row">
+            <?php echo papetarie_storefront_render_checkout_form_field('billing_cui', $billing_fields['billing_cui'] ?? [], $checkout->get_value('billing_cui'), false); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <button type="button" class="pap-account-secondary-button pap-company-autocomplete-btn" data-company-book-autocomplete>
+              <?php esc_html_e('Completează automat', 'papetarie-storefront'); ?>
+            </button>
+          </div>
+          <p class="pap-company-lookup-status" data-company-book-lookup-status aria-live="polite"></p>
+
+          <?php
+          $checkout_manual_label_closed = __('Nu găsești firma? Completează datele manual', 'papetarie-storefront');
+          // "Ascunde detaliile", nu "Completează automat dupa CUI" - la
+          // checkout (spre deosebire de modalul din Contul meu) exista acum
+          // rezumatul persistent "Se factureaza pe: X" (vezi mai jos), asa ca
+          // singurul rol al acestui buton, in starea "deschisa", e sa
+          // ascunda din nou campurile de detaliu - vechiul text sugera gresit
+          // ca apasarea repeta completarea automata, nu doar vizibilitatea.
+          $checkout_manual_label_open = __('Ascunde detaliile', 'papetarie-storefront');
+          ?>
+          <?php
+          // Rezumatul ("Se factureaza pe: X") si link-ul de toggle stateau
+          // pe randuri separate, desi impreuna sunt scurte - inghesuite pe
+          // un singur rand (".pap-company-billing-row" mai jos, flex cu
+          // wrap), ca sectiunea sa aiba 2 randuri sub CUI (status + acest
+          // rand combinat), nu 3 (raportat 2026-08-18). Rezumatul ramane
+          // mereu vizibil, indiferent daca sectiunea de campuri de mai jos e
+          // extinsa sau colapsata (utilizatorul o poate inchide dupa un
+          // lookup CUI reusit) - fara el, nu exista nicio confirmare vizuala
+          // persistenta a cui ii apartine factura odata ce campurile sunt
+          // ascunse. Actualizat din JS - vezi updateCompanyBillingSummary()
+          // in company-book.js.
+          $summary_company = (string) $checkout->get_value('billing_company');
+          $summary_cui = (string) $checkout->get_value('billing_cui');
+          ?>
+          <div class="pap-company-billing-row">
+            <p class="pap-company-billing-summary" data-checkout-company-billing-summary <?php echo $summary_company !== '' ? '' : 'hidden'; ?>>
+              <?php esc_html_e('Se facturează pe:', 'papetarie-storefront'); ?>
+              <strong data-checkout-company-billing-summary-name><?php echo esc_html($summary_company); ?></strong>
+              <span data-checkout-company-billing-summary-cui><?php echo $summary_cui !== '' ? '· CUI ' . esc_html($summary_cui) : ''; ?></span>
+            </p>
+            <?php
+            // Element real, nu un "::before" pe buton - un "text-decoration"
+            // pus pe buton la hover se deseneaza peste TOT continutul cutiei
+            // lui, inclusiv continutul generat de ::before, indiferent ce
+            // "text-decoration" ii dai pseudo-elementului insusi (liniile de
+            // decorare "trec prin" descendenti/continut generat, nu se pot
+            // opri local) - de-aia liniuta se sublinia si ea la hover, desi
+            // ar fi trebuit doar cuvantul (raportat 2026-08-18). Ca frate
+            // separat, in afara cutiei butonului, nu mai e atins deloc.
+            ?>
+            <span class="pap-company-billing-row-sep" data-checkout-company-billing-summary-sep <?php echo $summary_company !== '' ? '' : 'hidden'; ?> aria-hidden="true">-</span>
+            <button
+              type="button"
+              class="pap-manual-toggle-link"
+              data-checkout-company-manual-toggle
+              data-label-closed="<?php echo esc_attr($checkout_manual_label_closed); ?>"
+              data-label-open="<?php echo esc_attr($checkout_manual_label_open); ?>"
+            ><?php echo esc_html($has_value ? $checkout_manual_label_open : $checkout_manual_label_closed); ?></button>
+          </div>
+
+          <div class="pap-checkout-company-manual-fields" data-checkout-company-manual-fields <?php echo $has_value ? '' : 'hidden'; ?>>
+            <div class="pap-form-row pap-form-row--split">
+              <?php echo papetarie_storefront_render_checkout_form_field('billing_company', $billing_fields['billing_company'] ?? [], $checkout->get_value('billing_company'), false); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+              <?php echo papetarie_storefront_render_checkout_form_field('billing_reg_no', $billing_fields['billing_reg_no'] ?? [], $checkout->get_value('billing_reg_no'), false); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
+            <?php
+            // Adresa sediului social - separata de "Adresa de livrare" din
+            // pasul 1 (pot sa difere: sediu central vs. punct de lucru).
+            // "data-company-book-state"/"-city" reutilizeaza aceeasi logica
+            // JS (syncCitySelect, autofill din ANAF) ca modalul din Contul
+            // meu - vezi runCuiLookup() in company-book.js, care cauta deja
+            // aceste atribute generic, indiferent de pagina.
+            ?>
+            <div class="pap-form-row pap-form-row--split">
+              <?php echo papetarie_storefront_render_checkout_form_field('billing_company_state', array_merge($billing_fields['billing_company_state'] ?? [], ['type' => 'select', 'options' => $company_state_options, 'custom_attributes' => array_merge((array) ($billing_fields['billing_company_state']['custom_attributes'] ?? []), ['data-company-book-state' => '1'])]), $company_state_value, false); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+              <?php echo papetarie_storefront_render_checkout_form_field('billing_company_city', array_merge($billing_fields['billing_company_city'] ?? [], ['type' => 'select', 'options' => $company_city_options, 'custom_attributes' => array_merge((array) ($billing_fields['billing_company_city']['custom_attributes'] ?? []), $company_city_attrs)]), $company_city_value, false); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            </div>
+            <?php echo papetarie_storefront_render_checkout_form_field('billing_company_address', array_merge($billing_fields['billing_company_address'] ?? [], ['custom_attributes' => array_merge((array) ($billing_fields['billing_company_address']['custom_attributes'] ?? []), ['data-company-book-address-1' => '1'])]), $checkout->get_value('billing_company_address'), false); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+
+            <?php if (is_user_logged_in()) : ?>
+              <label class="pap-form-check-label">
+                <input type="checkbox" class="pap-checkbox-input" name="pap_save_company_for_future" value="1">
+                <span><?php esc_html_e('Salvează firma în contul meu pentru comenzi viitoare', 'papetarie-storefront'); ?></span>
+              </label>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+
+      <?php if (!empty($saved_companies)) : ?>
+        <script type="application/json" data-checkout-company-records><?php
+            $records = [];
+            foreach ($saved_companies as $saved_company) {
+                $records[(string) ($saved_company['id'] ?? '')] = $saved_company;
+            }
+            echo wp_json_encode($records, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        ?></script>
+      <?php endif; ?>
+    </div>
+    <?php
+
+    return (string) ob_get_clean();
+}
+
+/**
+ * Cardul "Facturare" de pe checkout - randat ca bloc de sine statator intre
+ * Pasul 1 (Adresa de livrare) si Pasul 2 (Metoda de livrare), nu ca parte a
+ * cardului Pasului 1. Nu e numerotat ca pas (fara badge de numar, fara clasa
+ * ".pap-checkout-step") fiindca facturarea pe firma e optionala si nu are
+ * sens sa fie "blocata"/"deblocata" pe masura ce userul avanseaza prin
+ * ceilalti pasi - ramane mereu interactiva. Vezi discutia cu userul: separat
+ * de Pasul 1 ca sa nu se colapseze odata cu adresa de livrare in modul
+ * "rezumat" (userul nu trebuie sa "confirme" vizual firma aleasa).
+ */
+function papetarie_storefront_get_checkout_company_card_html(): string
+{
+    if (!function_exists('papetarie_storefront_render_checkout_company_block') || !function_exists('WC') || !WC()) {
+        return '';
+    }
+
+    $checkout = WC()->checkout();
+    $billing_fields = $checkout->get_checkout_fields('billing');
+    $company_html = papetarie_storefront_render_checkout_company_block($checkout, $billing_fields);
+
+    if (trim($company_html) === '') {
+        return '';
+    }
+
+    ob_start();
+    ?>
+    <section class="pap-checkout-card pap-checkout-card--company" data-pap-checkout-section="company-invoice">
+      <div class="pap-checkout-card__head">
+        <div class="pap-checkout-section-title-row">
+          <span class="pap-checkout-section-badge" aria-hidden="true">2</span>
+          <div class="pap-checkout-section-title-col">
+            <h3><?php esc_html_e('Facturare', 'papetarie-storefront'); ?></h3>
+            <p class="pap-checkout-card__intro"><?php esc_html_e('Completează dacă dorești factură pe firmă.', 'papetarie-storefront'); ?></p>
+          </div>
+        </div>
+      </div>
+      <div class="pap-checkout-card__body">
+        <?php echo $company_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+      </div>
+    </section>
+    <?php
+
+    return (string) ob_get_clean();
+}
 
 function papetarie_storefront_checkout_default_value($value, string $input)
 {
@@ -8719,6 +9216,42 @@ function papetarie_storefront_checkout_save_address_for_future($order, array $da
 }
 add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_save_address_for_future', 20, 2);
 
+/**
+ * "Salvează firma în contul meu" (checkbox separat de "Doresc factură pe
+ * firmă" - poti factura pe firma o singura data, fara sa vrei sa o mai
+ * refolosesti). Nu suprascrie/sterge nimic din firmele deja salvate daca
+ * checkbox-ul nu e bifat - vezi discutia despre riscul de suprascriere
+ * neintentionata din planul de implementare.
+ */
+function papetarie_storefront_checkout_save_company_for_future($order, array $data): void
+{
+    if (empty($data['pap_invoice_on_company']) || empty($data['pap_save_company_for_future']) || !is_user_logged_in()) {
+        return;
+    }
+
+    if (!function_exists('papetarie_storefront_company_book_save_entry')) {
+        return;
+    }
+
+    $posted = [
+        'denumire' => $data['billing_company'] ?? '',
+        'cui' => $data['billing_cui'] ?? '',
+        'nr_reg_com' => $data['billing_reg_no'] ?? '',
+        'state' => $data['billing_company_state'] ?? '',
+        'city' => $data['billing_company_city'] ?? '',
+        'address_1' => $data['billing_company_address'] ?? '',
+    ];
+
+    if (trim((string) $posted['denumire']) === '' || trim((string) $posted['cui']) === '') {
+        return;
+    }
+
+    $user_id = get_current_user_id();
+    $selected_company_id = isset($data['pap_checkout_company_select']) ? sanitize_text_field((string) $data['pap_checkout_company_select']) : '';
+    papetarie_storefront_company_book_save_entry($user_id, $posted, $selected_company_id);
+}
+add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_save_company_for_future', 20, 2);
+
 function papetarie_storefront_checkout_validate(array $data, \WP_Error $errors): void
 {
     $counties = papetarie_storefront_romania_counties();
@@ -8738,6 +9271,59 @@ function papetarie_storefront_checkout_validate(array $data, \WP_Error $errors):
     $address_city = $shipping_city !== '' ? $shipping_city : $billing_city;
     $address_line = $shipping_address_1 !== '' ? $shipping_address_1 : $billing_address_1;
     $address_postcode = $shipping_postcode !== '' ? $shipping_postcode : $billing_postcode;
+
+    // "Doresc factura pe firma" - Denumire + CUI devin obligatorii doar cand
+    // e bifat, ca sa nu stricam checkout-ul pentru clientii persoane fizice
+    // (care nu vad deloc aceste campuri). Vezi
+    // papetarie_storefront_render_checkout_company_block() pentru markup si
+    // papetarie_storefront_oblio_issue_document() pentru cum ajung datele pe
+    // factura.
+    if (!empty($data['pap_invoice_on_company'])) {
+        if ($billing_company === '') {
+            $errors->add('billing_company_required', __('Completează denumirea firmei.', 'papetarie-storefront'));
+        }
+
+        if ($billing_cui === '') {
+            $errors->add('billing_cui_required', __('Completează CUI-ul firmei.', 'papetarie-storefront'));
+        } elseif (function_exists('papetarie_storefront_company_book_cui_is_valid_format') && !papetarie_storefront_company_book_cui_is_valid_format($billing_cui)) {
+            $errors->add('billing_cui_invalid', __('CUI-ul nu pare valid — verifică cifrele.', 'papetarie-storefront'));
+        }
+
+        // Adresa sediului social e separata de adresa de livrare (pot sa
+        // difere - biroul central vs. punctul de lucru unde se livreaza),
+        // vezi intrebarea/decizia din conversatie: factura trebuie sa arate
+        // adresa reala a firmei, nu adresa de livrare a comenzii.
+        $billing_company_state = isset($data['billing_company_state']) ? sanitize_text_field((string) $data['billing_company_state']) : '';
+        $billing_company_city = isset($data['billing_company_city']) ? trim((string) $data['billing_company_city']) : '';
+        $billing_company_address = isset($data['billing_company_address']) ? trim((string) $data['billing_company_address']) : '';
+
+        if ($billing_company_state === '' || !isset($counties[$billing_company_state])) {
+            $errors->add('billing_company_state_required', __('Selectează județul sediului firmei.', 'papetarie-storefront'));
+        }
+
+        if ($billing_company_city === '') {
+            $errors->add('billing_company_city_required', __('Completează localitatea sediului firmei.', 'papetarie-storefront'));
+        } elseif ($billing_company_state !== '' && isset($counties[$billing_company_state])) {
+            $billing_company_city_options = papetarie_storefront_checkout_city_options_for_county($billing_company_state);
+            if (!empty($billing_company_city_options) && function_exists('papetarie_storefront_normalize_city_key')) {
+                $normalized_company_city = papetarie_storefront_normalize_city_key($billing_company_city);
+                $company_city_found = false;
+                foreach (array_keys($billing_company_city_options) as $company_city_option) {
+                    if (papetarie_storefront_normalize_city_key((string) $company_city_option) === $normalized_company_city) {
+                        $company_city_found = true;
+                        break;
+                    }
+                }
+                if (!$company_city_found) {
+                    $errors->add('billing_company_city_invalid', __('Localitatea sediului firmei nu este validă pentru județul ales.', 'papetarie-storefront'));
+                }
+            }
+        }
+
+        if ($billing_company_address === '') {
+            $errors->add('billing_company_address_required', __('Completează adresa sediului social.', 'papetarie-storefront'));
+        }
+    }
 
     if ($address_state === '') {
         $errors->add('billing_state_required', __('Selectează județul.', 'papetarie-storefront'));
@@ -8910,6 +9496,7 @@ function papetarie_storefront_account_menu_items(array $items): array
         'dashboard' => __('Acasă', 'papetarie-storefront'),
         'orders' => __('Comenzile mele', 'papetarie-storefront'),
         'edit-address' => __('Adresă de livrare', 'papetarie-storefront'),
+        'firmele-mele' => __('Firmele mele', 'papetarie-storefront'),
         'edit-account' => __('Detalii cont', 'papetarie-storefront'),
         'customer-logout' => __('Deconectare', 'papetarie-storefront'),
     ];
@@ -8923,6 +9510,7 @@ function papetarie_storefront_account_menu_icon_map(): array
         'orders' => 'sidebar-orders',
         'downloads' => 'sidebar-downloads',
         'edit-address' => 'sidebar-address',
+        'firmele-mele' => 'sidebar-company',
         'edit-account' => 'sidebar-details',
         'payment-methods' => 'sidebar-payment-methods',
         'customer-logout' => 'sidebar-logout',
@@ -8938,6 +9526,7 @@ function papetarie_storefront_account_icon_class(string $name): string
         'dashboard' => 'fa-solid fa-house',
         'edit-account' => 'fa-solid fa-user-pen',
         'edit-address' => 'fa-solid fa-location-dot',
+        'firmele-mele' => 'fa-solid fa-building',
         'credit-card' => 'fa-solid fa-credit-card',
         'download' => 'fa-solid fa-download',
         'help' => 'fa-solid fa-headset',
@@ -8967,6 +9556,7 @@ function papetarie_storefront_render_account_icon(string $name, string $extra_cl
             'sidebar-orders' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="3.5" width="14" height="17" rx="2"></rect><path d="M8 8h8"></path><path d="M8 12h8"></path><path d="M8 16h5"></path></svg>',
             'sidebar-downloads' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v10"></path><path d="M8 10.5 12 14.5l4-4"></path><path d="M5 20h14"></path></svg>',
             'sidebar-address' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21s6-5.2 6-11a6 6 0 0 0-12 0c0 5.8 6 11 6 11z"></path><circle cx="12" cy="10" r="2.25"></circle></svg>',
+            'sidebar-company' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="3.5" width="10" height="17" rx="1"></rect><path d="M14 9.5h6v11h-6"></path><path d="M7 7.5h4"></path><path d="M7 11h4"></path><path d="M7 14.5h4"></path></svg>',
             'sidebar-details' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="5" width="16" height="14" rx="2"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M13 9h4"></path><path d="M7.8 14.2c.8-1.3 2.1-2.1 3.5-2.1s2.7.8 3.5 2.1"></path></svg>',
             'sidebar-payment-methods' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="14" rx="2"></rect><path d="M3.5 9h17"></path><path d="M7 15.5h3"></path><path d="M12 15.5h2.5"></path></svg>',
             'sidebar-logout' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4a8 8 0 1 0 8 8"></path><path d="M12 4v7"></path></svg>',
@@ -9476,6 +10066,12 @@ function papetarie_storefront_account_support_endpoint(): void
 }
 add_action('woocommerce_account_suport_endpoint', 'papetarie_storefront_account_support_endpoint');
 
+function papetarie_storefront_account_company_endpoint(): void
+{
+    wc_get_template('myaccount/my-company.php', [], '', get_stylesheet_directory() . '/woocommerce/');
+}
+add_action('woocommerce_account_firmele-mele_endpoint', 'papetarie_storefront_account_company_endpoint');
+
 function papetarie_storefront_store_return_notice(string $message, string $type = 'info'): void
 {
     if (!function_exists('WC') || !WC() || !WC()->session) {
@@ -9559,17 +10155,23 @@ function papetarie_storefront_handle_return_request(): void
     $details = isset($_POST['pap_return_details']) ? sanitize_textarea_field(wp_unslash($_POST['pap_return_details'])) : '';
     $user = wp_get_current_user();
     $subject = sprintf(__('Cerere retur - %s', 'papetarie-storefront'), $user->display_name ?: $user->user_email);
-    $message = implode("\n", [
-        'Cerere retur nouă:',
-        '',
-        'Utilizator: ' . $user->display_name,
-        'Email: ' . $user->user_email,
-        'Număr comandă: ' . $order_number,
-        'Motiv: ' . $reason,
-        'Detalii: ' . $details,
-    ]);
+    $heading = 'Cerere de retur nouă';
+    $body = sprintf(
+        '<p><strong>Utilizator:</strong> %s</p><p><strong>Email:</strong> %s</p><p><strong>Număr comandă:</strong> %s</p><p><strong>Motiv:</strong> %s</p><p><strong>Detalii:</strong> %s</p>',
+        esc_html($user->display_name),
+        esc_html($user->user_email),
+        esc_html($order_number),
+        esc_html($reason),
+        nl2br(esc_html($details))
+    );
+    $message = papetarie_storefront_wrap_email_html($heading, $body);
 
-    wp_mail(get_option('admin_email'), $subject, $message);
+    wp_mail(
+        ['d.crysty23@gmail.com', 'laviniamuntean40@gmail.com'],
+        $subject,
+        $message,
+        ['Content-Type: text/html; charset=UTF-8', 'From: Notix <noreply@notix.ro>']
+    );
     papetarie_storefront_store_return_notice(__('Cererea de retur a fost trimisă. Revenim cu un răspuns.', 'papetarie-storefront'), 'success');
 
     $redirect_url = add_query_arg([], wc_get_account_endpoint_url('retururi'));
