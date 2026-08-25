@@ -46,7 +46,7 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'col
   .pap-legal-toc a:hover { color: var(--pap-navy); border-left-color: var(--hex-color); }
 
   .pap-legal-content { flex: 1; min-width: 0; font-family: var(--pap-font-sans); }
-  .pap-legal-content p, .pap-legal-content li { font-size: 14px; line-height: 1.7; color: #3d4a63; }
+  .pap-legal-content p, .pap-legal-content li { font-size: 14px; line-height: 1.7; color: #3d4a63; text-align: justify; hyphens: auto; }
   .pap-legal-content ul { padding-left: 20px; }
   .pap-legal-content h2 { margin: 30px 0 10px; font-size: 16.5px; font-weight: 800; color: var(--pap-navy); scroll-margin-top: 20px; }
   .pap-legal-content h2:first-of-type { margin-top: 0; }
