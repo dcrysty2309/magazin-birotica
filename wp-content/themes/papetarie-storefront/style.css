@@ -1731,6 +1731,16 @@ body.tax-product_cat .pap-header-catmenu-panel {
     border-bottom: 0;
   }
 
+  /* That container reset alone doesn't touch each row's OWN
+     border-bottom (the actual separator between rows) - the last item
+     still carried a trailing line under it with nothing left to
+     separate from. Every list in the drawer follows the same rule:
+     separators sit BETWEEN rows only, never as a trailing line after
+     the last one. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item:last-child {
+    border-bottom: 0;
+  }
+
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-label {
     font-size: var(--menu-font-size-base);
     line-height: var(--menu-line-height);
@@ -1749,6 +1759,28 @@ body.tax-product_cat .pap-header-catmenu-panel {
        row min-height is the only spacing source here, not an added
        gap on top of it. */
     gap: 0;
+  }
+
+  /* LEVEL 2 LIST CONTAINERS - these two own the only gap between
+     sibling accordion headings/leaf rows: .pap-header-catmenu-group-list
+     for a plain (non-column) panel's groups, .pap-showcase-panel-columns-
+     column-groups for the groups nested inside one column of a
+     column-heading panel. Neither the row itself nor the .pap-header-
+     catmenu-group wrapper above ever adds margin/padding to create this
+     spacing - the list is the single source of truth for it, per row
+     type's own --menu-l2-gap. gap only, no display/flex-direction - both
+     containers are already display:grid with a single implicit column
+     (gap works the same way there), and .pap-showcase-panel-columns-
+     column-groups also carries a `:not(.is-expanded) { display:none }`
+     collapse rule elsewhere that a `display:flex` override here would
+     have outranked on specificity (an extra `body.theme-papetarie` type
+     selector beats it despite equal class count), permanently un-hiding
+     every collapsed column. Scoped through .pap-nav-row (same reason as
+     the row rules below) so gap reliably beats the desktop/tablet base
+     rules sharing the same dual-purpose classes. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-list,
+  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-groups {
+    gap: var(--menu-l2-gap);
   }
 
   /* ACCORDION ROW - group heading (level-2 group with its own
@@ -1772,6 +1804,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     justify-content: space-between;
     gap: var(--menu-gap);
     width: 100%;
+    min-height: var(--menu-row-l2);
     height: auto;
     /* Column-heading's own base rule (shared with the desktop flyout)
        sets margin: 0 0 12px (spacing for its desktop card layout) -
@@ -9364,6 +9397,16 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     --menu-row-sub: 48px;
     --menu-section-gap: var(--menu-space-4);
 
+    /* Level 2 vertical rhythm - deliberately its own pair of tokens, not
+       aliased to --menu-row-level1/-standard even where the numbers
+       happen to coincide: row height (the interactive element's own
+       size) and list gap (the space between sibling rows) are two
+       different jobs with two different single-purpose tokens, each
+       owned only by level 2's accordion headings/leaf links, so tuning
+       one never silently drags level 1 or the back row along with it. */
+    --menu-row-l2: 50px;
+    --menu-l2-gap: var(--menu-space-2);
+
     /* Typography - level-1/back/leaf rows share one base size; only the
        weight tells them apart (regular nav items, semibold back/title,
        medium accordion headings - see the row rules below). */
@@ -9682,7 +9725,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 50%;
+    border-radius: 0;
     background: transparent;
     color: var(--menu-color-primary);
     /* × is a text glyph, not an SVG - sized so its rendered box reads
@@ -9693,6 +9736,10 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     line-height: 1;
     cursor: pointer;
     padding: 0;
+    /* Tested and set directly in DevTools: nudge the × 5px toward the
+       header's edge, same pattern as the back arrow's own -2px nudge. */
+    position: relative;
+    right: 5px;
   }
 
   @media (hover: hover) and (pointer: fine) {
