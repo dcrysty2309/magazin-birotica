@@ -12,6 +12,7 @@
   const items = Array.from(shell.querySelectorAll('[data-header-catmenu-item]'));
   const panels = Array.from(shell.querySelectorAll('[data-header-catmenu-panel]'));
   const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const mobileQuery = window.matchMedia('(max-width: 980px)');
   const panelSlugs = new Set(panels.map((panel) => panel.getAttribute('data-header-catmenu-panel')).filter(Boolean));
 
   let isOpen = false;
@@ -150,6 +151,26 @@
     item.addEventListener('focus', () => {
       openMenu(slug);
     });
+
+    // Touch tablets land here too: wide enough for the two-column desktop
+    // flyout (not the narrow drill-down below), but with no real hover to
+    // reveal a category's panel before the tap navigates. Without this, a
+    // tap on a category with children just followed its link straight
+    // through - there was no way to see the panel at all. Same behavior
+    // as eMAG: a tap on a parent with children only ever opens its panel,
+    // never navigates directly - "Vezi toate produsele" inside the panel
+    // is the way to reach the parent's own page.
+    const hasChildren = item.getAttribute('data-header-catmenu-has-children') === '1';
+    if (hasChildren) {
+      item.addEventListener('click', (event) => {
+        if (hoverQuery.matches || mobileQuery.matches) {
+          return;
+        }
+
+        event.preventDefault();
+        openMenu(slug);
+      });
+    }
   });
 
   // Mobile drill-down: tapping a level-1 category with children swaps the
@@ -159,7 +180,6 @@
   // rather than drilling into a third screen. Gated to the same breakpoint
   // as the drawer itself, so a real mouse at a wider width keeps the
   // desktop hover flyout untouched.
-  const mobileQuery = window.matchMedia('(max-width: 980px)');
   const backButton = document.querySelector('[data-header-catmenu-back]');
   const backLabel = backButton ? backButton.querySelector('[data-header-catmenu-back-label]') : null;
   const groupToggles = Array.from(shell.querySelectorAll('[data-header-catmenu-group-toggle]'));
