@@ -100,12 +100,18 @@ if (!is_tax('product_cat')) {
 
       <div class="pap-nav-row" id="pap-nav-row" data-mobile-nav-panel>
         <div class="pap-mobile-nav-head">
-          <span class="pap-mobile-nav-head-title"><?php esc_html_e('Meniu', 'papetarie-storefront'); ?></span>
+          <a class="pap-logo pap-mobile-nav-logo" href="<?php echo esc_url(home_url('/')); ?>">
+            <?php if (papetarie_storefront_has_real_logo()) : ?>
+              <span class="pap-logo-image"><?php the_custom_logo(); ?></span>
+            <?php else : ?>
+              <span class="pap-logo-image">
+                <img src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/logo-notix.png'); ?>" alt="<?php esc_attr_e('Notix', 'papetarie-storefront'); ?>">
+              </span>
+            <?php endif; ?>
+          </a>
           <button class="pap-mobile-nav-close" type="button" aria-label="<?php esc_attr_e('Închide meniul', 'papetarie-storefront'); ?>" data-mobile-nav-close>&times;</button>
         </div>
         <div class="pap-shell pap-nav-inner">
-          <div class="pap-mobile-nav-section-title"><?php esc_html_e('Categorii', 'papetarie-storefront'); ?></div>
-
           <div class="pap-category-menu-anchor">
             <button
               class="pap-category-trigger"

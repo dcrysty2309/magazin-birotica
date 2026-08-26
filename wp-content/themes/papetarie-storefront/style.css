@@ -1019,27 +1019,54 @@ body.theme-papetarie .pap-site-header--checkout .pap-checkout-header__support-co
    default (desktop); switched on only under the compact-header breakpoint
    further down (@media max-width: 980px). */
 .pap-mobile-menu-trigger,
-.pap-mobile-nav-head,
-.pap-mobile-nav-section-title {
+.pap-mobile-nav-section-title,
+.pap-mobile-nav-head {
   display: none;
 }
 
 .pap-mobile-menu-trigger-icon {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
+  position: relative;
   width: 18px;
   height: 14px;
 }
 
 .pap-mobile-menu-trigger-icon span {
-  display: block;
+  position: absolute;
+  left: 0;
   width: 100%;
   height: 2px;
   border-radius: 1px;
   background: currentColor;
+  transition: top 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+
+.pap-mobile-menu-trigger-icon span:nth-child(1) {
+  top: 0;
+}
+
+.pap-mobile-menu-trigger-icon span:nth-child(2) {
+  top: 6px;
+}
+
+.pap-mobile-menu-trigger-icon span:nth-child(3) {
+  top: 12px;
+}
+
+/* Hamburger morphs into an X in place while the drawer is open, instead
+   of a separate close button elsewhere - same trigger, same tap target,
+   like Altex's mobile menu. */
+.pap-mobile-menu-trigger[aria-expanded="true"] .pap-mobile-menu-trigger-icon span:nth-child(1) {
+  top: 6px;
+  transform: rotate(45deg);
+}
+
+.pap-mobile-menu-trigger[aria-expanded="true"] .pap-mobile-menu-trigger-icon span:nth-child(2) {
+  opacity: 0;
+}
+
+.pap-mobile-menu-trigger[aria-expanded="true"] .pap-mobile-menu-trigger-icon span:nth-child(3) {
+  top: 6px;
+  transform: rotate(-45deg);
 }
 
 .pap-mobile-nav-overlay {
@@ -1608,6 +1635,22 @@ body.tax-product_cat .pap-header-catmenu-panel {
      .pap-header-catmenu-chevron rule). */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-item > .pap-header-catmenu-chevron {
     display: inline-flex;
+    width: 20px;
+    height: 20px;
+    color: var(--pap-navy);
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item > .pap-header-catmenu-chevron svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* .pap-header-catmenu-left reuses the homepage showcase module's own
+     border-bottom (meant to close off that module's boxed card look) -
+     the drawer isn't a boxed card, so the last category row shouldn't
+     end in a leftover divider line. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-left {
+    border-bottom: 0;
   }
 
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-label {
@@ -9107,11 +9150,13 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
 
 @media (max-width: 980px) {
   /* Drawer container: .pap-nav-row/-head/-inner form a fixed-header +
-     scrolling-content column. .pap-nav-row is the flex column, its two
-     direct children split the fixed/scrolling roles - no position:sticky,
-     no z-index stacking games, scrolling is structurally confined to
-     .pap-nav-inner because it is the only flex item allowed to grow and
-     the only one with overflow-y:auto. */
+     scrolling-content column for the full-screen overlay. Closing is via
+     the dedicated X in .pap-mobile-nav-head's top bar (the hamburger
+     trigger itself is covered by this panel while open, so it can't
+     double as the close control here). No z-index stacking games
+     needed, scrolling is structurally confined to .pap-nav-inner
+     because it is the only flex item allowed to grow and the only one
+     with overflow-y:auto. */
   body.theme-papetarie .pap-nav-inner {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -9122,12 +9167,25 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
        into the middle of the drawer instead of the top. Pin it. */
     align-content: start;
     gap: 14px;
+    /* Left/right stay 0 - category rows go full width, not inset by
+       .pap-shell's usual 24px padding-inline. The close button now sits
+       in its own header bar above (.pap-mobile-nav-head), in normal
+       flex flow, so this no longer needs extra top clearance for it. */
     padding: 14px 0 24px;
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    /* Scrollable, but the scrollbar itself stays invisible - the drawer
+       already has its own visual chrome, a native scrollbar track/thumb
+       would just add clutter. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  body.theme-papetarie .pap-nav-inner::-webkit-scrollbar {
+    display: none;
   }
 
   body.theme-papetarie .pap-category-trigger,
@@ -9299,37 +9357,85 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     display: none;
   }
 
-  /* ---- Off-canvas nav drawer (categories + primary + utility links) ----
-     Single white panel top to bottom. Navy is reserved for the drawer
-     header, text and icons - it is not a background color for the panel
-     itself, so there is no "white card floating over a navy sheet" look. */
+  /* The dark scrim overlay was built for a partial-coverage dropdown/
+     drawer, where it dims the page content still visible around the
+     panel and doubles as a tap-outside-to-close target. The full-screen
+     panel below covers the entire viewport itself, so there's nothing
+     left for the scrim to dim or sit behind - worse, being a fixed,
+     full-viewport, pointer-events:auto sibling with its own z-index, it
+     was intercepting taps meant for the close button whenever stacking
+     didn't resolve the way its z-index alone implied. Neutralize it
+     completely on mobile instead of relying on z-index to keep it out
+     of the way. */
+  body.theme-papetarie .pap-mobile-nav-overlay {
+    display: none;
+  }
+
+  /* ---- Full-screen nav overlay (categories + primary + utility links) ----
+     Opaque white panel covering the entire viewport, header included -
+     no dimmed backdrop needed since nothing behind it is visible anyway.
+     Closes via the dedicated X in its own top-left corner. */
+  body.theme-papetarie .pap-nav-row {
+    position: fixed;
+    inset: 0;
+    z-index: 10030;
+    width: auto;
+    height: 100vh;
+    height: 100dvh;
+    background: #fff;
+    color: var(--pap-navy);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    /* pointer-events, not visibility: visibility's a discrete property
+       that needs a forced reflow between the old and new class to
+       transition reliably (see .pap-mobile-nav-overlay, which already
+       does this with opacity + pointer-events) - without it the browser
+       can get stuck showing the pre-transition value indefinitely.
+       pointer-events avoids the whole class of bug and still keeps the
+       closed panel non-interactive/untappable. */
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+    overflow: hidden;
+  }
+
+  body.theme-papetarie .pap-nav-row.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Thin bar across the top of the full-screen panel: logo on the left
+     (so it doesn't read as an empty strip) and X on the right, like a
+     native modal's header row. env() clearance keeps it clear of the
+     iPhone notch/Dynamic Island/status bar. */
   body.theme-papetarie .pap-mobile-nav-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     flex: 0 0 auto;
-    min-height: 58px;
-    padding: 10px 12px 10px 20px;
-    color: #fff;
-    background: var(--pap-navy);
+    padding-top: env(safe-area-inset-top, 0px);
+    min-height: 44px;
+    padding-left: 20px;
+    padding-right: 10px;
+    border-bottom: 1px solid #eef1f6;
   }
 
-  body.theme-papetarie .pap-mobile-nav-head-title {
-    font-size: 17px;
-    font-weight: 700;
+  body.theme-papetarie .pap-mobile-nav-logo {
+    flex: 0 1 140px;
+    min-width: 0;
   }
 
   body.theme-papetarie .pap-mobile-nav-close {
     width: 44px;
     height: 44px;
-    flex: 0 0 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: 0;
     border-radius: 50%;
     background: transparent;
-    color: #fff;
+    color: var(--pap-navy);
     font-size: 22px;
     line-height: 1;
     cursor: pointer;
@@ -9338,29 +9444,7 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
 
   body.theme-papetarie .pap-mobile-nav-close:hover,
   body.theme-papetarie .pap-mobile-nav-close:focus-visible {
-    background: rgba(255, 255, 255, 0.14);
-  }
-
-  body.theme-papetarie .pap-nav-row {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 10030;
-    width: min(430px, 92vw);
-    height: 100vh;
-    height: 100dvh;
-    background: #fff;
-    color: var(--pap-navy);
-    display: flex;
-    flex-direction: column;
-    transform: translateX(-100%);
-    transition: transform 0.28s ease;
-    overflow: hidden;
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.18);
-  }
-
-  body.theme-papetarie .pap-nav-row.is-open {
-    transform: translateX(0);
+    background: rgba(13, 46, 97, 0.08);
   }
 
   /* Section labels above the category list and the info links - the only
