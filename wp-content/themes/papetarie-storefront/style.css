@@ -1871,13 +1871,11 @@ body.tax-product_cat .pap-header-catmenu-panel {
     padding-left: var(--menu-text-start);
   }
 
-  @media (hover: hover) and (pointer: fine) {
-    body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title:hover,
-    body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading:hover {
-      background: var(--menu-color-hover-bg);
-    }
-  }
-
+  /* No hover background on the accordion heading itself - tested live and
+     it read as a stray highlight, not a real "hover" affordance (the row
+     has no href to preview and the whole thing already reads as
+     interactive via the chevron). Tap feedback (:active) below is the
+     only state change left. */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title:active,
   body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading:active {
     background: var(--menu-color-active-bg);
