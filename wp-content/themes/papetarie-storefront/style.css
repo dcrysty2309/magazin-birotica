@@ -1785,6 +1785,18 @@ body.tax-product_cat .pap-header-catmenu-panel {
     gap: var(--menu-l2-gap);
   }
 
+  /* .pap-showcase-panel-columns--cols-2's own base rule caps it at
+     max-width:650px so the desktop flyout's two columns don't spread
+     too far apart on a wide dropdown - on mobile the columns stack
+     single-file instead, so that cap just leaves a dead gap on the
+     right at any drawer width over ~650px+padding (invisible on a
+     typical phone, visible on a tablet-width drawer). Not needed here;
+     the row should fill the same edge-to-edge width as every other
+     level 2 row. */
+  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns--cols-2 {
+    max-width: none;
+  }
+
   /* ACCORDION ROW - group heading (level-2 group with its own
      grandchildren) and column heading (top-level section divider, e.g.
      "Instrumente și accesorii de birou") share one look: same row
@@ -1838,16 +1850,11 @@ body.tax-product_cat .pap-header-catmenu-panel {
     padding-left: var(--menu-text-start);
   }
 
-  /* No hover background on the accordion heading itself - tested live and
-     it read as a stray highlight, not a real "hover" affordance (the row
-     has no href to preview and the whole thing already reads as
-     interactive via the chevron). Tap feedback (:active) below is the
-     only state change left. */
-  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title:active,
-  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading:active {
-    background: var(--menu-color-active-bg);
-  }
-
+  /* No background fill on the accordion heading in ANY state - tested
+     live and it read as a stray highlight/"selected" look rather than a
+     real affordance, whether on hover or on tap (:active). The row
+     already reads as interactive via the chevron alone; geometry and
+     color otherwise never change between default/active/expanded. */
   .pap-header-catmenu-group-title:focus-visible,
   .pap-showcase-panel-columns-column-heading:focus-visible {
     outline: 2px solid var(--menu-color-accent);
