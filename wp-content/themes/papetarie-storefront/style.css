@@ -9723,16 +9723,15 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     height: var(--menu-close-size);
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: end;
     border: 0;
     border-radius: 0;
     background: transparent;
     color: var(--menu-color-primary);
-    /* × is a text glyph, not an SVG - sized so its rendered box reads
-       as ~20x20, matching every chevron's box (--menu-chevron-box),
-       while the button itself stays a full 44x44 touch target around
-       it. */
-    font-size: var(--menu-chevron-box);
+    /* Tested and set directly in DevTools: a literal 40px, not the
+       chevron-box token - the × reads too small at the shared 20px
+       chevron size next to the drawer's logo. */
+    font-size: 40px;
     line-height: 1;
     cursor: pointer;
     padding: 0;
