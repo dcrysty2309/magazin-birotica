@@ -1780,9 +1780,9 @@ body.tax-product_cat .pap-header-catmenu-panel {
        Zero it here; row height is the only spacing source. */
     margin: 0;
     background: var(--menu-color-surface);
-    font-size: var(--menu-font-size-heading);
+    font-size: 16px;
     line-height: var(--menu-line-height);
-    font-weight: 500;
+    font-weight: normal;
     /* Column-heading's own base rule (shared with the desktop flyout)
        sets uppercase/letter-spacing/a muted color for a "section
        label" look - reset all three so it reads as the same heading
