@@ -1537,7 +1537,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   .pap-header-catmenu-panel {
     height: auto;
     overflow: visible;
-    padding: 4px var(--mmn-padding-x) 24px;
+    padding: var(--menu-space-1) var(--menu-padding-x) var(--menu-space-6);
   }
 
   /* Drill-down navigation: level-1 list and level-2 panel are two separate
@@ -1564,50 +1564,68 @@ body.tax-product_cat .pap-header-catmenu-panel {
 
   /* NAVIGATION/BACK ROW - the first row of .drawer-content on level 2+,
      not part of the drawer header (that stays [NOTIX] [X] above,
-     untouched). Same --mmn-row-height as every other row; same
-     --mmn-padding-x/--mmn-icon-box/--mmn-gap grid as level 1, so the
-     back arrow sits in the exact icon column level-1 icons use and
-     "Articole pentru birou" starts on the exact axis "Articole hârtie"
-     does one screen back. font-weight stays 600 (semibold) to read as
-     a screen title, everything else - size, family, line-height - is
-     the shared row token set. */
+     untouched). Same --menu-row-standard/--menu-padding-x/--menu-gap
+     as level 1's row. The icon column is --menu-icon-col (24px, not
+     the smaller chevron box) specifically so the back arrow lines up
+     under level-1's icons, not under a chevron - "Articole pentru
+     birou" starts on the exact axis "Articole hârtie" does one screen
+     back. font-weight stays 600 (semibold) to read as a screen title;
+     size/family/line-height are the shared base row type. */
   .pap-header-catmenu-back:not([hidden]) {
     display: flex;
     align-items: center;
-    gap: var(--mmn-gap);
+    gap: var(--menu-gap);
     width: 100%;
-    min-height: var(--mmn-row-height);
-    padding: 0 var(--mmn-padding-x);
-    margin: 0 0 4px;
+    min-height: var(--menu-row-standard);
+    padding: 0 var(--menu-padding-x);
+    margin: 0;
     border: 0;
-    border-bottom: 1px solid #edf2f7;
-    background: #fff;
-    color: var(--pap-navy);
-    font-size: var(--mmn-font-size);
-    line-height: var(--mmn-line-height);
+    border-bottom: 1px solid var(--menu-color-border);
+    background: var(--menu-color-surface);
+    color: var(--menu-color-text);
+    font-size: var(--menu-font-size-base);
+    line-height: var(--menu-line-height);
     font-weight: 600;
     text-align: left;
     cursor: pointer;
   }
 
-  /* Same box as every other icon/chevron (--mmn-icon-box) - see the
-     design-system comment at the top of this file for the grid this
-     is part of. The back arrow is literally .pap-header-catmenu-chevron
-     (same icon function, same markup) rotated 180deg, not a separate
-     icon - see .pap-header-catmenu-back-icon svg below and the shared
-     chevron rule further down. */
+  @media (hover: hover) and (pointer: fine) {
+    .pap-header-catmenu-back:not([hidden]):hover {
+      background: var(--menu-color-hover-bg);
+    }
+  }
+
+  .pap-header-catmenu-back:not([hidden]):active {
+    background: var(--menu-color-active-bg);
+  }
+
+  .pap-header-catmenu-back:not([hidden]):focus-visible {
+    outline: 2px solid var(--menu-color-accent);
+    outline-offset: -2px;
+  }
+
+  /* Same column width as the level-1 icon (--menu-icon-col, not the
+     narrower --menu-chevron-box every other chevron sits in) - see the
+     design-system comment at the top of this file. The glyph itself is
+     still the shared --menu-chevron-size chevron, centered in the
+     wider column. It's literally .pap-header-catmenu-chevron (same
+     icon function, same markup) rotated 180deg, not a separate icon -
+     see the shared chevron rule further down for the group/column
+     accordion triggers. */
   .pap-header-catmenu-back-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--mmn-icon-box);
-    height: var(--mmn-icon-box);
-    flex: 0 0 var(--mmn-icon-box);
+    width: var(--menu-icon-col);
+    height: var(--menu-icon-col);
+    flex: 0 0 var(--menu-icon-col);
+    color: var(--menu-color-primary);
   }
 
   .pap-header-catmenu-back-icon svg {
-    width: var(--mmn-chevron);
-    height: var(--mmn-chevron);
+    width: var(--menu-chevron-size);
+    height: var(--menu-chevron-size);
     transform: rotate(180deg);
   }
 
@@ -1617,11 +1635,10 @@ body.tax-product_cat .pap-header-catmenu-panel {
     display: none;
   }
 
-  /* MENU ROW - level 1. Same grid on both edges: --mmn-icon-box for the
-     category icon, minmax(0,1fr) for the label, --mmn-icon-box again
-     for the chevron - the two side columns are the same size and the
-     same size as the back row's own icon column, on purpose (see the
-     design-system comment at the top of this file).
+  /* MENU ROW - level 1. --menu-icon-col for the category icon,
+     minmax(0,1fr) for the label, --menu-chevron-box for the chevron -
+     asymmetric on purpose (24px icon vs 20px chevron), matched by the
+     back row's own icon column above and every chevron box elsewhere.
      .pap-header-catmenu-item/-icon/-label also carry the homepage
      showcase-nav's classes (dual-purpose markup - see
      functions.php/front-page.php) which define their own competing
@@ -1629,15 +1646,51 @@ body.tax-product_cat .pap-header-catmenu-panel {
      so these mobile drawer rules reliably win regardless of source order. */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-item {
     display: grid;
-    grid-template-columns: var(--mmn-icon-box) minmax(0, 1fr) var(--mmn-icon-box);
-    gap: var(--mmn-gap);
-    min-height: var(--mmn-row-height);
-    padding: 0 var(--mmn-padding-x);
+    grid-template-columns: var(--menu-icon-col) minmax(0, 1fr) var(--menu-chevron-box);
+    gap: var(--menu-gap);
+    min-height: var(--menu-row-standard);
+    padding: 0 var(--menu-padding-x);
+    border-bottom: 1px solid var(--menu-color-border);
+    background: var(--menu-color-surface);
+    color: var(--menu-color-text);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    body.theme-papetarie .pap-nav-row .pap-header-catmenu-item:hover {
+      background: var(--menu-color-hover-bg);
+    }
+
+    body.theme-papetarie .pap-nav-row .pap-header-catmenu-item:hover .pap-header-catmenu-chevron {
+      color: var(--menu-color-accent);
+    }
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item:active {
+    background: var(--menu-color-active-bg);
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item:focus-visible {
+    outline: 2px solid var(--menu-color-accent);
+    outline-offset: -2px;
+  }
+
+  /* ACTIVE = this is the current category, nothing else - color only,
+     no geometry, no padding/height/icon-size change. Icon and chevron
+     both go accent so the whole row reads as "you are here" at a
+     glance. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item.is-active {
+    background: var(--menu-color-active-bg);
+    color: var(--menu-color-accent);
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item.is-active .pap-header-catmenu-icon,
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item.is-active .pap-header-catmenu-chevron {
+    color: var(--menu-color-accent);
   }
 
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-icon svg {
-    width: var(--mmn-category-icon);
-    height: var(--mmn-category-icon);
+    width: var(--menu-icon-size);
+    height: var(--menu-icon-size);
   }
 
   /* Re-enable the level-1 chevron on mobile only - it's a real "tap to
@@ -1647,19 +1700,21 @@ body.tax-product_cat .pap-header-catmenu-panel {
      .pap-header-catmenu-chevron markup/icon as the back arrow and the
      accordion chevrons below - only the box/glyph size (shared tokens)
      and rotation (none here, 180deg for back, 90/-90deg for accordion)
-     differ. */
+     differ. Muted by default, same as the accordion chevrons - level-1
+     rows aren't visually "louder" than accordion rows just because
+     they happen to navigate instead of expand. */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-item > .pap-header-catmenu-chevron {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--mmn-icon-box);
-    height: var(--mmn-icon-box);
-    color: var(--pap-navy);
+    width: var(--menu-chevron-box);
+    height: var(--menu-chevron-box);
+    color: var(--menu-color-muted);
   }
 
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-item > .pap-header-catmenu-chevron svg {
-    width: var(--mmn-chevron);
-    height: var(--mmn-chevron);
+    width: var(--menu-chevron-size);
+    height: var(--menu-chevron-size);
   }
 
   /* .pap-header-catmenu-left reuses the homepage showcase module's own
@@ -1671,8 +1726,8 @@ body.tax-product_cat .pap-header-catmenu-panel {
   }
 
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-label {
-    font-size: var(--mmn-font-size);
-    line-height: var(--mmn-line-height);
+    font-size: var(--menu-font-size-base);
+    line-height: var(--menu-line-height);
     font-weight: 400;
     white-space: nowrap;
   }
@@ -1687,28 +1742,64 @@ body.tax-product_cat .pap-header-catmenu-panel {
   }
 
   /* ACCORDION ROW - group heading (level-2 group with its own
-     grandchildren). --mmn-text-start = --mmn-icon-box + --mmn-gap is
-     the exact space an icon+gap would occupy at level 1, so this
-     heading's label lands on the same text-start axis as every
-     level-1/back-row label, with no icon of its own. */
-  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title {
+     grandchildren) and column heading (top-level section divider, e.g.
+     "Instrumente și accesorii de birou") share one look: same row
+     height, same 15px/600 heading type, same navy default color, same
+     chevron. The only structural difference is left position - the
+     group heading is nested one level deeper, so it starts at
+     --menu-text-start (the same space an icon+gap would occupy at
+     level 1); the column heading is a top-level divider with nothing
+     above it, so it starts at the row EDGE, same axis as the back
+     row's arrow and level-1's icons. Plain surface-colored row in
+     every state - no background fill, no size/weight change on
+     expand, only the chevron rotates and turns accent. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title,
+  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--mmn-gap);
-    min-height: var(--mmn-row-height);
-    /* Right side: no explicit padding - the ambient .pap-header-catmenu-panel
-       padding (--mmn-padding-x) already insets this row's container, so
-       justify-content:space-between lands the chevron flush against it,
-       same right axis as level-1's chevron and the column-heading's. */
-    padding-left: var(--mmn-text-start);
-    font-size: var(--mmn-font-size);
-    line-height: var(--mmn-line-height);
-    font-weight: 400;
-    /* Same color collapsed or expanded - only the chevron (below) changes
-       on expand. No separate "expanded" text color/weight, no background:
-       a plain white row in both states. */
-    color: var(--pap-navy);
+    gap: var(--menu-gap);
+    width: 100%;
+    min-height: var(--menu-row-standard);
+    background: var(--menu-color-surface);
+    font-size: var(--menu-font-size-heading);
+    line-height: var(--menu-line-height);
+    font-weight: 600;
+    /* Column-heading's own base rule (shared with the desktop flyout)
+       sets uppercase/letter-spacing/a muted color for a "section
+       label" look - reset all three so it reads as the same heading
+       type as group-title, not a leftover special case. */
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--menu-color-text);
+    cursor: pointer;
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title {
+    /* Right side: no explicit padding - the ambient
+       .pap-header-catmenu-panel padding (--menu-padding-x) already
+       insets this row's container, so justify-content:space-between
+       lands the chevron flush against it, same right axis as
+       level-1's chevron and the column-heading's. */
+    padding-left: var(--menu-text-start);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title:hover,
+    body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading:hover {
+      background: var(--menu-color-hover-bg);
+    }
+  }
+
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title:active,
+  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading:active {
+    background: var(--menu-color-active-bg);
+  }
+
+  .pap-header-catmenu-group-title:focus-visible,
+  .pap-showcase-panel-columns-column-heading:focus-visible {
+    outline: 2px solid var(--menu-color-accent);
+    outline-offset: -2px;
   }
 
   .pap-header-catmenu-group--expandable:not(.is-expanded) .pap-header-catmenu-sublist {
@@ -1718,68 +1809,59 @@ body.tax-product_cat .pap-header-catmenu-panel {
   .pap-header-catmenu-sublist {
     /* Deeper than the group-title text axis, so a leaf item reads as
        nested under its group instead of lining up with it. */
-    padding-left: var(--mmn-sub-indent);
+    padding-left: var(--menu-sub-indent);
   }
 
+  /* SUBCATEGORY ROW - the one row type shorter than the standard
+     56px, per the row system (48px). Same base type as level-1/back
+     labels (16px/regular), not its own smaller size. */
   .pap-header-catmenu-sublist a {
-    min-height: 44px;
+    min-height: var(--menu-row-sub);
     display: flex;
     align-items: center;
     font-family: inherit;
-    color: var(--pap-navy);
-    font-size: 14px;
+    font-size: var(--menu-font-size-base);
+    line-height: var(--menu-line-height);
+    font-weight: 400;
+    color: var(--menu-color-text);
   }
 
-  /* ACCORDION ROW - column heading (e.g. "Articole pentru birou" ->
-     "Instrumente și accesorii de birou" / "Echipamente de birou") -
-     each heading becomes its own accordion trigger, collapsed by
-     default, exactly one open at a time (JS closes any other open
-     column when one is tapped). Same aria-expanded contract and
-     chevron base class as the group-title accordion above, so both
-     share one expanded-state look below instead of two near-duplicate
-     rulesets. Sits at the row EDGE (no --mmn-text-start indent) - it's
-     a top-level section divider within the panel, not nested under
-     anything, so it starts where the back row's arrow and level-1's
-     icons do, not where their labels do. Plain white row in both
-     states - no background fill, no border, same text color/weight
-     collapsed or expanded. The only thing that changes on expand is
-     the chevron. */
-  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--mmn-gap);
-    width: 100%;
-    min-height: var(--mmn-row-height);
-    background: transparent;
-    cursor: pointer;
-    /* Color/font-size/weight/letter-spacing/uppercase are intentionally
-       NOT overridden here - same muted gray label look as the desktop
-       flyout (base rule further down), collapsed or expanded. Only the
-       chevron differs on expand (below). */
+  @media (hover: hover) and (pointer: fine) {
+    .pap-header-catmenu-sublist a:hover {
+      background: var(--menu-color-hover-bg);
+      color: var(--menu-color-text);
+    }
+  }
+
+  .pap-header-catmenu-sublist a:active {
+    background: var(--menu-color-active-bg);
+  }
+
+  .pap-header-catmenu-sublist a:focus-visible {
+    outline: 2px solid var(--menu-color-accent);
+    outline-offset: -2px;
   }
 
   /* ---- Shared chevron geometry: level-2 group heading AND
-     column-heading accordion triggers both use --mmn-icon-box /
-     --mmn-chevron - the exact same box/glyph size as the level-1
-     chevron and the back arrow (see the design-system comment at the
-     top of this file). One rule instead of duplicating it per trigger
-     type. ---- */
+     column-heading accordion triggers both use --menu-chevron-box /
+     --menu-chevron-size - the exact same box/glyph size as the
+     level-1 chevron (see the design-system comment at the top of this
+     file). One rule instead of duplicating it per trigger type. ---- */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-chevron--group,
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-chevron--column {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--mmn-icon-box);
-    height: var(--mmn-icon-box);
-    flex: 0 0 var(--mmn-icon-box);
-    color: #9aa8bd;
+    width: var(--menu-chevron-box);
+    height: var(--menu-chevron-box);
+    flex: 0 0 var(--menu-chevron-box);
+    color: var(--menu-color-muted);
   }
 
   .pap-header-catmenu-chevron--group svg,
   .pap-header-catmenu-chevron--column svg {
-    width: var(--mmn-chevron);
-    height: var(--mmn-chevron);
+    width: var(--menu-chevron-size);
+    height: var(--menu-chevron-size);
     /* Collapsed default: pointing down ("tap to expand"). */
     transform: rotate(90deg);
     transition: transform 0.18s ease;
@@ -1793,22 +1875,15 @@ body.tax-product_cat .pap-header-catmenu-panel {
     transform: rotate(-90deg);
   }
 
-  /* Expanded state's only accent: the chevron turns orange. Label color/
-     weight/background stay identical to collapsed - see the base rules
-     above. Separate from is-active (current-page category, styled via
-     .pap-header-catmenu-item.is-active elsewhere) - distinct selectors,
-     never combined. */
+  /* Expanded state's only accent: the chevron turns accent-colored and
+     rotates. Label color/weight/background/geometry stay identical to
+     collapsed - see the shared row rule above. Separate from is-active
+     (current-page category, styled via .pap-header-catmenu-item.is-active
+     above) - distinct selectors, never combined, since a group/column
+     heading is never itself "the current page". */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title[aria-expanded="true"] .pap-header-catmenu-chevron--group,
   body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading[aria-expanded="true"] .pap-header-catmenu-chevron--column {
-    color: var(--pap-orange);
-  }
-
-  /* Keyboard focus only (not mouse/touch activation) - a discreet inset
-     ring, not the old background fill. */
-  .pap-header-catmenu-group-title:focus-visible,
-  .pap-showcase-panel-columns-column-heading:focus-visible {
-    outline: 2px solid var(--pap-orange);
-    outline-offset: -2px;
+    color: var(--menu-color-accent);
   }
 
   .pap-showcase-panel-columns-column:not(.is-expanded) .pap-showcase-panel-columns-column-groups {
@@ -9214,35 +9289,66 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
 @media (max-width: 980px) {
   /* ============================================================
      MOBILE MENU DESIGN SYSTEM
-     One token set for the whole drawer (header, level-1 list, back
-     row, accordion headings). Every row type below reads its sizing
-     from these instead of its own literal numbers, so level 1 and
-     level 2 are provably the same component, not two hand-matched
-     ones. Change a number here, it changes everywhere at once.
+     One token set for the whole drawer - header, level-1 list, back
+     row, accordion headings, subcategories. Level 2 is not a separate
+     design, it's the same component in a different state: every row
+     type below reads its spacing/color/type from here instead of its
+     own literal numbers.
 
-     Grid logic (same on both edges):
-       EDGE -> --mmn-padding-x -> --mmn-icon-box -> --mmn-gap -> text
-       ... text -> --mmn-gap -> --mmn-icon-box -> --mmn-padding-x -> EDGE
-     --mmn-icon-box is the ONE box size used for every icon and every
-     chevron/arrow, left or right - the level-1 category icon, its own
-     right chevron, the back arrow, and the accordion chevrons all sit
-     in an identical 20x20 box. That's what makes the back arrow line
-     up under the level-1 icons and every right-edge glyph line up
-     under the close X. */
+     Spacing scale - no arbitrary in-between values (13px, 19px, 27px,
+     etc.) anywhere in this file's mobile-menu rules without a token. */
   :root {
-    --mmn-padding-x: 20px;
-    --mmn-header-height: 64px;
-    --mmn-logo-height: 36px;
-    --mmn-close-size: 44px;
-    --mmn-row-height: 52px;
-    --mmn-icon-box: 20px;
-    --mmn-category-icon: 20px;
-    --mmn-chevron: 16px;
-    --mmn-gap: 10px;
-    --mmn-text-start: calc(var(--mmn-icon-box) + var(--mmn-gap));
-    --mmn-sub-indent: 48px;
-    --mmn-font-size: 15px;
-    --mmn-line-height: 1.3;
+    --menu-space-1: 4px;
+    --menu-space-2: 8px;
+    --menu-space-3: 12px;
+    --menu-space-4: 16px;
+    --menu-space-5: 20px;
+    --menu-space-6: 24px;
+    --menu-space-8: 32px;
+
+    /* Layout. Left/right grid (same on both edges):
+       EDGE -> --menu-padding-x -> ICON/CHEVRON col -> --menu-gap -> text
+       ... text -> --menu-gap -> CHEVRON col -> --menu-padding-x -> EDGE
+       Category icons and their column are --menu-icon-col (24px);
+       every chevron/arrow (level-1's own, the back arrow, both
+       accordion triggers) is --menu-chevron-box (20px) - the back
+       arrow's column is widened to match the icon column specifically
+       (see .pap-header-catmenu-back-icon below) so it lines up with
+       level-1's icons, not with the smaller chevron boxes. */
+    --menu-padding-x: var(--menu-space-5);
+    --menu-header-height: 64px;
+    --menu-logo-height: 36px;
+    --menu-close-size: 44px;
+    --menu-icon-col: var(--menu-space-6);
+    --menu-icon-size: var(--menu-space-6);
+    --menu-chevron-box: var(--menu-space-5);
+    --menu-chevron-size: var(--menu-space-5);
+    --menu-gap: var(--menu-space-4);
+    --menu-text-start: calc(var(--menu-icon-col) + var(--menu-gap));
+    --menu-sub-indent: 40px;
+
+    /* Row system - exactly three heights, geometry never changes
+       between default/hover/active/expanded/focus/pressed. */
+    --menu-row-standard: 56px;
+    --menu-row-sub: 48px;
+    --menu-section-gap: var(--menu-space-4);
+
+    /* Typography - four styles total, reused everywhere. */
+    --menu-font-size-base: 16px;
+    --menu-font-size-heading: 15px;
+    --menu-line-height: 1.3;
+
+    /* Color - aliases onto the existing brand tokens (--pap-navy,
+       --pap-orange, --pap-soft, --pap-border, --pap-placeholder), not
+       new near-duplicate hex values. */
+    --menu-color-primary: var(--pap-navy);
+    --menu-color-accent: var(--pap-orange);
+    --menu-color-text: var(--pap-navy);
+    --menu-color-muted: var(--pap-placeholder);
+    --menu-color-border: var(--pap-border);
+    --menu-color-surface: #fff;
+    --menu-color-hover-bg: var(--pap-soft);
+    --menu-color-active-bg: var(--pap-soft);
   }
 
   /* Drawer container: .pap-nav-row/-head/-inner form a fixed-header +
@@ -9511,12 +9617,13 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--mmn-gap);
+    gap: var(--menu-gap);
     flex: 0 0 auto;
     padding-top: env(safe-area-inset-top, 0px);
-    min-height: var(--mmn-header-height);
-    padding-inline: var(--mmn-padding-x);
-    border-bottom: 1px solid #eef1f6;
+    min-height: var(--menu-header-height);
+    padding-inline: var(--menu-padding-x);
+    border-bottom: 1px solid var(--menu-color-border);
+    background: var(--menu-color-surface);
   }
 
   body.theme-papetarie .pap-mobile-nav-logo {
@@ -9530,31 +9637,43 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
      change with the drawer, since the drawer header's box never
      changes. */
   body.theme-papetarie .pap-mobile-nav-logo .pap-logo-image img {
-    max-height: var(--mmn-logo-height);
+    max-height: var(--menu-logo-height);
   }
 
   body.theme-papetarie .pap-mobile-nav-close {
-    width: var(--mmn-close-size);
-    height: var(--mmn-close-size);
+    width: var(--menu-close-size);
+    height: var(--menu-close-size);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: 0;
     border-radius: 50%;
     background: transparent;
-    color: var(--pap-navy);
+    color: var(--menu-color-primary);
     /* × is a text glyph, not an SVG - sized so its rendered box reads
-       as ~20x20, matching every chevron's box (--mmn-icon-box), while
-       the button itself stays a full 44x44 touch target around it. */
-    font-size: var(--mmn-icon-box);
+       as ~20x20, matching every chevron's box (--menu-chevron-box),
+       while the button itself stays a full 44x44 touch target around
+       it. */
+    font-size: var(--menu-chevron-box);
     line-height: 1;
     cursor: pointer;
     padding: 0;
   }
 
-  body.theme-papetarie .pap-mobile-nav-close:hover,
+  @media (hover: hover) and (pointer: fine) {
+    body.theme-papetarie .pap-mobile-nav-close:hover {
+      background: var(--menu-color-hover-bg);
+    }
+  }
+
+  body.theme-papetarie .pap-mobile-nav-close:active {
+    background: var(--menu-color-active-bg);
+  }
+
   body.theme-papetarie .pap-mobile-nav-close:focus-visible {
-    background: rgba(13, 46, 97, 0.08);
+    outline: 2px solid var(--menu-color-accent);
+    outline-offset: 2px;
+    background: transparent;
   }
 
   /* Section labels above the category list and the info links - the only
