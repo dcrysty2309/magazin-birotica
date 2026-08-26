@@ -317,7 +317,16 @@
   }
 
   document.addEventListener('pointerover', (event) => {
-    if (!hoverQuery.matches || !isOpen) {
+    // Desktop-only "close the flyout when the mouse wanders off elsewhere
+    // on the page" behavior. hover:hover/pointer:fine reflects the input
+    // device (a real mouse), not the viewport width, so it stays true even
+    // when a desktop browser is narrowed or DevTools device mode emulates
+    // a mobile width - without this guard, the exact same shell reused by
+    // the off-canvas drawer would close itself the instant the cursor
+    // crossed anything outside the anchor (e.g. while inspecting an
+    // element), even though the mobile drawer should only ever close via
+    // its own explicit controls (X, overlay tap, back button).
+    if (!hoverQuery.matches || !isOpen || mobileQuery.matches) {
       return;
     }
 
