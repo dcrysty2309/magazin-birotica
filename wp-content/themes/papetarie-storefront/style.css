@@ -1556,51 +1556,6 @@ body.tax-product_cat .pap-header-catmenu-panel {
     display: none;
   }
 
-  /* MICRO-MOTION: level 1 <-> level 2 crossfade/slide. .pap-catmenu-
-     transitioning is a short-lived class header-menu.js adds only for
-     the ~220ms window while the level 1/2 swap animates, and removes
-     right after - it never persists, so the two display:none rules
-     above are the only thing governing the resting state, exactly as
-     before this task. While present, it forces BOTH sides visible
-     (overriding whichever display:none currently applies) so JS can
-     animate a real crossfade instead of an instant cut, and takes the
-     side being replaced out of grid flow so the container's height
-     always reflects the incoming side, never a momentary sum of both. */
-  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu {
-    position: relative;
-    /* Establishes a local stacking context so .pap-catmenu-leaving's
-       negative z-index (below) stays contained here instead of escaping
-       to the page's own stacking order. */
-    z-index: 0;
-  }
-
-  /* Each side's own natural display when visible (grid for -left, per
-     its base rule; block for -right, a plain div with no display of
-     its own) - not both the same value, or -right's internal layout
-     (back button + panels) would briefly reflow as a grid it isn't. */
-  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu-left {
-    display: grid;
-  }
-
-  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu-right {
-    display: block;
-  }
-
-  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu-left.pap-catmenu-leaving,
-  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu-right.pap-catmenu-leaving {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    /* Without this, a positioned element paints above static in-flow
-       content regardless of DOM order - the side staying in normal flow
-       (the entering side, always) would end up hidden underneath the
-       leaving side for most of the animation instead of visible through
-       it, reading as a late "pop" once the leaving side's opacity had
-       nearly reached 0. Negative z-index drops it below the entering
-       side's own paint layer instead. */
-    z-index: -1;
-  }
-
   /* Redundant once the back button already names the category - avoids a
      second, bigger heading directly under it. */
   .pap-header-catmenu-panel-title {
