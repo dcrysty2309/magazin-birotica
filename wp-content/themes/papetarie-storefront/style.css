@@ -1576,8 +1576,10 @@ body.tax-product_cat .pap-header-catmenu-panel {
     align-items: center;
     gap: var(--menu-gap);
     width: 100%;
-    min-height: var(--menu-row-standard);
     padding: 0 var(--menu-padding-x);
+    /* No min-height - sized by content + this padding instead (tested
+       and set directly in DevTools). */
+    padding-bottom: 14px;
     margin: 0;
     border: 0;
     border-bottom: 1px solid var(--menu-color-border);
