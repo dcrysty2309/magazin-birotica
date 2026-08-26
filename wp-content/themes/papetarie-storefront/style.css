@@ -1767,6 +1767,13 @@ body.tax-product_cat .pap-header-catmenu-panel {
     gap: var(--menu-gap);
     width: 100%;
     min-height: var(--menu-row-standard);
+    height: auto;
+    /* Column-heading's own base rule (shared with the desktop flyout)
+       sets margin: 0 0 12px (spacing for its desktop card layout) -
+       that's what was showing up as a ~12px gap under every collapsed
+       accordion heading on mobile, on top of the row's own height.
+       Zero it here; row height is the only spacing source. */
+    margin: 0;
     background: var(--menu-color-surface);
     font-size: var(--menu-font-size-heading);
     line-height: var(--menu-line-height);
