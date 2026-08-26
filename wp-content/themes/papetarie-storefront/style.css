@@ -1648,7 +1648,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     display: grid;
     grid-template-columns: var(--menu-icon-col) minmax(0, 1fr) var(--menu-chevron-box);
     gap: var(--menu-gap);
-    min-height: var(--menu-row-standard);
+    min-height: var(--menu-row-level1);
     padding: 0 var(--menu-padding-x);
     border-bottom: 1px solid var(--menu-color-border);
     background: var(--menu-color-surface);
@@ -1739,13 +1739,19 @@ body.tax-product_cat .pap-header-catmenu-panel {
   .pap-header-catmenu-group {
     min-height: 0;
     padding: 0;
+    /* Base rule's own 4px gap (desktop's title-to-sublist spacing) -
+       row min-height is the only spacing source here, not an added
+       gap on top of it. */
+    gap: 0;
   }
 
   /* ACCORDION ROW - group heading (level-2 group with its own
      grandchildren) and column heading (top-level section divider, e.g.
      "Instrumente și accesorii de birou") share one look: same row
-     height, same 15px/600 heading type, same navy default color, same
-     chevron. The only structural difference is left position - the
+     height, same 15px/500 heading type, same navy default color, same
+     chevron. Medium weight, not the back row's semibold - readable as
+     a heading without competing with the screen's own title. The only
+     structural difference is left position - the
      group heading is nested one level deeper, so it starts at
      --menu-text-start (the same space an icon+gap would occupy at
      level 1); the column heading is a top-level divider with nothing
@@ -1764,7 +1770,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     background: var(--menu-color-surface);
     font-size: var(--menu-font-size-heading);
     line-height: var(--menu-line-height);
-    font-weight: 600;
+    font-weight: 500;
     /* Column-heading's own base rule (shared with the desktop flyout)
        sets uppercase/letter-spacing/a muted color for a "section
        label" look - reset all three so it reads as the same heading
@@ -1810,6 +1816,11 @@ body.tax-product_cat .pap-header-catmenu-panel {
     /* Deeper than the group-title text axis, so a leaf item reads as
        nested under its group instead of lining up with it. */
     padding-left: var(--menu-sub-indent);
+    /* Base rule's own 6px gap - each leaf row's own min-height is the
+       only spacing source, no added gap stacking on top, no
+       separators between leaf links (deliberate, per the drawer's
+       separator rule: level-1 keeps its border, leaf rows don't). */
+    gap: 0;
   }
 
   /* SUBCATEGORY ROW - the one row type shorter than the standard
@@ -9325,26 +9336,38 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     --menu-chevron-size: var(--menu-space-5);
     --menu-gap: var(--menu-space-4);
     --menu-text-start: calc(var(--menu-icon-col) + var(--menu-gap));
-    --menu-sub-indent: 40px;
+    /* Same depth an icon+gap would occupy at level 1 - built from the
+       scale, not a flat local number (24 + 16). */
+    --menu-sub-indent: calc(var(--menu-space-6) + var(--menu-space-4));
 
-    /* Row system - exactly three heights, geometry never changes
-       between default/hover/active/expanded/focus/pressed. */
+    /* Row system. --menu-row-level1 is ~11% under --menu-row-standard
+       (level-1's own density pass - back row and accordion headings
+       keep the standard height, only level-1's list is denser), still
+       comfortably clear of the 44px touch-target floor.
+       --menu-row-sub is level 2's leaf/subcategory row - already the
+       shortest of the three, unchanged. Geometry never changes between
+       default/hover/active/expanded/focus/pressed for any of them. */
     --menu-row-standard: 56px;
+    --menu-row-level1: 50px;
     --menu-row-sub: 48px;
     --menu-section-gap: var(--menu-space-4);
 
-    /* Typography - four styles total, reused everywhere. */
+    /* Typography - level-1/back/leaf rows share one base size; only the
+       weight tells them apart (regular nav items, semibold back/title,
+       medium accordion headings - see the row rules below). */
     --menu-font-size-base: 16px;
     --menu-font-size-heading: 15px;
     --menu-line-height: 1.3;
 
     /* Color - aliases onto the existing brand tokens (--pap-navy,
-       --pap-orange, --pap-soft, --pap-border, --pap-placeholder), not
-       new near-duplicate hex values. */
+       --pap-orange, --pap-soft, --pap-border, --text-secondary), not
+       new near-duplicate hex values. --menu-color-muted uses
+       --text-secondary rather than the paler --pap-placeholder - the
+       chevrons read too faint against white at placeholder's contrast. */
     --menu-color-primary: var(--pap-navy);
     --menu-color-accent: var(--pap-orange);
     --menu-color-text: var(--pap-navy);
-    --menu-color-muted: var(--pap-placeholder);
+    --menu-color-muted: var(--text-secondary);
     --menu-color-border: var(--pap-border);
     --menu-color-surface: #fff;
     --menu-color-hover-bg: var(--pap-soft);
