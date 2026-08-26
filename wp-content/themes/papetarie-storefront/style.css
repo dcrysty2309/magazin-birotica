@@ -414,12 +414,27 @@ body.theme-papetarie .site-content {
   line-height: 1.35;
 }
 
+.pap-topbar-message-short {
+  display: none;
+}
+
 /* Global <p> typography (body.theme-papetarie p { font-size: 14px }) beats
    the inherited 12px from .pap-topbar because it targets the <p> directly -
    direct declarations always win over inherited ones, regardless of
    specificity. Re-declare it explicitly at the intended size. */
 body.theme-papetarie .pap-topbar-message p {
   font-size: 12px;
+}
+
+/* Adding .pap-topbar-message-short as a second <p> means -full is no longer
+   :last-child, so the global "p:last-child gets margin-bottom:0" rule (which
+   used to apply when -full was the only paragraph) stops matching it and the
+   generic body.theme-papetarie p margin-bottom:12px wins instead (higher
+   specificity than the plain ".pap-topbar-message p" rule above). Re-zero it
+   explicitly here so the visible message stays vertically centered. */
+body.theme-papetarie .pap-topbar-message-full,
+body.theme-papetarie .pap-topbar-message-short {
+  margin: 0;
 }
 
 .pap-topbar-icon {
@@ -431,8 +446,8 @@ body.theme-papetarie .pap-topbar-message p {
 }
 
 .pap-topbar-icon svg {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
@@ -442,8 +457,8 @@ body.theme-papetarie .pap-topbar-message p {
   color: #b25a2d;
   font-size: 18px;
   line-height: 1;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -1242,27 +1257,29 @@ body.home .pap-category-trigger {
    no chevron) with the same specificity as the rule above, and - because
    it's declared later in this file - was winning at EVERY width, not just
    mobile: the chevron this session added had nowhere to sit in a 2-column
-   grid and wrapped to its own row, inflating every row to ~65px and
-   dropping the intended padding/min-height/icon/label sizing along with
-   it. Re-declared here with one extra selector so it reliably wins
-   instead, on desktop as much as mobile (mobile has its own separate,
-   still-higher-specificity 22px-icon override further down). */
+   grid and wrapped to its own row. Re-declared here with one extra
+   selector so it reliably wins instead, on desktop as much as mobile
+   (mobile has its own separate, still-higher-specificity 22px-icon
+   override further down) - matched to .pap-showcase-nav-item's own
+   geometry/typography (the homepage module is the reference the header
+   flyout must look like, not the other way around), just widened to a
+   3rd column for the chevron the homepage module doesn't need. */
 .pap-header-catmenu-shell .pap-header-catmenu-item {
-  grid-template-columns: 18px minmax(0, 1fr) 16px;
-  min-height: 46px;
-  padding: 0 14px 0 12px;
+  grid-template-columns: 14px minmax(0, 1fr) 16px;
+  min-height: 37.5px;
+  padding: 9px 16px;
   border-bottom: 1px solid #f1f4f8;
-  color: var(--pap-ink);
+  color: var(--pap-text);
 }
 
 .pap-header-catmenu-shell .pap-header-catmenu-icon svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .pap-header-catmenu-shell .pap-header-catmenu-label {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .pap-header-catmenu-chevron {
@@ -1273,6 +1290,17 @@ body.home .pap-category-trigger {
   height: 16px;
   color: #9aa8bd;
   transition: transform 0.18s ease;
+}
+
+/* Desktop hover already reveals the flyout panel directly - the level-1
+   row itself doesn't need a "tap to expand" affordance there. Mobile
+   still needs it (tap-to-drill-down, no hover), see the max-width:980px
+   override further down. Scoped to a direct child of .pap-header-catmenu-
+   item so this doesn't touch the group/column accordion chevrons
+   (.pap-header-catmenu-chevron--group/--column), which live inside a
+   different element and stay on their own visibility rules. */
+.pap-header-catmenu-item > .pap-header-catmenu-chevron {
+  display: none;
 }
 
 .pap-header-catmenu-chevron svg {
@@ -1338,7 +1366,14 @@ body.home .pap-category-trigger {
 }
 
 .pap-header-catmenu-panel-title {
-  margin: 0 0 12px;
+  /* No margin-bottom - unlike .pap-showcase-panel-columns-column-heading
+     (which needs its own margin, since it's nested inside the column and
+     never a direct grid child of the panel), this title IS a direct child
+     of .pap-header-catmenu-panel, which already applies a 12px gap
+     between its grid children. A margin here would stack on top of that
+     gap, landing the list ~12px lower than the same content under a
+     column-heading. */
+  margin: 0;
   color: #97a6bb;
   font-size: 12px;
   font-weight: 800;
@@ -1565,6 +1600,14 @@ body.tax-product_cat .pap-header-catmenu-panel {
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-icon svg {
     width: 20px;
     height: 20px;
+  }
+
+  /* Re-enable the level-1 chevron on mobile only - it's a real "tap to
+     drill down" affordance there (no hover to reveal the panel), unlike
+     desktop where it's hidden (see the base .pap-header-catmenu-item >
+     .pap-header-catmenu-chevron rule). */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-item > .pap-header-catmenu-chevron {
+    display: inline-flex;
   }
 
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-label {
@@ -2028,7 +2071,14 @@ body.tax-product_cat .pap-header-catmenu-panel {
 
 .pap-showcase-panel-columns-column-heading {
   /* Markup is a <button> (mobile needs it as an accordion trigger) - reset
-     it back to a plain label so desktop's static heading is unaffected. */
+     it back to a plain label so desktop's static heading is unaffected.
+     Matched 1:1 to .pap-header-catmenu-panel-title (the simple-category
+     heading, no column split) - same margin-bottom, and min-height
+     dropped entirely: it was 29px vs the plain title's natural 14.4px, so
+     anything below a column-heading (grouped categories, e.g. "Articole
+     pentru birou") sat ~14px lower than the same content under a plain
+     title (e.g. "Articole școlare"), despite both headings starting at
+     the same y. */
   appearance: none;
   border: 0;
   background: transparent;
@@ -2036,14 +2086,13 @@ body.tax-product_cat .pap-header-catmenu-panel {
   text-align: left;
   cursor: default;
   font: inherit;
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   color: #97a6bb;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   line-height: 1.2;
-  min-height: 29px;
   white-space: nowrap;
 }
 
@@ -6247,7 +6296,14 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
   }
 
   .pap-header-main {
-    padding: 16px 0;
+    /* padding-block only - .pap-header-main is also .pap-shell (provides
+       the 24px lateral padding-inline that keeps it aligned with
+       .pap-nav-inner below it). The old "padding: 16px 0" shorthand reset
+       ALL four sides, zeroing that inherited lateral padding out and
+       making the header row's content start flush with its own edge
+       while nav/content below it stayed inset 24px - the header
+       appeared wider/misaligned below this breakpoint. */
+    padding-block: 16px;
   }
 
   .pap-showcase-stage {
@@ -6341,7 +6397,9 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
 
   .pap-topbar-inner {
     min-height: auto;
-    padding: 8px 0;
+    /* padding-block only - same .pap-shell lateral-padding-reset bug as
+       .pap-header-main above. */
+    padding-block: 4px;
   }
 
   .pap-topbar-message {
@@ -6350,15 +6408,16 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
   }
 
   .pap-topbar-close {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 
   .pap-header-main {
     flex-direction: column;
     align-items: stretch;
     min-height: auto;
-    padding: 14px 0;
+    /* padding-block only - see the max-width:1280px rule above for why. */
+    padding-block: 14px;
   }
 
   .pap-search {
@@ -7246,7 +7305,7 @@ body.theme-papetarie.woocommerce-account.woocommerce-reset-password .woocommerce
   display: none !important;
 }
 
-body.theme-papetarie input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']),
+body.theme-papetarie input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']):not([type='search']),
 body.theme-papetarie select,
 body.theme-papetarie .wpforms-container input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']),
 body.theme-papetarie .wpforms-container select,
@@ -9127,25 +9186,36 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     align-items: center;
     gap: 10px;
     min-height: auto;
-    padding: 6px 0;
+    /* padding-block only - same .pap-shell lateral-padding-reset bug as
+       .pap-header-main. Kept tight (4px) so the total bar height stays
+       capped at ~40px (32px close button + 4px top/bottom). */
+    padding-block: 4px;
   }
 
   body.theme-papetarie .pap-topbar-message {
-    justify-content: flex-start;
-    align-items: flex-start;
-    text-align: left;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
     flex: 1 1 auto;
     min-width: 0;
   }
 
-  body.theme-papetarie .pap-topbar-icon {
-    margin-top: 2px;
+  body.theme-papetarie .pap-topbar-message-full {
+    display: none;
+  }
+
+  body.theme-papetarie .pap-topbar-message-short {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   body.theme-papetarie .pap-topbar-close {
-    width: 40px;
-    height: 40px;
-    flex: 0 0 40px;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
   }
 
   /* ---- Compact single-row header: [hamburger][logo][account][cart], search on its own row ---- */
@@ -9158,14 +9228,14 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
   body.theme-papetarie .pap-mobile-menu-trigger {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 40px;
+    justify-content: flex-start;
+    width: 29px;
     height: 40px;
-    flex: 0 0 40px;
+    flex: 0 0 29px;
     padding: 0;
-    border: 1px solid #dde1e8;
+    border: 0;
     border-radius: 4px;
-    background: #fff;
+    background: transparent;
     color: var(--pap-navy);
     cursor: pointer;
     grid-area: burger;
@@ -9179,7 +9249,12 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     column-gap: 10px;
     row-gap: 10px;
     min-height: auto;
-    padding: 10px 0;
+    /* padding-block only - same .pap-shell lateral-padding-reset bug as
+       the desktop rules above, just on mobile: "padding: 10px 0" was
+       zeroing the inherited 24px/20px padding-inline, so the hamburger
+       sat flush against the edge instead of aligned with the topbar
+       text above it. */
+    padding-block: 10px;
   }
 
   body.theme-papetarie .pap-logo {

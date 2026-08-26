@@ -4,6 +4,14 @@ defined('ABSPATH') || exit;
 
 $header_menu_categories = function_exists('papetarie_storefront_get_mega_menu_categories') ? papetarie_storefront_get_mega_menu_categories() : [];
 $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_menu_slug') ? papetarie_storefront_active_mega_menu_slug($header_menu_categories) : '';
+// The shared helper falls back to the first category when there is no real
+// current category (needed by front-page.php's showcase module, which
+// always shows one panel by default) - the header menu has no such
+// default-panel need, so outside an actual category page nothing should
+// read as "active".
+if (!is_tax('product_cat')) {
+    $header_menu_active_slug = '';
+}
 ?>
 <!doctype html>
 <html <?php language_attributes(); ?>>
@@ -23,7 +31,8 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
       <div class="pap-shell pap-topbar-inner">
         <div class="pap-topbar-message">
           <span class="pap-topbar-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('truck'); ?></span>
-          <p><?php esc_html_e('Transport GRATIS în Cluj-Napoca și localitățile limitrofe la comenzi de peste 150 lei, iar în țară la comenzi de peste 299 lei*.', 'papetarie-storefront'); ?></p>
+          <p class="pap-topbar-message-full"><?php esc_html_e('Transport GRATIS în Cluj-Napoca și localitățile limitrofe la comenzi de peste 150 lei, iar în țară la comenzi de peste 299 lei*.', 'papetarie-storefront'); ?></p>
+          <p class="pap-topbar-message-short"><?php esc_html_e('GRATIS peste 150 lei (Cluj) / 299 lei (țară)*', 'papetarie-storefront'); ?></p>
         </div>
         <button class="pap-topbar-close" type="button" aria-label="<?php esc_attr_e('Închide mesajul de transport', 'papetarie-storefront'); ?>" data-topbar-close>×</button>
       </div>
@@ -31,6 +40,19 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
 
     <section class="pap-header">
       <div class="pap-shell pap-header-main">
+        <button
+          class="pap-mobile-menu-trigger"
+          type="button"
+          aria-label="<?php esc_attr_e('Deschide meniul', 'papetarie-storefront'); ?>"
+          aria-expanded="false"
+          aria-controls="pap-nav-row"
+          data-mobile-menu-trigger
+        >
+          <span class="pap-mobile-menu-trigger-icon" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+        </button>
+
         <a class="pap-logo" href="<?php echo esc_url(home_url('/')); ?>">
           <?php if (papetarie_storefront_has_real_logo()) : ?>
             <span class="pap-logo-image"><?php the_custom_logo(); ?></span>
@@ -47,8 +69,8 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
           <?php endif; ?>
         </a>
 
-        <form class="pap-search" action="<?php echo esc_url(home_url('/')); ?>" method="get" role="search">
-          <input type="search" name="s" placeholder="<?php esc_attr_e('Caută după produs, SKU sau cuvânt cheie...', 'papetarie-storefront'); ?>" value="<?php echo esc_attr(get_search_query()); ?>">
+        <form class="pap-search" action="<?php echo esc_url(home_url('/')); ?>" method="get" role="search" autocomplete="off">
+          <input type="search" name="s" autocomplete="off" placeholder="<?php esc_attr_e('Caută după produs, SKU sau cuvânt cheie...', 'papetarie-storefront'); ?>" value="<?php echo esc_attr(get_search_query()); ?>">
           <button type="submit"><?php echo papetarie_storefront_icon('search'); ?><span><?php esc_html_e('Caută', 'papetarie-storefront'); ?></span></button>
           <input type="hidden" name="post_type" value="product">
         </form>
@@ -74,8 +96,16 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
         </div>
       </div>
 
-      <div class="pap-nav-row">
+      <div class="pap-mobile-nav-overlay" data-mobile-nav-overlay hidden></div>
+
+      <div class="pap-nav-row" id="pap-nav-row" data-mobile-nav-panel>
+        <div class="pap-mobile-nav-head">
+          <span class="pap-mobile-nav-head-title"><?php esc_html_e('Meniu', 'papetarie-storefront'); ?></span>
+          <button class="pap-mobile-nav-close" type="button" aria-label="<?php esc_attr_e('Închide meniul', 'papetarie-storefront'); ?>" data-mobile-nav-close>&times;</button>
+        </div>
         <div class="pap-shell pap-nav-inner">
+          <div class="pap-mobile-nav-section-title"><?php esc_html_e('Categorii', 'papetarie-storefront'); ?></div>
+
           <div class="pap-category-menu-anchor">
             <button
               class="pap-category-trigger"
@@ -89,6 +119,8 @@ $header_menu_active_slug = function_exists('papetarie_storefront_active_mega_men
             </button>
             <?php papetarie_storefront_render_header_category_menu($header_menu_categories, $header_menu_active_slug); ?>
           </div>
+
+          <div class="pap-mobile-nav-section-title" data-mobile-nav-links-title><?php esc_html_e('Informații', 'papetarie-storefront'); ?></div>
 
           <nav class="pap-main-nav" aria-label="<?php esc_attr_e('Meniu principal', 'papetarie-storefront'); ?>">
             <?php
