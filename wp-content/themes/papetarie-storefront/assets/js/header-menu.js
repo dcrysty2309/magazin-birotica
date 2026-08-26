@@ -15,6 +15,21 @@
   const mobileQuery = window.matchMedia('(max-width: 980px)');
   const panelSlugs = new Set(panels.map((panel) => panel.getAttribute('data-header-catmenu-panel')).filter(Boolean));
 
+  // MICRO-MOTION: mirrors the --menu-motion-fast/-normal/--menu-ease
+  // custom properties in style.css (kept as plain JS values since Web
+  // Animations keyframes need numbers/strings, not var() lookups).
+  // Every animation below is gated through canAnimate() so reduced-
+  // motion users (or a browser without Element.animate) get exactly
+  // the previous instant behavior, never a partial/broken animation.
+  const MOTION_NORMAL = 220;
+  const MOTION_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+  const MOTION_L1L2_OFFSET = 16; // px, level 1<->level 2 slide distance
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const canAnimate = () => !reducedMotionQuery.matches && typeof Element.prototype.animate === 'function';
+
+  const catmenuLeft = shell.querySelector('.pap-header-catmenu-left');
+  const catmenuRight = shell.querySelector('.pap-header-catmenu-right');
+
   let isOpen = false;
   let closeTimer = null;
 
@@ -234,6 +249,66 @@
     setActive('');
   };
 
+  // MICRO-MOTION: level 1 <-> level 2. `direction` picks which side
+  // slides out which way; `applyState` is the real, synchronous state
+  // change (setActive/is-drilldown/backButton, or exitDrilldown) - it
+  // always runs immediately regardless of whether the animation itself
+  // plays, so the DOM is never one tap behind what was actually pressed
+  // even under rapid repeated taps. Falls back to applying that state
+  // change with no animation at all when reduced motion is on or either
+  // side isn't found.
+  let catmenuSwitchAnimations = [];
+
+  const animateCatmenuSwitch = (direction, applyState) => {
+    if (!canAnimate() || !catmenuLeft || !catmenuRight || !navRow) {
+      applyState();
+      return;
+    }
+
+    catmenuSwitchAnimations.forEach((anim) => anim.cancel());
+
+    const leaving = direction === 'forward' ? catmenuLeft : catmenuRight;
+    const entering = direction === 'forward' ? catmenuRight : catmenuLeft;
+    const leavingOffset = direction === 'forward' ? -MOTION_L1L2_OFFSET : MOTION_L1L2_OFFSET;
+    const enteringOffset = direction === 'forward' ? MOTION_L1L2_OFFSET : -MOTION_L1L2_OFFSET;
+
+    navRow.classList.remove('pap-catmenu-transitioning');
+    catmenuLeft.classList.remove('pap-catmenu-leaving');
+    catmenuRight.classList.remove('pap-catmenu-leaving');
+
+    navRow.classList.add('pap-catmenu-transitioning');
+    leaving.classList.add('pap-catmenu-leaving');
+
+    // The real state change - flips .is-drilldown, updates the back
+    // button, sets which panel/slug is active. Runs while the override
+    // classes above are already in place, so nothing flashes hidden
+    // before the animation gets a chance to play it out.
+    applyState();
+
+    const leavingAnim = leaving.animate(
+      [
+        { transform: 'translateX(0)', opacity: 1 },
+        { transform: `translateX(${leavingOffset}px)`, opacity: 0 },
+      ],
+      { duration: MOTION_NORMAL, easing: MOTION_EASE, fill: 'forwards' }
+    );
+
+    const enteringAnim = entering.animate(
+      [
+        { transform: `translateX(${enteringOffset}px)`, opacity: 0 },
+        { transform: 'translateX(0)', opacity: 1 },
+      ],
+      { duration: MOTION_NORMAL, easing: MOTION_EASE }
+    );
+
+    catmenuSwitchAnimations = [leavingAnim, enteringAnim];
+
+    leavingAnim.onfinish = () => {
+      leaving.classList.remove('pap-catmenu-leaving');
+      navRow.classList.remove('pap-catmenu-transitioning');
+    };
+  };
+
   items.forEach((item) => {
     const slug = item.getAttribute('data-header-catmenu-target');
     const hasChildren = item.getAttribute('data-header-catmenu-has-children') === '1';
@@ -248,27 +323,87 @@
       }
 
       event.preventDefault();
-      setActive(slug);
 
-      if (navRow) {
-        navRow.classList.add('is-drilldown');
-      }
+      animateCatmenuSwitch('forward', () => {
+        setActive(slug);
 
-      if (backButton) {
-        backButton.hidden = false;
-        if (backLabel) {
-          const label = item.querySelector('.pap-header-catmenu-label');
-          backLabel.textContent = label ? label.textContent : '';
+        if (navRow) {
+          navRow.classList.add('is-drilldown');
         }
-      }
+
+        if (backButton) {
+          backButton.hidden = false;
+          if (backLabel) {
+            const label = item.querySelector('.pap-header-catmenu-label');
+            backLabel.textContent = label ? label.textContent : '';
+          }
+        }
+      });
     });
   });
 
   if (backButton) {
     backButton.addEventListener('click', () => {
-      exitDrilldown();
+      animateCatmenuSwitch('backward', () => {
+        exitDrilldown();
+      });
     });
   }
+
+  // MICRO-MOTION: accordion open/close. `container` is what carries
+  // .is-expanded (drives the chevron rotation via the existing
+  // aria-expanded CSS rules, untouched by this) and what the transient
+  // .pap-catmenu-accordion-transitioning override targets; `content` is
+  // the element whose real, measured scrollHeight is animated between
+  // 0 and its natural height - no hardcoded/arbitrary max, and no
+  // display:none jump cutting the animation off (see the CSS rule
+  // pairs above .pap-header-catmenu-group--expandable:not(.is-expanded)
+  // and .pap-showcase-panel-columns-column:not(.is-expanded)). Falls
+  // back to the previous instant class toggle under reduced motion.
+  const animateAccordion = (container, content, toggle, expanding) => {
+    toggle.setAttribute('aria-expanded', expanding ? 'true' : 'false');
+
+    if (!canAnimate()) {
+      container.classList.toggle('is-expanded', expanding);
+      return;
+    }
+
+    content.getAnimations().forEach((anim) => anim.cancel());
+    container.classList.remove('pap-catmenu-accordion-transitioning');
+    content.style.overflow = '';
+
+    if (expanding) {
+      container.classList.add('is-expanded');
+      const targetHeight = content.scrollHeight;
+      content.style.overflow = 'hidden';
+
+      content.animate(
+        [
+          { height: '0px', opacity: 0 },
+          { height: `${targetHeight}px`, opacity: 1 },
+        ],
+        { duration: MOTION_NORMAL, easing: MOTION_EASE }
+      ).onfinish = () => {
+        content.style.overflow = '';
+      };
+    } else {
+      const startHeight = content.scrollHeight;
+      container.classList.add('pap-catmenu-accordion-transitioning');
+      container.classList.remove('is-expanded');
+      content.style.overflow = 'hidden';
+
+      content.animate(
+        [
+          { height: `${startHeight}px`, opacity: 1 },
+          { height: '0px', opacity: 0 },
+        ],
+        { duration: MOTION_NORMAL, easing: MOTION_EASE, fill: 'forwards' }
+      ).onfinish = () => {
+        content.style.overflow = '';
+        container.classList.remove('pap-catmenu-accordion-transitioning');
+      };
+    }
+  };
 
   groupToggles.forEach((toggle) => {
     toggle.addEventListener('click', (event) => {
@@ -279,13 +414,13 @@
       event.preventDefault();
 
       const group = toggle.closest('.pap-header-catmenu-group');
-      if (!group) {
+      const content = group ? group.querySelector('.pap-header-catmenu-sublist') : null;
+      if (!group || !content) {
         return;
       }
 
       const wasExpanded = group.classList.contains('is-expanded');
-      group.classList.toggle('is-expanded', !wasExpanded);
-      toggle.setAttribute('aria-expanded', wasExpanded ? 'false' : 'true');
+      animateAccordion(group, content, toggle, !wasExpanded);
     });
   });
 
@@ -311,16 +446,27 @@
         : columnToggles;
 
       scopedToggles.forEach((candidate) => {
-        candidate.setAttribute('aria-expanded', 'false');
+        if (candidate === toggle) {
+          return;
+        }
+
         const candidateColumn = candidate.closest('.pap-showcase-panel-columns-column');
-        if (candidateColumn) {
-          candidateColumn.classList.remove('is-expanded');
+        const candidateContent = candidateColumn
+          ? candidateColumn.querySelector('.pap-showcase-panel-columns-column-groups')
+          : null;
+
+        if (!candidateColumn || !candidateContent) {
+          return;
+        }
+
+        if (candidateColumn.classList.contains('is-expanded')) {
+          animateAccordion(candidateColumn, candidateContent, candidate, false);
         }
       });
 
-      if (!wasExpanded) {
-        column.classList.add('is-expanded');
-        toggle.setAttribute('aria-expanded', 'true');
+      const content = column.querySelector('.pap-showcase-panel-columns-column-groups');
+      if (content) {
+        animateAccordion(column, content, toggle, !wasExpanded);
       }
     });
   });

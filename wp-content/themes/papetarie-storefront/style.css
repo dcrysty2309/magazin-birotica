@@ -1556,6 +1556,39 @@ body.tax-product_cat .pap-header-catmenu-panel {
     display: none;
   }
 
+  /* MICRO-MOTION: level 1 <-> level 2 crossfade/slide. .pap-catmenu-
+     transitioning is a short-lived class header-menu.js adds only for
+     the ~220ms window while the level 1/2 swap animates, and removes
+     right after - it never persists, so the two display:none rules
+     above are the only thing governing the resting state, exactly as
+     before this task. While present, it forces BOTH sides visible
+     (overriding whichever display:none currently applies) so JS can
+     animate a real crossfade instead of an instant cut, and takes the
+     side being replaced out of grid flow so the container's height
+     always reflects the incoming side, never a momentary sum of both. */
+  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu {
+    position: relative;
+  }
+
+  /* Each side's own natural display when visible (grid for -left, per
+     its base rule; block for -right, a plain div with no display of
+     its own) - not both the same value, or -right's internal layout
+     (back button + panels) would briefly reflow as a grid it isn't. */
+  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu-left {
+    display: grid;
+  }
+
+  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu-right {
+    display: block;
+  }
+
+  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu-left.pap-catmenu-leaving,
+  body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu-right.pap-catmenu-leaving {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
   /* Redundant once the back button already names the category - avoids a
      second, bigger heading directly under it. */
   .pap-header-catmenu-panel-title {
@@ -1590,6 +1623,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     font-weight: 600;
     text-align: left;
     cursor: pointer;
+    transition: background var(--menu-motion-fast) var(--menu-ease);
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -1659,6 +1693,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     border-bottom: 1px solid var(--menu-color-border);
     background: var(--menu-color-surface);
     color: var(--menu-color-text);
+    transition: background var(--menu-motion-fast) var(--menu-ease);
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -1824,6 +1859,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     letter-spacing: normal;
     color: var(--menu-color-text);
     cursor: pointer;
+    transition: background var(--menu-motion-fast) var(--menu-ease);
   }
 
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title {
@@ -1857,6 +1893,18 @@ body.tax-product_cat .pap-header-catmenu-panel {
     display: none;
   }
 
+  /* MICRO-MOTION: accordion collapse. Same short-lived-class pattern as
+     the level 1/2 transition above - header-menu.js adds this only
+     while the close animation plays (open doesn't need it: adding
+     .is-expanded already makes the rule above stop hiding it), so the
+     collapse rule above stays the only thing governing the resting
+     state. Without this, removing .is-expanded to start the close
+     animation would also flip display:none instantly, cutting the
+     animation off before it could play. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group.pap-catmenu-accordion-transitioning .pap-header-catmenu-sublist {
+    display: grid;
+  }
+
   .pap-header-catmenu-sublist {
     /* Deeper than the group-title text axis, so a leaf item reads as
        nested under its group instead of lining up with it. */
@@ -1880,6 +1928,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     line-height: var(--menu-line-height);
     font-weight: 400;
     color: var(--menu-color-text);
+    transition: background var(--menu-motion-fast) var(--menu-ease);
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -1912,6 +1961,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     height: var(--menu-chevron-box);
     flex: 0 0 var(--menu-chevron-box);
     color: var(--menu-color-muted);
+    transition: color var(--menu-motion-fast) var(--menu-ease);
   }
 
   .pap-header-catmenu-chevron--group svg,
@@ -1920,7 +1970,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
     height: var(--menu-chevron-size);
     /* Collapsed default: pointing down ("tap to expand"). */
     transform: rotate(90deg);
-    transition: transform 0.18s ease;
+    transition: transform var(--menu-motion-fast) var(--menu-ease);
   }
 
   /* aria-expanded drives every stateful style below - never :hover, never
@@ -1944,6 +1994,11 @@ body.tax-product_cat .pap-header-catmenu-panel {
 
   .pap-showcase-panel-columns-column:not(.is-expanded) .pap-showcase-panel-columns-column-groups {
     display: none;
+  }
+
+  /* Same short-lived-class pattern as .pap-header-catmenu-group above. */
+  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column.pap-catmenu-accordion-transitioning .pap-showcase-panel-columns-column-groups {
+    display: grid;
   }
 }
 
@@ -9427,6 +9482,35 @@ body.theme-papetarie.woocommerce-cart .pap-cart-page--empty .pap-featured-slider
     --menu-color-surface: #fff;
     --menu-color-hover-bg: var(--pap-soft);
     --menu-color-active-bg: var(--pap-soft);
+
+    /* Motion - one duration pair plus one easing curve for every
+       micro-interaction in the drawer (tap feedback, chevron rotation,
+       level 1<->level 2 navigation, accordion expand/collapse). -fast
+       for small/instant-feeling feedback (tap background, chevron),
+       -normal for anything with real distance/height to cover
+       (screen transitions, accordion content). No bounce/spring - a
+       plain ease-out curve so motion reads as quick and settled, never
+       playful or dramatic. */
+    --menu-motion-fast: 180ms;
+    --menu-motion-normal: 220ms;
+    --menu-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Respected everywhere motion is used below, both the pure-CSS
+     transitions (tap feedback, chevron rotation) and the JS-driven ones
+     (level 1<->level 2, accordion open/close both use these tokens as
+     their duration/easing, but gate themselves off entirely via
+     matchMedia when this is set - see header-menu.js). Collapsing to
+     near-zero here rather than `transition: none` so anything that
+     genuinely depends on a transitionend/animationend firing (there
+     isn't one left after the JS gate, but this is the safer default)
+     still resolves instead of hanging. */
+  @media (prefers-reduced-motion: reduce) {
+    body.theme-papetarie .pap-nav-row,
+    body.theme-papetarie .pap-nav-row * {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
   }
 
   /* Drawer container: .pap-nav-row/-head/-inner form a fixed-header +
