@@ -1610,15 +1610,17 @@ body.tax-product_cat .pap-header-catmenu-panel {
   /* Same column width as the level-1 icon (--menu-icon-col, not the
      narrower --menu-chevron-box every other chevron sits in) - see the
      design-system comment at the top of this file. The glyph itself is
-     still the shared --menu-chevron-size chevron, centered in the
-     wider column. It's literally .pap-header-catmenu-chevron (same
-     icon function, same markup) rotated 180deg, not a separate icon -
-     see the shared chevron rule further down for the group/column
+     still the shared --menu-chevron-size chevron, flush to the LEFT
+     edge of the wider column (not centered) so it sits on the exact
+     same left axis as level-1's icons, which fill their column edge
+     to edge. It's literally .pap-header-catmenu-chevron (same icon
+     function, same markup) rotated 180deg, not a separate icon - see
+     the shared chevron rule further down for the group/column
      accordion triggers. */
   .pap-header-catmenu-back-icon {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     width: var(--menu-icon-col);
     height: var(--menu-icon-col);
     flex: 0 0 var(--menu-icon-col);
