@@ -105,7 +105,12 @@
   const scheduleClose = () => {
     clearCloseTimer();
 
-    if (!hoverQuery.matches) {
+    // Same desktop-only intent as the pointerover listener below: a real
+    // mouse still reports hover:hover/pointer:fine at mobile widths, so
+    // without this guard a mouseleave off the shell/menu (e.g. the cursor
+    // leaving the page to pick an element in DevTools) would schedule
+    // closeMenu() and blank out the mobile drawer's category shell.
+    if (!hoverQuery.matches || mobileQuery.matches) {
       return;
     }
 
@@ -145,10 +150,22 @@
     const slug = item.getAttribute('data-header-catmenu-target');
 
     item.addEventListener('mouseenter', () => {
+      // Ambient hover only means something for the desktop flyout; on
+      // mobile it would otherwise let a real mouse silently swap the
+      // active panel just by passing over an item (e.g. while inspecting
+      // in DevTools), fighting the explicit tap-driven drilldown below.
+      if (mobileQuery.matches) {
+        return;
+      }
+
       openMenu(slug);
     });
 
     item.addEventListener('focus', () => {
+      if (mobileQuery.matches) {
+        return;
+      }
+
       openMenu(slug);
     });
 
