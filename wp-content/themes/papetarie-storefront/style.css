@@ -1574,7 +1574,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   .pap-header-catmenu-back:not([hidden]) {
     display: flex;
     align-items: center;
-    gap: var(--menu-gap);
+    gap: 6px;
     width: 100%;
     padding: 0 var(--menu-padding-x);
     /* No min-height - sized by content + this padding instead (tested
@@ -1621,6 +1621,8 @@ body.tax-product_cat .pap-header-catmenu-panel {
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
+    position: relative;
+    left: -2px;
     width: var(--menu-icon-col);
     height: var(--menu-icon-col);
     flex: 0 0 var(--menu-icon-col);
