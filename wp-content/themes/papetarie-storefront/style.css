@@ -1568,6 +1568,10 @@ body.tax-product_cat .pap-header-catmenu-panel {
      always reflects the incoming side, never a momentary sum of both. */
   body.theme-papetarie .pap-nav-row.pap-catmenu-transitioning .pap-header-catmenu {
     position: relative;
+    /* Establishes a local stacking context so .pap-catmenu-leaving's
+       negative z-index (below) stays contained here instead of escaping
+       to the page's own stacking order. */
+    z-index: 0;
   }
 
   /* Each side's own natural display when visible (grid for -left, per
@@ -1587,6 +1591,14 @@ body.tax-product_cat .pap-header-catmenu-panel {
     position: absolute;
     inset: 0;
     overflow: hidden;
+    /* Without this, a positioned element paints above static in-flow
+       content regardless of DOM order - the side staying in normal flow
+       (the entering side, always) would end up hidden underneath the
+       leaving side for most of the animation instead of visible through
+       it, reading as a late "pop" once the leaving side's opacity had
+       nearly reached 0. Negative z-index drops it below the entering
+       side's own paint layer instead. */
+    z-index: -1;
   }
 
   /* Redundant once the back button already names the category - avoids a
