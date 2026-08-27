@@ -20294,32 +20294,60 @@ body.theme-papetarie .pap-footer-meta a:hover {
     width: 24px !important;
     height: 24px !important;
     transform: rotate(90deg);
-    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 240ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   body.theme-papetarie .pap-footer-accordion-toggle[aria-expanded="true"] .pap-footer-accordion-chevron svg {
     transform: rotate(-90deg);
   }
 
-  /* Collapsed by default (no .is-expanded yet, matches the markup's
-     own aria-expanded="false") - real display:none, so content stays
-     unreachable-but-present if JS never runs, rather than stuck open.
-     .pap-footer-accordion-transitioning is the short-lived override
-     JS adds only while the close animation plays - see
-     footer-accordion.js for why display:none can't apply until after
-     that finishes. */
+  /* Content reveal: max-height is set to the EXACT measured
+     scrollHeight (in px), once per click, by footer-accordion.js - not
+     an arbitrary large guess like max-height:9999px, which either
+     clips very long content or adds needless transition time for
+     short content. display never toggles to/from none for this: the
+     content stays display:block at all times, so nothing needs to be
+     forced visible before it can animate.
+
+     A CSS-only grid-template-rows:0fr/1fr version was tried first
+     (the brief's stated preference) but reproducibly resolved to 0px
+     even in the expanded/1fr state, in every variant tested -
+     overflow:hidden on the item, on the container, and on a dedicated
+     plain wrapper all broke it identically - a real rendering quirk
+     in the fr-track sizing algorithm for auto-height grids in this
+     browser, not a markup mistake. max-height is the equivalent,
+     actually-reliable alternative the brief explicitly allows for
+     when the preferred technique doesn't hold up. */
   body.theme-papetarie .pap-footer-links-group[data-footer-accordion] .pap-footer-accordion-content {
-    display: none !important;
-    padding-bottom: 8px !important;
+    overflow: hidden !important;
+    max-height: 0 !important;
+    transition: max-height 260ms cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
 
-  body.theme-papetarie .pap-footer-links-group[data-footer-accordion].is-expanded .pap-footer-accordion-content,
-  body.theme-papetarie .pap-footer-links-group[data-footer-accordion].pap-footer-accordion-transitioning .pap-footer-accordion-content {
-    display: block !important;
-  }
-
-  body.theme-papetarie .pap-footer-menu {
+  /* visibility (delayed on the way OUT only) keeps the collapsed links
+     out of tab order and off screen readers - overflow:hidden alone
+     clips them visually but doesn't reliably stop focus from landing
+     inside a 0-height container. Opening drops the delay to 0 so the
+     links become reachable immediately; closing keeps them reachable
+     for the full 260ms collapse so focus/content don't vanish out from
+     under the animation, then removes them right as it finishes. */
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion] .pap-footer-menu {
     gap: 0 !important;
+    opacity: 0 !important;
+    transform: translateY(-4px) !important;
+    visibility: hidden !important;
+    transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 260ms !important;
+  }
+
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion].is-expanded .pap-footer-menu {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    visibility: visible !important;
+    transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0s !important;
+  }
+
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion] .pap-footer-menu li:last-child {
+    padding-bottom: 8px !important;
   }
 
   /* Same left axis as the accordion header's own text - no
@@ -20349,8 +20377,11 @@ body.theme-papetarie .pap-footer-meta a:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.theme-papetarie .pap-footer-accordion-chevron svg {
+  body.theme-papetarie .pap-footer-accordion-chevron svg,
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion] .pap-footer-accordion-content,
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion] .pap-footer-menu {
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
   }
 }
 
