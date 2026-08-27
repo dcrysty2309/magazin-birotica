@@ -19981,6 +19981,26 @@ body.theme-papetarie .pap-footer-links-group h3 {
   text-transform: uppercase !important;
 }
 
+/* Accordion toggle: neutral/non-interactive by default (tablet +
+   desktop, and the mobile baseline before the accordion media query
+   below adds the interactive layer). `all: unset` resolves every
+   INHERITED property - color, font-size, font-weight, letter-spacing,
+   text-transform - to the h3 values right above, so the button reads
+   as the exact same heading it replaced with zero duplicated numbers.
+   Every non-inherited property (background, border, padding, cursor)
+   resets to its invisible/initial state, which is what tablet and
+   desktop want: no button chrome, no chevron space, just text. */
+body.theme-papetarie .pap-footer-accordion-toggle {
+  all: unset !important;
+  display: flex !important;
+  align-items: center !important;
+  cursor: default !important;
+}
+
+body.theme-papetarie .pap-footer-accordion-chevron {
+  display: none !important;
+}
+
 body.theme-papetarie .pap-footer-menu {
   display: flex !important;
   flex-direction: column !important;
@@ -20168,9 +20188,9 @@ body.theme-papetarie .pap-footer-meta a:hover {
    breakpoint. */
 @media (min-width: 768px) and (max-width: 1023px) {
   body.theme-papetarie .pap-footer-inner {
-    grid-template-columns: 1fr 1fr !important;
-    column-gap: 32px !important;
-    row-gap: 32px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    column-gap: 56px !important;
+    row-gap: 44px !important;
     align-items: start !important;
   }
 
@@ -20223,29 +20243,19 @@ body.theme-papetarie .pap-footer-meta a:hover {
     border-bottom: 1px solid var(--pap-line) !important;
   }
 
-  body.theme-papetarie .pap-footer-links-group-heading {
-    margin: 0 !important;
-  }
-
-  /* Reset the <button> back to reading as the same heading it replaces
-     (same uppercase/size/weight/color as the desktop <h3> above), full
-     width and clickable across its entire row - not just the chevron -
-     per the explicit "whole header zone must be clickable" spec. */
+  /* Mobile-only delta on top of the always-on neutral base above:
+     turns the plain heading into the actual clickable accordion
+     trigger. Typography (color/size/weight/letter-spacing/uppercase)
+     is NOT repeated here - it's already inherited from the h3 via the
+     base rule's `all: unset`, so mobile can't drift from desktop's
+     numbers. Full-width row, entire zone clickable per spec. */
   body.theme-papetarie .pap-footer-accordion-toggle {
-    all: unset !important;
     box-sizing: border-box !important;
-    display: flex !important;
-    align-items: center !important;
     justify-content: space-between !important;
     gap: 12px !important;
     width: 100% !important;
     min-height: var(--footer-accordion-height) !important;
     padding-inline: var(--footer-mobile-padding-x) !important;
-    color: #0d2e61 !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.1em !important;
-    text-transform: uppercase !important;
     cursor: pointer !important;
   }
 
