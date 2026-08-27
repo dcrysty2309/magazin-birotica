@@ -20093,6 +20093,12 @@ body.theme-papetarie .pap-footer-newsletter-form {
   border-radius: 0 !important;
   background: transparent !important;
   overflow: visible !important;
+  /* WooCommerce/Storefront's own bare `form { margin-bottom: 1.618em }`
+     reset was adding stray space below this form (between it and the
+     feedback line/ANPC below) - overridden here rather than touched
+     at its source, since that rule is generic and applies to every
+     form on the site. */
+  margin-bottom: 0 !important;
 }
 
 body.theme-papetarie .pap-footer-newsletter-form[hidden] {
