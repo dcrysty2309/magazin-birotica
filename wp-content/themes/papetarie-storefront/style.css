@@ -19885,6 +19885,11 @@ body.theme-papetarie .pap-checkout-flow-card__expect strong {
 }
 
 /* Footer: definitive Figma-matched styles (wins over every earlier override above) */
+:root {
+  --footer-heading-size: 11px;
+  --footer-divider-color: var(--pap-line);
+}
+
 body.theme-papetarie .pap-footer {
   margin-top: 34px !important;
   background: #fff !important;
@@ -19975,7 +19980,7 @@ body.theme-papetarie .pap-footer-links-group {
 body.theme-papetarie .pap-footer-links-group h3 {
   margin: 0 !important;
   color: #0d2e61 !important;
-  font-size: 11px !important;
+  font-size: var(--footer-heading-size) !important;
   font-weight: 700 !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
@@ -20044,7 +20049,7 @@ body.theme-papetarie .pap-footer-newsletter-widget {
 body.theme-papetarie .pap-footer-widget-title {
   margin: 0 !important;
   color: #0d2e61 !important;
-  font-size: 11px !important;
+  font-size: var(--footer-heading-size) !important;
   font-weight: 700 !important;
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
@@ -20206,41 +20211,54 @@ body.theme-papetarie .pap-footer-meta a:hover {
    instead of separate ad-hoc values. */
 @media (max-width: 767px) {
   :root {
-    --footer-mobile-padding-x: 20px;
-    --footer-accordion-height: 52px;
+    --footer-mobile-padding-x: 24px;
+    --footer-row-height: 64px;
     --footer-link-height: 44px;
-    --footer-section-gap: 28px;
+    --footer-section-gap: 32px;
   }
 
+  /* Single alignment axis: .pap-footer-inner normally inherits its
+     24px inline padding from the sitewide .pap-shell class, a fixed
+     value shared with every other section of the site. Pinning it
+     here to --footer-mobile-padding-x instead (same 24px today) makes
+     the footer's own token the actual source of that inset, so every
+     direct child - brand, the accordion rows, newsletter - lines up
+     on one axis by simply having no padding of its own, and the whole
+     mobile footer gutter becomes a one-value change. */
   body.theme-papetarie .pap-footer-inner {
     grid-template-columns: 1fr !important;
     row-gap: 0 !important;
+    padding-top: 40px !important;
+    padding-inline: var(--footer-mobile-padding-x) !important;
   }
 
+  /* Copyright bar is also .pap-shell-based - repin it to the same
+     token so its content edge matches the footer above it instead of
+     the sitewide shell value. */
   body.theme-papetarie .pap-footer-meta-inner {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 10px !important;
+    padding-inline: var(--footer-mobile-padding-x) !important;
   }
 
-  /* Brand block keeps its own spacing untouched - only the 3 link
-     groups become an accordion, so give the block right before them
-     the same breathing room the accordion's own section-gap uses,
-     instead of a one-off number. */
+  /* Brand block keeps its own internal spacing untouched - only the 3
+     link groups become an accordion, so give the block right before
+     them the same breathing room the accordion's own section-gap
+     uses, instead of a one-off number. */
   body.theme-papetarie .pap-footer-brand {
     margin-bottom: var(--footer-section-gap) !important;
   }
 
   /* ACCORDION GROUP - the discrete separator between sections. Only
      these 3 groups carry [data-footer-accordion]; newsletter does
-     not, so it's unaffected. */
+     not, so it's unaffected. Top border only: the line above Magazin,
+     between Magazin/Ajutor si contact, and between Ajutor si
+     contact/Companie is 3 dividers total - no line after the last
+     group, straight into the newsletter's own section-gap instead. */
   body.theme-papetarie .pap-footer-links-group[data-footer-accordion] {
-    border-top: 1px solid var(--pap-line) !important;
+    border-top: 1px solid var(--footer-divider-color) !important;
     gap: 0 !important;
-  }
-
-  body.theme-papetarie .pap-footer-links-group[data-footer-accordion]:last-of-type {
-    border-bottom: 1px solid var(--pap-line) !important;
   }
 
   /* Mobile-only delta on top of the always-on neutral base above:
@@ -20248,14 +20266,17 @@ body.theme-papetarie .pap-footer-meta a:hover {
      trigger. Typography (color/size/weight/letter-spacing/uppercase)
      is NOT repeated here - it's already inherited from the h3 via the
      base rule's `all: unset`, so mobile can't drift from desktop's
-     numbers. Full-width row, entire zone clickable per spec. */
+     numbers. No padding-inline of its own - the row is full-width
+     edge-to-edge inside .pap-footer-inner's own gutter above, so the
+     label sits on the exact same axis as brand/newsletter/copyright,
+     and the chevron (justify-content: space-between) lands on the
+     matching right-hand edge of that same content zone. */
   body.theme-papetarie .pap-footer-accordion-toggle {
     box-sizing: border-box !important;
     justify-content: space-between !important;
     gap: 12px !important;
     width: 100% !important;
-    min-height: var(--footer-accordion-height) !important;
-    padding-inline: var(--footer-mobile-padding-x) !important;
+    min-height: var(--footer-row-height) !important;
     cursor: pointer !important;
   }
 
@@ -20301,23 +20322,24 @@ body.theme-papetarie .pap-footer-meta a:hover {
     gap: 0 !important;
   }
 
-  /* Same left axis as the accordion header's own text (both use
-     --footer-mobile-padding-x), compact but comfortably tappable
+  /* Same left axis as the accordion header's own text - no
+     padding-inline of its own, inherits .pap-footer-inner's gutter
+     the same way the toggle does. Compact but comfortably tappable
      (--footer-link-height, 44px - within the 40-44px target). */
   body.theme-papetarie .pap-footer-links a,
   body.theme-papetarie .pap-footer-menu a {
     display: flex !important;
     align-items: center !important;
     min-height: var(--footer-link-height) !important;
-    padding-inline: var(--footer-mobile-padding-x) !important;
   }
 
-  /* Newsletter is a CTA, not part of the accordion - its own spacing,
-     not inherited from the accordion's section-gap/padding, and full
-     width per the explicit mobile spec. */
+  /* Newsletter is a CTA, not part of the accordion - its own vertical
+     spacing, not inherited from the accordion's section-gap. No
+     padding-inline of its own either: same single axis as everything
+     else, and its input/button (width:100% below) resolve to 100% of
+     that same aligned content zone, not the viewport. */
   body.theme-papetarie .pap-footer-newsletter {
     margin-top: var(--footer-section-gap) !important;
-    padding-inline: var(--footer-mobile-padding-x) !important;
   }
 
   body.theme-papetarie .pap-footer-newsletter-form input,
