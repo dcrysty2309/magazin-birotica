@@ -74,6 +74,21 @@ body.theme-papetarie {
   flex-direction: column;
 }
 
+/* Mobile browsers paint their own default tap-highlight (a gray or
+   bluish flash) on any tappable element the instant it's touched -
+   visible on a real phone, often invisible in desktop devtools'
+   device emulation, which is why it can look like it's "only on
+   mobile" during testing. None of these accordion/menu triggers want
+   it: they already have their own hover/active/expanded styling, so
+   the browser's own highlight is just visual noise on top of that. */
+body.theme-papetarie .pap-showcase-nav-item,
+body.theme-papetarie .pap-header-catmenu-group-title,
+body.theme-papetarie .pap-header-catmenu-back,
+body.theme-papetarie .pap-showcase-panel-columns-column-heading,
+body.theme-papetarie .pap-footer-accordion-toggle {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
 body.theme-papetarie .hentry {
   margin: 0;
 }
@@ -20000,6 +20015,11 @@ body.theme-papetarie .pap-footer-accordion-toggle {
   display: flex !important;
   align-items: center !important;
   cursor: default !important;
+  /* `all: unset` above also resets -webkit-tap-highlight-color (it
+     expands to every longhand, this one included), undoing the
+     global reset near the top of this file - re-asserted here so the
+     mobile tap flash actually stays off. */
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 body.theme-papetarie .pap-footer-accordion-chevron {
