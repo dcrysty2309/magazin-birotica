@@ -1828,13 +1828,11 @@ body.tax-product_cat .pap-header-catmenu-panel {
      what decides styling here, not whether an item happens to expand
      - so all three share row height, 15px/500 heading type, navy
      default color, chevron treatment where applicable, AND the same
-     padding-left (--menu-text-start, below) - the column heading used
-     to start at the row edge instead (aligned with the back row's
-     arrow/level-1's icons), which read as a different indent level
-     for what is, visually, still "level 2" to someone scanning the
-     list. Plain surface-colored row in every state - no background
-     fill, no size/weight change on expand, only the chevron rotates
-     and turns accent. */
+     padding-left (0, below) - every level-2 row sits flush at the
+     ambient panel inset now, same axis as the back row's
+     arrow/level-1's icons too. Plain surface-colored row in every
+     state - no background fill, no size/weight change on expand, only
+     the chevron rotates and turns accent. */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title,
   body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading {
     display: flex;
@@ -1865,19 +1863,16 @@ body.tax-product_cat .pap-header-catmenu-panel {
     transition: background var(--menu-motion-fast) var(--menu-ease);
   }
 
-  /* One shared token, one shared rule: a leaf link and an accordion
-     trigger are both level 2, so both start at the same X regardless
-     of which of the two they are - and the column heading (a divider
-     that visually sits at the same list depth as any other level-2
-     row a user taps through) now matches it too, instead of a
-     separate hardcoded value. Right side: no explicit padding on
-     either selector - the ambient .pap-header-catmenu-panel padding
-     (--menu-padding-x) already insets the row's container, so
-     justify-content:space-between lands the chevron flush against it,
-     same right axis for every row type. */
+  /* One shared rule: a leaf link, an accordion trigger, and a column
+     heading are all level 2, so all three start flush at the row
+     edge - no extra left indent beyond the ambient
+     .pap-header-catmenu-panel padding (--menu-padding-x) every row
+     already sits inside. Right side: same story, no explicit padding
+     - justify-content:space-between lands the chevron flush against
+     that same ambient inset, same right axis for every row type. */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title,
   body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading {
-    padding-left: var(--menu-text-start);
+    padding-left: 0;
   }
 
   /* No background fill on the accordion heading in ANY state - tested
