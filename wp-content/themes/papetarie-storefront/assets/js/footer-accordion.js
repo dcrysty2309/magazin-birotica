@@ -7,8 +7,8 @@
 
   const mobileQuery = window.matchMedia('(max-width: 767px)');
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const MOTION_MS = 200;
-  const MOTION_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+  const MOTION_MS = 320;
+  const MOTION_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
   const canAnimate = () => !reducedMotionQuery.matches && typeof Element.prototype.animate === 'function';
 
   // Mirrors the mobile category-menu accordion pattern: collapsed is
@@ -40,8 +40,8 @@
 
     content.animate(
       [
-        { height: `${startHeight}px`, opacity: 1 },
-        { height: '0px', opacity: 0 },
+        { height: `${startHeight}px`, opacity: 1, transform: 'translateY(0)' },
+        { height: '0px', opacity: 0, transform: 'translateY(-6px)' },
       ],
       { duration: MOTION_MS, easing: MOTION_EASE, fill: 'forwards' }
     ).onfinish = () => {
@@ -66,8 +66,8 @@
 
     content.animate(
       [
-        { height: '0px', opacity: 0 },
-        { height: `${targetHeight}px`, opacity: 1 },
+        { height: '0px', opacity: 0, transform: 'translateY(-6px)' },
+        { height: `${targetHeight}px`, opacity: 1, transform: 'translateY(0)' },
       ],
       { duration: MOTION_MS, easing: MOTION_EASE }
     ).onfinish = () => {
