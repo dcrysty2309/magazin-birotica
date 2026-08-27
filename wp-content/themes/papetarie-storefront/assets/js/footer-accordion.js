@@ -20,61 +20,89 @@
   // animation window - without it, starting the close animation by
   // removing .is-expanded would also flip display:none instantly,
   // cutting the animation off before it could play.
-  groups.forEach((group) => {
-    const toggle = group.querySelector('[data-footer-accordion-toggle]');
-    const content = group.querySelector('[data-footer-accordion-content]');
-
-    if (!toggle || !content) {
+  const closeGroup = (group, toggle, content) => {
+    if (!group.classList.contains('is-expanded')) {
       return;
     }
 
-    toggle.addEventListener('click', () => {
+    toggle.setAttribute('aria-expanded', 'false');
+
+    if (!canAnimate()) {
+      group.classList.remove('is-expanded');
+      return;
+    }
+
+    content.getAnimations().forEach((anim) => anim.cancel());
+    const startHeight = content.scrollHeight;
+    group.classList.add('pap-footer-accordion-transitioning');
+    group.classList.remove('is-expanded');
+    content.style.overflow = 'hidden';
+
+    content.animate(
+      [
+        { height: `${startHeight}px`, opacity: 1 },
+        { height: '0px', opacity: 0 },
+      ],
+      { duration: MOTION_MS, easing: MOTION_EASE, fill: 'forwards' }
+    ).onfinish = () => {
+      content.style.overflow = '';
+      group.classList.remove('pap-footer-accordion-transitioning');
+    };
+  };
+
+  const openGroup = (group, toggle, content) => {
+    toggle.setAttribute('aria-expanded', 'true');
+
+    if (!canAnimate()) {
+      group.classList.add('is-expanded');
+      return;
+    }
+
+    content.getAnimations().forEach((anim) => anim.cancel());
+    group.classList.remove('pap-footer-accordion-transitioning');
+    group.classList.add('is-expanded');
+    const targetHeight = content.scrollHeight;
+    content.style.overflow = 'hidden';
+
+    content.animate(
+      [
+        { height: '0px', opacity: 0 },
+        { height: `${targetHeight}px`, opacity: 1 },
+      ],
+      { duration: MOTION_MS, easing: MOTION_EASE }
+    ).onfinish = () => {
+      content.style.overflow = '';
+    };
+  };
+
+  const entries = groups
+    .map((group) => ({
+      group,
+      toggle: group.querySelector('[data-footer-accordion-toggle]'),
+      content: group.querySelector('[data-footer-accordion-content]'),
+    }))
+    .filter((entry) => entry.toggle && entry.content);
+
+  entries.forEach((entry) => {
+    entry.toggle.addEventListener('click', () => {
       if (!mobileQuery.matches) {
         return;
       }
 
-      const expanding = !group.classList.contains('is-expanded');
-      toggle.setAttribute('aria-expanded', expanding ? 'true' : 'false');
-
-      if (!canAnimate()) {
-        group.classList.toggle('is-expanded', expanding);
-        return;
-      }
-
-      content.getAnimations().forEach((anim) => anim.cancel());
-      group.classList.remove('pap-footer-accordion-transitioning');
-      content.style.overflow = '';
+      const expanding = !entry.group.classList.contains('is-expanded');
 
       if (expanding) {
-        group.classList.add('is-expanded');
-        const targetHeight = content.scrollHeight;
-        content.style.overflow = 'hidden';
-
-        content.animate(
-          [
-            { height: '0px', opacity: 0 },
-            { height: `${targetHeight}px`, opacity: 1 },
-          ],
-          { duration: MOTION_MS, easing: MOTION_EASE }
-        ).onfinish = () => {
-          content.style.overflow = '';
-        };
+        // Only one section open at a time - close every other expanded
+        // group before opening this one, so the mobile footer never
+        // grows past a single expanded section.
+        entries.forEach((other) => {
+          if (other !== entry) {
+            closeGroup(other.group, other.toggle, other.content);
+          }
+        });
+        openGroup(entry.group, entry.toggle, entry.content);
       } else {
-        const startHeight = content.scrollHeight;
-        group.classList.add('pap-footer-accordion-transitioning');
-        group.classList.remove('is-expanded');
-        content.style.overflow = 'hidden';
-
-        content.animate(
-          [
-            { height: `${startHeight}px`, opacity: 1 },
-            { height: '0px', opacity: 0 },
-          ],
-          { duration: MOTION_MS, easing: MOTION_EASE, fill: 'forwards' }
-        ).onfinish = () => {
-          content.style.overflow = '';
-          group.classList.remove('pap-footer-accordion-transitioning');
-        };
+        closeGroup(entry.group, entry.toggle, entry.content);
       }
     });
   });
@@ -90,8 +118,7 @@
         return;
       }
 
-      groups.forEach((group) => {
-        const content = group.querySelector('[data-footer-accordion-content]');
+      entries.forEach(({ group, content }) => {
         group.classList.remove('pap-footer-accordion-transitioning');
         if (content) {
           content.style.height = '';
