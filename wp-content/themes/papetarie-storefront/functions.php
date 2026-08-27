@@ -146,6 +146,44 @@ function papetarie_storefront_dequeue_legacy_child_style(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_legacy_child_style', 40);
 
+/**
+ * WordPress core's emoji-compatibility script/style (~22KB JS + an inline
+ * shim + a DNS-prefetch hint on every single page load) exists to render
+ * emoji as images on browsers too old to draw them as real glyphs -
+ * every browser this site needs to support already renders emoji
+ * natively. Site-wide, added during the 2026-08-27 performance audit.
+ */
+function papetarie_storefront_disable_emoji_assets(): void
+{
+    remove_action('wp_head', 'print_emoji_detection_script', 7);
+    remove_action('admin_print_scripts', 'print_emoji_detection_script');
+    remove_action('wp_print_styles', 'print_emoji_styles');
+    remove_action('admin_print_styles', 'print_emoji_styles');
+    remove_filter('the_content_feed', 'wp_staticize_emoji');
+    remove_filter('comment_text_rss', 'wp_staticize_emoji');
+    remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+    remove_action('embed_head', 'print_emoji_detection_script');
+
+    add_filter('emoji_svg_url', '__return_false');
+    add_filter(
+        'tiny_mce_plugins',
+        static fn (array $plugins): array => array_diff($plugins, ['wpemoji'])
+    );
+    add_filter(
+        'wp_resource_hints',
+        static function (array $hints, string $relation_type): array {
+            if ('dns-prefetch' === $relation_type) {
+                $hints = array_diff($hints, ['//s.w.org']);
+            }
+
+            return $hints;
+        },
+        10,
+        2
+    );
+}
+add_action('init', 'papetarie_storefront_disable_emoji_assets');
+
 function papetarie_storefront_force_utf8_charset(string $charset): string
 {
     return 'UTF-8';
@@ -156,7 +194,19 @@ add_filter('option_blog_charset', 'papetarie_storefront_force_utf8_charset');
 
 function papetarie_storefront_dequeue_checkout_legacy_icons(): void
 {
-    if (!function_exists('is_checkout') || !is_checkout()) {
+    // Confirmed zero references to storefront-icons/dashicons/font-awesome
+    // classes anywhere in this theme's own CSS (papetarie-storefront relies
+    // entirely on inline SVGs via papetarie_storefront_icon()) - originally
+    // only dequeued on checkout, extended to the homepage too during the
+    // 2026-08-27 performance audit (80KB render-blocking CSS the homepage
+    // never used). Left scoped to just these two rather than site-wide since
+    // that's what's actually been verified so far - other templates
+    // (single product, etc.) haven't been checked for a stray Storefront-
+    // default icon reference.
+    $is_checkout = function_exists('is_checkout') && is_checkout();
+    $is_front_page = function_exists('is_front_page') && is_front_page();
+
+    if (!$is_checkout && !$is_front_page) {
         return;
     }
 
@@ -6004,7 +6054,7 @@ function papetarie_storefront_render_auth_hero(string $context = 'login'): void
                 ['icon' => 'cart', 'title' => __('Comandă rapidă', 'papetarie-storefront'), 'text' => __('Finalizezi achizițiile fără pași suplimentari.', 'papetarie-storefront')],
                 ['icon' => 'archive', 'title' => __('Istoric clar al comenzilor', 'papetarie-storefront'), 'text' => __('Ai acces ușor la ce ai comandat deja.', 'papetarie-storefront')],
             ],
-            'image' => $assets . '/showcase-hero-user.png',
+            'image' => $assets . '/showcase-hero-user.jpg',
         ],
         'lost-password' => [
             'eyebrow' => '',

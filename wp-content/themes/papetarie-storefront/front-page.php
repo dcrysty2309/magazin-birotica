@@ -9,13 +9,13 @@ $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('sh
 
 $showcase_slides = [
     [
-        'image' => $asset_base . '/showcase-hero-user.png',
+        'image' => $asset_base . '/showcase-hero-user.jpg',
     ],
     [
-        'image' => $asset_base . '/showcase-hero-user-2.png',
+        'image' => $asset_base . '/showcase-hero-user-2.jpg',
     ],
     [
-        'image' => $asset_base . '/showcase-hero-user.png',
+        'image' => $asset_base . '/showcase-hero-user.jpg',
     ],
 ];
 
@@ -24,13 +24,13 @@ $showcase_category_images = [
     'articole-din-hartie' => $asset_base . '/showcase-slide-1-stationery.png',
     'arhivare' => $asset_base . '/showcase-slide-3-organization.png',
     'organizare' => $asset_base . '/showcase-slide-3-organization.png',
-    'accesorii-pentru-birou' => $asset_base . '/showcase-hero-user.png',
+    'accesorii-pentru-birou' => $asset_base . '/showcase-hero-user.jpg',
     'articole-scolare' => $asset_base . '/showcase-slide-2-school.png',
     'consumabile-si-indosariere' => $asset_base . '/showcase-slide-3-organization.png',
-    'sisteme-de-prezentare-si-afisare' => $asset_base . '/showcase-hero-user-2.png',
-    'accesorii-it' => $asset_base . '/showcase-hero-user-2.png',
-    'echipamente-birou' => $asset_base . '/showcase-hero-user-2.png',
-    'capsatoare-si-perforatoare' => $asset_base . '/showcase-hero-user.png',
+    'sisteme-de-prezentare-si-afisare' => $asset_base . '/showcase-hero-user-2.jpg',
+    'accesorii-it' => $asset_base . '/showcase-hero-user-2.jpg',
+    'echipamente-birou' => $asset_base . '/showcase-hero-user-2.jpg',
+    'capsatoare-si-perforatoare' => $asset_base . '/showcase-hero-user.jpg',
 ];
 
 $showcase_category_positions = [
@@ -201,7 +201,7 @@ get_header();
                 <aside class="pap-showcase-panel-aside pap-showcase-panel-aside-image">
                   <a class="pap-showcase-panel-aside-link" href="<?php echo esc_url($category['url']); ?>">
                     <img
-                      src="<?php echo esc_url($showcase_category_images[$category['slug']] ?? ($asset_base . '/showcase-hero-user.png')); ?>"
+                      src="<?php echo esc_url($showcase_category_images[$category['slug']] ?? ($asset_base . '/showcase-hero-user.jpg')); ?>"
                       alt="<?php echo esc_attr($category['name']); ?>"
                       style="object-position: <?php echo esc_attr($showcase_category_positions[$category['slug']] ?? 'center center'); ?>;"
                       loading="lazy"
