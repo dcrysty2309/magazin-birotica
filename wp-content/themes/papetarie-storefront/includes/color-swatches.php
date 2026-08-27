@@ -142,16 +142,34 @@ function papetarie_storefront_color_swatch_dropdown_html(string $html, array $ar
     $selectName = $args['name'] ? (string) $args['name'] : 'attribute_' . sanitize_title($attribute);
     $selected = (string) ($args['selected'] ?? '');
 
+    // Products with many color variants (some run 30-50+) would otherwise
+    // grow the swatch box to several wrapped rows on first paint - collapse
+    // anything past this count behind a "+N mai multe" toggle instead.
+    // If the currently-selected option happens to be one of the collapsed
+    // ones (e.g. restored from the URL), start already expanded so the
+    // active swatch isn't hidden.
+    $visibleLimit = 8;
+    $selectedIndex = null;
+    foreach (array_values($options) as $index => $option) {
+        if ($selected !== '' && ($selected === $option || $selected === sanitize_title($option))) {
+            $selectedIndex = $index;
+            break;
+        }
+    }
+    $startExpanded = $selectedIndex !== null && $selectedIndex >= $visibleLimit;
+    $extraCount = max(0, count($options) - $visibleLimit);
+
     ob_start();
     ?>
-    <div class="pap-color-swatches" data-select-name="<?php echo esc_attr($selectName); ?>" role="listbox" aria-label="<?php echo esc_attr($attribute); ?>">
-        <?php foreach ($options as $option) :
+    <div class="pap-color-swatches<?php echo $startExpanded ? ' is-expanded' : ''; ?>" data-select-name="<?php echo esc_attr($selectName); ?>" role="listbox" aria-label="<?php echo esc_attr($attribute); ?>">
+        <?php foreach (array_values($options) as $index => $option) :
             $isSelected = $selected !== '' && ($selected === $option || $selected === sanitize_title($option));
             $hex = papetarie_storefront_color_name_to_hex($option);
+            $isExtra = $index >= $visibleLimit;
         ?>
             <button
                 type="button"
-                class="pap-color-swatch<?php echo $isSelected ? ' is-selected' : ''; ?>"
+                class="pap-color-swatch<?php echo $isSelected ? ' is-selected' : ''; ?><?php echo $isExtra ? ' pap-color-swatch--extra' : ''; ?>"
                 data-value="<?php echo esc_attr($option); ?>"
                 style="--pap-swatch-color: <?php echo esc_attr($hex); ?>;"
                 title="<?php echo esc_attr($option); ?>"
@@ -159,6 +177,13 @@ function papetarie_storefront_color_swatch_dropdown_html(string $html, array $ar
                 aria-pressed="<?php echo $isSelected ? 'true' : 'false'; ?>"
             ></button>
         <?php endforeach; ?>
+        <?php if ($extraCount > 0) : ?>
+            <button
+                type="button"
+                class="pap-color-swatch-more"
+                aria-label="<?php echo esc_attr(sprintf(_n('Arată încă %d culoare', 'Arată încă %d culori', $extraCount, 'papetarie-storefront'), $extraCount)); ?>"
+            >+<?php echo (int) $extraCount; ?></button>
+        <?php endif; ?>
     </div>
     <div class="pap-color-select-wrap screen-reader-text">
         <?php echo $html; ?>
@@ -178,6 +203,15 @@ function papetarie_storefront_enqueue_color_swatch_script(): void
         'jquery',
         <<<'JS'
         document.addEventListener('click', function (event) {
+            var more = event.target.closest('.pap-color-swatch-more');
+            if (more) {
+                var moreContainer = more.closest('.pap-color-swatches');
+                if (moreContainer) {
+                    moreContainer.classList.add('is-expanded');
+                }
+                return;
+            }
+
             var swatch = event.target.closest('.pap-color-swatch');
             if (!swatch) {
                 return;
