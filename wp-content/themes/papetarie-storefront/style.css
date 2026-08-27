@@ -1723,6 +1723,13 @@ body.tax-product_cat .pap-header-catmenu-panel {
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-item > .pap-header-catmenu-chevron svg {
     width: var(--menu-chevron-size);
     height: var(--menu-chevron-size);
+    /* The base rule rotates this 90deg on [aria-expanded="true"] for the
+       desktop flyout, where it's true that the item's panel is open
+       beside it. On mobile the same attribute just marks "this is the
+       current category" - tapping it still drills down to a new screen,
+       never expands in place, so a rotated/"open"-looking chevron on
+       the active row is flatly wrong here. Always flush right. */
+    transform: none;
   }
 
   /* .pap-header-catmenu-left reuses the homepage showcase module's own
