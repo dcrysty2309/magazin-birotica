@@ -3,19 +3,45 @@
 defined('ABSPATH') || exit;
 
 $asset_base = get_stylesheet_directory_uri() . '/assets/images';
+$asset_dir = get_stylesheet_directory() . '/assets/images';
 $showcase_categories = papetarie_storefront_get_mega_menu_categories();
 $showcase_active_slug = papetarie_storefront_active_mega_menu_slug($showcase_categories);
 $shop_url = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/');
 
+// filemtime()-versioned URL, same idea as core's own wp_enqueue_style/
+// script auto-versioning - these hero images are hardcoded <img>/
+// <source> paths (not going through wp_enqueue_*), but now sit behind
+// a 1-year Cache-Control (see the perf-audit .htaccess changes), so
+// without a cache-busting query string a re-exported image at the
+// same filename would never reach a visitor's browser until that
+// cache naturally expired.
+$versioned_asset = static function (string $filename) use ($asset_base, $asset_dir): string {
+    $path = $asset_dir . '/' . $filename;
+    $version = file_exists($path) ? (string) filemtime($path) : '1';
+
+    return $asset_base . '/' . $filename . '?v=' . $version;
+};
+
+// Art-directed per breakpoint, not one image stretched/cropped by CSS
+// for every viewport - image_tablet/image_mobile are optional per
+// slide (falls back tablet -> desktop, mobile -> tablet -> desktop),
+// so existing/future slides that only define 'image' keep working
+// unchanged.
 $showcase_slides = [
     [
-        'image' => $asset_base . '/showcase-hero-user.jpg',
+        'image' => $versioned_asset('showcase-hero-user.jpg'),
+        'image_tablet' => $versioned_asset('showcase-hero-user-tablet.jpg'),
+        'image_mobile' => $versioned_asset('showcase-hero-user-mobile.jpg'),
     ],
     [
-        'image' => $asset_base . '/showcase-hero-user-2.jpg',
+        'image' => $versioned_asset('showcase-hero-user-2.jpg'),
+        'image_tablet' => $versioned_asset('showcase-hero-user-2-tablet.jpg'),
+        'image_mobile' => $versioned_asset('showcase-hero-user-2-mobile.jpg'),
     ],
     [
-        'image' => $asset_base . '/showcase-hero-user.jpg',
+        'image' => $versioned_asset('showcase-hero-user.jpg'),
+        'image_tablet' => $versioned_asset('showcase-hero-user-tablet.jpg'),
+        'image_mobile' => $versioned_asset('showcase-hero-user-mobile.jpg'),
     ],
 ];
 
@@ -137,10 +163,39 @@ get_header();
 
       <div class="pap-showcase-stage" data-showcase-stage>
         <div class="pap-showcase-slides">
-          <?php foreach ($showcase_slides as $index => $slide) : ?>
-            <article class="pap-showcase-slide<?php echo $index === 0 ? ' is-active' : ''; ?>" data-showcase-slide="<?php echo esc_attr((string) $index); ?>">
+          <?php foreach ($showcase_slides as $index => $slide) :
+              $is_first_slide = $index === 0;
+              // Only the FIRST slide is the real LCP candidate and gets
+              // eager+high priority. Slide 2 still loads eagerly (no
+              // priority hint) rather than loading="lazy" - this stage's
+              // own slides sit on top of each other via opacity/
+              // visibility, never display:none, and a visibility:hidden
+              // element doesn't reliably count as "near the viewport"
+              // for native lazy-loading, so a lazy slide 2 could still be
+              // blank the moment autoplay/a dot tap reveals it 4.2s
+              // later. Only slide 3+ (here, a repeat of slide 1's own
+              // already-cached images) stays loading="lazy".
+              $is_second_slide = $index === 1;
+              $desktop_image = $slide['image'];
+              $tablet_image = $slide['image_tablet'] ?? $desktop_image;
+              $mobile_image = $slide['image_mobile'] ?? $tablet_image;
+          ?>
+            <article class="pap-showcase-slide<?php echo $is_first_slide ? ' is-active' : ''; ?>" data-showcase-slide="<?php echo esc_attr((string) $index); ?>">
               <div class="pap-showcase-slide-visual" aria-hidden="true">
-                <img class="pap-showcase-visual-banner" src="<?php echo esc_url($slide['image']); ?>" alt="" loading="<?php echo $index === 0 ? 'eager' : 'lazy'; ?>">
+                <picture>
+                  <source media="(max-width: 767px)" srcset="<?php echo esc_url($mobile_image); ?>">
+                  <source media="(max-width: 1023px)" srcset="<?php echo esc_url($tablet_image); ?>">
+                  <img
+                    class="pap-showcase-visual-banner"
+                    src="<?php echo esc_url($desktop_image); ?>"
+                    alt=""
+                    <?php if ($is_first_slide || $is_second_slide) : ?>
+                      loading="eager"
+                    <?php else : ?>
+                      loading="lazy"
+                    <?php endif; ?>
+                  >
+                </picture>
               </div>
             </article>
           <?php endforeach; ?>

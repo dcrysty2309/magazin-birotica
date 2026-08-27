@@ -2178,6 +2178,16 @@ body.tax-product_cat .pap-header-catmenu-panel {
   display: block;
 }
 
+/* <picture> is inline by default - without this it introduces a stray
+   baseline gap under itself (like an inline img would) and doesn't
+   stretch to fill .pap-showcase-slide-visual's height on its own, so
+   the img inside (sized 100%/100% below) would have nothing to be
+   100% height OF. */
+.pap-showcase-slide-visual picture {
+  display: block;
+  height: 100%;
+}
+
 .pap-showcase-visual-banner {
   width: 100%;
   height: 100%;
@@ -6925,6 +6935,62 @@ body.theme-papetarie .pap-styleguide-page .pap-styleguide-sample--label {
     margin: -10px auto 0;
   }
 
+}
+
+/* HOMEPAGE HERO SLIDER - explicit height per tier (2026-08-27), instead
+   of the same ~520-540px min-height carried down unchanged from the
+   1280px/980px blocks above to every phone width - that's what made
+   the hero read as "too tall"/"just a crop of the desktop image" on
+   mobile. Placed after both of those blocks so it wins on source
+   order at equal specificity without needing higher specificity or
+   !important; touches only the hero, nothing else in that CSS.
+   Desktop (>=1024px) is deliberately left alone - measured at 391px
+   live, close enough to the target range with no reported issue, so
+   no arbitrary override. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .pap-showcase-stage {
+    min-height: auto;
+    height: auto;
+  }
+
+  .pap-showcase-slides {
+    position: relative;
+    min-height: 440px;
+  }
+
+  .pap-showcase-slide-visual,
+  .pap-showcase-visual-banner {
+    min-height: 440px;
+  }
+}
+
+@media (max-width: 767px) {
+  .pap-showcase-stage {
+    min-height: auto;
+    height: auto;
+  }
+
+  .pap-showcase-slides {
+    position: relative;
+    min-height: 460px;
+  }
+
+  .pap-showcase-slide-visual,
+  .pap-showcase-visual-banner {
+    min-height: 460px;
+  }
+
+  /* The mobile crop is already tight around the headline text with
+     very little side margin to spare - a centered object-fit:cover
+     (the shared default) trims a few percent off BOTH edges to match
+     whatever the exact viewport width/height ratio works out to,
+     which was enough to clip the first letter of every line. Anchor
+     left instead, so any further trim from object-fit:cover comes off
+     the right (the product side, which has room to spare) and never
+     the text. */
+  .pap-showcase-visual-banner {
+    object-position: left center;
+  }
 }
 
 .pap-footer-brand,
