@@ -20156,10 +20156,22 @@ body.theme-papetarie .pap-footer-meta a:hover {
   color: #fff !important;
 }
 
-@media (max-width: 860px) {
+/* TABLET (768-1023px) - 2 columns, no accordion. With .pap-footer-brand
+   spanning the full first row, the remaining 4 items (Magazin, Ajutor
+   si contact, Companie, Newsletter) auto-place into exactly
+   ROW 1: Magazin | Ajutor si contact
+   ROW 2: Companie | Newsletter
+   without needing explicit grid-column assignments - this is just the
+   natural fill order of a 2-column grid with 4 items. Newsletter stays
+   a plain grid cell here, same as every other column - nothing about
+   the accordion mechanism (mobile-only, see below) reaches this
+   breakpoint. */
+@media (min-width: 768px) and (max-width: 1023px) {
   body.theme-papetarie .pap-footer-inner {
     grid-template-columns: 1fr 1fr !important;
+    column-gap: 32px !important;
     row-gap: 32px !important;
+    align-items: start !important;
   }
 
   body.theme-papetarie .pap-footer-brand {
@@ -20167,15 +20179,146 @@ body.theme-papetarie .pap-footer-meta a:hover {
   }
 }
 
-@media (max-width: 520px) {
+/* MOBILE (<=767px) - Magazin/Ajutor si contact/Companie become a
+   collapsed-by-default accordion; brand and newsletter stay exactly
+   as plain stacked blocks (newsletter is a CTA, never collapsed). One
+   token per role, reused by every one of the three accordion sections
+   instead of separate ad-hoc values. */
+@media (max-width: 767px) {
+  :root {
+    --footer-mobile-padding-x: 20px;
+    --footer-accordion-height: 52px;
+    --footer-link-height: 44px;
+    --footer-section-gap: 28px;
+  }
+
   body.theme-papetarie .pap-footer-inner {
     grid-template-columns: 1fr !important;
+    row-gap: 0 !important;
   }
 
   body.theme-papetarie .pap-footer-meta-inner {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 10px !important;
+  }
+
+  /* Brand block keeps its own spacing untouched - only the 3 link
+     groups become an accordion, so give the block right before them
+     the same breathing room the accordion's own section-gap uses,
+     instead of a one-off number. */
+  body.theme-papetarie .pap-footer-brand {
+    margin-bottom: var(--footer-section-gap) !important;
+  }
+
+  /* ACCORDION GROUP - the discrete separator between sections. Only
+     these 3 groups carry [data-footer-accordion]; newsletter does
+     not, so it's unaffected. */
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion] {
+    border-top: 1px solid var(--pap-line) !important;
+    gap: 0 !important;
+  }
+
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion]:last-of-type {
+    border-bottom: 1px solid var(--pap-line) !important;
+  }
+
+  body.theme-papetarie .pap-footer-links-group-heading {
+    margin: 0 !important;
+  }
+
+  /* Reset the <button> back to reading as the same heading it replaces
+     (same uppercase/size/weight/color as the desktop <h3> above), full
+     width and clickable across its entire row - not just the chevron -
+     per the explicit "whole header zone must be clickable" spec. */
+  body.theme-papetarie .pap-footer-accordion-toggle {
+    all: unset !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    width: 100% !important;
+    min-height: var(--footer-accordion-height) !important;
+    padding-inline: var(--footer-mobile-padding-x) !important;
+    color: #0d2e61 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+  }
+
+  body.theme-papetarie .pap-footer-accordion-chevron {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 16px !important;
+    height: 16px !important;
+    color: #7c8db0 !important;
+  }
+
+  body.theme-papetarie .pap-footer-accordion-chevron svg {
+    width: 12px !important;
+    height: 12px !important;
+    transform: rotate(90deg);
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  body.theme-papetarie .pap-footer-accordion-toggle[aria-expanded="true"] .pap-footer-accordion-chevron svg {
+    transform: rotate(-90deg);
+  }
+
+  /* Collapsed by default (no .is-expanded yet, matches the markup's
+     own aria-expanded="false") - real display:none, so content stays
+     unreachable-but-present if JS never runs, rather than stuck open.
+     .pap-footer-accordion-transitioning is the short-lived override
+     JS adds only while the close animation plays - see
+     footer-accordion.js for why display:none can't apply until after
+     that finishes. */
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion] .pap-footer-accordion-content {
+    display: none !important;
+    padding-bottom: 8px !important;
+  }
+
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion].is-expanded .pap-footer-accordion-content,
+  body.theme-papetarie .pap-footer-links-group[data-footer-accordion].pap-footer-accordion-transitioning .pap-footer-accordion-content {
+    display: block !important;
+  }
+
+  body.theme-papetarie .pap-footer-menu {
+    gap: 0 !important;
+  }
+
+  /* Same left axis as the accordion header's own text (both use
+     --footer-mobile-padding-x), compact but comfortably tappable
+     (--footer-link-height, 44px - within the 40-44px target). */
+  body.theme-papetarie .pap-footer-links a,
+  body.theme-papetarie .pap-footer-menu a {
+    display: flex !important;
+    align-items: center !important;
+    min-height: var(--footer-link-height) !important;
+    padding-inline: var(--footer-mobile-padding-x) !important;
+  }
+
+  /* Newsletter is a CTA, not part of the accordion - its own spacing,
+     not inherited from the accordion's section-gap/padding, and full
+     width per the explicit mobile spec. */
+  body.theme-papetarie .pap-footer-newsletter {
+    margin-top: var(--footer-section-gap) !important;
+    padding-inline: var(--footer-mobile-padding-x) !important;
+  }
+
+  body.theme-papetarie .pap-footer-newsletter-form input,
+  body.theme-papetarie .pap-footer-newsletter-form button {
+    width: 100% !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.theme-papetarie .pap-footer-accordion-chevron svg {
+    transition-duration: 0.01ms !important;
   }
 }
 

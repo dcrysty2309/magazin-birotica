@@ -913,6 +913,26 @@ function papetarie_storefront_enqueue_product_slider_script(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_product_slider_script');
 
+function papetarie_storefront_enqueue_footer_accordion_script(): void
+{
+    // The checkout footer (.pap-footer--checkout) is just a copyright
+    // line, no link groups to collapse.
+    if (function_exists('papetarie_storefront_is_checkout_or_order_received_page') && papetarie_storefront_is_checkout_or_order_received_page()) {
+        return;
+    }
+
+    $footer_accordion_script = get_stylesheet_directory() . '/assets/js/footer-accordion.js';
+
+    wp_enqueue_script(
+        'papetarie-storefront-footer-accordion',
+        get_stylesheet_directory_uri() . '/assets/js/footer-accordion.js',
+        [],
+        file_exists($footer_accordion_script) ? (string) filemtime($footer_accordion_script) : wp_get_theme()->get('Version'),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_footer_accordion_script');
+
 add_filter('woocommerce_product_description_tab_title', static function (): string {
     return __('Descriere', 'papetarie-storefront');
 });
