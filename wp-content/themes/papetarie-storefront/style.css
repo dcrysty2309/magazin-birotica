@@ -1819,20 +1819,22 @@ body.tax-product_cat .pap-header-catmenu-panel {
     max-width: none;
   }
 
-  /* ACCORDION ROW - group heading (level-2 group with its own
-     grandchildren) and column heading (top-level section divider, e.g.
-     "Instrumente și accesorii de birou") share one look: same row
-     height, same 15px/500 heading type, same navy default color, same
-     chevron. Medium weight, not the back row's semibold - readable as
-     a heading without competing with the screen's own title. The only
-     structural difference is left position - the
-     group heading is nested one level deeper, so it starts at
-     --menu-text-start (the same space an icon+gap would occupy at
-     level 1); the column heading is a top-level divider with nothing
-     above it, so it starts at the row EDGE, same axis as the back
-     row's arrow and level-1's icons. Plain surface-colored row in
-     every state - no background fill, no size/weight change on
-     expand, only the chevron rotates and turns accent. */
+  /* LEVEL 2 ROW - every row a user encounters directly under a level-1
+     category shares one look and one left axis, regardless of what it
+     actually is underneath: a plain leaf term (no children), a real
+     accordion trigger (group heading with its own grandchildren), or
+     a column heading (a divider grouping several level-2 terms, e.g.
+     "Instrumente și accesorii de birou"). Depth in the visual list is
+     what decides styling here, not whether an item happens to expand
+     - so all three share row height, 15px/500 heading type, navy
+     default color, chevron treatment where applicable, AND the same
+     padding-left (--menu-text-start, below) - the column heading used
+     to start at the row edge instead (aligned with the back row's
+     arrow/level-1's icons), which read as a different indent level
+     for what is, visually, still "level 2" to someone scanning the
+     list. Plain surface-colored row in every state - no background
+     fill, no size/weight change on expand, only the chevron rotates
+     and turns accent. */
   body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title,
   body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading {
     display: flex;
@@ -1863,12 +1865,18 @@ body.tax-product_cat .pap-header-catmenu-panel {
     transition: background var(--menu-motion-fast) var(--menu-ease);
   }
 
-  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title {
-    /* Right side: no explicit padding - the ambient
-       .pap-header-catmenu-panel padding (--menu-padding-x) already
-       insets this row's container, so justify-content:space-between
-       lands the chevron flush against it, same right axis as
-       level-1's chevron and the column-heading's. */
+  /* One shared token, one shared rule: a leaf link and an accordion
+     trigger are both level 2, so both start at the same X regardless
+     of which of the two they are - and the column heading (a divider
+     that visually sits at the same list depth as any other level-2
+     row a user taps through) now matches it too, instead of a
+     separate hardcoded value. Right side: no explicit padding on
+     either selector - the ambient .pap-header-catmenu-panel padding
+     (--menu-padding-x) already insets the row's container, so
+     justify-content:space-between lands the chevron flush against it,
+     same right axis for every row type. */
+  body.theme-papetarie .pap-nav-row .pap-header-catmenu-group-title,
+  body.theme-papetarie .pap-nav-row .pap-showcase-panel-columns-column-heading {
     padding-left: var(--menu-text-start);
   }
 
