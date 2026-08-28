@@ -40,6 +40,21 @@ get_header();
         : 0;
     $is_in_stock = $product->is_in_stock();
     $is_simple_purchasable = $product->is_type('simple') && $product->is_purchasable();
+    // Static reference line under the main price ("Interval preț: min - max")
+    // for variable products whose variations actually span a price range -
+    // stays fixed regardless of which color is picked, unlike the big price
+    // above it (swapped live to the selected variation's own price_html by
+    // the inline script further down, via WooCommerce's found_variation/
+    // reset_data events - same pattern already used there for the gallery
+    // image swap).
+    $variation_price_range_html = '';
+    if ($product->is_type('variable')) {
+        $min_variation_price = $product->get_variation_price('min', true);
+        $max_variation_price = $product->get_variation_price('max', true);
+        if ($min_variation_price !== '' && $max_variation_price !== '' && $min_variation_price !== $max_variation_price) {
+            $variation_price_range_html = wc_format_price_range($min_variation_price, $max_variation_price);
+        }
+    }
     ?>
 
     <div class="pap-shell pap-page-breadcrumbs pap-product-breadcrumbs">
@@ -174,11 +189,17 @@ get_header();
 
         <div class="pap-product-price-block">
           <div class="pap-product-price-row">
-            <?php echo wp_kses_post($product->get_price_html()); ?>
+            <span data-product-price-html><?php echo wp_kses_post($product->get_price_html()); ?></span>
             <?php if ($is_on_sale && $discount_percent > 0) : ?>
               <span class="pap-product-price-discount">−<?php echo esc_html((string) $discount_percent); ?>%</span>
             <?php endif; ?>
           </div>
+          <?php if ($variation_price_range_html !== '') : ?>
+            <p class="pap-product-price-range">
+              <?php esc_html_e('Interval preț:', 'papetarie-storefront'); ?>
+              <?php echo wp_kses_post($variation_price_range_html); ?>
+            </p>
+          <?php endif; ?>
         </div>
 
         <?php if ($is_simple_purchasable && $is_in_stock) : ?>
@@ -258,6 +279,15 @@ get_header();
     var activeIndex = 0;
     var defaultImageSrc = mainImage ? mainImage.src : '';
 
+    // The big price always starts as the product's own range (server-
+    // rendered) - swapped to the selected variation's own price_html (which
+    // WooCommerce already formats, sale strike-through included) while one
+    // is picked, restored verbatim on reset_data. The small "Interval preț"
+    // line underneath is server-rendered once and never touched here - it's
+    // meant to stay the fixed overall range regardless of selection.
+    var priceEl = document.querySelector('[data-product-price-html]');
+    var defaultPriceHTML = priceEl ? priceEl.innerHTML : '';
+
     function activate(index) {
       var thumb = thumbs[index];
       if (!thumb || !mainImage) {
@@ -275,6 +305,10 @@ get_header();
     var variationsForm = document.querySelector('.variations_form');
     if (variationsForm && window.jQuery) {
       window.jQuery(variationsForm).on('found_variation', function (event, variation) {
+        if (priceEl && variation && variation.price_html) {
+          priceEl.innerHTML = variation.price_html;
+        }
+
         if (!mainImage || !variation || !variation.image || !variation.image.src) {
           return;
         }
@@ -296,6 +330,10 @@ get_header();
       });
 
       window.jQuery(variationsForm).on('reset_data', function () {
+        if (priceEl) {
+          priceEl.innerHTML = defaultPriceHTML;
+        }
+
         if (mainImage) {
           mainImage.src = defaultImageSrc;
         }

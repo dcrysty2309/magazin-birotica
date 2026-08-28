@@ -20916,10 +20916,15 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   border-radius: 3px;
 }
 
-.pap-product-price-vat {
-  margin: 6px 0 0;
+.pap-product-price-range {
+  margin: 4px 0 0;
   color: #6b7a95;
-  font-size: 11px;
+  font-size: 13px;
+}
+
+.pap-product-price-range .woocommerce-Price-amount {
+  color: #6b7a95;
+  font-weight: 600;
 }
 
 .pap-product-actions-row {
