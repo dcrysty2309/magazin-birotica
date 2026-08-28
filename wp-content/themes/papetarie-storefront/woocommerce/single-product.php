@@ -38,16 +38,6 @@ get_header();
     $discount_percent = ($is_on_sale && $regular_price > 0 && $sale_price !== null)
         ? (int) round((($regular_price - $sale_price) / $regular_price) * 100)
         : 0;
-    $price_excl_vat = '';
-    $vat_rate = '';
-    if (function_exists('wc_get_price_excluding_tax') && wc_tax_enabled()) {
-        $price_excl_vat = wc_price(wc_get_price_excluding_tax($product));
-        $tax_rates = \WC_Tax::get_rates($product->get_tax_class());
-        if (!empty($tax_rates)) {
-            $first_rate = reset($tax_rates);
-            $vat_rate = isset($first_rate['rate']) ? round((float) $first_rate['rate']) : '';
-        }
-    }
     $is_in_stock = $product->is_in_stock();
     $is_simple_purchasable = $product->is_type('simple') && $product->is_purchasable();
     ?>
@@ -78,30 +68,32 @@ get_header();
             </button>
           <?php endif; ?>
         </div>
-        <?php if (count($all_image_ids) > 1) : ?>
-          <div class="pap-product-gallery-thumbs-row">
+        <div class="pap-product-gallery-thumbs-row">
+          <?php if (count($all_image_ids) > 1) : ?>
             <button type="button" class="pap-product-gallery-thumbs-nav pap-product-gallery-thumbs-nav--prev" data-gallery-thumbs-prev aria-label="<?php esc_attr_e('Thumbnail-uri anterioare', 'papetarie-storefront'); ?>" hidden>
               <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
             </button>
-            <div class="pap-product-gallery-thumbs" data-gallery-thumbs-track>
-              <?php foreach ($all_image_ids as $index => $image_id) : ?>
-                <?php $thumb_url = wp_get_attachment_image_url($image_id, 'thumbnail'); ?>
-                <button
-                  type="button"
-                  class="pap-product-gallery-thumb<?php echo $index === 0 ? ' is-active' : ''; ?>"
-                  data-product-gallery-thumb
-                  data-index="<?php echo esc_attr((string) $index); ?>"
-                  data-full-src="<?php echo esc_url(wp_get_attachment_image_url($image_id, 'large')); ?>"
-                >
-                  <img src="<?php echo esc_url($thumb_url); ?>" alt="" loading="lazy">
-                </button>
-              <?php endforeach; ?>
-            </div>
+          <?php endif; ?>
+          <div class="pap-product-gallery-thumbs" data-gallery-thumbs-track>
+            <?php foreach ($all_image_ids as $index => $image_id) : ?>
+              <?php $thumb_url = wp_get_attachment_image_url($image_id, 'thumbnail'); ?>
+              <button
+                type="button"
+                class="pap-product-gallery-thumb<?php echo $index === 0 ? ' is-active' : ''; ?>"
+                data-product-gallery-thumb
+                data-index="<?php echo esc_attr((string) $index); ?>"
+                data-full-src="<?php echo esc_url(wp_get_attachment_image_url($image_id, 'large')); ?>"
+              >
+                <img src="<?php echo esc_url($thumb_url); ?>" alt="" loading="lazy">
+              </button>
+            <?php endforeach; ?>
+          </div>
+          <?php if (count($all_image_ids) > 1) : ?>
             <button type="button" class="pap-product-gallery-thumbs-nav pap-product-gallery-thumbs-nav--next" data-gallery-thumbs-next aria-label="<?php esc_attr_e('Thumbnail-uri următoare', 'papetarie-storefront'); ?>">
               <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
             </button>
-          </div>
-        <?php endif; ?>
+          <?php endif; ?>
+        </div>
       </div>
 
       <div id="pap-gallery-lightbox" class="pap-gallery-lightbox" hidden aria-hidden="true">
@@ -187,16 +179,6 @@ get_header();
               <span class="pap-product-price-discount">−<?php echo esc_html((string) $discount_percent); ?>%</span>
             <?php endif; ?>
           </div>
-          <?php if ($price_excl_vat !== '') : ?>
-            <p class="pap-product-price-vat">
-              <?php echo esc_html(sprintf(
-                  /* translators: 1: price excluding VAT, 2: VAT rate */
-                  __('Preț fără TVA: %1$s · TVA %2$s%% inclus', 'papetarie-storefront'),
-                  wp_strip_all_tags($price_excl_vat),
-                  $vat_rate
-              )); ?>
-            </p>
-          <?php endif; ?>
         </div>
 
         <?php if ($is_simple_purchasable && $is_in_stock) : ?>
