@@ -4266,40 +4266,9 @@ body.theme-papetarie .pap-archive-empty p {
   margin-top: 0;
 }
 
-.pap-product-rating {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin: 2px 0 0;
-}
-
 .pap-product-card .pap-product-category,
-.pap-product-card h3,
-.pap-product-card .pap-product-rating {
+.pap-product-card h3 {
   padding-inline: 16px;
-}
-
-.pap-product-rating__star {
-  display: inline-flex;
-  width: 13px;
-  height: 13px;
-  color: #d8dfea;
-}
-
-.pap-product-rating__star.is-filled {
-  color: var(--pap-orange);
-}
-
-.pap-product-rating__star svg {
-  width: 100%;
-  height: 100%;
-}
-
-.pap-product-rating__count {
-  margin-left: 4px;
-  color: #8697b0;
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .pap-featured-slider-shell {
@@ -20892,89 +20861,6 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   line-height: 26px;
 }
 
-.pap-product-rating-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-bottom: 17px;
-  border-bottom: 1px solid #f0f2f5;
-}
-
-.pap-product-rating-row-stars {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.pap-product-rating-row-star {
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
-  color: #dde1e8;
-}
-
-.pap-product-rating-row-star svg {
-  width: 100%;
-  height: 100%;
-}
-
-.pap-product-rating-row-star.is-filled {
-  color: #f5a524;
-}
-
-.pap-product-rating-row-value {
-  color: #374151;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.pap-product-rating-row-count {
-  color: #6b7a95;
-  font-size: 12px;
-  text-decoration: none;
-}
-
-.pap-product-rating-row-count:hover {
-  color: var(--pap-orange-deep);
-  text-decoration: underline;
-}
-
-.pap-product-rating-row-divider {
-  width: 1px;
-  height: 14px;
-  background: #dde1e8;
-}
-
-.pap-product-share {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: 0;
-  background: transparent;
-  color: #6b7a95;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-left: auto;
-  padding: 0;
-}
-
-.pap-product-share:hover {
-  color: var(--pap-orange-deep);
-}
-
-.pap-product-share span:first-child {
-  display: inline-flex;
-  width: 12px;
-  height: 12px;
-}
-
-.pap-product-share svg {
-  width: 100%;
-  height: 100%;
-}
-
 .pap-product-price-block {
   margin-top: 16px;
 }
@@ -21034,45 +20920,6 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   margin: 6px 0 0;
   color: #6b7a95;
   font-size: 11px;
-}
-
-.pap-product-stock-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 20px;
-}
-
-.pap-product-stock-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-}
-
-.pap-product-stock-dot--in {
-  background: #16a34a;
-}
-
-.pap-product-stock-dot--out {
-  background: #dc2626;
-}
-
-.pap-product-stock-label {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.pap-product-stock-label--in {
-  color: #16a34a;
-}
-
-.pap-product-stock-label--out {
-  color: #dc2626;
-}
-
-.pap-product-stock-count {
-  color: #6b7a95;
-  font-size: 12px;
 }
 
 .pap-product-actions-row {

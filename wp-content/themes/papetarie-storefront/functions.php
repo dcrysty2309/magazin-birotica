@@ -941,17 +941,14 @@ add_filter('woocommerce_product_additional_information_tab_title', static functi
     return __('Specificații', 'papetarie-storefront');
 });
 
-add_filter('woocommerce_product_reviews_tab_title', static function ($title, $key) {
-    global $product;
+// Reviews are off sitewide - no reviews tab on the product page, no rating
+// stars on product cards (see papetarie_storefront_render_product_rating_html
+// call site removal below).
+add_filter('woocommerce_product_tabs', static function (array $tabs): array {
+    unset($tabs['reviews']);
 
-    $count = $product instanceof WC_Product ? $product->get_review_count() : 0;
-
-    return sprintf(
-        /* translators: %d: review count */
-        _n('Recenzie (%d)', 'Recenzii (%d)', $count, 'papetarie-storefront'),
-        $count
-    );
-}, 10, 2);
+    return $tabs;
+}, 98);
 
 add_filter('woocommerce_product_related_products_heading', static function (): string {
     return __('Produse similare', 'papetarie-storefront');
@@ -7047,33 +7044,6 @@ function papetarie_storefront_get_product_primary_category(WC_Product $product):
     return (string) $terms[0]->name;
 }
 
-function papetarie_storefront_render_product_rating_html(WC_Product $product): string
-{
-    $rating_count = $product->get_rating_count();
-    if ($rating_count < 1) {
-        return '';
-    }
-
-    $average = (float) $product->get_average_rating();
-    $star_icon = papetarie_storefront_icon('star');
-
-    ob_start();
-    ?>
-    <div class="pap-product-rating" aria-label="<?php echo esc_attr(sprintf(
-        /* translators: %s: average rating out of 5 */
-        __('Rating %s din 5', 'papetarie-storefront'),
-        number_format_i18n($average, 1)
-    )); ?>">
-      <?php for ($i = 1; $i <= 5; $i++) : ?>
-        <span class="pap-product-rating__star<?php echo $i <= round($average) ? ' is-filled' : ''; ?>" aria-hidden="true"><?php echo $star_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-      <?php endfor; ?>
-      <span class="pap-product-rating__count">(<?php echo esc_html((string) $rating_count); ?>)</span>
-    </div>
-    <?php
-
-    return (string) ob_get_clean();
-}
-
 function papetarie_storefront_render_product_slider_section(string $title, string $subtitle, array $products, string $see_all_url, array $extra_section_classes = [], string $id = ''): string
 {
     $products = array_values(array_filter($products, static function ($product): bool {
@@ -10001,7 +9971,6 @@ function papetarie_storefront_render_product_card(WC_Product $product): void
           <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
         <?php endif; ?>
         <h3 data-product-name="<?php echo esc_attr($product_name); ?>"><?php echo esc_html($product_name); ?></h3>
-        <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       </a>
       <div class="pap-product-meta">
         <strong class="pap-price"><?php echo wp_kses_post($product->get_price_html()); ?></strong>

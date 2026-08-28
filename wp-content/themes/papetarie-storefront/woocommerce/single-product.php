@@ -32,9 +32,6 @@ get_header();
     if (!is_wp_error($brand_terms) && !empty($brand_terms)) {
         $brand_name = $brand_terms[0]->name;
     }
-    $rating_count = $product->get_rating_count();
-    $average_rating = (float) $product->get_average_rating();
-    $star_icon = papetarie_storefront_icon('star');
     $is_on_sale = $product->is_on_sale();
     $regular_price = (float) $product->get_regular_price();
     $sale_price = $product->is_on_sale() ? (float) $product->get_sale_price() : null;
@@ -52,8 +49,6 @@ get_header();
         }
     }
     $is_in_stock = $product->is_in_stock();
-    $manages_stock = $product->managing_stock();
-    $stock_quantity = $manages_stock ? $product->get_stock_quantity() : null;
     $is_simple_purchasable = $product->is_type('simple') && $product->is_purchasable();
     ?>
 
@@ -185,27 +180,6 @@ get_header();
 
         <h1 class="pap-product-title"><?php echo esc_html($product_name); ?></h1>
 
-        <div class="pap-product-rating-row">
-          <?php if ($rating_count > 0) : ?>
-            <div class="pap-product-rating-row-stars" aria-hidden="true">
-              <?php for ($i = 1; $i <= 5; $i++) : ?>
-                <span class="pap-product-rating-row-star<?php echo $i <= round($average_rating) ? ' is-filled' : ''; ?>"><?php echo $star_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-              <?php endfor; ?>
-            </div>
-            <span class="pap-product-rating-row-value"><?php echo esc_html(number_format_i18n($average_rating, 1)); ?></span>
-            <a class="pap-product-rating-row-count" href="#tab-reviews"><?php echo esc_html(sprintf(
-                /* translators: %d: review count */
-                _n('%d recenzie', '%d recenzii', $rating_count, 'papetarie-storefront'),
-                $rating_count
-            )); ?></a>
-            <span class="pap-product-rating-row-divider" aria-hidden="true"></span>
-          <?php endif; ?>
-          <button type="button" class="pap-product-share" data-product-share data-share-title="<?php echo esc_attr($product_name); ?>">
-            <span aria-hidden="true"><?php echo papetarie_storefront_icon('share'); ?></span>
-            <span><?php esc_html_e('Distribuie', 'papetarie-storefront'); ?></span>
-          </button>
-        </div>
-
         <div class="pap-product-price-block">
           <div class="pap-product-price-row">
             <?php echo wp_kses_post($product->get_price_html()); ?>
@@ -222,20 +196,6 @@ get_header();
                   $vat_rate
               )); ?>
             </p>
-          <?php endif; ?>
-        </div>
-
-        <div class="pap-product-stock-row">
-          <span class="pap-product-stock-dot pap-product-stock-dot--<?php echo $is_in_stock ? 'in' : 'out'; ?>" aria-hidden="true"></span>
-          <span class="pap-product-stock-label pap-product-stock-label--<?php echo $is_in_stock ? 'in' : 'out'; ?>">
-            <?php echo $is_in_stock ? esc_html__('În stoc', 'papetarie-storefront') : esc_html__('Stoc epuizat', 'papetarie-storefront'); ?>
-          </span>
-          <?php if ($is_in_stock && $manages_stock && $stock_quantity !== null) : ?>
-            <span class="pap-product-stock-count"><?php echo esc_html(sprintf(
-                /* translators: %d: available stock quantity */
-                __('(%d disponibile)', 'papetarie-storefront'),
-                $stock_quantity
-            )); ?></span>
           <?php endif; ?>
         </div>
 
