@@ -20927,6 +20927,14 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   font-weight: 600;
 }
 
+/* Duplicate al prețului mare din pap-product-price-row, randat implicit de
+   WooCommerce langa selectorul de variatii - pretul mare de sus e deja
+   actualizat live la alegerea variantei (vezi found_variation in
+   single-product.php), asa ca aceasta copie e redundanta. */
+.woocommerce-variation-price {
+  display: none;
+}
+
 .pap-product-actions-row {
   display: flex;
   align-items: center;
@@ -22778,6 +22786,17 @@ form.variations_form table.variations,
 form.cart table.variations {
   width: 100%;
   table-layout: fixed;
+}
+
+/* Global table border rule (body.theme-papetarie th/td, meant for
+   entry-content tables) leaks into WooCommerce's own variations table since
+   its selector is unscoped - overrides WC's default border:0 here and draws
+   a box around the "Culori Kreul" label and the swatch row. */
+form.variations_form table.variations th,
+form.variations_form table.variations td,
+form.cart table.variations th,
+form.cart table.variations td {
+  border: 0;
 }
 
 form.variations_form table.variations td.value,
