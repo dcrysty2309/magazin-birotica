@@ -21228,6 +21228,11 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-tabs {
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+  /* Storefront pune implicit ~42px padding sus/jos pe acest wrapper (in
+     afara de padding-ul nostru de 24px de pe .pap-product-tabs-section) -
+     nu fusese anulat, cauzand golul mare nefolosit inainte de bara de
+     tab-uri, gasit live 2026-08-29 masurand exact padding-ul calculat. */
+  padding: 0 !important;
 }
 
 body.theme-papetarie .pap-product-tabs-section ul.tabs {
@@ -21244,7 +21249,7 @@ body.theme-papetarie .pap-product-tabs-section ul.tabs {
   margin: 0 !important;
   padding: 0 !important;
   gap: 28px !important;
-  border-bottom: 0 !important;
+  border: 0 !important;
 }
 
 body.theme-papetarie .pap-product-tabs-section ul.tabs li {
