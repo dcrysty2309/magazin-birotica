@@ -21226,6 +21226,14 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-tabs {
 }
 
 body.theme-papetarie .pap-product-tabs-section ul.tabs {
+  /* Storefront pune implicit float:left pe bara de tab-uri si float:right
+     pe panoul de continut (.woocommerce-Tabs-panel mai jos) - tehnica
+     veche care ii facea sa stea unul langa altul in loc de tabs sus,
+     continut dedesubt pe toata latimea. Gasit live 2026-08-29: bara de
+     tab-uri ingusta la doar ~194px (latimea continutului ei), textul
+     descrierii impins in dreapta, nealiniat cu tab-urile. */
+  float: none !important;
+  width: 100% !important;
   display: flex !important;
   list-style: none !important;
   margin: 0 !important;
@@ -21280,6 +21288,13 @@ body.theme-papetarie .pap-product-tabs-section ul.tabs li.active a::after {
 }
 
 body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel {
+  /* float:right implicit din Storefront (vezi explicatia de la ul.tabs
+     mai sus) - eliminat, panoul trebuie sa curga pe toata latimea, sub
+     bara de tab-uri, nu langa ea. */
+  float: none !important;
+  clear: both !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
   padding: 24px !important;
   color: #374151 !important;
   font-size: 14px !important;
