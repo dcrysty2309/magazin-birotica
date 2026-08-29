@@ -27,6 +27,19 @@ get_header();
     $main_image_url = $main_image_id ? wp_get_attachment_image_url($main_image_id, 'large') : wc_placeholder_img_src('woocommerce_single');
     $product_name = $product->get_name();
     $sku = $product->get_sku();
+    // Produsele variabile nu au SKU propriu (fiecare culoare are al ei) -
+    // afisam implicit SKU-ul primei variatii, la fel cum pretul mare
+    // implicit e cel al variatiei minime; JS-ul de mai jos il inlocuieste
+    // live cu SKU-ul culorii alese (vezi found_variation mai jos).
+    if ($sku === '' && $product->is_type('variable')) {
+        foreach ($product->get_children() as $child_id) {
+            $child_sku = get_post_meta($child_id, '_sku', true);
+            if ($child_sku !== '') {
+                $sku = $child_sku;
+                break;
+            }
+        }
+    }
     $brand_name = '';
     $brand_terms = get_the_terms($product_id, 'product_brand');
     if (!is_wp_error($brand_terms) && !empty($brand_terms)) {
@@ -184,11 +197,7 @@ get_header();
               <span class="pap-product-brand"><?php echo esc_html($brand_name); ?></span>
             <?php endif; ?>
             <?php if ($sku !== '') : ?>
-              <span class="pap-product-sku"><?php echo esc_html(sprintf(
-                  /* translators: %s: product SKU */
-                  __('SKU: %s', 'papetarie-storefront'),
-                  $sku
-              )); ?></span>
+              <span class="pap-product-sku"><?php esc_html_e('SKU:', 'papetarie-storefront'); ?> <span data-product-sku><?php echo esc_html($sku); ?></span></span>
             <?php endif; ?>
           </div>
         <?php endif; ?>
@@ -295,6 +304,8 @@ get_header();
     // meant to stay the fixed overall range regardless of selection.
     var priceEl = document.querySelector('[data-product-price-html]');
     var defaultPriceHTML = priceEl ? priceEl.innerHTML : '';
+    var skuEl = document.querySelector('[data-product-sku]');
+    var defaultSkuText = skuEl ? skuEl.textContent : '';
 
     function activate(index) {
       var thumb = thumbs[index];
@@ -315,6 +326,10 @@ get_header();
       window.jQuery(variationsForm).on('found_variation', function (event, variation) {
         if (priceEl && variation && variation.price_html) {
           priceEl.innerHTML = variation.price_html;
+        }
+
+        if (skuEl && variation && variation.sku) {
+          skuEl.textContent = variation.sku;
         }
 
         if (!mainImage || !variation || !variation.image || !variation.image.src) {
@@ -340,6 +355,10 @@ get_header();
       window.jQuery(variationsForm).on('reset_data', function () {
         if (priceEl) {
           priceEl.innerHTML = defaultPriceHTML;
+        }
+
+        if (skuEl) {
+          skuEl.textContent = defaultSkuText;
         }
 
         if (mainImage) {
