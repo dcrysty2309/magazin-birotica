@@ -20823,7 +20823,14 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   border-radius: 4px;
   background: #fff;
   box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.05);
-  padding: 25px 25px 21px;
+  padding: 24px 24px 24px;
+  /* Fara min-height/stretch catre inaltimea galeriei din stanga - cardul
+     trebuie sa se opreasca natural dupa beneficii, nu sa umple coloana.
+     .pap-product-summary foloseste deja align-items:start la nivel de grid
+     (nu stretch), iar acest bloc ramane display:block (nu flex), deci nu
+     exista niciun justify-content:space-between care sa impinga beneficiile
+     jos - verificat explicit live cu getBoundingClientRect() 2026-08-29. */
+  height: auto;
   /* Grid items default to min-width:auto, refusing to shrink below their
      content's intrinsic width. The variations <table>'s color-swatch flex
      row has no wrap constraint of its own (see table.variations rule
@@ -20862,16 +20869,20 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
 }
 
 .pap-product-price-block {
-  margin-top: 32px;
+  margin-top: 24px;
 }
 
 /* Spatiu intre pretul mare si tabelul de variatii (eticheta "Culori" +
    swatch-uri) de sub el - doar la produsele variabile; la cele simple
    spatiul pana la randul cantitate+cos vine din .pap-product-actions-row
-   mai jos, aplicat direct pe acelasi <form>. Pe scara de spatiere
-   8/12/16/24/32/40. */
+   mai jos, aplicat direct pe acelasi <form>. Storefront pune implicit
+   "padding-top: 1em" pe .single-product div.product form.cart - fara
+   padding-top:0 aici, cele 16px se adunau invizibil peste margin-top,
+   umfland golul real (masurat cu getBoundingClientRect()) la 48px in loc
+   de cele 24px cerute, desi CSS-ul "parea" corect la 32px declarati. */
 form.variations_form.cart {
-  margin-top: 32px;
+  margin-top: 24px;
+  padding-top: 0 !important;
 }
 
 .pap-product-price-row {
@@ -20956,7 +20967,11 @@ form.variations_form.cart {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 32px;
+  margin-top: 24px;
+  /* La produsele simple elementul asta E form.cart (Storefront ii pune
+     padding-top:1em implicit) - fara asta, cele ~16px se adunau peste
+     margin-top, la fel ca la form.variations_form.cart mai sus. */
+  padding-top: 0 !important;
 }
 
 .pap-product-qty-stepper {
@@ -20986,7 +21001,7 @@ form.variations_form.cart {
 }
 
 .pap-product-qty-input {
-  width: 44px;
+  width: 48px;
   height: 48px;
   border: 0;
   text-align: center;
@@ -21009,6 +21024,7 @@ form.variations_form.cart {
   justify-content: center;
   gap: 8px;
   height: 48px;
+  min-width: 240px;
   padding: 0 24px;
   border: 0;
   border-radius: 3px;
@@ -21059,11 +21075,11 @@ form.variations_form.cart {
 .pap-product-benefits {
   list-style: none;
   margin: 24px 0 0;
-  padding: 16px 0 0;
+  padding: 20px 0 0;
   border-top: 1px solid #f0f2f5;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
 }
 
 .pap-product-benefits li {
@@ -22845,7 +22861,7 @@ form.cart table.variations td.value {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   max-width: 100%;
 }
 
