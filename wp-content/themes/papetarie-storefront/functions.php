@@ -950,6 +950,14 @@ add_filter('woocommerce_product_tabs', static function (array $tabs): array {
     return $tabs;
 }, 98);
 
+// Linkul implicit "Anulează"/"Șterge opțiunile" de sub swatch-urile de
+// culoare (reset_variations) e superfluu la interfata noastra - swatch-urile
+// sunt butoane cu click direct, deci schimbarea culorii nu are nevoie de un
+// pas separat de "curatare"; linkul doar ocupa loc si nu era stilizat.
+add_filter('woocommerce_reset_variations_link', static function (): string {
+    return '';
+});
+
 add_filter('woocommerce_product_related_products_heading', static function (): string {
     return __('Produse similare', 'papetarie-storefront');
 });
