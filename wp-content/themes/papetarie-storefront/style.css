@@ -21172,10 +21172,15 @@ form.variations_form.cart {
    despartitoare de mai devreme. Grid, nu flex, deci fara riscul de
    "text-whitespace devine item fantoma" gasit la .pap-product-actions-row -
    gap merge normal aici. */
+/* Mutat la finalul coloanei din dreapta (dupa tab-urile Descriere/
+   Specificatii, nu intre cardul de cumparare si ele) - cerut explicit
+   de user. Nu mai e nested in .pap-product-info (care avea propriul
+   padding:24px), deci are nevoie de padding orizontal+jos propriu, ca
+   sa se alinieze cu restul continutului din card. */
 .pap-product-benefits {
   list-style: none;
-  margin: 28px 0 0;
-  padding: 16px 0 0;
+  margin: 0;
+  padding: 20px 24px 24px;
   border-top: 1px solid #f0f2f5;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -21239,7 +21244,7 @@ body.theme-papetarie .pap-product-tabs-section ul.tabs {
   margin: 0 !important;
   padding: 0 !important;
   gap: 28px !important;
-  border-bottom: 1px solid #dde1e8 !important;
+  border-bottom: 0 !important;
 }
 
 body.theme-papetarie .pap-product-tabs-section ul.tabs li {

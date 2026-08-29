@@ -278,6 +278,12 @@ get_header();
           </div>
         <?php endif; ?>
 
+      </div>
+
+        <div class="pap-product-tabs-section">
+          <?php woocommerce_output_product_data_tabs(); ?>
+        </div>
+
         <ul class="pap-product-benefits">
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('truck-outline'); ?></span>
@@ -296,11 +302,6 @@ get_header();
             <span><?php esc_html_e('Plată securizată', 'papetarie-storefront'); ?></span>
           </li>
         </ul>
-      </div>
-
-        <div class="pap-product-tabs-section">
-          <?php woocommerce_output_product_data_tabs(); ?>
-        </div>
       </div>
     </div>
 
