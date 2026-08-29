@@ -617,17 +617,36 @@ get_header();
         return next;
       }
 
+      // Dezactiveaza vizual - / + cand valoarea curenta e deja la limita
+      // (min/max) - altfel butoanele raman "clicabile" fara niciun efect,
+      // fara sa comunice vizual de ce.
+      function updateDisabledState() {
+        var min = parseInt(input.getAttribute('min'), 10) || 1;
+        var max = input.getAttribute('max') ? parseInt(input.getAttribute('max'), 10) : null;
+        var current = parseInt(input.value, 10) || min;
+        if (decrease) {
+          decrease.disabled = current <= min;
+        }
+        if (increase) {
+          increase.disabled = max !== null && current >= max;
+        }
+      }
+
       if (decrease) {
         decrease.addEventListener('click', function () {
           input.value = clamp((parseInt(input.value, 10) || 1) - 1);
+          updateDisabledState();
         });
       }
 
       if (increase) {
         increase.addEventListener('click', function () {
           input.value = clamp((parseInt(input.value, 10) || 1) + 1);
+          updateDisabledState();
         });
       }
+
+      updateDisabledState();
     }
 
     var shareButton = document.querySelector('[data-product-share]');

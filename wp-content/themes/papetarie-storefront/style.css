@@ -20986,11 +20986,15 @@ form.variations_form.cart {
 .pap-product-qty-stepper {
   display: flex;
   align-items: center;
+  width: 144px;
   height: 48px;
-  /* ~152px total (44+44+64 continut + 1.5px border pe fiecare parte) -
-     in intervalul 150-160px cerut. */
-  border: 1.5px solid #dde1e8;
+  box-sizing: border-box;
+  /* UN singur contur exterior - nicio bordura individuala pe celule (vezi
+     mai jos, doar doua border-left subtiri ca despartitoare) si niciun
+     box-shadow/inset. */
+  border: 1px solid #dde1e8;
   border-radius: 3px;
+  background: #fff;
   overflow: hidden;
 }
 
@@ -21001,33 +21005,47 @@ form.variations_form.cart {
   flex: 0 0 44px;
   width: 44px;
   min-width: 44px;
-  height: 48px;
+  height: 100%;
+  box-sizing: border-box;
   border: 0;
-  background: #f8f9fb;
-  color: #0d2e61;
+  /* Fundal extrem de discret, nu un "buton" separat cu propria cutie. */
+  background: #fafbfc;
+  color: var(--pap-navy);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
+/* Storefront seteaza generic "button:hover { color:#fff }" (alb) - fara sa
+   rescriem explicit "color" aici, iconita -/+ (currentColor) devenea alba
+   pe un fundal deschis, deci invizibila. O clasa proprie pe :hover are
+   deja specificitate mai mare decat elementul brut "button:hover" din
+   Storefront (nu are !important), deci simpla reafirmare a culorii navy
+   e suficienta - nu mai trebuie !important sau alt hack. Gasit live
+   2026-08-29 inspectand direct regulile CSS incarcate. */
 .pap-product-qty-btn:hover {
-  background: #eef1f6;
+  background: #f4f7fb;
+  color: var(--pap-navy);
 }
 
 .pap-product-qty-btn:active {
-  background: #e3e7ee;
+  background: #e8ecf2;
+  color: var(--pap-navy);
 }
 
-/* Separatoare subtile intre zonele -/valoare/+ - fara o bordura separata pe
-   input, ca sa nu dubleze linia cu marginea dreapta a primului buton. */
-.pap-product-qty-btn[data-qty-decrease] {
-  border-right: 1px solid #dde1e8;
+.pap-product-qty-btn:disabled {
+  color: #c3c9d4;
+  background: #fff;
+  cursor: not-allowed;
 }
 
+/* Doar doua despartitoare de 1px, nu bordura completa pe fiecare celula -
+   cititul vizual ramane "| - | 1 | + |" intr-un singur contur exterior. */
+.pap-product-qty-input,
 .pap-product-qty-btn[data-qty-increase] {
-  border-left: 1px solid #dde1e8;
+  border-left: 1px solid #e5e8ee;
 }
 
 .pap-product-qty-btn svg {
@@ -21038,19 +21056,23 @@ form.variations_form.cart {
      dimensiuni intrinseci proprii. Gasit live 2026-08-29: butoanele -/+
      complet invizibile, desi width:12px era singura regula potrivita. */
   flex-shrink: 0;
-  width: 13px;
-  height: 13px;
-  min-width: 13px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
 }
 
 .pap-product-qty-input {
-  flex: 0 0 64px;
-  width: 64px;
-  height: 48px;
-  border: 0;
+  flex: 0 0 54px;
+  width: 54px;
+  height: 100%;
+  box-sizing: border-box;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: #fff;
   text-align: center;
-  color: #0d2e61;
-  font-size: 15px;
+  color: var(--pap-navy);
+  font-size: 16px;
   font-weight: 600;
   -moz-appearance: textfield;
 }
@@ -22940,29 +22962,20 @@ form.cart table.variations td.value {
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* O singura tratare de selectie: contur navy, fara inel portocaliu si fara
+   punct alb in centru - portocaliul NOTIX ramane rezervat pentru CTA.
+   Reset-ul global "input,textarea,select,button{box-shadow:none!important}"
+   deja anuleaza orice box-shadow pe un <button> - exact ce vrem aici, deci
+   nu mai declaram deloc box-shadow (nici macar sa-l anulam, e deja none). */
 .pap-color-swatch:hover {
-  transform: scale(1.1);
+  outline: 2px solid rgba(13, 46, 97, 0.35);
+  outline-offset: 2px;
 }
 
 .pap-color-swatch.is-selected {
   border-color: var(--pap-navy);
-  /* Reset-ul global "input,textarea,select,button{box-shadow:none!important}"
-     (pentru glow-ul de focus implicit al browserului) taie orice box-shadow
-     de pe un <button> - inclusiv inelul de selectie de aici, care nu are
-     nicio legatura cu focus-ul; trebuie reafirmat cu !important. */
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--pap-orange) !important;
-}
-
-.pap-color-swatch.is-selected::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  outline: 2px solid var(--pap-navy);
+  outline-offset: 2px;
 }
 
 .pap-color-swatch:focus-visible {
@@ -22992,8 +23005,8 @@ form.cart table.variations td.value {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px dashed rgba(0, 0, 0, 0.2);
-  background: var(--pap-soft, #f4f7fb);
+  border: 2px dashed #c7cede;
+  background: #fff;
   color: var(--pap-navy, #0d2e61);
   font-size: 11px;
   font-weight: 700;
@@ -23002,12 +23015,16 @@ form.cart table.variations td.value {
   justify-content: center;
   padding: 0;
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
+/* Aceeasi problema ca la stepper: "button:hover{color:#fff}" global din
+   Storefront facea textul "+N" alb pe fundal deschis, deci invizibil -
+   reafirmam explicit navy, nu doar fundalul. */
 .pap-color-swatch-more:hover {
-  transform: scale(1.1);
-  border-color: rgba(0, 0, 0, 0.35);
+  background: #f4f7fb;
+  border-color: var(--pap-navy);
+  color: var(--pap-navy);
 }
 
 .pap-color-swatch-more:focus-visible {
