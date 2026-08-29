@@ -651,59 +651,6 @@ get_header();
       updateDisabledState();
     }
 
-    var accordion = document.querySelector('[data-product-accordion]');
-    if (accordion) {
-      // WooCommerce's propriu JS pentru tab-uri (inca incarcat, nu doar
-      // markup-ul lui inlocuit) gaseste elementele .woocommerce-Tabs-panel
-      // (pastrate intentionat pentru compatibilitatea stilurilor de
-      // continut) si le ascunde pe toate cu jQuery .hide() -> style
-      // inline "display:none" - asta castiga in fata atributului "hidden"
-      // pe care il controlam noi, indiferent ce stare seteaza JS-ul
-      // nostru. Curatam explicit orice display inline de fiecare data,
-      // ca "hidden"/CSS sa ramana singura sursa de adevar. Gasit live
-      // 2026-08-29: panoul "Descriere" ramanea invizibil desi era marcat
-      // ca deschis.
-      function clearInlineDisplay(panel) {
-        if (panel) {
-          panel.style.removeProperty('display');
-        }
-      }
-
-      accordion.querySelectorAll('.pap-accordion-panel').forEach(clearInlineDisplay);
-
-      accordion.addEventListener('click', function (event) {
-        var header = event.target.closest('[data-accordion-toggle]');
-        if (!header) {
-          return;
-        }
-
-        var item = header.closest('.pap-accordion-item');
-        var panel = document.getElementById(header.getAttribute('aria-controls'));
-        var wasOpen = item.classList.contains('is-open');
-
-        accordion.querySelectorAll('.pap-accordion-item.is-open').forEach(function (openItem) {
-          if (openItem === item) {
-            return;
-          }
-          var openHeader = openItem.querySelector('[data-accordion-toggle]');
-          var openPanel = document.getElementById(openHeader.getAttribute('aria-controls'));
-          openItem.classList.remove('is-open');
-          openHeader.setAttribute('aria-expanded', 'false');
-          if (openPanel) {
-            openPanel.hidden = true;
-            clearInlineDisplay(openPanel);
-          }
-        });
-
-        item.classList.toggle('is-open', !wasOpen);
-        header.setAttribute('aria-expanded', String(!wasOpen));
-        if (panel) {
-          panel.hidden = wasOpen;
-          clearInlineDisplay(panel);
-        }
-      });
-    }
-
     var shareButton = document.querySelector('[data-product-share]');
     if (shareButton) {
       shareButton.addEventListener('click', function () {
