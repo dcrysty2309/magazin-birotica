@@ -22,44 +22,38 @@ get_header();
 
     $product_id = $product->get_id();
 
-    // Pentru produse variabile cu atribut de culoare, "varianta implicita"
-    // (poza/SKU aratate inainte sa alegi o culoare) trebuie sa fie EXACT
-    // culoarea aratata prima in lista de swatch-uri - altfel poza initiala
-    // poate sa nu corespunda cu nicio culoare vizibila in lista (gasit live
-    // 2026-08-29: thumbnail-ul parintelui ramasese pe o variatie veche, in
-    // timp ce lista de swatch-uri incepea cu alta culoare - poza aratata nu
-    // se potrivea cu primul swatch). $product->get_image_id() (thumbnail-ul
-    // parintelui) e setat o singura data, la import, si poate ramane in urma
-    // fata de ordinea curenta a optiunilor de atribut.
+    // Thumbnail-ul parintelui (poza de pe categorie/cardul de produs) e
+    // sursa de adevar - swatch-urile se reordoneaza la afisare ca sa
+    // inceapa cu culoarea ei (vezi papetarie_storefront_thumbnail_matched_color
+    // in color-swatches.php), iar aici gasim aceeasi variatie doar ca sa-i
+    // preluam SKU-ul implicit mai jos - poza principala ramane oricum
+    // $product->get_image_id() direct, deci mereu identica cu cea de pe
+    // categorie (gasit live 2026-08-29: inainte porneam de la "prima
+    // culoare din lista de atribute", care putea sa nu corespunda cu
+    // thumbnail-ul parintelui).
     $default_color_variation = null;
     if ($product->is_type('variable')) {
-        foreach ($product->get_variation_attributes() as $attr_name => $options) {
-            if (!papetarie_storefront_is_color_attribute($attr_name) || empty($options)) {
-                continue;
-            }
-            $first_option = (string) $options[0];
-            $attr_key = sanitize_title($attr_name);
+        $thumbnail_id = (int) $product->get_image_id();
+        if ($thumbnail_id !== 0) {
             foreach ($product->get_children() as $child_id) {
                 $child = wc_get_product($child_id);
-                if ($child && $child->get_status() === 'publish' && ($child->get_attributes()[$attr_key] ?? '') === $first_option) {
+                if ($child && $child->get_status() === 'publish' && (int) $child->get_image_id() === $thumbnail_id) {
                     $default_color_variation = $child;
-                    break 2;
+                    break;
                 }
             }
         }
     }
 
-    $main_image_id = ($default_color_variation && $default_color_variation->get_image_id())
-        ? $default_color_variation->get_image_id()
-        : $product->get_image_id();
+    $main_image_id = $product->get_image_id();
     $gallery_image_ids = $product->get_gallery_image_ids();
     $all_image_ids = array_values(array_filter(array_merge([$main_image_id], $gallery_image_ids)));
     $main_image_url = $main_image_id ? wp_get_attachment_image_url($main_image_id, 'large') : wc_placeholder_img_src('woocommerce_single');
     $product_name = $product->get_name();
     $sku = $product->get_sku();
     // Produsele variabile nu au SKU propriu (fiecare culoare are al ei) -
-    // afisam implicit SKU-ul aceleiasi variatii-implicite de mai sus (prima
-    // culoare din lista), la fel cum pretul mare implicit e cel al variatiei
+    // afisam implicit SKU-ul variatiei gasite mai sus (cea a carei imagine e
+    // chiar thumbnail-ul), la fel cum pretul mare implicit e cel al variatiei
     // minime; JS-ul de mai jos il inlocuieste live cu SKU-ul culorii alese
     // (vezi found_variation mai jos).
     if ($sku === '' && $default_color_variation) {

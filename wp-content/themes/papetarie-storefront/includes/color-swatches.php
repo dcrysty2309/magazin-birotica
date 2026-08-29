@@ -202,6 +202,37 @@ function papetarie_storefront_adjust_hex(string $hex, float $amount): string
     return sprintf('#%02x%02x%02x', $r, $g, $b);
 }
 
+/**
+ * Gaseste ce valoare de atribut are variatia a carei imagine e chiar
+ * thumbnail-ul produsului-parinte (poza de pe pagina de categorie/card de
+ * produs), ca sa putem pune EXACT culoarea aia prima in lista de swatch-uri -
+ * altfel poza principala poate sa nu corespunda cu niciun swatch evidentiat
+ * (gasit live 2026-08-29). Facut strict la afisare (nu rescrie
+ * _product_attributes) ca sa nu se piarda la urmatoarea resincronizare
+ * Aperta, care rescrie oricum ordinea din feed la fiecare rulare.
+ */
+function papetarie_storefront_thumbnail_matched_color(WC_Product $product, string $attributeKey): ?string
+{
+    $thumbnailId = (int) $product->get_image_id();
+    if ($thumbnailId === 0 || !$product->is_type('variable')) {
+        return null;
+    }
+
+    foreach ($product->get_children() as $childId) {
+        $child = wc_get_product($childId);
+        if (!$child instanceof WC_Product_Variation || $child->get_status() !== 'publish') {
+            continue;
+        }
+        if ((int) $child->get_image_id() === $thumbnailId) {
+            $value = $child->get_attributes()[$attributeKey] ?? null;
+
+            return $value !== null && $value !== '' ? $value : null;
+        }
+    }
+
+    return null;
+}
+
 function papetarie_storefront_color_swatch_dropdown_html(string $html, array $args): string
 {
     $attribute = (string) ($args['attribute'] ?? '');
@@ -220,6 +251,19 @@ function papetarie_storefront_color_swatch_dropdown_html(string $html, array $ar
 
     if (empty($options)) {
         return $html;
+    }
+
+    if ($product instanceof WC_Product) {
+        $thumbnailColor = papetarie_storefront_thumbnail_matched_color($product, sanitize_title($attribute));
+        if ($thumbnailColor !== null) {
+            $matchIndex = array_search($thumbnailColor, array_values($options), true);
+            if ($matchIndex !== false && $matchIndex !== 0) {
+                $options = array_values($options);
+                unset($options[$matchIndex]);
+                array_unshift($options, $thumbnailColor);
+                $options = array_values($options);
+            }
+        }
     }
 
     $selectName = $args['name'] ? (string) $args['name'] : 'attribute_' . sanitize_title($attribute);
