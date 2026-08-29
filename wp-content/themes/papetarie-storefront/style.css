@@ -20849,12 +20849,12 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
 }
 
 .pap-product-sku {
-  color: #6b7a95;
+  color: #9aa5b8;
   font-size: 11px;
 }
 
 .pap-product-title {
-  margin: 8px 0 0;
+  margin: 12px 0 0;
   color: #0d2e61;
   font-size: 20px;
   font-weight: 700;
@@ -20862,7 +20862,16 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
 }
 
 .pap-product-price-block {
-  margin-top: 16px;
+  margin-top: 32px;
+}
+
+/* Spatiu intre pretul mare si tabelul de variatii (eticheta "Culori" +
+   swatch-uri) de sub el - doar la produsele variabile; la cele simple
+   spatiul pana la randul cantitate+cos vine din .pap-product-actions-row
+   mai jos, aplicat direct pe acelasi <form>. Pe scara de spatiere
+   8/12/16/24/32/40. */
+form.variations_form.cart {
+  margin-top: 32px;
 }
 
 .pap-product-price-row {
@@ -20935,25 +20944,33 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   display: none;
 }
 
-.pap-product-actions-row {
+/* .pap-product-actions-row--fallback e un wrapper diferit (invelet tot
+   formularul de variatii la produsele variabile - table + swatches + rand
+   cantitate/cos) care intampla sa poarte si el clasa de baza
+   .pap-product-actions-row; exclus explicit, altfel randul cantitate+cos
+   real (nested in interiorul lui, vezi single-product/add-to-cart/
+   variation-add-to-cart-button.php) primeste inca un 32px in plus peste
+   cel deja pus pe form.variations_form.cart mai sus (gasit live 2026-08-29:
+   64px in loc de 32px intre swatch-uri si pretul de deasupra). */
+.pap-product-actions-row:not(.pap-product-actions-row--fallback) {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 32px;
 }
 
 .pap-product-qty-stepper {
   display: flex;
   align-items: center;
-  height: 39px;
+  height: 48px;
   border: 1.5px solid #dde1e8;
   border-radius: 3px;
   overflow: hidden;
 }
 
 .pap-product-qty-btn {
-  width: 32px;
-  height: 36px;
+  width: 40px;
+  height: 48px;
   border: 0;
   background: #f8f9fb;
   color: #0d2e61;
@@ -20969,12 +20986,12 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
 }
 
 .pap-product-qty-input {
-  width: 40px;
-  height: 36px;
+  width: 44px;
+  height: 48px;
   border: 0;
   text-align: center;
   color: #0d2e61;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   -moz-appearance: textfield;
 }
@@ -20990,23 +21007,38 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 20px;
+  gap: 8px;
+  height: 48px;
+  padding: 0 24px;
   border: 0;
   border-radius: 3px;
   background: var(--pap-orange);
   color: #fff;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
+  opacity: 1;
 }
 
 .pap-product-add-to-cart:hover,
 .pap-product-actions-row .single_add_to_cart_button:hover {
   background: var(--pap-orange-deep);
   color: #fff;
+}
+
+/* Storefront intuneca implicit orice buton disabled la opacity:0.5 (potrivit
+   pentru butoane cu adevarat inerte, dar aici butonul e doar in asteptarea
+   alegerii unei culori) - CTA-ul principal al paginii de produs trebuie sa
+   ramana vizibil ca actiune, nu sa para stricat/dezactivat. WooCommerce
+   marcheaza starea "fara varianta aleasa" cu clasa .disabled, nu cu
+   atributul disabled - butonul chiar nu e disabled tehnic (submitul e
+   blocat de JS-ul de variatii la nevoie), doar stilizat ca atare. */
+.pap-product-add-to-cart:disabled,
+.pap-product-add-to-cart.disabled,
+.pap-product-actions-row .single_add_to_cart_button:disabled,
+.pap-product-actions-row .single_add_to_cart_button.disabled {
+  opacity: 0.85 !important;
 }
 
 .pap-product-add-to-cart span:first-child {
@@ -21026,12 +21058,12 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
 
 .pap-product-benefits {
   list-style: none;
-  margin: 18px 0 0;
-  padding: 19px 0 0;
+  margin: 24px 0 0;
+  padding: 16px 0 0;
   border-top: 1px solid #f0f2f5;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
 }
 
 .pap-product-benefits li {
@@ -22802,19 +22834,24 @@ form.cart table.variations td {
 form.variations_form table.variations td.value,
 form.cart table.variations td.value {
   width: auto;
+  /* Storefront pune 14px margin-bottom implicit dupa fiecare celula "list-item"
+     - suprascris la 0 ca sa nu se adune cu margin-top-ul de mai jos de pe
+     .pap-product-actions-row (singura sursa a spatiului swatch-uri -> rand
+     cantitate+cos, ca sa ramana un singur 32px controlat intr-un singur loc). */
+  margin-bottom: 0 !important;
 }
 
 .pap-color-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin: 4px 0;
+  gap: 12px;
+  margin: 12px 0 0;
   max-width: 100%;
 }
 
 .pap-color-swatch {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 2px solid rgba(0, 0, 0, 0.15);
   background-color: var(--pap-swatch-color, #d0d0d0);
@@ -22829,8 +22866,24 @@ form.cart table.variations td.value {
 }
 
 .pap-color-swatch.is-selected {
-  border-color: #1a1a1a;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1a1a1a;
+  border-color: var(--pap-navy);
+  /* Reset-ul global "input,textarea,select,button{box-shadow:none!important}"
+     (pentru glow-ul de focus implicit al browserului) taie orice box-shadow
+     de pe un <button> - inclusiv inelul de selectie de aici, care nu are
+     nicio legatura cu focus-ul; trebuie reafirmat cu !important. */
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--pap-orange) !important;
+}
+
+.pap-color-swatch.is-selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
 
 .pap-color-swatch:focus-visible {
@@ -22857,8 +22910,8 @@ form.cart table.variations td.value {
 }
 
 .pap-color-swatch-more {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 2px dashed rgba(0, 0, 0, 0.2);
   background: var(--pap-soft, #f4f7fb);
