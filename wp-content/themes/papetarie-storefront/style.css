@@ -21315,8 +21315,10 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel {
   /* Doar padding vertical - cel lateral (stanga/dreapta) dubla padding-ul
      deja pus pe .pap-product-tabs-section (24px), impingand continutul
      panoului cu 48px de la margine in loc de 24px cat au tab-urile
-     deasupra - gasit live 2026-08-29 in urma semnalarii userului. */
-  padding: 24px 0 !important;
+     deasupra - gasit live 2026-08-29 in urma semnalarii userului.
+     Sus 32px - distanta ceruta explicit intre titlul "Descriere" (bara de
+     tab-uri) si inceputul continutului, 2026-08-30. */
+  padding: 32px 0 24px !important;
   color: #374151 !important;
   font-size: 14px !important;
   line-height: 24.5px !important;
@@ -21383,15 +21385,19 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.sho
    regulilor !important de mai jos (font-size/line-height/color pe
    .woocommerce-Tabs-panel) ca sa castige, desi acest bloc e nested in el. */
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box {
-  max-width: 760px;
+  /* 850-900px cerut - zona de text ramane confortabila la citit fara sa
+     intinda randurile pe toata latimea cardului. */
+  max-width: 880px;
   color: #374151 !important;
   font-size: 16px !important;
   line-height: 1.6 !important;
 }
 
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box p {
-  margin: 0 0 14px !important;
-  text-align: justify !important;
+  margin: 0 0 18px !important;
+  /* justify scotea "rauri" de spatiu alb intre cuvinte pe randurile mai
+     goale - text aliniat la stanga, cerut explicit 2026-08-30. */
+  text-align: left !important;
 }
 
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box p:last-child {
@@ -21400,12 +21406,12 @@ body.theme-papetarie .pap-product-tabs-section .pap-product-description-box p:la
 
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box ul,
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box ol {
-  margin: 0 0 14px !important;
+  margin: 0 0 18px !important;
   padding-left: 20px !important;
 }
 
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box li {
-  margin-bottom: 6px !important;
+  margin-bottom: 8px !important;
 }
 
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box li:last-child {
@@ -21419,6 +21425,34 @@ body.theme-papetarie .pap-product-tabs-section .pap-product-description-box b {
 
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box a {
   color: var(--pap-orange);
+}
+
+/* Grup de informatii tehnice (randuri "Eticheta: valoare" gen Dimensiuni,
+   Format, Greutate - vezi includes/product-description.php) - separat
+   vizual de proza de deasupra (24px), randuri stranse intre ele (8px), ca
+   sa citeasca ca un bloc coerent de specificatii, nu ca alte paragrafe. */
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-specs {
+  margin: 24px 0 18px !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-specs:last-child {
+  margin-bottom: 0 !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-spec-line,
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-spec-heading {
+  margin: 0 0 8px !important;
+  text-align: left !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-spec-line:last-child,
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-spec-heading:last-child {
+  margin-bottom: 0 !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-spec-heading {
+  color: #0d2e61 !important;
+  font-weight: 700 !important;
 }
 
 .pap-product-description-fade {
@@ -21441,7 +21475,8 @@ body.theme-papetarie .pap-product-tabs-section .pap-product-description-box a {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 12px;
+  /* 24-32px cerut intre ultimul element de continut si buton. */
+  margin-top: 28px;
   border: 0;
   background: transparent;
   color: var(--pap-orange);

@@ -6,19 +6,13 @@ global $product, $post;
 
 $tag_names = $product instanceof WC_Product ? wp_list_pluck(get_the_terms($product->get_id(), 'product_tag') ?: [], 'name') : [];
 
-// Feed-ul Aperta contine des line-break-uri "dure" in mijlocul unei
-// propozitii/paragraf (text hard-wrapped la o anumita latime la sursa),
-// nu paragrafe reale - wpautop() (folosit de the_content()) transforma
-// orice linie noua simpla intr-un <br>, facand descrierea sa arate ca o
-// insiruire de fragmente rupte in loc de paragrafe normale. Randurile
-// goale reale (\n\n, adica paragrafe distincte in text) raman neatinse -
-// doar liniile simple izolate devin un spatiu, nu o rupere vizibila.
+// Randare uniforma a descrierii (proza recompusa din hard-wrap, randuri
+// "Eticheta: valoare" grupate separat, liste "- element" convertite in
+// <ul>, HTML existent neatins) - vezi
+// includes/product-description.php pentru detalii si motivul euristicii.
 // Continutul original din baza de date nu e modificat, doar randarea.
 $raw_content = (string) ($post->post_content ?? '');
-$normalized_content = str_replace(["\r\n", "\r"], "\n", $raw_content);
-$normalized_content = (string) preg_replace('/(?<!\n)\n(?!\n)/', ' ', $normalized_content);
-
-$description_html = apply_filters('the_content', $normalized_content);
+$description_html = papetarie_storefront_format_description_content($raw_content);
 $description_html = str_replace(']]>', ']]&gt;', $description_html);
 ?>
 <div class="pap-product-description-box" data-description-box>
