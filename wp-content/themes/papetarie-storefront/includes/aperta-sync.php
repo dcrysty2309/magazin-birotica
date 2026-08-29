@@ -1503,6 +1503,46 @@ function papetarie_storefront_aperta_get_or_create_attr_term(string $group, stri
 }
 
 /**
+ * Construieste atribute WooCommerce reale (locale, nu taxonomie) dintr-un
+ * set de perechi grup=>valoare extrase din descriere/nume - astea sunt ce
+ * populeaza efectiv tab-ul "Specificatii" de pe pagina de produs
+ * ($product->set_attributes()), spre deosebire de taxonomia
+ * product_attr_value (tag_attr_terms()/tag_multiple_attrs()/
+ * tag_variant_and_extra_attrs() de mai jos), care serveste DOAR filtrul de
+ * pe pagina de arhiva si nu are nicio legatura cu ce se afiseaza pe tab-ul
+ * de produs. Pana acum doar taxonomia era populata - Specificatii ramanea
+ * gol la toate produsele simple si arata doar culoarea la cele variabile,
+ * desi extract_description_attributes()/extract_text_attributes() gaseau
+ * deja Format/Material/Dimensiuni/Greutate etc., pur si simplu nimeni nu le
+ * punea si pe produs, doar in taxonomia de filtrare. Gasit 2026-08-30.
+ *
+ * @param array<string, string> $groupValuePairs grup => valoare
+ * @return WC_Product_Attribute[]
+ */
+function papetarie_storefront_aperta_build_extra_wc_attributes(array $groupValuePairs): array
+{
+    $attributes = [];
+
+    foreach ($groupValuePairs as $group => $value) {
+        $group = trim((string) $group);
+        $value = trim((string) $value);
+        if ($group === '' || $value === '') {
+            continue;
+        }
+
+        $attribute = new WC_Product_Attribute();
+        $attribute->set_id(0);
+        $attribute->set_name($group);
+        $attribute->set_options([$value]);
+        $attribute->set_visible(true);
+        $attribute->set_variation(false);
+        $attributes[] = $attribute;
+    }
+
+    return $attributes;
+}
+
+/**
  * Eticheteaza produsul-parinte cu termenii (grup, valoare) pentru toate
  * valorile distincte gasite la variantele lui - asa poate fi gasit prin
  * filtrare chiar daca pagina de arhiva listeaza doar produsul-parinte, nu
@@ -1613,22 +1653,6 @@ function papetarie_storefront_aperta_backfill_attributes_chunk(int $offset, int 
             continue;
         }
 
-        if ($product instanceof WC_Product_Variable) {
-            $attributes = $product->get_attributes();
-            if (empty($attributes)) {
-                continue;
-            }
-            $attribute = reset($attributes);
-            $group = $attribute->get_name();
-            $values = $attribute->get_options();
-            if ($group === '' || empty($values)) {
-                continue;
-            }
-            papetarie_storefront_aperta_tag_attr_terms($id, $group, $values);
-            $tagged++;
-            continue;
-        }
-
         $name = $product->get_name();
         $description = $product->get_description();
         $categoryNames = wp_get_post_terms($id, 'product_cat', ['fields' => 'names']);
@@ -1636,10 +1660,49 @@ function papetarie_storefront_aperta_backfill_attributes_chunk(int $offset, int 
 
         $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
         $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
-        $allAttrs = $descAttrs + $textAttrs;
+        $extraAttrs = $descAttrs + $textAttrs;
 
-        if ($allAttrs) {
-            papetarie_storefront_aperta_tag_multiple_attrs($id, $allAttrs);
+        if ($product instanceof WC_Product_Variable) {
+            // Nu recalculam atributul de variatie (culoare) - nu avem
+            // randurile din feed aici, doar ce e deja salvat. Pastram
+            // atributul de variatie existent neatins, adaugam doar
+            // extra-atributele descoperite acum in descriere/nume - vezi
+            // build_extra_wc_attributes() (populeaza tab-ul "Specificatii",
+            // gol pana acum la produsele variabile in afara de culoare).
+            $existingAttributes = $product->get_attributes();
+            $variationAttribute = null;
+            foreach ($existingAttributes as $attr) {
+                if ($attr->get_variation()) {
+                    $variationAttribute = $attr;
+                    break;
+                }
+            }
+            if ($variationAttribute === null) {
+                continue;
+            }
+
+            $group = $variationAttribute->get_name();
+            $values = $variationAttribute->get_options();
+            if ($group === '' || empty($values)) {
+                continue;
+            }
+            unset($extraAttrs[$group]);
+
+            $product->set_attributes(array_merge(
+                [$variationAttribute],
+                papetarie_storefront_aperta_build_extra_wc_attributes($extraAttrs)
+            ));
+            $product->save();
+
+            papetarie_storefront_aperta_tag_variant_and_extra_attrs($id, $group, $values, $extraAttrs);
+            $tagged++;
+            continue;
+        }
+
+        if ($extraAttrs) {
+            $product->set_attributes(papetarie_storefront_aperta_build_extra_wc_attributes($extraAttrs));
+            $product->save();
+            papetarie_storefront_aperta_tag_multiple_attrs($id, $extraAttrs);
             $tagged++;
         }
     }
@@ -2090,14 +2153,21 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
             $simple->set_gallery_image_ids(array_slice($imageIds, 1));
         }
 
-        $simple->save();
-
         // Descrierea e o sursa mai bogata si mai fiabila (liste structurate
         // "Eticheta: Valoare") decat titlul - o citim intai, apoi completam
-        // cu ce mai gasim in titlu daca nu a fost deja acolo.
+        // cu ce mai gasim in titlu daca nu a fost deja acolo. Setate direct
+        // pe produs (nu doar in taxonomia de filtrare de mai jos) ca sa
+        // populeze si tab-ul "Specificatii" de pe pagina de produs, gol pana
+        // acum la toate produsele simple (vezi build_extra_wc_attributes()).
         $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
         $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
         $allAttrs = $descAttrs + $textAttrs;
+        if ($allAttrs) {
+            $simple->set_attributes(papetarie_storefront_aperta_build_extra_wc_attributes($allAttrs));
+        }
+
+        $simple->save();
+
         if ($allAttrs) {
             papetarie_storefront_aperta_tag_multiple_attrs($productId, $allAttrs);
         }
@@ -2231,6 +2301,15 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
     }
     $values = array_keys($values);
 
+    // Atributele suplimentare extrase din descriere/nume (Format, Gramaj,
+    // Ambalare etc.) - multe produse variabile au si ele liste structurate
+    // in descriere, pierdute pana acum fiindca doar culoarea/varianta
+    // ajungea pe produs (vezi build_extra_wc_attributes() mai sus).
+    $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
+    $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
+    $extraAttrs = $descAttrs + $textAttrs;
+    unset($extraAttrs[$attributeName]);
+
     $attribute = new WC_Product_Attribute();
     $attribute->set_id(0);
     $attribute->set_name($attributeName);
@@ -2239,19 +2318,15 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
     $attribute->set_variation(true);
 
     $variable = new WC_Product_Variable($productId);
-    $variable->set_attributes([$attribute]);
+    $variable->set_attributes(array_merge(
+        [$attribute],
+        papetarie_storefront_aperta_build_extra_wc_attributes($extraAttrs)
+    ));
     $variable->save();
 
-    // Etichetare pentru filtrare pe pagina de arhiva (separat de atributul
-    // WooCommerce de mai sus, care e pentru afisare/variatii, nu pentru query).
-    // Combinam si atributele extrase din descriere/nume (Format, Gramaj,
-    // Ambalare etc.) - multe produse variabile au si ele liste structurate
-    // in descriere, pierdute pana acum fiindca doar culoarea/varianta se
-    // etticheta pentru produsele variabile.
-    $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
-    $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
-    $extraAttrs = $descAttrs + $textAttrs;
-    unset($extraAttrs[$attributeName]);
+    // Etichetare pentru filtrare pe pagina de arhiva (separat de atributele
+    // WooCommerce de mai sus, care alimenteaza tab-ul "Specificatii" - asta
+    // e doar pentru query-ul de filtrare de pe pagina de arhiva).
     papetarie_storefront_aperta_tag_variant_and_extra_attrs($productId, $attributeName, $values, $extraAttrs);
 
     $attributeKey = sanitize_title($attributeName);
