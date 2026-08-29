@@ -21486,6 +21486,17 @@ body.theme-papetarie .pap-product-tabs-section .pap-product-description-spec-hea
   padding: 0;
 }
 
+/* Storefront seteaza generic "button:hover{color:#fff}" (fara !important) -
+   fara sa rescriem explicit "color" aici, textul portocaliu devenea alb pe
+   hover, deci invizibil pe fundalul transparent/alb (acelasi tipar de bug
+   ca la butoanele -/+ ale stepper-ului, gasit live 2026-08-29). O clasa
+   proprie pe :hover are deja specificitate mai mare decat elementul brut
+   "button:hover" din Storefront, deci simpla reafirmare a culorii e
+   suficienta. */
+.pap-product-read-more:hover {
+  color: var(--pap-orange);
+}
+
 .pap-product-read-more-icon {
   display: inline-flex;
   width: 14px;
