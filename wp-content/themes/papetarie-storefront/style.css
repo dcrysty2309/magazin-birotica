@@ -20869,7 +20869,7 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
 }
 
 .pap-product-price-block {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 /* Spatiu intre pretul mare si tabelul de variatii (eticheta "Culori" +
@@ -20881,7 +20881,7 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
    umfland golul real (masurat cu getBoundingClientRect()) la 48px in loc
    de cele 24px cerute, desi CSS-ul "parea" corect la 32px declarati. */
 form.variations_form.cart {
-  margin-top: 24px;
+  margin-top: 16px;
   padding-top: 0 !important;
 }
 
@@ -20984,7 +20984,12 @@ form.variations_form.cart {
 }
 
 .pap-product-qty-btn {
-  width: 40px;
+  /* "width" singur nu era suficient - fara flex-shrink:0/min-width, flexbox
+     il lasa sa creasca la ~45px in loc de 36px in interiorul stepper-ului
+     (gasit live 2026-08-29, masurat cu getBoundingClientRect()). */
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
   height: 48px;
   border: 0;
   background: #f8f9fb;
@@ -21001,6 +21006,7 @@ form.variations_form.cart {
 }
 
 .pap-product-qty-input {
+  flex: 0 0 48px;
   width: 48px;
   height: 48px;
   border: 0;
@@ -21075,11 +21081,11 @@ form.variations_form.cart {
 .pap-product-benefits {
   list-style: none;
   margin: 24px 0 0;
-  padding: 20px 0 0;
+  padding: 12px 0 0;
   border-top: 1px solid #f0f2f5;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px 16px;
+  gap: 10px 12px;
 }
 
 .pap-product-benefits li {

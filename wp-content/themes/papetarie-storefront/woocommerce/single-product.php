@@ -280,11 +280,11 @@ get_header();
         <ul class="pap-product-benefits">
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('truck-outline'); ?></span>
-            <span><?php esc_html_e('Livrare 24-48h pentru comenzile plasate până la 15:00', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Livrare 24-48h', 'papetarie-storefront'); ?></span>
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('package'); ?></span>
-            <span><?php esc_html_e('Ridicare gratuită din depozit disponibilă', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Ridicare gratuită din depozit', 'papetarie-storefront'); ?></span>
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('undo'); ?></span>
