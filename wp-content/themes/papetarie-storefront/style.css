@@ -20398,6 +20398,12 @@ body.theme-papetarie .pap-footer-meta a:hover {
   grid-template-columns: 440px minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+  /* Storefront pune generic "overflow:hidden" pe orice div.product
+     (clasa adaugata automat de wc_product_class()) - rupe complet
+     position:sticky pe galerie (vezi mai jos), care are nevoie de un lant
+     de stramosi fara overflow ascuns ca sa se poata "lipi" la scroll.
+     Gasit live 2026-08-29: galeria scrolla normal, ignorand top:24px. */
+  overflow: visible !important;
 }
 
 .pap-product-summary::before,
@@ -20818,11 +20824,23 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
   }
 }
 
-.pap-product-info {
+/* Wrapper-ul e acum el insusi copilul direct al grid-ului
+   .pap-product-summary (contine si cardul de cumparare, si tab-urile
+   descriere/specificatii dedesubt) - min-width:0 trebuie sa fie pe el,
+   nu doar pe .pap-product-info, ca sa nu blocheze din nou umflarea
+   descrisa mai jos. Cardul (border/fundal/umbra) e acum pe wrapper, nu pe
+   .pap-product-info, ca info+tab-uri sa citeasca ca UN singur bloc, nu
+   doua cutii separate cu gol intre ele (gasit live 2026-08-29). */
+.pap-product-right-col {
+  min-width: 0;
   border: 1px solid #dde1e8;
   border-radius: 4px;
   background: #fff;
   box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.pap-product-info {
   padding: 24px 24px 24px;
   /* Fara min-height/stretch catre inaltimea galeriei din stanga - cardul
      trebuie sa se opreasca natural dupa beneficii, nu sa umple coloana.
@@ -21149,45 +21167,38 @@ form.variations_form.cart {
   display: none;
 }
 
-/* Redus de la un grid 2x2 cu 4 iconite portocalii (competea vizual cu CTA-ul)
-   la un singur rand discret, text mic gri cu puncte despartitoare - vezi
-   review-ul de design 2026-08-29. Fara "gap" (vezi explicatia de la
-   .pap-product-actions-row mai sus - acelasi risc de indentare PHP inaintea
-   primului <li>); spatierea vine din margin-left pe fiecare element in
-   afara de primul. */
+/* 4 coloane egale, iconita deasupra textului, centrat - varianta ceruta
+   explicit de user (2026-08-29), inlocuind randul unic cu puncte
+   despartitoare de mai devreme. Grid, nu flex, deci fara riscul de
+   "text-whitespace devine item fantoma" gasit la .pap-product-actions-row -
+   gap merge normal aici. */
 .pap-product-benefits {
   list-style: none;
   margin: 28px 0 0;
   padding: 16px 0 0;
   border-top: 1px solid #f0f2f5;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  row-gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .pap-product-benefits li {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  color: #9aa5b8;
+  text-align: left;
+  gap: 10px;
+  color: #4a5a72;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
-.pap-product-benefits li:not(:first-child) {
-  margin-left: 14px;
-}
-
-.pap-product-benefits li:not(:first-child)::before {
-  content: '·';
-  margin-right: 14px;
-  color: #c9d0dc;
-}
-
-/* Iconitele portocalii dispar - punctele despartitoare de mai sus sunt
-   suficiente, iar sectiunea trebuie sa ramana secundara vizual fata de CTA. */
 .pap-product-benefit-icon {
-  display: none;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  color: var(--pap-navy);
 }
 
 .pap-product-benefit-icon svg {
@@ -21197,47 +21208,85 @@ form.variations_form.cart {
 
 /* Product tabs */
 
+/* Tab-urile stau acum in acelasi card ca .pap-product-info (vezi
+   .pap-product-right-col mai sus) - fara margin/bordura/fundal proprii,
+   doar o linie subtire de separare, ca sectiunea sa continue vizual
+   cardul de cumparare, nu sa arate ca o cutie noua. */
 .pap-product-tabs-section {
-  margin-top: 24px;
+  margin-top: 0;
+  border-top: 1px solid #f0f2f5;
+  padding: 24px;
 }
 
 body.theme-papetarie .pap-product-tabs-section .woocommerce-tabs {
-  border: 1px solid #dde1e8 !important;
-  border-radius: 4px !important;
-  background: #fff !important;
-  box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.05) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-body.theme-papetarie .pap-product-tabs-section ul.tabs {
-  display: flex !important;
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border-bottom: 1px solid #dde1e8 !important;
+/* Accordion (Descriere/Specificatii) - inlocuieste tab-urile orizontale
+   implicite WooCommerce, cerut explicit de user pe baza unei referinte
+   (2026-08-29). Un singur panou deschis simultan - acelasi principiu ca
+   accordion-ul din footer. */
+.pap-product-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-body.theme-papetarie .pap-product-tabs-section ul.tabs li {
-  margin: 0 !important;
+.pap-accordion-item {
+  border: 1px solid #dde1e8;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-body.theme-papetarie .pap-product-tabs-section ul.tabs li a {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 49.5px !important;
-  padding: 0 24px !important;
-  color: #6b7a95 !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  text-decoration: none !important;
-  border-bottom: 2px solid transparent !important;
-  margin-bottom: -1px !important;
+.pap-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 20px;
+  border: 0;
+  background: #f8f9fb;
+  color: #0d2e61;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
 }
 
-body.theme-papetarie .pap-product-tabs-section ul.tabs li.active a {
-  color: #0d2e61 !important;
-  font-weight: 700 !important;
-  border-bottom-color: var(--pap-orange) !important;
+.pap-accordion-header:hover {
+  background: #f0f2f5;
+}
+
+.pap-accordion-item.is-open .pap-accordion-header {
+  background: #eef1f6;
+}
+
+.pap-accordion-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #6b7a95;
+  transition: transform 150ms ease;
+}
+
+.pap-accordion-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pap-accordion-item.is-open .pap-accordion-icon {
+  color: var(--pap-orange);
+  transform: rotate(180deg);
+}
+
+.pap-accordion-panel[hidden] {
+  display: none;
 }
 
 body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel {
@@ -21283,12 +21332,47 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.sho
   max-height: none;
 }
 
-.pap-product-description-box p {
-  margin: 0 0 12px;
+/* Tipografie proprie descrierii - scopata strict la acest bloc (nu la
+   .woocommerce-Tabs-panel, care e comun cu tab-ul Specificatii si trebuie
+   sa ramana neatins). Trebuie sa egaleze/depaseasca specificitatea
+   regulilor !important de mai jos (font-size/line-height/color pe
+   .woocommerce-Tabs-panel) ca sa castige, desi acest bloc e nested in el. */
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box {
+  max-width: 760px;
+  color: #374151 !important;
+  font-size: 16px !important;
+  line-height: 1.6 !important;
 }
 
-.pap-product-description-box p:last-child {
-  margin-bottom: 0;
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box p {
+  margin: 0 0 14px !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box p:last-child {
+  margin-bottom: 0 !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box ul,
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box ol {
+  margin: 0 0 14px !important;
+  padding-left: 20px !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box li {
+  margin-bottom: 6px !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box li:last-child {
+  margin-bottom: 0 !important;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box strong,
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box b {
+  color: #0d2e61;
+}
+
+body.theme-papetarie .pap-product-tabs-section .pap-product-description-box a {
+  color: var(--pap-orange);
 }
 
 .pap-product-description-fade {

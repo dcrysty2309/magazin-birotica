@@ -217,6 +217,7 @@ get_header();
         </div>
       </div>
 
+      <div class="pap-product-right-col">
       <div class="pap-product-info">
         <?php if ($brand_name !== '' || $sku !== '') : ?>
           <div class="pap-product-info-top">
@@ -284,22 +285,23 @@ get_header();
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('package'); ?></span>
-            <span><?php esc_html_e('Ridicare gratuită din depozit', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Ridicare din depozit', 'papetarie-storefront'); ?></span>
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('undo'); ?></span>
-            <span><?php esc_html_e('Retur gratuit în 30 de zile', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Retur 30 zile', 'papetarie-storefront'); ?></span>
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('shield'); ?></span>
-            <span><?php esc_html_e('Plată 100% securizată · SSL', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Plată securizată', 'papetarie-storefront'); ?></span>
           </li>
         </ul>
       </div>
-    </div>
 
-    <div class="pap-shell pap-product-tabs-section">
-      <?php woocommerce_output_product_data_tabs(); ?>
+        <div class="pap-product-tabs-section">
+          <?php woocommerce_output_product_data_tabs(); ?>
+        </div>
+      </div>
     </div>
 
     <div class="pap-shell pap-product-related-section">
@@ -647,6 +649,59 @@ get_header();
       }
 
       updateDisabledState();
+    }
+
+    var accordion = document.querySelector('[data-product-accordion]');
+    if (accordion) {
+      // WooCommerce's propriu JS pentru tab-uri (inca incarcat, nu doar
+      // markup-ul lui inlocuit) gaseste elementele .woocommerce-Tabs-panel
+      // (pastrate intentionat pentru compatibilitatea stilurilor de
+      // continut) si le ascunde pe toate cu jQuery .hide() -> style
+      // inline "display:none" - asta castiga in fata atributului "hidden"
+      // pe care il controlam noi, indiferent ce stare seteaza JS-ul
+      // nostru. Curatam explicit orice display inline de fiecare data,
+      // ca "hidden"/CSS sa ramana singura sursa de adevar. Gasit live
+      // 2026-08-29: panoul "Descriere" ramanea invizibil desi era marcat
+      // ca deschis.
+      function clearInlineDisplay(panel) {
+        if (panel) {
+          panel.style.removeProperty('display');
+        }
+      }
+
+      accordion.querySelectorAll('.pap-accordion-panel').forEach(clearInlineDisplay);
+
+      accordion.addEventListener('click', function (event) {
+        var header = event.target.closest('[data-accordion-toggle]');
+        if (!header) {
+          return;
+        }
+
+        var item = header.closest('.pap-accordion-item');
+        var panel = document.getElementById(header.getAttribute('aria-controls'));
+        var wasOpen = item.classList.contains('is-open');
+
+        accordion.querySelectorAll('.pap-accordion-item.is-open').forEach(function (openItem) {
+          if (openItem === item) {
+            return;
+          }
+          var openHeader = openItem.querySelector('[data-accordion-toggle]');
+          var openPanel = document.getElementById(openHeader.getAttribute('aria-controls'));
+          openItem.classList.remove('is-open');
+          openHeader.setAttribute('aria-expanded', 'false');
+          if (openPanel) {
+            openPanel.hidden = true;
+            clearInlineDisplay(openPanel);
+          }
+        });
+
+        item.classList.toggle('is-open', !wasOpen);
+        header.setAttribute('aria-expanded', String(!wasOpen));
+        if (panel) {
+          panel.hidden = wasOpen;
+          clearInlineDisplay(panel);
+        }
+      });
     }
 
     var shareButton = document.querySelector('[data-product-share]');
