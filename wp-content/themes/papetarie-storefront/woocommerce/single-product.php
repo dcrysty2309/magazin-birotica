@@ -47,12 +47,20 @@ get_header();
     // the inline script further down, via WooCommerce's found_variation/
     // reset_data events - same pattern already used there for the gallery
     // image swap).
+    // The big price is always a single number, never WooCommerce's own
+    // range HTML - before any color is picked that means "starting from"
+    // (the lowest variation price); once one is picked, the inline script
+    // further down swaps it to that variation's own price via
+    // found_variation, and reset_data brings it back to this same
+    // starting-from value (it's what $default_price_html renders here).
     $variation_price_range_html = '';
+    $default_price_html = $product->get_price_html();
     if ($product->is_type('variable')) {
         $min_variation_price = $product->get_variation_price('min', true);
         $max_variation_price = $product->get_variation_price('max', true);
         if ($min_variation_price !== '' && $max_variation_price !== '' && $min_variation_price !== $max_variation_price) {
             $variation_price_range_html = wc_format_price_range($min_variation_price, $max_variation_price);
+            $default_price_html = wc_price($min_variation_price);
         }
     }
     ?>
@@ -189,7 +197,7 @@ get_header();
 
         <div class="pap-product-price-block">
           <div class="pap-product-price-row">
-            <span data-product-price-html><?php echo wp_kses_post($product->get_price_html()); ?></span>
+            <span data-product-price-html><?php echo wp_kses_post($default_price_html); ?></span>
             <?php if ($is_on_sale && $discount_percent > 0) : ?>
               <span class="pap-product-price-discount">−<?php echo esc_html((string) $discount_percent); ?>%</span>
             <?php endif; ?>
