@@ -20989,6 +20989,13 @@ form.variations_form.cart {
      padding-top:1em implicit) - fara asta, cele ~16px se adunau peste
      margin-top, la fel ca la form.variations_form.cart mai sus. */
   padding-top: 0 !important;
+  /* Storefront/WooCommerce pun implicit si padding-bottom:1em (16px) plus
+     margin-bottom:1.618em (~25.9px) pe form.cart - neanulate pana acum,
+     produceau un gol de ~42px intre randul cantitate+cos si sectiunea de
+     tab-uri de dedesubt (peste cei 24px padding-bottom intentionati pe
+     .pap-product-info), semnalat live 2026-08-30. */
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
   /* NU "gap" aici (fara el la origine) - text-ul de whitespace din PHP
      dintre <div class="woocommerce-variation-add-to-cart..."> si primul
      copil real (indentarea template-ului) e tratat de acest motor de
