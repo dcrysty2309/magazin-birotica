@@ -20869,7 +20869,7 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
 }
 
 .pap-product-price-block {
-  margin-top: 16px;
+  margin-top: 24px;
 }
 
 /* Spatiu intre pretul mare si tabelul de variatii (eticheta "Culori" +
@@ -20881,7 +20881,7 @@ body.theme-papetarie .pap-gallery-lightbox__tool svg {
    umfland golul real (masurat cu getBoundingClientRect()) la 48px in loc
    de cele 24px cerute, desi CSS-ul "parea" corect la 32px declarati. */
 form.variations_form.cart {
-  margin-top: 16px;
+  margin-top: 20px;
   padding-top: 0 !important;
 }
 
@@ -20966,18 +20966,29 @@ form.variations_form.cart {
 .pap-product-actions-row:not(.pap-product-actions-row--fallback) {
   display: flex;
   align-items: center;
-  gap: 12px;
   margin-top: 24px;
   /* La produsele simple elementul asta E form.cart (Storefront ii pune
      padding-top:1em implicit) - fara asta, cele ~16px se adunau peste
      margin-top, la fel ca la form.variations_form.cart mai sus. */
   padding-top: 0 !important;
+  /* NU "gap" aici (fara el la origine) - text-ul de whitespace din PHP
+     dintre <div class="woocommerce-variation-add-to-cart..."> si primul
+     copil real (indentarea template-ului) e tratat de acest motor de
+     randare ca un flex item fantoma de latime 0, iar gap-ul se aplica
+     INAINTE de primul copil real, nu doar intre ele - rezultatul era
+     stepper-ul de cantitate indentat cu 12px fata de restul coloanei
+     (title/pret/swatch-uri), desi el insusi nu avea niciun padding/margin
+     propriu (gasit live 2026-08-29, confirmat testand gap:0). Spatiul
+     dintre stepper si buton vine acum din margin-left pe buton (vezi
+     .pap-product-add-to-cart mai jos), imun la aceeasi problema. */
 }
 
 .pap-product-qty-stepper {
   display: flex;
   align-items: center;
   height: 48px;
+  /* ~152px total (44+44+64 continut + 1.5px border pe fiecare parte) -
+     in intervalul 150-160px cerut. */
   border: 1.5px solid #dde1e8;
   border-radius: 3px;
   overflow: hidden;
@@ -20985,11 +20996,11 @@ form.variations_form.cart {
 
 .pap-product-qty-btn {
   /* "width" singur nu era suficient - fara flex-shrink:0/min-width, flexbox
-     il lasa sa creasca la ~45px in loc de 36px in interiorul stepper-ului
+     il lasa sa creasca peste latimea declarata in interiorul stepper-ului
      (gasit live 2026-08-29, masurat cu getBoundingClientRect()). */
-  flex: 0 0 36px;
-  width: 36px;
-  min-width: 36px;
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
   height: 48px;
   border: 0;
   background: #f8f9fb;
@@ -20998,16 +21009,43 @@ form.variations_form.cart {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pap-product-qty-btn:hover {
+  background: #eef1f6;
+}
+
+.pap-product-qty-btn:active {
+  background: #e3e7ee;
+}
+
+/* Separatoare subtile intre zonele -/valoare/+ - fara o bordura separata pe
+   input, ca sa nu dubleze linia cu marginea dreapta a primului buton. */
+.pap-product-qty-btn[data-qty-decrease] {
+  border-right: 1px solid #dde1e8;
+}
+
+.pap-product-qty-btn[data-qty-increase] {
+  border-left: 1px solid #dde1e8;
 }
 
 .pap-product-qty-btn svg {
-  width: 12px;
-  height: 12px;
+  /* Fara astea, un <svg> fara atribute width/height proprii (doar viewBox -
+     vezi papetarie_storefront_icon()) ca fiu flex intr-un buton ingust se
+     comprima la 0 latime - flex-shrink:1 implicit + min-width:auto lasa
+     motorul sa-i calculeze marimea minima de continut ca 0 cand nu are
+     dimensiuni intrinseci proprii. Gasit live 2026-08-29: butoanele -/+
+     complet invizibile, desi width:12px era singura regula potrivita. */
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  min-width: 13px;
 }
 
 .pap-product-qty-input {
-  flex: 0 0 48px;
-  width: 48px;
+  flex: 0 0 64px;
+  width: 64px;
   height: 48px;
   border: 0;
   text-align: center;
@@ -21031,6 +21069,11 @@ form.variations_form.cart {
   gap: 8px;
   height: 48px;
   min-width: 240px;
+  /* margin, nu gap pe randul parinte - vezi explicatia de la
+     .pap-product-actions-row mai sus (whitespace-ul din PHP inaintea
+     primului copil face ca gap-ul parintelui sa se aplice si inaintea lui,
+     nu doar intre cele doua elemente). */
+  margin-left: 12px;
   padding: 0 24px;
   border: 0;
   border-radius: 3px;
@@ -21078,31 +21121,45 @@ form.variations_form.cart {
   display: none;
 }
 
+/* Redus de la un grid 2x2 cu 4 iconite portocalii (competea vizual cu CTA-ul)
+   la un singur rand discret, text mic gri cu puncte despartitoare - vezi
+   review-ul de design 2026-08-29. Fara "gap" (vezi explicatia de la
+   .pap-product-actions-row mai sus - acelasi risc de indentare PHP inaintea
+   primului <li>); spatierea vine din margin-left pe fiecare element in
+   afara de primul. */
 .pap-product-benefits {
   list-style: none;
-  margin: 24px 0 0;
-  padding: 12px 0 0;
+  margin: 28px 0 0;
+  padding: 16px 0 0;
   border-top: 1px solid #f0f2f5;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
 }
 
 .pap-product-benefits li {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  color: #6b7a95;
+  align-items: center;
+  color: #9aa5b8;
   font-size: 12px;
+  font-weight: 500;
 }
 
+.pap-product-benefits li:not(:first-child) {
+  margin-left: 14px;
+}
+
+.pap-product-benefits li:not(:first-child)::before {
+  content: '·';
+  margin-right: 14px;
+  color: #c9d0dc;
+}
+
+/* Iconitele portocalii dispar - punctele despartitoare de mai sus sunt
+   suficiente, iar sectiunea trebuie sa ramana secundara vizual fata de CTA. */
 .pap-product-benefit-icon {
-  display: inline-flex;
-  width: 13px;
-  height: 13px;
-  flex: 0 0 auto;
-  margin-top: 1px;
-  color: var(--pap-orange);
+  display: none;
 }
 
 .pap-product-benefit-icon svg {
