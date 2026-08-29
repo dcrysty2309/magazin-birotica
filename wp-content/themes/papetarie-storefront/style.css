@@ -21035,9 +21035,15 @@ form.variations_form.cart {
   color: var(--pap-navy);
 }
 
+/* Storefront seteaza generic "button.disabled,button:disabled{opacity:.5
+   !important}" - fara sa anulam explicit "opacity" aici, tot butonul (nu
+   doar iconita) se intuneca, distrugand simetria cu butonul "+" activ de
+   alaturi. Cerem explicit sa ramana la fel ca starea normala (fundal,
+   latime, pozitionare) - singura diferenta e culoarea iconitei. */
 .pap-product-qty-btn:disabled {
-  color: #c3c9d4;
-  background: #fff;
+  opacity: 1 !important;
+  color: #cbd3df;
+  background: #fafbfc;
   cursor: not-allowed;
 }
 
@@ -21056,9 +21062,9 @@ form.variations_form.cart {
      dimensiuni intrinseci proprii. Gasit live 2026-08-29: butoanele -/+
      complet invizibile, desi width:12px era singura regula potrivita. */
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
 }
 
 .pap-product-qty-input {
