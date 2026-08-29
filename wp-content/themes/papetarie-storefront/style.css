@@ -21178,18 +21178,18 @@ form.variations_form.cart {
   padding: 16px 0 0;
   border-top: 1px solid #f0f2f5;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
 }
 
 .pap-product-benefits li {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  text-align: left;
-  gap: 10px;
+  text-align: center;
+  gap: 6px;
   color: #4a5a72;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -21367,6 +21367,7 @@ body.theme-papetarie .pap-product-tabs-section .pap-product-description-box {
 
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box p {
   margin: 0 0 14px !important;
+  text-align: justify !important;
 }
 
 body.theme-papetarie .pap-product-tabs-section .pap-product-description-box p:last-child {
