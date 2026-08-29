@@ -21366,7 +21366,10 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.sho
 
 .pap-product-description-box {
   position: relative;
-  max-height: 120px;
+  /* 3 randuri la line-height:1.6 * font-size:16px = 25.6px/rand -> ~77px.
+     Cerut explicit sa fie doar 3 randuri vizibile inainte de "Citește mai
+     mult", 2026-08-30 (inainte erau ~120px, adica aproape 5 randuri). */
+  max-height: 78px;
   overflow: hidden;
 }
 
@@ -21423,7 +21426,9 @@ body.theme-papetarie .pap-product-tabs-section .pap-product-description-box a {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 48px;
+  /* Redus proportional cu noul max-height de 3 randuri (78px) - la 48px
+     vechi ar fi acoperit aproape 2 din cele 3 randuri ramase. */
+  height: 20px;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff);
   pointer-events: none;
 }
