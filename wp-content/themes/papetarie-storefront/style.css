@@ -2089,7 +2089,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   flex-direction: column;
   gap: 2px;
   min-width: 220px;
-  margin-top: 12px;
+  margin-top: 6px;
   padding: 8px;
   background: #fff;
   border: 1px solid var(--pap-border, #dde1e8);
