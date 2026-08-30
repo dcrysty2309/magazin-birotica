@@ -28,6 +28,7 @@ global $product;
       </button>
       <input
         type="number"
+        name="quantity"
         class="qty pap-product-qty-input"
         value="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
         min="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
