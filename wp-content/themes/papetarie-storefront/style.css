@@ -21339,6 +21339,42 @@ form.variations_form.cart {
   opacity: 0.85 !important;
 }
 
+/* JS-ul din archive-add-to-cart.js pune deja .is-loading + aria-busy pe
+   butonul asta la fiecare "adauga in cos" (acelasi setLoadingState() folosit
+   si pentru cardurile de arhiva), dar pana acum nu exista niciun stil pentru
+   combinatia .pap-product-add-to-cart.is-loading - butonul ramanea vizual
+   neschimbat intre click si aparitia notificarii de succes, dand impresia ca
+   nu s-a intamplat nimic. Acelasi tratament (icon+text ascunse, inel care
+   se roteste) ca la .pap-home-add-to-cart.is-loading, doar cu culori albe
+   potrivite fundalului portocaliu al acestui buton. */
+.pap-product-add-to-cart.is-loading,
+.pap-product-actions-row .single_add_to_cart_button.is-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+  cursor: wait;
+}
+
+.pap-product-add-to-cart.is-loading span,
+.pap-product-actions-row .single_add_to_cart_button.is-loading span {
+  opacity: 0;
+}
+
+.pap-product-add-to-cart.is-loading::after,
+.pap-product-actions-row .single_add_to_cart_button.is-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: pap-spin 0.8s linear infinite;
+}
+
 .pap-product-add-to-cart span:first-child {
   display: inline-flex;
   width: 14px;
