@@ -21071,13 +21071,64 @@ form.variations_form.cart {
 /* Storefront seteaza generic "button.disabled,button:disabled{opacity:.5
    !important}" - fara sa anulam explicit "opacity" aici, tot butonul (nu
    doar iconita) se intuneca, distrugand simetria cu butonul "+" activ de
-   alaturi. Cerem explicit sa ramana la fel ca starea normala (fundal,
-   latime, pozitionare) - singura diferenta e culoarea iconitei. */
+   alaturi. Butonul disabled arata acum IDENTIC cu cel activ (nicio
+   diferenta de culoare/fundal) - limita min/max se comunica printr-un
+   tooltip la hover (vezi .pap-product-qty-tooltip mai jos), nu printr-un
+   stil vizual "stins" pe buton. Cerut explicit 2026-08-31. */
 .pap-product-qty-btn:disabled {
   opacity: 1 !important;
-  color: #cbd3df;
+  color: var(--pap-navy);
   background: #fafbfc;
   cursor: not-allowed;
+}
+
+/* Wrapper separat de .pap-product-qty-stepper - stepper-ul are propriul
+   overflow:hidden (ca sa taie coltul buton-urilor interioare la
+   border-radius-ul exterior), care ar ascunde tooltip-ul de mai jos daca
+   ar fi copil direct al lui. */
+.pap-product-qty-stack {
+  position: relative;
+  display: inline-flex;
+}
+
+.pap-product-qty-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%) translateY(4px);
+  min-width: 170px;
+  max-width: 220px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 500;
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.2);
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+}
+
+.pap-product-qty-tooltip:not([hidden]) {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.pap-product-qty-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0;
+  border-style: solid;
+  border-color: rgba(15, 23, 42, 0.96) transparent transparent;
 }
 
 /* Doar doua despartitoare de 1px, nu bordura completa pe fiecare celula -

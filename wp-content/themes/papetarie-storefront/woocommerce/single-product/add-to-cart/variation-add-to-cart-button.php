@@ -21,22 +21,25 @@ global $product;
 <div class="woocommerce-variation-add-to-cart variations_button pap-product-actions-row">
   <?php do_action('woocommerce_before_add_to_cart_button'); ?>
 
-  <div class="pap-product-qty-stepper" data-qty-stepper>
-    <button type="button" class="pap-product-qty-btn" data-qty-decrease aria-label="<?php esc_attr_e('Scade cantitatea', 'papetarie-storefront'); ?>">
-      <?php echo papetarie_storefront_icon('minus'); ?>
-    </button>
-    <input
-      type="number"
-      class="qty pap-product-qty-input"
-      value="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
-      min="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
-      <?php if ($product->get_max_purchase_quantity() > 0) : ?>max="<?php echo esc_attr((string) $product->get_max_purchase_quantity()); ?>"<?php endif; ?>
-      inputmode="numeric"
-      aria-label="<?php esc_attr_e('Cantitate', 'papetarie-storefront'); ?>"
-    >
-    <button type="button" class="pap-product-qty-btn" data-qty-increase aria-label="<?php esc_attr_e('Crește cantitatea', 'papetarie-storefront'); ?>">
-      <?php echo papetarie_storefront_icon('plus'); ?>
-    </button>
+  <div class="pap-product-qty-stack" data-qty-stack>
+    <div class="pap-product-qty-stepper" data-qty-stepper>
+      <button type="button" class="pap-product-qty-btn" data-qty-decrease aria-label="<?php esc_attr_e('Scade cantitatea', 'papetarie-storefront'); ?>">
+        <?php echo papetarie_storefront_icon('minus'); ?>
+      </button>
+      <input
+        type="number"
+        class="qty pap-product-qty-input"
+        value="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
+        min="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
+        <?php if ($product->get_max_purchase_quantity() > 0) : ?>max="<?php echo esc_attr((string) $product->get_max_purchase_quantity()); ?>"<?php endif; ?>
+        inputmode="numeric"
+        aria-label="<?php esc_attr_e('Cantitate', 'papetarie-storefront'); ?>"
+      >
+      <button type="button" class="pap-product-qty-btn" data-qty-increase aria-label="<?php esc_attr_e('Crește cantitatea', 'papetarie-storefront'); ?>">
+        <?php echo papetarie_storefront_icon('plus'); ?>
+      </button>
+    </div>
+    <div class="pap-product-qty-tooltip" data-qty-tooltip hidden aria-hidden="true"></div>
   </div>
 
   <button type="submit" class="pap-product-add-to-cart single_add_to_cart_button">

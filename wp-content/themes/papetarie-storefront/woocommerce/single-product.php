@@ -26,7 +26,14 @@ get_header();
     ob_start();
     do_action('woocommerce_before_single_product');
     $pap_before_single_product_html = trim((string) ob_get_clean());
-    if ($pap_before_single_product_html !== '') :
+    // woocommerce_output_all_notices() scoate mereu wrapper-ul
+    // <div class="woocommerce-notices-wrapper">, chiar si fara nicio
+    // notificare inauntru - un simplu "!== ''" nu prindea asta, lasand un
+    // <div> gol (0 inaltime, dar tot prezent in DOM) inainte de
+    // breadcrumbs pe orice pagina fara notificare. Verificam continutul
+    // FARA tag-uri, nu doar string-ul brut. Gasit live 2026-08-31,
+    // semnalat de user.
+    if (trim(wp_strip_all_tags($pap_before_single_product_html)) !== '') :
         ?>
         <div class="pap-shell pap-product-notices">
           <?php echo $pap_before_single_product_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -263,23 +270,26 @@ get_header();
 
         <?php if ($is_simple_purchasable && $is_in_stock) : ?>
           <form class="cart pap-product-actions-row" action="<?php echo esc_url(apply_filters('woocommerce_add_to_cart_form_action', $product->get_permalink())); ?>" method="post" enctype="multipart/form-data">
-            <div class="pap-product-qty-stepper" data-qty-stepper>
-              <button type="button" class="pap-product-qty-btn" data-qty-decrease aria-label="<?php esc_attr_e('Scade cantitatea', 'papetarie-storefront'); ?>">
-                <?php echo papetarie_storefront_icon('minus'); ?>
-              </button>
-              <input
-                type="number"
-                name="quantity"
-                class="qty pap-product-qty-input"
-                value="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
-                min="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
-                <?php if ($product->get_max_purchase_quantity() > 0) : ?>max="<?php echo esc_attr((string) $product->get_max_purchase_quantity()); ?>"<?php endif; ?>
-                inputmode="numeric"
-                aria-label="<?php esc_attr_e('Cantitate', 'papetarie-storefront'); ?>"
-              >
-              <button type="button" class="pap-product-qty-btn" data-qty-increase aria-label="<?php esc_attr_e('Crește cantitatea', 'papetarie-storefront'); ?>">
-                <?php echo papetarie_storefront_icon('plus'); ?>
-              </button>
+            <div class="pap-product-qty-stack" data-qty-stack>
+              <div class="pap-product-qty-stepper" data-qty-stepper>
+                <button type="button" class="pap-product-qty-btn" data-qty-decrease aria-label="<?php esc_attr_e('Scade cantitatea', 'papetarie-storefront'); ?>">
+                  <?php echo papetarie_storefront_icon('minus'); ?>
+                </button>
+                <input
+                  type="number"
+                  name="quantity"
+                  class="qty pap-product-qty-input"
+                  value="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
+                  min="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
+                  <?php if ($product->get_max_purchase_quantity() > 0) : ?>max="<?php echo esc_attr((string) $product->get_max_purchase_quantity()); ?>"<?php endif; ?>
+                  inputmode="numeric"
+                  aria-label="<?php esc_attr_e('Cantitate', 'papetarie-storefront'); ?>"
+                >
+                <button type="button" class="pap-product-qty-btn" data-qty-increase aria-label="<?php esc_attr_e('Crește cantitatea', 'papetarie-storefront'); ?>">
+                  <?php echo papetarie_storefront_icon('plus'); ?>
+                </button>
+              </div>
+              <div class="pap-product-qty-tooltip" data-qty-tooltip hidden aria-hidden="true"></div>
             </div>
             <button type="submit" name="add-to-cart" value="<?php echo esc_attr((string) $product_id); ?>" class="pap-product-add-to-cart single_add_to_cart_button">
               <span aria-hidden="true"><?php echo papetarie_storefront_icon('bag'); ?></span>
@@ -623,6 +633,8 @@ get_header();
       var input = stepper.querySelector('.pap-product-qty-input');
       var decrease = stepper.querySelector('[data-qty-decrease]');
       var increase = stepper.querySelector('[data-qty-increase]');
+      var qtyStack = stepper.closest('[data-qty-stack]');
+      var qtyTooltip = qtyStack ? qtyStack.querySelector('[data-qty-tooltip]') : null;
 
       function clamp(value) {
         var min = parseInt(input.getAttribute('min'), 10) || 1;
@@ -634,9 +646,45 @@ get_header();
         return next;
       }
 
-      // Dezactiveaza vizual - / + cand valoarea curenta e deja la limita
-      // (min/max) - altfel butoanele raman "clicabile" fara niciun efect,
-      // fara sa comunice vizual de ce.
+      function hideQtyTooltip() {
+        if (!qtyTooltip) {
+          return;
+        }
+        qtyTooltip.hidden = true;
+        qtyTooltip.setAttribute('aria-hidden', 'true');
+      }
+
+      // Limita min/max se comunica printr-un tooltip la hover, nu printr-un
+      // stil vizual "stins" pe buton (butonul disabled arata identic cu cel
+      // activ - vezi .pap-product-qty-btn:disabled in CSS). Cerut explicit
+      // 2026-08-31.
+      function maybeShowQtyTooltip(button) {
+        if (!qtyTooltip || !button || !button.disabled) {
+          return;
+        }
+
+        var min = parseInt(input.getAttribute('min'), 10) || 1;
+        var max = input.getAttribute('max') ? parseInt(input.getAttribute('max'), 10) : null;
+        var text = '';
+
+        if (button === decrease) {
+          text = '<?php echo esc_js(__('Cantitatea minimă este', 'papetarie-storefront')); ?> ' + min + '.';
+        } else if (button === increase && max !== null) {
+          text = '<?php echo esc_js(__('Ai atins limita maximă disponibilă', 'papetarie-storefront')); ?> (' + max + ' <?php echo esc_js(__('bucăți', 'papetarie-storefront')); ?>).';
+        }
+
+        if (!text) {
+          return;
+        }
+
+        qtyTooltip.textContent = text;
+        qtyTooltip.hidden = false;
+        qtyTooltip.setAttribute('aria-hidden', 'false');
+      }
+
+      // Dezactiveaza (functional, nu doar vizual) - / + cand valoarea
+      // curenta e deja la limita (min/max) - altfel butoanele raman
+      // "clicabile" fara niciun efect.
       function updateDisabledState() {
         var min = parseInt(input.getAttribute('min'), 10) || 1;
         var max = input.getAttribute('max') ? parseInt(input.getAttribute('max'), 10) : null;
@@ -647,7 +695,22 @@ get_header();
         if (increase) {
           increase.disabled = max !== null && current >= max;
         }
+        hideQtyTooltip();
       }
+
+      [decrease, increase].forEach(function (button) {
+        if (!button) {
+          return;
+        }
+        button.addEventListener('mouseenter', function () {
+          maybeShowQtyTooltip(button);
+        });
+        button.addEventListener('mouseleave', hideQtyTooltip);
+        button.addEventListener('focus', function () {
+          maybeShowQtyTooltip(button);
+        });
+        button.addEventListener('blur', hideQtyTooltip);
+      });
 
       if (decrease) {
         decrease.addEventListener('click', function () {
