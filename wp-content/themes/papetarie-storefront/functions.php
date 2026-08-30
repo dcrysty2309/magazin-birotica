@@ -9676,12 +9676,19 @@ function papetarie_storefront_checkout_save_company_meta_to_order($order, array 
         return;
     }
 
+    // Prefix "_" obligatoriu pe cheia de meta - e conventia WooCommerce
+    // pentru toate campurile billing/shipping (asa citeste $order->get_billing_company()
+    // intern din "_billing_company"), si mai ales e EXACT ce citeste deja
+    // papetarie_storefront_oblio_issue_document() din admin-oblio.php
+    // (get_meta('_billing_cui'), get_meta('_billing_reg_no') etc.) - fara
+    // prefix, integrarea Oblio nu ar fi gasit niciodata aceste date, chiar
+    // daca ar fi fost salvate.
     $fields = [
-        'billing_cui' => 'billing_cui',
-        'billing_reg_no' => 'billing_reg_no',
-        'billing_company_state' => 'billing_company_state',
-        'billing_company_city' => 'billing_company_city',
-        'billing_company_address' => 'billing_company_address',
+        'billing_cui' => '_billing_cui',
+        'billing_reg_no' => '_billing_reg_no',
+        'billing_company_state' => '_billing_company_state',
+        'billing_company_city' => '_billing_company_city',
+        'billing_company_address' => '_billing_company_address',
     ];
 
     foreach ($fields as $post_key => $meta_key) {
