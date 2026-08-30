@@ -9647,6 +9647,53 @@ function papetarie_storefront_checkout_save_address_for_future($order, array $da
 add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_save_address_for_future', 20, 2);
 
 /**
+ * Salveaza datele de facturare pe firma (CUI, reg. com., adresa sediului)
+ * ca meta pe COMANDA insasi - fara asta, singurul camp care ajungea pe
+ * comanda era billing_company (numele firmei), fiindca e singurul camp
+ * nativ WooCommerce din tot blocul "Doresc factura pe firma". Restul
+ * (billing_cui/billing_reg_no/billing_company_state/_city/_address) erau
+ * validate la checkout si aratau corect completate in formular (inclusiv
+ * cele populate automat prin lookup-ul ANAF), dar se pierdeau complet dupa
+ * plasarea comenzii - nimeni nu le putea vedea pe comanda ca sa emita o
+ * factura corecta pe firma. Gasit live 2026-08-31, testand fluxul complet
+ * de comanda persoana juridica. Distinct de
+ * papetarie_storefront_checkout_save_company_for_future() de mai jos, care
+ * salveaza firma in "Contul meu" pentru refolosire - asta ruleaza mereu
+ * cand se factureaza pe firma, indiferent daca userul vrea sau nu s-o
+ * refoloseasca data viitoare.
+ */
+function papetarie_storefront_checkout_save_company_meta_to_order($order, array $data): void
+{
+    // $data (WC_Checkout::get_posted_data()) contine doar campurile oficial
+    // inregistrate prin woocommerce_checkout_fields - "pap_invoice_on_company"
+    // e un simplu checkbox custom, nu un camp WC inregistrat, deci nu apare
+    // acolo. Citim direct din $_POST, sursa reala trimisa de formular (la
+    // fel cum face deja papetarie_storefront_checkout_validate() pentru
+    // acelasi checkbox, in hook-ul de validare).
+    $posted = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+    if (empty($posted['pap_invoice_on_company'])) {
+        return;
+    }
+
+    $fields = [
+        'billing_cui' => 'billing_cui',
+        'billing_reg_no' => 'billing_reg_no',
+        'billing_company_state' => 'billing_company_state',
+        'billing_company_city' => 'billing_company_city',
+        'billing_company_address' => 'billing_company_address',
+    ];
+
+    foreach ($fields as $post_key => $meta_key) {
+        $value = isset($posted[$post_key]) ? sanitize_text_field(wp_unslash((string) $posted[$post_key])) : '';
+        if ($value !== '') {
+            $order->update_meta_data($meta_key, $value);
+        }
+    }
+}
+add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_save_company_meta_to_order', 20, 2);
+
+/**
  * "Salvează firma în contul meu" (checkbox separat de "Doresc factură pe
  * firmă" - poti factura pe firma o singura data, fara sa vrei sa o mai
  * refolosesti). Nu suprascrie/sterge nimic din firmele deja salvate daca
