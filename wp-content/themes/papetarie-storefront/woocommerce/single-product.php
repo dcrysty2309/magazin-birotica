@@ -468,6 +468,20 @@ get_header();
       track.addEventListener('scroll', refresh);
       window.addEventListener('resize', refresh);
       refresh();
+
+      // refresh() ruleaza sincron, la parsarea scriptului - daca layout-ul
+      // real (fonturi web incarcate, orice reflow ulterior) se aseaza DUPA
+      // acest moment, latimea masurata atunci poate fi usor diferita de
+      // cea finala, lasand sageata "urmatoare" vizibila desi thumbnail-
+      // urile incap deja toate intr-un singur rand - fara alt trigger
+      // (scroll/resize), starea gresita ramanea permanenta. Reverificam
+      // dupa incarcarea completa a paginii si dupa ce fonturile web s-au
+      // asezat. Gasit live 2026-08-31, semnalat de user (Rhodia, 5 poze
+      // care incap toate, dar sageata "urmatoare" tot aparea).
+      window.addEventListener('load', refresh);
+      if (window.document.fonts && window.document.fonts.ready && typeof window.document.fonts.ready.then === 'function') {
+        window.document.fonts.ready.then(refresh);
+      }
     }
 
     initThumbSlider(
