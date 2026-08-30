@@ -21,25 +21,13 @@ get_header();
     // woocommerce_before_single_product doar afiseaza notificarile (adaugat
     // in cos, erori) - implicit needvelite in nicio bordura de latime, ies
     // full-bleed (dincolo de .pap-shell folosit de restul paginii). Le
-    // capturam si le invelim noi, ca sa se alinieze cu breadcrumb-ul si
-    // continutul de dedesubt - gasit live 2026-08-30 (semnalat de user).
+    // capturam aici (hook-ul trebuie sa ruleze la locul lui in flow-ul
+    // WooCommerce), dar le afisam mai jos, DUPA breadcrumbs - inainte de ele
+    // arata ca ies din pagina inaintea oricarui context (semnalat live
+    // 2026-08-31 de user).
     ob_start();
     do_action('woocommerce_before_single_product');
     $pap_before_single_product_html = trim((string) ob_get_clean());
-    // woocommerce_output_all_notices() scoate mereu wrapper-ul
-    // <div class="woocommerce-notices-wrapper">, chiar si fara nicio
-    // notificare inauntru - un simplu "!== ''" nu prindea asta, lasand un
-    // <div> gol (0 inaltime, dar tot prezent in DOM) inainte de
-    // breadcrumbs pe orice pagina fara notificare. Verificam continutul
-    // FARA tag-uri, nu doar string-ul brut. Gasit live 2026-08-31,
-    // semnalat de user.
-    if (trim(wp_strip_all_tags($pap_before_single_product_html)) !== '') :
-        ?>
-        <div class="pap-shell pap-product-notices">
-          <?php echo $pap_before_single_product_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        </div>
-        <?php
-    endif;
 
     $product_id = $product->get_id();
 
@@ -138,6 +126,22 @@ get_header();
       }
       ?>
     </div>
+
+    <?php
+    // woocommerce_output_all_notices() scoate mereu wrapper-ul
+    // <div class="woocommerce-notices-wrapper">, chiar si fara nicio
+    // notificare inauntru - un simplu "!== ''" nu prindea asta, lasand un
+    // <div> gol (0 inaltime, dar tot prezent in DOM) dupa breadcrumbs pe
+    // orice pagina fara notificare. Verificam continutul FARA tag-uri, nu
+    // doar string-ul brut. Gasit live 2026-08-31, semnalat de user.
+    if (trim(wp_strip_all_tags($pap_before_single_product_html)) !== '') :
+        ?>
+        <div class="pap-shell pap-product-notices">
+          <?php echo $pap_before_single_product_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
+        <?php
+    endif;
+    ?>
 
     <div id="product-<?php echo esc_attr((string) $product_id); ?>" <?php wc_product_class('pap-shell pap-product-summary', $product); ?>>
       <div class="pap-product-gallery" data-product-gallery>
