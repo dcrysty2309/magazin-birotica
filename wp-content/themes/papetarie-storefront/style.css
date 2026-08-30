@@ -2089,12 +2089,38 @@ body.tax-product_cat .pap-header-catmenu-panel {
   flex-direction: column;
   gap: 2px;
   min-width: 220px;
-  margin-top: 8px;
+  margin-top: 12px;
   padding: 8px;
   background: #fff;
   border: 1px solid var(--pap-border, #dde1e8);
-  border-radius: 10px;
+  border-radius: 0;
   box-shadow: 0 14px 32px rgba(18, 39, 74, 0.12);
+}
+
+/* Sageata care leaga vizual panoul de trigger-ul "Ai nevoie de ajutor?" -
+   fara ea panoul plutea izolat, ca o sectiune separata a paginii, nu ca un
+   dropdown legat de link-ul de deasupra. Doua triunghiuri suprapuse (unul
+   pentru bordura, unul mai mic deasupra pentru umplutura alba) - tehnica
+   standard CSS pentru un varf de tooltip cu contur. */
+.pap-help-panel::before,
+.pap-help-panel::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  right: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+
+.pap-help-panel::before {
+  border-bottom: 8px solid var(--pap-border, #dde1e8);
+}
+
+.pap-help-panel::after {
+  margin-bottom: -1px;
+  border-bottom: 8px solid #fff;
 }
 
 .pap-help-links .pap-help-panel-item {
@@ -2102,7 +2128,7 @@ body.tax-product_cat .pap-header-catmenu-panel {
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
-  border-radius: 7px;
+  border-radius: 0;
   color: var(--text-primary, #17324d);
   font-size: 14px;
   font-weight: 500;
