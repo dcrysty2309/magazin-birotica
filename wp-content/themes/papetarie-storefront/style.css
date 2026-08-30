@@ -23155,6 +23155,17 @@ form.cart table.variations select {
   -webkit-appearance: none;
   -moz-appearance: none;
   width: 100%;
+  /* Latimea trebuie sa se opreasca exact unde se opreste randul de
+     dedesubt (stepper cantitate + buton "Adaugă în coș"), nu sa intinda
+     pe toata latimea cardului - cerut explicit 2026-08-31. Randul acela
+     nu se intinde nici el pe toata latimea (butonul are min-width fix,
+     nu flex-grow) - suma exacta e 144px stepper + 12px margine + 240px
+     buton = 396px (vezi .pap-product-qty-stepper si .pap-product-add-to-
+     cart mai jos, ambele valori fixe in acest fisier). WooCommerce core
+     mai punea si el implicit "max-width:70%" pe select (fara legatura cu
+     cerinta asta, dar tot gasit live 2026-08-31) - suprascris de valoarea
+     exacta de mai jos. */
+  max-width: 396px !important;
   min-height: var(--pap-input-height);
   height: var(--pap-input-height);
   padding: 0 40px 0 16px;
