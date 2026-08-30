@@ -2097,6 +2097,15 @@ body.tax-product_cat .pap-header-catmenu-panel {
   box-shadow: 0 14px 32px rgba(18, 39, 74, 0.12);
 }
 
+/* display:flex de mai sus are aceeasi specificitate ca regula implicita a
+   browserului pentru [hidden] { display:none } - fara garda explicita
+   aici, ultima regula incarcata (a noastra) castiga si panoul ramane
+   vizibil chiar cu atributul hidden setat corect de JS (acelasi bug gasit
+   si rezolvat la sagetile din galerie - vezi .pap-product-gallery-thumbs-nav[hidden]). */
+.pap-help-panel[hidden] {
+  display: none !important;
+}
+
 /* Sageata care leaga vizual panoul de trigger-ul "Ai nevoie de ajutor?" -
    fara ea panoul plutea izolat, ca o sectiune separata a paginii, nu ca un
    dropdown legat de link-ul de deasupra. Doua triunghiuri suprapuse (unul
