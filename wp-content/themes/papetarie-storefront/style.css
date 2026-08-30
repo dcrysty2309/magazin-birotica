@@ -20713,7 +20713,7 @@ body.theme-papetarie .pap-product-gallery-thumbs-nav svg {
 }
 
 .pap-product-gallery-thumb.is-active {
-  border-color: var(--pap-orange);
+  border-color: var(--pap-navy);
 }
 
 .pap-product-gallery-thumb img {
