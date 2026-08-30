@@ -83,14 +83,17 @@ $mail_icon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable=
 		</section>
 	<?php endif; ?>
 
-	<p class="pap-order-received__help">
-		<?php
-		printf(
-			esc_html__('Dacă ai întrebări, ne poți contacta la %s.', 'papetarie-storefront'),
-			'<a class="pap-order-received__help-phone" href="tel:0740123456">0740 123 456</a>'
-		);
-		?>
-	</p>
+	<?php $pap_order_received_phone = function_exists('papetarie_storefront_get_checkout_support_details') ? papetarie_storefront_get_checkout_support_details()['phone'] : ''; ?>
+	<?php if ($pap_order_received_phone !== '') : ?>
+		<p class="pap-order-received__help">
+			<?php
+			printf(
+				esc_html__('Dacă ai întrebări, ne poți contacta la %s.', 'papetarie-storefront'),
+				'<a class="pap-order-received__help-phone" href="' . esc_attr('tel:+4' . preg_replace('/\s+/', '', $pap_order_received_phone)) . '">' . esc_html($pap_order_received_phone) . '</a>'
+			);
+			?>
+		</p>
+	<?php endif; ?>
 
 	<?php if (!is_user_logged_in()) : ?>
 		<script>
