@@ -4674,6 +4674,52 @@ function papetarie_storefront_cart_quantity_bounds(WC_Product $product): array
     return [$min_value, $max_value];
 }
 
+/**
+ * Reconstruieste "Eticheta: valoare" pentru fiecare atribut de variatie al
+ * unui item din cos - practic aceeasi logica ca wc_get_formatted_cart_item_data()
+ * din core, DAR fara verificarea ei "sari peste daca valoarea e deja in
+ * numele produsului" (wc_is_attribute_in_product_name()). Acea verificare
+ * presupune ca numele afisat e cel brut al variatiei, care include automat
+ * "- Valoare" (WC_Product_Variation::get_name()) - noi afisam insa numele
+ * curat al produsului-parinte (vezi mai jos, fixul pentru trunchierea
+ * numelui la "-..."), asa ca acea verificare ar ascunde complet valoarea
+ * variantei alese, fara sa apara nicaieri. Gasit live 2026-08-30.
+ *
+ * @return string ex. "Liniatură: Matematică"
+ */
+function papetarie_storefront_format_cart_item_variation(array $cart_item): string
+{
+    $product = $cart_item['data'] ?? null;
+    if (!($product instanceof WC_Product_Variation) || !is_array($cart_item['variation'] ?? null)) {
+        return '';
+    }
+
+    $parts = [];
+    foreach ($cart_item['variation'] as $name => $value) {
+        $taxonomy = wc_attribute_taxonomy_name(str_replace('attribute_pa_', '', urldecode((string) $name)));
+
+        if (taxonomy_exists($taxonomy)) {
+            $term = get_term_by('slug', $value, $taxonomy);
+            if (!is_wp_error($term) && $term && $term->name) {
+                $value = $term->name;
+            }
+            $label = wc_attribute_label($taxonomy);
+        } else {
+            $value = apply_filters('woocommerce_variation_option_name', $value, null, $taxonomy, $product);
+            $label = wc_attribute_label(str_replace('attribute_', '', (string) $name), $product);
+        }
+
+        $value = (string) $value;
+        if ($value === '') {
+            continue;
+        }
+
+        $parts[] = $label . ': ' . $value;
+    }
+
+    return implode(', ', $parts);
+}
+
 function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, array $cart_item): string
 {
     $product = $cart_item['data'] ?? null;
@@ -4703,9 +4749,22 @@ function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, a
     }
 
     $product_id = (int) ($cart_item['product_id'] ?? ($is_product_valid ? $product->get_id() : 0));
-    $product_name = $is_product_valid ? $product->get_name() : __('Produs indisponibil', 'papetarie-storefront');
+    // WC_Product_Variation::get_name() adauga automat " - Eticheta atribut"
+    // la numele parintelui (ex. "... Rhodia Classic, black - Dictando") -
+    // aceeasi informatie apare oricum mai jos, structurat, in
+    // .pap-cart-item-description (wc_get_formatted_cart_item_data). Cu
+    // sufixul dublat aici, un nume de produs deja lung depasea clema de 2
+    // randuri exact la sufix, taind vizual "- Dictando" la "-..." si
+    // ascunzand ce variantă a fost aleasă - semnalat de user 2026-08-30.
+    // Pentru variatii folosim numele curat al produsului-parinte.
+    if ($is_product_valid && $product instanceof WC_Product_Variation) {
+        $parent_product = wc_get_product($product->get_parent_id());
+        $product_name = $parent_product instanceof WC_Product ? $parent_product->get_name() : $product->get_name();
+    } else {
+        $product_name = $is_product_valid ? $product->get_name() : __('Produs indisponibil', 'papetarie-storefront');
+    }
     $product_permalink = $is_product_valid && $product->is_visible() ? $product->get_permalink($cart_item) : '';
-    $variation_html = $is_product_valid ? wc_get_formatted_cart_item_data($cart_item, true) : '';
+    $variation_html = $is_product_valid ? papetarie_storefront_format_cart_item_variation($cart_item) : '';
     $description_source = $variation_html ? wp_strip_all_tags((string) $variation_html) : ($is_product_valid ? wp_strip_all_tags((string) $product->get_short_description()) : '');
     $product_description = trim(preg_replace('/\s+/', ' ', (string) $description_source));
     $thumbnail = $is_product_valid ? $product->get_image('woocommerce_thumbnail', ['loading' => 'lazy', 'alt' => $product_name]) : '';
@@ -5219,7 +5278,16 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
 
     $quantity = max(1, (int) $cart_item['quantity']);
     $product_id = (int) ($cart_item['product_id'] ?? $product->get_id());
-    $product_name = $product->get_name();
+    // Vezi acelasi fix in papetarie_storefront_render_cart_item_row_html() -
+    // get_name() pe o variatie adauga automat " - Eticheta atribut", care
+    // dubleaza informatia deja aratata mai jos in .pap-cart-drawer-variation
+    // si trunchiaza numele (o singura linie, ellipsis) exact la sufix.
+    if ($product instanceof WC_Product_Variation) {
+        $parent_product = wc_get_product($product->get_parent_id());
+        $product_name = $parent_product instanceof WC_Product ? $parent_product->get_name() : $product->get_name();
+    } else {
+        $product_name = $product->get_name();
+    }
     $product_permalink = $product->is_visible() ? $product->get_permalink($cart_item) : '';
     $thumbnail = $product->get_image('woocommerce_thumbnail', ['loading' => 'lazy', 'alt' => $product_name]);
 
@@ -5227,7 +5295,7 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
         $thumbnail = '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
     }
 
-    $variation_html = wc_get_formatted_cart_item_data($cart_item, true);
+    $variation_html = papetarie_storefront_format_cart_item_variation($cart_item);
     ?>
     <article class="pap-cart-drawer-item" data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>" data-cart-item-id="<?php echo esc_attr($product_id); ?>">
       <a class="pap-cart-drawer-thumb" href="<?php echo esc_url($product_permalink ? $product_permalink : '#'); ?>" <?php echo $product_permalink ? '' : 'aria-hidden="true" tabindex="-1"'; ?>>
