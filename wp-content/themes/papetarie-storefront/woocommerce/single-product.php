@@ -18,7 +18,21 @@ get_header();
         continue;
     }
 
+    // woocommerce_before_single_product doar afiseaza notificarile (adaugat
+    // in cos, erori) - implicit needvelite in nicio bordura de latime, ies
+    // full-bleed (dincolo de .pap-shell folosit de restul paginii). Le
+    // capturam si le invelim noi, ca sa se alinieze cu breadcrumb-ul si
+    // continutul de dedesubt - gasit live 2026-08-30 (semnalat de user).
+    ob_start();
     do_action('woocommerce_before_single_product');
+    $pap_before_single_product_html = trim((string) ob_get_clean());
+    if ($pap_before_single_product_html !== '') :
+        ?>
+        <div class="pap-shell pap-product-notices">
+          <?php echo $pap_before_single_product_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
+        <?php
+    endif;
 
     $product_id = $product->get_id();
 
@@ -672,18 +686,26 @@ get_header();
     }
 
     var readMoreButton = document.querySelector('[data-read-more]');
-    if (readMoreButton) {
-      var descriptionBox = document.querySelector('[data-description-box]');
-      readMoreButton.addEventListener('click', function () {
-        if (!descriptionBox) {
-          return;
-        }
-        var expanded = descriptionBox.classList.toggle('is-expanded');
-        readMoreButton.classList.toggle('is-expanded', expanded);
-        readMoreButton.querySelector('span').textContent = expanded
-          ? '<?php echo esc_js(__('Arată mai puțin', 'papetarie-storefront')); ?>'
-          : '<?php echo esc_js(__('Citește mai mult', 'papetarie-storefront')); ?>';
-      });
+    var descriptionBox = document.querySelector('[data-description-box]');
+    if (readMoreButton && descriptionBox) {
+      // Butonul + fade-ul erau afisate necondiționat, chiar si cand textul
+      // incape deja in cele 3 randuri ale clemei (scrollHeight <=
+      // clientHeight = continutul nu e taiat de fapt) - gasit live
+      // 2026-08-30 la un produs cu descriere de o singura propozitie
+      // ("Fluid corector NN 20 ml"), care arata un "Citește mai mult" fara
+      // niciun rost, cu un gol mare deasupra lui.
+      if (descriptionBox.scrollHeight <= descriptionBox.clientHeight + 1) {
+        readMoreButton.style.display = 'none';
+        descriptionBox.classList.add('is-expanded');
+      } else {
+        readMoreButton.addEventListener('click', function () {
+          var expanded = descriptionBox.classList.toggle('is-expanded');
+          readMoreButton.classList.toggle('is-expanded', expanded);
+          readMoreButton.querySelector('span').textContent = expanded
+            ? '<?php echo esc_js(__('Arată mai puțin', 'papetarie-storefront')); ?>'
+            : '<?php echo esc_js(__('Citește mai mult', 'papetarie-storefront')); ?>';
+        });
+      }
     }
   })();
 </script>

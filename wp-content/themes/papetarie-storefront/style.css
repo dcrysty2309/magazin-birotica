@@ -20393,6 +20393,14 @@ body.theme-papetarie .pap-footer-meta a:hover {
   margin-bottom: 20px;
 }
 
+/* Notificarile WooCommerce (adaugat in cos, erori) de deasupra breadcrumb-
+   ului - acum invelite in .pap-shell (vezi woocommerce/single-product.php),
+   nu mai ies full-bleed. Acelasi margin-bottom ca la breadcrumbs, ca sa
+   pastreze acelasi ritm vertical. */
+.pap-product-notices {
+  margin-bottom: 20px;
+}
+
 .pap-product-summary {
   display: grid;
   grid-template-columns: 440px minmax(0, 1fr);
