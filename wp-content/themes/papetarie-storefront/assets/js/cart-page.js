@@ -4,6 +4,7 @@
   var config = window.papCartPage || {};
   var updateOverlayText = (config.messages && config.messages.updateOverlay) || 'Coșul se actualizează...';
   var removeOverlayText = (config.messages && config.messages.removeOverlay) || 'Se elimină produsul...';
+  var removeErrorText = (config.messages && config.messages.removeError) || 'Nu am putut elimina produsul. Încearcă din nou.';
   var minimumOrderData = config.minimumOrder || {};
   var page = document.querySelector('[data-cart-page]');
   var shell = document.querySelector('[data-cart-page-shell]');
@@ -849,6 +850,12 @@
     }
   }
 
+  function fallbackToFullReload(href) {
+    window.requestAnimationFrame(function () {
+      window.location.href = href;
+    });
+  }
+
   function handleRemoveClick(event) {
     var button = event.target.closest('[data-cart-remove-item]');
     if (!button) {
@@ -863,9 +870,63 @@
     event.preventDefault();
     showOverlay(removeOverlayText);
 
-    window.requestAnimationFrame(function () {
-      window.location.href = href;
-    });
+    var cartItemKey = button.getAttribute('data-cart-item-key');
+    var ajaxUrl = config.ajaxUrl;
+    var nonce = config.removeNonce;
+
+    // Eliminarea facea pana acum o navigare completa a paginii
+    // (window.location.href) - "nu merge fluid", semnalat de user
+    // 2026-08-30. Reutilizam acelasi endpoint AJAX ca mini-cosul din
+    // header (pap_cart_drawer_sync, deja testat acolo) - fara reload,
+    // doar randurile/sumarul se actualizeaza. Daca requestul esueaza (retea
+    // etc.), cadem cu gratie pe navigarea completa de dinainte, ca actiunea
+    // sa se termine oricum.
+    if (!cartItemKey || !ajaxUrl || !nonce) {
+      fallbackToFullReload(href);
+      return;
+    }
+
+    var params = new URLSearchParams();
+    params.append('action', 'pap_cart_drawer_sync');
+    params.append('nonce', nonce);
+    params.append('mode', 'remove');
+    params.append('cart_item_key', cartItemKey);
+
+    fetch(ajaxUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: params.toString()
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (response) {
+        if (!response || !response.success || !response.data) {
+          throw new Error(removeErrorText);
+        }
+
+        var data = response.data;
+        if (typeof window.papApplyCartPagePayload === 'function') {
+          window.papApplyCartPagePayload(data.cart_page || data);
+        }
+        window.dispatchEvent(new CustomEvent('pap:cart-state-changed', { detail: data }));
+
+        // [data-pap-cart-count-badge] (cifra din header) e populat doar
+        // server-side la incarcarea paginii si prin sistemul de "fragments"
+        // al WooCommerce, care se declanseaza pe evenimente jQuery pe care
+        // acest fetch() nu le emite - fara asta ramanea cu numarul vechi
+        // dupa o eliminare AJAX. Actualizat direct din raspuns.
+        if (typeof data.count !== 'undefined') {
+          var safeBadgeCount = Math.max(0, parseInt(data.count, 10) || 0);
+          Array.prototype.slice.call(document.querySelectorAll('[data-pap-cart-count-badge]')).forEach(function (badge) {
+            badge.textContent = String(safeBadgeCount);
+          });
+        }
+
+        setOverlayVisible(false);
+      })
+      .catch(function () {
+        fallbackToFullReload(href);
+      });
   }
 
   function handleCheckoutClick(event) {

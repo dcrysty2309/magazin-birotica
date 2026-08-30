@@ -876,10 +876,15 @@ function papetarie_storefront_enqueue_cart_page_script(): void
         'papCartPage',
         [
             'ajaxUrl' => admin_url('admin-ajax.php'),
+            // Acelasi nonce/actiune AJAX ca la mini-cosul din header
+            // (pap_cart_drawer_sync) - eliminarea de pe pagina de cos
+            // reutilizeaza acelasi endpoint, in loc de un handler PHP nou.
+            'removeNonce' => wp_create_nonce('pap_cart_drawer'),
             'minimumOrder' => papetarie_storefront_cart_minimum_order_data(),
             'messages' => [
                 'updateOverlay' => __('Coșul se actualizează...', 'papetarie-storefront'),
                 'removeOverlay' => __('Se elimină produsul...', 'papetarie-storefront'),
+                'removeError' => __('Nu am putut elimina produsul. Încearcă din nou.', 'papetarie-storefront'),
             ],
             'initialNotice' => ($cart_updated_notice = papetarie_storefront_consume_cart_updated_notice())
                 ? [
