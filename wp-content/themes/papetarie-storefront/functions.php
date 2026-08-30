@@ -4836,6 +4836,19 @@ function papetarie_storefront_email_footer_text(): string
 add_filter('woocommerce_email_footer_text', 'papetarie_storefront_email_footer_text');
 
 /**
+ * WooCommerce insereaza un <hr> "divider de sectiune" intre tabelul de
+ * produse si cel de totaluri, si intre totaluri si nota clientului
+ * (email-order-details.php / email-addresses.php) - randat corect ca linie
+ * subtire de 1px in majoritatea clientilor de email, dar Gmail il afiseaza
+ * ca un bloc portocaliu gros (semnalat de user cu screenshot din inspector -
+ * elementul in sine are stilul corect de 1px, e strict o particularitate de
+ * randare Gmail pe acest <hr> gol). Cel mai simplu si robust fix: scoatem
+ * elementul complet din DOM, prin filtrul oficial WC pentru asta, in loc sa
+ * incercam sa "reparam" randarea lui doar in Gmail.
+ */
+add_filter('woocommerce_email_body_display_section_divider', '__return_false');
+
+/**
  * WooCommerce adauga automat "Procesezi comenzile din mers. Descarca
  * aplicatia." in emailul "Comanda noua" (trimis catre magazin, nu catre
  * client) - promovare pentru aplicatia mobila WooCommerce, nefolosita aici.
