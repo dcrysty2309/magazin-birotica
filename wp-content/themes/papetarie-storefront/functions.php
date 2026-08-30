@@ -4677,12 +4677,52 @@ function papetarie_storefront_pick_products_in_categories(array $term_ids, array
     return array_merge($picked, $rest);
 }
 
+/**
+ * Reface complet notificarea "adaugat in cos" (in loc sa doar curete link-ul
+ * "wc-forward" din mesajul implicit WooCommerce) - titlul reusitei ("Produs
+ * adaugat in cos") devine elementul vizual principal, iar numele produsului
+ * (fara ghilimele) trece pe rand secundar, ca sa nu mai domine notificarea la
+ * denumiri lungi. Reconstruim din $products (product_id => qty), nu din
+ * $message primit, ca sa avem numele curat fara HTML-ul implicit WooCommerce
+ * in jurul lui. Pastreaza CTA-ul "Vezi cosul" catre pagina reala de cos, fara
+ * flux paralel.
+ */
 function papetarie_storefront_add_to_cart_message_html(string $message, $products, bool $show_qty): string
 {
-    $message = preg_replace('/\s*<a[^>]+class="button wc-forward[^"]*"[^>]*>.*?<\/a>/is', '', $message) ?? $message;
-    $message = preg_replace('/\s{2,}/', ' ', $message) ?? $message;
+    if (!is_array($products) || empty($products)) {
+        return $message;
+    }
 
-    return trim($message);
+    $items = [];
+    foreach ($products as $product_id => $qty) {
+        $title = wp_strip_all_tags(get_the_title((int) $product_id));
+        if ($title === '') {
+            continue;
+        }
+        $qty = $show_qty ? (int) $qty : 1;
+        $items[] = $qty > 1 ? ($qty . ' × ' . $title) : $title;
+    }
+
+    if (empty($items)) {
+        return $message;
+    }
+
+    ob_start();
+    ?>
+    <div class="pap-atc-message">
+      <div class="pap-atc-message-text">
+        <span class="pap-atc-message-title"><?php esc_html_e('Produs adăugat în coș', 'papetarie-storefront'); ?></span>
+        <span class="pap-atc-message-product"><?php echo esc_html(implode(', ', $items)); ?></span>
+      </div>
+      <?php if (function_exists('wc_get_cart_url')) : ?>
+        <a href="<?php echo esc_url(wc_get_cart_url()); ?>" class="pap-atc-message-cta">
+          <?php esc_html_e('Vezi coșul', 'papetarie-storefront'); ?>
+        </a>
+      <?php endif; ?>
+    </div>
+    <?php
+
+    return (string) ob_get_clean();
 }
 add_filter('wc_add_to_cart_message_html', 'papetarie_storefront_add_to_cart_message_html', 10, 3);
 
