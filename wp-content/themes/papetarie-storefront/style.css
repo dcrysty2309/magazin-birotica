@@ -20424,6 +20424,9 @@ body.theme-papetarie .pap-footer-meta a:hover {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: sticky;
+  top: 24px;
+  align-self: start;
 }
 
 .pap-product-gallery-main {
@@ -21699,6 +21702,15 @@ body.theme-papetarie .pap-product-tabs-section .pap-product-description-spec-hea
   .pap-product-gallery-main {
     height: auto;
     aspect-ratio: 4 / 3;
+  }
+
+  .pap-product-gallery {
+    /* Sub 900px .pap-product-summary devine coloana unica (vezi mai sus) -
+       galeria si cardul de cumparare se stivuiesc, nu mai stau alaturi, deci
+       sticky ar tine poza fixata deasupra continutului care scroleaza pe
+       sub ea, in loc sa scroleze normal odata cu pagina. */
+    position: static;
+    top: auto;
   }
 }
 
