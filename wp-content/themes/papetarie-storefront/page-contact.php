@@ -11,52 +11,70 @@ $pap_contact_email = papetarie_storefront_contact_form_recipient();
 ?>
 
 <style>
-  .pap-contact-hero {
-    background: var(--pap-navy);
-    color: #fff;
-    padding: 40px 0;
+  /* Hero identic cu cel din page-legal.php (Despre noi, Termeni, Livrare
+     etc.) - fundal deschis cu compozitie de hexagoane decorative, nu un
+     banner navy plin. Contact avea deja o intrare pregatita in
+     $pap_legal_map de acolo, dar pagina foloseste propriul template -
+     copiat aici (nu reutilizat prin page-legal.php) ca sa nu cuplam
+     formularul de contact de sablonul generic de pagina legala, folosit de
+     8 alte pagini. Semnalat de user 2026-08-31: "nu imi place poza aia de
+     cover... albastru lal" (bannerul navy plin, versiunea anterioara). */
+  .pap-legal-hero {
+    position: relative; overflow: hidden;
+    background: #F6F8FB;
+    min-height: 260px;
+    display: flex; align-items: center;
   }
-  .pap-contact-hero-inner {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+  .pap-legal-hero-inner { position: relative; z-index: 3; width: 100%; padding-block: 32px; }
+  .pap-legal-hero-text { max-width: 45%; }
+  .pap-legal-hero-badge-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .pap-legal-hero-icon {
+    flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
+    background: #E8EDF5;
+    display: flex; align-items: center; justify-content: center;
   }
-  .pap-contact-hero-icon {
-    flex: 0 0 auto;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .pap-legal-hero-icon svg { width: 20px; height: 20px; color: var(--pap-navy); }
+  .pap-legal-hero-eyebrow { font-family: var(--pap-font-sans); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #5b6b85; }
+  .pap-legal-hero-accent-line { width: 34px; height: 3px; border-radius: 2px; background: #F2600C; margin: 8px 0 12px; }
+  .pap-legal-hero-title { font-family: var(--pap-font-sans); font-size: 30px; font-weight: 900; color: var(--pap-navy); margin: 0 0 8px; }
+  .pap-legal-hero-desc { font-family: var(--pap-font-sans); font-size: 14px; line-height: 1.6; color: #5b6b85; margin: 0; }
+
+  .pap-legal-hero-illustration { display: none; position: absolute; inset: 0; pointer-events: none; }
+  @media (min-width: 900px) { .pap-legal-hero-illustration { display: block; } }
+
+  .pap-legal-hex-deco { position: absolute; }
+  .pap-legal-hex-deco--bgL { width: 140px; height: 140px; left: 51%; top: 0%; opacity: .22; z-index: 0; }
+  .pap-legal-hex-deco--grayL { width: 84px; height: 84px; left: 62%; bottom: 2%; }
+  .pap-legal-hex-deco--lineL { width: 112px; height: 112px; left: 54%; top: 34%; opacity: .23; }
+  .pap-legal-hex-deco--smallL { width: 45px; height: 45px; left: 66%; top: 62%; opacity: .34; }
+  .pap-legal-hex-deco--orange { width: 65px; height: 65px; left: calc(60% + 10px); bottom: 8%; }
+  .pap-legal-hex-deco--bgMain { width: 155px; height: 155px; left: 66%; top: -8%; opacity: .28; }
+  .pap-legal-hex-deco--bgMain2 { width: 100px; height: 100px; left: 60%; top: 12%; opacity: .2; }
+  .pap-legal-hex-deco--bgMain3 { width: 90px; height: 90px; left: 76%; top: 62%; opacity: .22; }
+  .pap-legal-hex-deco--grayR { width: 78px; height: 78px; left: 82%; top: 52%; }
+  .pap-legal-hex-deco--lineR1 { width: 118px; height: 118px; left: 81%; top: 2%; opacity: .28; }
+  .pap-legal-hex-deco--lineR2 { width: 54px; height: 54px; left: 90%; top: 46%; opacity: .22; }
+  .pap-legal-hex-deco--microR { width: 20px; height: 20px; left: 96%; top: 22%; opacity: .18; }
+  .pap-legal-hex-deco--tinyR { width: 24px; height: 24px; left: 95%; top: 76%; opacity: .14; }
+  .pap-legal-hero-dotgrid {
+    position: absolute; left: 88%; bottom: 10%; z-index: 1; opacity: .3;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 40px;
   }
-  .pap-contact-hero-icon svg {
-    width: 24px;
-    height: 24px;
-    color: #fff;
+  .pap-legal-hero-dotgrid span { width: 3px; height: 3px; border-radius: 50%; background: #9AAAC9; }
+
+  .pap-legal-hero-showcase {
+    position: absolute; left: 73%; top: calc(50% + 12px); transform: translate(-50%, -50%);
+    width: 158px; height: 172px; z-index: 2;
+    background: #ffffff;
+    box-shadow: 0 12px 28px rgba(20, 40, 80, .1);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center;
   }
-  .pap-contact-hero-eyebrow {
-    font-family: var(--pap-font-sans);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.65);
-  }
-  .pap-contact-hero-title {
-    font-family: var(--pap-font-sans);
-    font-size: 28px;
-    font-weight: 900;
-    margin: 4px 0 0;
-    color: #fff;
-  }
-  .pap-contact-hero-desc {
-    font-family: var(--pap-font-sans);
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.75);
-    margin: 6px 0 0;
-    max-width: 52ch;
+  .pap-legal-hero-showcase svg { width: 60px; height: 60px; color: var(--pap-navy); }
+
+  @media (min-width: 900px) and (max-width: 1199px) {
+    .pap-legal-hero-showcase { width: 118px; height: 130px; }
+    .pap-legal-hero-showcase svg { width: 46px; height: 46px; }
   }
 
   .pap-contact-body {
@@ -271,17 +289,43 @@ $pap_contact_email = papetarie_storefront_contact_form_recipient();
     .pap-contact-form-row {
       grid-template-columns: 1fr;
     }
+    .pap-legal-hero-title {
+      font-size: 23px;
+    }
   }
 </style>
 
 <main id="primary" class="site-main pap-contact-page">
-  <div class="pap-contact-hero">
-    <div class="pap-shell pap-contact-hero-inner">
-      <div class="pap-contact-hero-icon"><?php echo papetarie_storefront_icon('headset-outline'); ?></div>
-      <div>
-        <div class="pap-contact-hero-eyebrow"><?php esc_html_e('Ajutor', 'papetarie-storefront'); ?></div>
-        <h1 class="pap-contact-hero-title"><?php the_title(); ?></h1>
-        <p class="pap-contact-hero-desc"><?php esc_html_e('Scrie-ne despre produse, comenzi sau orice altă nelămurire — îți răspundem cât mai rapid posibil.', 'papetarie-storefront'); ?></p>
+  <div class="pap-legal-hero">
+    <div class="pap-legal-hero-illustration" aria-hidden="true">
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--bgL" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#E8EDF5"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--grayL" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#C7D3E8"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--lineL" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="#0d2e61" stroke-width="1.3"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--smallL" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#D6E0F0"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--bgMain" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#DFE6F0"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--bgMain2" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#E8EDF5"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--bgMain3" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#D5DEEA"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--grayR" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#D5DEEA"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--lineR1" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="#0d2e61" stroke-width="1.2"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--lineR2" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="#0d2e61" stroke-width="1.4"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--microR" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="#0d2e61" stroke-width="1.5"/></svg>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--tinyR" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="#9AAAC9" stroke-width="1.3"/></svg>
+      <div class="pap-legal-hero-dotgrid">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <svg class="pap-legal-hex-deco pap-legal-hex-deco--orange" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="#F2600C" stroke-width="1.6"/></svg>
+      <div class="pap-legal-hero-showcase"><?php echo papetarie_storefront_icon('headset-outline'); ?></div>
+    </div>
+    <div class="pap-shell pap-legal-hero-inner">
+      <div class="pap-legal-hero-text">
+        <div class="pap-legal-hero-badge-row">
+          <div class="pap-legal-hero-icon"><?php echo papetarie_storefront_icon('headset-outline'); ?></div>
+          <div class="pap-legal-hero-eyebrow"><?php esc_html_e('Ajutor', 'papetarie-storefront'); ?></div>
+        </div>
+        <div class="pap-legal-hero-accent-line"></div>
+        <h1 class="pap-legal-hero-title"><?php the_title(); ?></h1>
+        <p class="pap-legal-hero-desc"><?php esc_html_e('Scrie-ne despre produse, comenzi sau orice altă nelămurire — îți răspundem cât mai rapid posibil.', 'papetarie-storefront'); ?></p>
       </div>
     </div>
   </div>
