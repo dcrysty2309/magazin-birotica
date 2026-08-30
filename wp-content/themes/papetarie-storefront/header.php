@@ -207,15 +207,31 @@ if (!is_tax('product_cat')) {
       return;
     }
 
+    // Continut simplu, non-interactiv (doar 2 linkuri de contact) - hover
+    // e mai natural decat click pentru un dropdown asa de mic (semnalat de
+    // user: click-ul il tinea deschis pana la urmatorul click, nu se
+    // inchidea la mutarea cursorului). Pastram si click/tastatura ca sa
+    // ramana utilizabil pe touch si de la tastatura.
+    var closeTimer = null;
+
     function close() {
       panel.hidden = true;
       trigger.setAttribute('aria-expanded', 'false');
     }
 
     function open() {
+      window.clearTimeout(closeTimer);
       panel.hidden = false;
       trigger.setAttribute('aria-expanded', 'true');
     }
+
+    function scheduleClose() {
+      window.clearTimeout(closeTimer);
+      closeTimer = window.setTimeout(close, 150);
+    }
+
+    wrap.addEventListener('mouseenter', open);
+    wrap.addEventListener('mouseleave', scheduleClose);
 
     trigger.addEventListener('click', function (event) {
       event.stopPropagation();
