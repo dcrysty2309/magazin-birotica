@@ -21379,11 +21379,17 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.sho
 
 .pap-product-description-box {
   position: relative;
-  /* 3 randuri la line-height:1.6 * font-size:16px = 25.6px/rand -> ~77px.
-     Cerut explicit sa fie doar 3 randuri vizibile inainte de "Citește mai
-     mult", 2026-08-30 (inainte erau ~120px, adica aproape 5 randuri). */
-  max-height: 78px;
+  /* Prag implicit (inainte sa ruleze JS-ul de mai jos, care decide pe
+     baza inaltimii REALE randate, nu a unui numar fix de randuri - vezi
+     evaluateDescriptionCollapse() in single-product.php) - acelasi 280px
+     folosit acolo ca prag, ca sa nu existe un moment de continut
+     nedecupat inainte ca JS-ul sa aplice clema reala. Cerut explicit
+     2026-08-31: colaps doar peste ~250-300px inaltime reala, nu dupa un
+     numar fix de randuri (inainte 78px ~3 randuri, prea agresiv - taia
+     descrieri de-un singur rand doar ca sa arate un buton fara rost). */
+  max-height: 280px;
   overflow: hidden;
+  transition: max-height 0.3s ease;
 }
 
 .pap-product-description-box.is-expanded {
@@ -21471,9 +21477,10 @@ body.theme-papetarie .pap-product-tabs-section .pap-product-description-spec-hea
   left: 0;
   right: 0;
   bottom: 0;
-  /* Redus proportional cu noul max-height de 3 randuri (78px) - la 48px
-     vechi ar fi acoperit aproape 2 din cele 3 randuri ramase. */
-  height: 20px;
+  /* Proportional cu noul prag de colaps (280px, vezi
+     .pap-product-description-box) - suficient de subtil sa nu inghita
+     mai mult de-un rand din textul vizibil. */
+  height: 32px;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff);
   pointer-events: none;
 }

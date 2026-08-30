@@ -688,24 +688,63 @@ get_header();
     var readMoreButton = document.querySelector('[data-read-more]');
     var descriptionBox = document.querySelector('[data-description-box]');
     if (readMoreButton && descriptionBox) {
-      // Butonul + fade-ul erau afisate necondiționat, chiar si cand textul
-      // incape deja in cele 3 randuri ale clemei (scrollHeight <=
-      // clientHeight = continutul nu e taiat de fapt) - gasit live
-      // 2026-08-30 la un produs cu descriere de o singura propozitie
-      // ("Fluid corector NN 20 ml"), care arata un "Citește mai mult" fara
-      // niciun rost, cu un gol mare deasupra lui.
-      if (descriptionBox.scrollHeight <= descriptionBox.clientHeight + 1) {
-        readMoreButton.style.display = 'none';
-        descriptionBox.classList.add('is-expanded');
-      } else {
-        readMoreButton.addEventListener('click', function () {
-          var expanded = descriptionBox.classList.toggle('is-expanded');
-          readMoreButton.classList.toggle('is-expanded', expanded);
-          readMoreButton.querySelector('span').textContent = expanded
-            ? '<?php echo esc_js(__('Arată mai puțin', 'papetarie-storefront')); ?>'
-            : '<?php echo esc_js(__('Citește mai mult', 'papetarie-storefront')); ?>';
-        });
+      // "Citește mai mult" pe baza inaltimii REALE randate a continutului,
+      // nu a unui numar fix de randuri - un numar fix (incercat inainte:
+      // 3 randuri/78px) fie taia descrieri scurte fara niciun rost (un
+      // singur rand deja incape, dar tot arata butonul), fie e prea putin
+      // pentru descrieri cu paragrafe/liste. Recalculat la fiecare
+      // resize, fiindca acelasi text randeaza la inaltimi total diferite
+      // pe desktop vs mobil (rewrapping). Cerut explicit 2026-08-31.
+      //
+      // COLLAPSE_THRESHOLD: sub-asta descrierea se arata mereu integral.
+      // GRACE: daca depaseste pragul cu mai putin de-atat (~2 randuri),
+      // tot o aratam integral - nu are sens un buton "Citește mai mult"
+      // care ar mai descoperi doar o bucatica de rand.
+      var COLLAPSE_THRESHOLD = 280;
+      var GRACE = 60;
+      var isUserExpanded = false;
+      var resizeTimer = null;
+
+      function evaluateDescriptionCollapse() {
+        var naturalHeight = descriptionBox.scrollHeight;
+        var needsCollapse = naturalHeight > COLLAPSE_THRESHOLD + GRACE;
+
+        if (!needsCollapse) {
+          // Incape deja integral - fara buton, si is-expanded ca sa
+          // stinga fade-ul (regula CSS existenta il ascunde doar cand
+          // clasa asta e prezenta, indiferent de motiv).
+          readMoreButton.style.display = 'none';
+          descriptionBox.classList.add('is-expanded');
+          descriptionBox.style.maxHeight = naturalHeight + 'px';
+          return;
+        }
+
+        readMoreButton.style.display = '';
+
+        if (isUserExpanded) {
+          descriptionBox.classList.add('is-expanded');
+          descriptionBox.style.maxHeight = naturalHeight + 'px';
+        } else {
+          descriptionBox.classList.remove('is-expanded');
+          descriptionBox.style.maxHeight = COLLAPSE_THRESHOLD + 'px';
+        }
       }
+
+      evaluateDescriptionCollapse();
+
+      window.addEventListener('resize', function () {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(evaluateDescriptionCollapse, 150);
+      });
+
+      readMoreButton.addEventListener('click', function () {
+        isUserExpanded = !isUserExpanded;
+        readMoreButton.classList.toggle('is-expanded', isUserExpanded);
+        readMoreButton.querySelector('span').textContent = isUserExpanded
+          ? '<?php echo esc_js(__('Arată mai puțin', 'papetarie-storefront')); ?>'
+          : '<?php echo esc_js(__('Citește mai mult', 'papetarie-storefront')); ?>';
+        evaluateDescriptionCollapse();
+      });
     }
   })();
 </script>
