@@ -562,14 +562,6 @@
     return config.shopUrl || window.location.href;
   }
 
-  function shouldHandleForm(form) {
-    return !(
-      form.classList.contains('variations_form')
-      || form.classList.contains('grouped_form')
-      || form.classList.contains('external')
-    );
-  }
-
   function sendAddToCart(button, form) {
     var productId = getProductId(button, form);
     if (!productId) {
@@ -685,20 +677,12 @@
     sendAddToCart(button, null);
   }, true);
 
-  document.addEventListener('submit', function (event) {
-    var form = event.target.closest('form.cart');
-    if (!form || !shouldHandleForm(form)) {
-      return;
-    }
-
-    var button = form.querySelector('.single_add_to_cart_button');
-    var productId = getProductId(button, form);
-    if (!productId) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    sendAddToCart(button || form, form);
-  }, true);
+  // Fara AJAX pentru formularul de pe pagina de produs (submit clasic,
+  // reload complet) - unificat intentionat cu notificarea de sub
+  // breadcrumbs, aceeasi experienta indiferent daca produsul e simplu sau
+  // cu variante. Pana acum doar produsele CU variante treceau prin acest
+  // flux (formularul lor are clasa variations_form, exclusa explicit mai
+  // sus in vechiul shouldHandleForm()) - produsele simple erau interceptate
+  // aici si aratau in schimb modalul AJAX, o experienta diferita pentru
+  // aceeasi actiune. Semnalat de user 2026-08-31.
 })();
