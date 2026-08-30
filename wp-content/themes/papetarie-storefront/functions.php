@@ -4836,6 +4836,28 @@ function papetarie_storefront_email_footer_text(): string
 add_filter('woocommerce_email_footer_text', 'papetarie_storefront_email_footer_text');
 
 /**
+ * WooCommerce adauga automat "Procesezi comenzile din mers. Descarca
+ * aplicatia." in emailul "Comanda noua" (trimis catre magazin, nu catre
+ * client) - promovare pentru aplicatia mobila WooCommerce, nefolosita aici.
+ * WC_Email_New_Order::mobile_messaging() se auto-inregistreaza pe
+ * woocommerce_email_footer (prioritate 9) chiar in constructorul clasei,
+ * deci trebuie scoasa explicit, cu referinta la instanta reala a clasei de
+ * email (WC()->mailer()->get_emails()), nu doar cu numele metodei.
+ */
+function papetarie_storefront_disable_email_mobile_app_promo(): void
+{
+    if (!function_exists('WC') || !WC()->mailer()) {
+        return;
+    }
+
+    $email = WC()->mailer()->get_emails()['WC_Email_New_Order'] ?? null;
+    if ($email instanceof WC_Email) {
+        remove_action('woocommerce_email_footer', [$email, 'mobile_messaging'], 9);
+    }
+}
+add_action('woocommerce_email_footer', 'papetarie_storefront_disable_email_mobile_app_promo', 1);
+
+/**
  * Antetul emailurilor WooCommerce foloseste implicit un mov (#8526ff) ramas
  * din tema originala, nepotrivit cu navy-ul folosit la buton - il aliniem.
  */
