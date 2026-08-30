@@ -2904,6 +2904,9 @@ function papetarie_storefront_checkout_update_review_fragments(array $fragments)
     $fragments['section[data-pap-checkout-section="order-summary"]'] = papetarie_storefront_get_checkout_order_review_html();
     $fragments['div.woocommerce-checkout-review-order-table'] = papetarie_storefront_get_checkout_order_review_html();
     $fragments['section[data-pap-checkout-section="shipping-address"]'] = papetarie_storefront_get_checkout_shipping_address_html();
+    if (function_exists('papetarie_storefront_get_checkout_company_card_html')) {
+        $fragments['section[data-pap-checkout-section="company-invoice"]'] = papetarie_storefront_get_checkout_company_card_html();
+    }
     $fragments['section[data-pap-checkout-section="shipping-methods"]'] = papetarie_storefront_get_checkout_shipping_methods_card_html();
     $fragments['section[data-pap-checkout-section="payment"]'] = papetarie_storefront_get_checkout_payment_html();
 
