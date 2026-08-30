@@ -21353,7 +21353,10 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.sho
 
 body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.shop_attributes th,
 body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.shop_attributes td {
-  padding: 18px !important;
+  /* Vertical redus fata de 18px uniform - randurile erau prea inalte,
+     aspect de tabel administrativ. Orizontal neschimbat, suficient spatiu
+     de respiratie fara sa arate strans. Cerut explicit 2026-08-30. */
+  padding: 13px 18px !important;
   border: 1px solid #f0f2f5 !important;
   text-align: left !important;
   vertical-align: top !important;

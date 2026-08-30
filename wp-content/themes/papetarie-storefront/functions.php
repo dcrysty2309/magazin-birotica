@@ -947,6 +947,89 @@ add_filter('woocommerce_product_additional_information_tab_title', static functi
     return __('Specificații', 'papetarie-storefront');
 });
 
+// "Informații suplimentare" (heading implicit WooCommerce deasupra
+// tabelului de atribute) e o ierarhie redundanta - tab-ul se numeste deja
+// "Specificații", nu mai are nevoie de alt titlu intern identic ca rol.
+// Eliminat global, la nivel de filtru (nu template nou), ca sa functioneze
+// pe orice produs, vechi sau nou, fara nicio interventie manuala.
+add_filter('woocommerce_product_additional_information_heading', static function (): string {
+    return '';
+});
+
+/**
+ * Etichetele de atribut (coloana din stanga a tabelului de Specificatii)
+ * vin din feed formatate cu Title Case pe fiecare cuvant (vezi
+ * mb_convert_case(..., MB_CASE_TITLE) in aperta-sync.php) - corect pentru
+ * primul cuvant, dar gresit pentru restul ("Adâncime De Capsare" in loc de
+ * "Adâncime de capsare"). NU modificam datele din DB - doar afisarea,
+ * aici, la randare in tabel. Pastram neschimbate: acronime (2+ litere/
+ * cifre majuscule, ex. "USB", "A4"), cuvinte cu majuscula interna (ex.
+ * "iPhone" - semn de denumire speciala) si orice cuvant care se
+ * potriveste cu un nume de brand cunoscut (taxonomia product_brand, ex.
+ * "Kreul", "Clairefontaine") - restul cuvintelor (in afara de primul)
+ * devin minuscule. Cerut explicit 2026-08-30, cu grija sa nu strice
+ * acronime/branduri.
+ */
+function papetarie_storefront_normalize_attribute_label(string $label): string
+{
+    $label = trim($label);
+    if ($label === '') {
+        return $label;
+    }
+
+    static $brand_names = null;
+    if ($brand_names === null) {
+        $brand_names = [];
+        if (taxonomy_exists('product_brand')) {
+            $terms = get_terms(['taxonomy' => 'product_brand', 'hide_empty' => false, 'fields' => 'names']);
+            if (is_array($terms)) {
+                foreach ($terms as $name) {
+                    $brand_names[mb_strtolower((string) $name, 'UTF-8')] = true;
+                }
+            }
+        }
+    }
+
+    $tokens = preg_split('/(\s+)/u', $label, -1, PREG_SPLIT_DELIM_CAPTURE);
+    if (!is_array($tokens)) {
+        return $label;
+    }
+
+    $result = '';
+    $word_index = 0;
+
+    foreach ($tokens as $token) {
+        if (trim($token) === '') {
+            $result .= $token;
+            continue;
+        }
+
+        $lower = mb_strtolower($token, 'UTF-8');
+        // Cuvintele cu punctuatie in fata (ex. "(Burduf)") isi au litera
+        // reala pe pozitia 1, nu 0 - fara sa sarim peste punctuatia de la
+        // inceput, verificarea de mai jos le confunda cu "capitalizare
+        // interna speciala" si le lasa gresit neschimbate.
+        $core = (string) preg_replace('/^[^\p{L}\d]+/u', '', $token);
+        $is_all_caps = preg_match('/^[\p{Lu}\d]{2,}$/u', $core) === 1;
+        $is_known_brand = isset($brand_names[$lower]);
+        $has_internal_cap = preg_match('/\p{Lu}/u', mb_substr($core, 1, null, 'UTF-8')) === 1;
+
+        if ($is_all_caps || $is_known_brand || $has_internal_cap) {
+            // Neschimbat - acronim, brand cunoscut sau capitalizare speciala.
+        } elseif ($word_index === 0) {
+            $token = mb_strtoupper(mb_substr($token, 0, 1, 'UTF-8'), 'UTF-8')
+                . mb_strtolower(mb_substr($token, 1, null, 'UTF-8'), 'UTF-8');
+        } else {
+            $token = $lower;
+        }
+
+        $result .= $token;
+        $word_index++;
+    }
+
+    return $result;
+}
+
 // Reviews are off sitewide - no reviews tab on the product page, no rating
 // stars on product cards (see papetarie_storefront_render_product_rating_html
 // call site removal below).
