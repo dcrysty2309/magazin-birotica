@@ -439,13 +439,35 @@ get_header();
         return;
       }
 
+      // Toleranta mare intentionat (jumatate de thumbnail) - track.scrollWidth
+      // vs track.clientWidth (folosit inainte) da rezultate usor diferite
+      // intre motoare de randare (subpixel/gap in flexbox), lasand sageata
+      // "urmatoare" vizibila cu 1-2px in plus desi vizual toate pozele
+      // incapeau deja - semnalat live 2026-08-31 (Rhodia, 5 poze). Comparam
+      // direct marginea DREAPTA a ultimului thumbnail cu marginea vizibila
+      // a track-ului - mai robust decat scrollWidth, si oricum o depasire
+      // REALA (nevoie efectiva de scroll) e intotdeauna mult mai mare decat
+      // toleranta asta (cel putin latimea unui thumbnail intreg).
+      var OVERFLOW_TOLERANCE = 34;
+
+      function hasOverflow() {
+        var lastThumb = track.lastElementChild;
+        if (!lastThumb) {
+          return false;
+        }
+        var trackRight = track.getBoundingClientRect().right;
+        var lastThumbRight = lastThumb.getBoundingClientRect().right;
+        return lastThumbRight > trackRight + OVERFLOW_TOLERANCE;
+      }
+
       function refresh() {
         var maxScroll = track.scrollWidth - track.clientWidth;
+        var overflowing = hasOverflow();
         if (prevBtn) {
           prevBtn.hidden = track.scrollLeft <= 4;
         }
         if (nextBtn) {
-          nextBtn.hidden = track.scrollLeft >= maxScroll - 4;
+          nextBtn.hidden = !overflowing || track.scrollLeft >= maxScroll - 4;
         }
       }
 

@@ -20522,6 +20522,10 @@ body.theme-papetarie .pap-product-gallery-thumbs-nav {
   cursor: pointer;
 }
 
+body.theme-papetarie .pap-product-gallery-thumbs-nav[hidden] {
+  display: none !important;
+}
+
 body.theme-papetarie .pap-product-gallery-thumbs-nav span {
   display: inline-flex !important;
   align-items: center !important;
