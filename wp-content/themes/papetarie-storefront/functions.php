@@ -948,6 +948,20 @@ add_filter('woocommerce_product_additional_information_tab_title', static functi
 add_filter('woocommerce_product_tabs', static function (array $tabs): array {
     unset($tabs['reviews']);
 
+    // Descriere arata acum STRICT proza (vezi
+    // includes/product-description.php) - orice lista/bullet a fost mutata
+    // in Specificatii. Un produs a carui descriere din feed e formata DOAR
+    // din liste (fara nicio propozitie de proza) ramane fara nimic de aratat
+    // pe acest tab - il ascundem, in loc sa afisam un tab clickabil, gol.
+    if (isset($tabs['description']) && function_exists('papetarie_storefront_format_description_content')) {
+        global $product;
+        $description = $product instanceof WC_Product ? (string) $product->get_description() : '';
+        $formatted = papetarie_storefront_format_description_content($description);
+        if (trim(wp_strip_all_tags($formatted)) === '') {
+            unset($tabs['description']);
+        }
+    }
+
     return $tabs;
 }, 98);
 
