@@ -1065,13 +1065,6 @@ add_filter('woocommerce_product_related_products_heading', static function (): s
     return __('Produse similare', 'papetarie-storefront');
 });
 
-add_filter('woocommerce_output_related_products_args', static function (array $args): array {
-    $args['posts_per_page'] = 8;
-    $args['columns'] = 4;
-
-    return $args;
-});
-
 function papetarie_storefront_clear_orphaned_cart_notices_on_account_pages(): void
 {
     if (is_admin() || !function_exists('is_account_page') || !is_account_page()) {
@@ -4505,13 +4498,181 @@ add_filter('woocommerce_product_query_meta_query', 'papetarie_storefront_filter_
 
 function papetarie_storefront_related_products_args(array $args): array
 {
-    $args['posts_per_page'] = 4;
+    // Tinta 6 produse - logica reala de selectie (subcategorie -> parinte
+    // -> nivel superior) e in papetarie_storefront_hierarchical_related_
+    // products() mai jos, agatata pe filtrul woocommerce_related_products.
+    $args['posts_per_page'] = 6;
     $args['columns'] = 4;
-    $args['orderby'] = 'rand';
+    // woocommerce_related_products() (in core) reordoneaza DIN NOU lista
+    // finala prin wc_products_array_orderby($products, $args['orderby'],
+    // $args['order']) - implicit orderby='rand' (amesteca tot) SI
+    // order='desc' (inverseaza rezultatul, chiar si cu orderby='none').
+    // Fara sa le suprascriem explicit aici, ordinea intentionata
+    // (subcategorie INTAI, completari din parinte DUPA) se pierde a doua
+    // oara, dupa filtrul woocommerce_related_products de mai jos. Gasit
+    // live 2026-08-31.
+    $args['orderby'] = 'none';
+    $args['order'] = 'asc';
 
     return $args;
 }
-add_filter('woocommerce_output_related_products_args', 'papetarie_storefront_related_products_args');
+// Prioritate 20, nu implicit (10) - Storefront (tema parinte) isi
+// inregistreaza propriul callback (Storefront_WooCommerce::
+// related_products_args) tot pe woocommerce_output_related_products_args,
+// dar mai tarziu in ciclul de viata WP (dintr-o clasa, nu direct la
+// incarcarea fisierului) - la aceeasi prioritate 10, al lui rula AL
+// DOILEA si suprascria inapoi posts_per_page la 3 (valoarea implicita
+// Storefront). Gasit live 2026-08-31, verificat direct in $wp_filter.
+add_filter('woocommerce_output_related_products_args', 'papetarie_storefront_related_products_args', 20);
+
+/**
+ * "Produse similare" - inlocuieste algoritmul implicit WooCommerce
+ * (categorii + etichete amestecate, des insuficient - cateva subcategorii
+ * mici ajungeau sa arate doar 2-3 produse) cu o ierarhie explicita pe
+ * arborele REAL de categorii: cea mai specifica (sub)categorie a
+ * produsului curent, apoi parintele ei, apoi bunicul, oprindu-se imediat
+ * ce s-au adunat $limit produse eligibile. Fara nicio hardcodare de nume/
+ * ID de categorie - functioneaza identic pentru orice produs si orice
+ * adancime de arbore, actuala sau viitoare (categoriile insele raman
+ * neatinse - vezi docs/categorii-fixe.md, aici doar CITIM arborele).
+ *
+ * @param int[] $related_posts
+ * @param array{limit: int, excluded_ids: int[]} $args
+ * @return int[]
+ */
+function papetarie_storefront_hierarchical_related_products($related_posts, $product_id, $args)
+{
+    $limit = isset($args['limit']) && (int) $args['limit'] > 0 ? (int) $args['limit'] : 6;
+    $product_id = (int) $product_id;
+
+    $selected = papetarie_storefront_get_hierarchical_related_product_ids($product_id, $limit);
+
+    return !empty($selected) ? $selected : $related_posts;
+}
+add_filter('woocommerce_related_products', 'papetarie_storefront_hierarchical_related_products', 10, 3);
+
+// Array-ul de mai sus e deja ordonat intentionat (subcategoria cea mai
+// specifica INTAI, apoi umpluturile din parinte) - shuffle-ul implicit
+// WooCommerce (pe rezultatul FINAL, dupa orice filtru) ar amesteca totul
+// laolalta si ar distruge exact prioritatea ceruta explicit ("produsele
+// din subcategoria directa trebuie sa aiba intotdeauna prioritate fata de
+// cele din parinte"). Rotatia intre incarcari vine deja din interiorul
+// functiei de mai sus (orderby=rand PE FIECARE nivel in parte), nu mai e
+// nevoie si de shuffle global.
+add_filter('woocommerce_product_related_posts_shuffle', '__return_false');
+
+/**
+ * @return int[] ID-uri de produse
+ */
+function papetarie_storefront_get_hierarchical_related_product_ids(int $product_id, int $limit): array
+{
+    $term_ids = wc_get_product_term_ids($product_id, 'product_cat');
+    if (empty($term_ids)) {
+        return [];
+    }
+
+    // Nivelurile de cautare: nivelul 0 = categoriile asignate direct
+    // produsului (de obicei cea mai specifica), nivelul 1 = parintii lor,
+    // nivelul 2 = bunicii, etc. - urcam pana la radacina arborelui. Un
+    // termen deja vazut la un nivel mai specific nu se repeta la unul
+    // superior (evita cautari redundante).
+    $levels = [];
+    $seen = [];
+    $current = array_unique(array_map('intval', $term_ids));
+
+    while (!empty($current)) {
+        $current = array_values(array_diff($current, $seen));
+        if (empty($current)) {
+            break;
+        }
+
+        $levels[] = $current;
+        $seen = array_merge($seen, $current);
+
+        $parents = [];
+        foreach ($current as $term_id) {
+            $term = get_term($term_id, 'product_cat');
+            if ($term instanceof WP_Term && (int) $term->parent > 0) {
+                $parents[] = (int) $term->parent;
+            }
+        }
+        $current = array_unique($parents);
+    }
+
+    $excluded_ids = [$product_id];
+    $selected_ids = [];
+
+    foreach ($levels as $level_term_ids) {
+        $remaining = $limit - count($selected_ids);
+        if ($remaining <= 0) {
+            break;
+        }
+
+        $picked = papetarie_storefront_pick_products_in_categories($level_term_ids, $excluded_ids, $remaining);
+        foreach ($picked as $id) {
+            $selected_ids[] = $id;
+            $excluded_ids[] = $id;
+        }
+    }
+
+    return $selected_ids;
+}
+
+/**
+ * Alege pana la $limit produse publicate din categoriile date (inclusiv
+ * subcategoriile lor - la nivelul "parinte", asta aduce natural toate
+ * celelalte subcategorii surori, nu doar produsele asignate literal
+ * parintelui, care de obicei n-are produse asignate direct). Produsele in
+ * stoc au intotdeauna prioritate; ordinea in cadrul fiecarui grup de stoc
+ * e aleatorie (orderby=rand la nivel de query DB) - rotatie rezonabila
+ * intre incarcari cand exista mai multi candidati eligibili decat locuri
+ * disponibile, fara sa fie mereu aceleasi produse.
+ *
+ * @param int[] $term_ids
+ * @param int[] $excluded_ids
+ * @return int[]
+ */
+function papetarie_storefront_pick_products_in_categories(array $term_ids, array $excluded_ids, int $limit): array
+{
+    if ($limit <= 0 || empty($term_ids)) {
+        return [];
+    }
+
+    $base_args = [
+        'post_type' => 'product',
+        'post_status' => 'publish',
+        'fields' => 'ids',
+        'orderby' => 'rand',
+        'post__not_in' => $excluded_ids,
+        'tax_query' => [[ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+            'taxonomy' => 'product_cat',
+            'field' => 'term_id',
+            'terms' => $term_ids,
+            'include_children' => true,
+        ]],
+    ];
+
+    $in_stock_args = $base_args;
+    $in_stock_args['posts_per_page'] = $limit;
+    $in_stock_args['meta_query'] = [[ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+        'key' => '_stock_status',
+        'value' => 'instock',
+        'compare' => '=',
+    ]];
+    $picked = array_map('intval', get_posts($in_stock_args));
+
+    if (count($picked) >= $limit) {
+        return $picked;
+    }
+
+    $still_needed = $limit - count($picked);
+    $rest_args = $base_args;
+    $rest_args['posts_per_page'] = $still_needed;
+    $rest_args['post__not_in'] = array_merge($excluded_ids, $picked);
+    $rest = array_map('intval', get_posts($rest_args));
+
+    return array_merge($picked, $rest);
+}
 
 function papetarie_storefront_add_to_cart_message_html(string $message, $products, bool $show_qty): string
 {
