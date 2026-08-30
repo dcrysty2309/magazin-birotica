@@ -3601,7 +3601,7 @@ function papetarie_storefront_is_checkout_or_order_received_page(): bool
 
 function papetarie_storefront_get_checkout_support_details(): array
 {
-    $phone = (string) apply_filters('papetarie_storefront_checkout_support_phone', '0740 123 456');
+    $phone = (string) apply_filters('papetarie_storefront_checkout_support_phone', '0736 628 325');
     $support_url = (string) apply_filters(
         'papetarie_storefront_checkout_support_url',
         function_exists('wc_get_account_endpoint_url')
@@ -4825,7 +4825,13 @@ add_filter('woocommerce_email_styles', 'papetarie_storefront_email_styles');
 
 function papetarie_storefront_email_footer_text(): string
 {
-    return __('Notix — papetărie și birotică.<br>Contact: 0722 123 456 &middot; <a href="mailto:contact@notix.ro" style="color:#173764;">contact@notix.ro</a>', 'papetarie-storefront');
+    $phone = papetarie_storefront_get_checkout_support_details()['phone'];
+
+    return sprintf(
+        /* translators: 1: support phone number */
+        __('Notix — papetărie și birotică.<br>Contact: %1$s &middot; <a href="mailto:contact@notix.ro" style="color:#173764;">contact@notix.ro</a>', 'papetarie-storefront'),
+        esc_html($phone)
+    );
 }
 add_filter('woocommerce_email_footer_text', 'papetarie_storefront_email_footer_text');
 

@@ -144,18 +144,31 @@ if (!is_tax('product_cat')) {
           </nav>
 
           <div class="pap-help-links">
-            <?php
-            wp_nav_menu(
-                [
-                    'theme_location' => 'utility',
-                    'container' => false,
-                    'menu_class' => 'pap-utility-menu',
-                    'fallback_cb' => static function (): void {
-                        echo '<ul class="pap-utility-menu"><li><a href="#">' . papetarie_storefront_icon('headset-outline') . '<span>Ai nevoie de ajutor?</span></a></li></ul>';
-                    },
-                ]
-            );
-            ?>
+            <?php $header_support = papetarie_storefront_get_checkout_support_details(); ?>
+            <div class="pap-help-dropdown" data-help-dropdown>
+              <button
+                type="button"
+                class="pap-help-trigger"
+                data-help-trigger
+                aria-haspopup="true"
+                aria-expanded="false"
+              >
+                <?php echo papetarie_storefront_icon('headset-outline'); ?>
+                <span><?php esc_html_e('Ai nevoie de ajutor?', 'papetarie-storefront'); ?></span>
+              </button>
+              <div class="pap-help-panel" data-help-panel hidden>
+                <?php if ($header_support['phone'] !== '') : ?>
+                  <a class="pap-help-panel-item" href="<?php echo esc_attr('tel:+4' . preg_replace('/\s+/', '', $header_support['phone'])); ?>">
+                    <?php echo papetarie_storefront_checkout_address_card_icon_svg('phone'); ?>
+                    <span><?php echo esc_html($header_support['phone']); ?></span>
+                  </a>
+                <?php endif; ?>
+                <a class="pap-help-panel-item" href="mailto:contact@notix.ro">
+                  <?php echo papetarie_storefront_checkout_address_card_icon_svg('email'); ?>
+                  <span>contact@notix.ro</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -183,6 +196,47 @@ if (!is_tax('product_cat')) {
       try {
         window.sessionStorage.setItem(storageKey, '1');
       } catch (error) {}
+    });
+  })();
+
+  (function () {
+    var wrap = document.querySelector('[data-help-dropdown]');
+    var trigger = wrap ? wrap.querySelector('[data-help-trigger]') : null;
+    var panel = wrap ? wrap.querySelector('[data-help-panel]') : null;
+    if (!wrap || !trigger || !panel) {
+      return;
+    }
+
+    function close() {
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function open() {
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    trigger.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (panel.hidden) {
+        open();
+      } else {
+        close();
+      }
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!panel.hidden && !wrap.contains(event.target)) {
+        close();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !panel.hidden) {
+        close();
+        trigger.focus();
+      }
     });
   })();
 </script>
