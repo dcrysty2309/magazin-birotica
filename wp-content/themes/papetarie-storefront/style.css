@@ -23139,6 +23139,50 @@ form.cart table.variations td.value {
   margin-bottom: 0 !important;
 }
 
+/* Selectorul de variatie pentru orice atribut care NU e culoare (Liniatură,
+   Arome, Model, Formă, Variantă, Tip, Structură - vezi color-swatches.php,
+   swatch-urile custom se aplica doar la atribute cu "culo" in nume) - fara
+   asta ramane <select> complet nestilizat, cu chrome-ul nativ al SO/
+   browser-ului (bordura gri default, sageata nativa, border-radius:0),
+   sarind vizibil din designul restului paginii. Gasit live 2026-08-30
+   (blocnotes Rhodia, atributul "Liniatură"). */
+form.variations_form table.variations select,
+form.cart table.variations select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  min-height: var(--pap-input-height);
+  height: var(--pap-input-height);
+  padding: 0 40px 0 16px;
+  border: 1px solid #dde1e8;
+  border-radius: 3px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d2e61' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pap-navy);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+form.variations_form table.variations select:hover,
+form.cart table.variations select:hover {
+  border-color: #b7c2d6;
+}
+
+form.variations_form table.variations select:focus,
+form.cart table.variations select:focus,
+form.variations_form table.variations select:focus-visible,
+form.cart table.variations select:focus-visible {
+  outline: none;
+  border-color: var(--pap-navy);
+  box-shadow: 0 0 0 2px rgba(13, 46, 97, 0.12) !important;
+}
+
 .pap-color-swatches {
   display: flex;
   flex-wrap: wrap;
