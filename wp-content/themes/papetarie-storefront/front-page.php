@@ -290,7 +290,7 @@ get_header();
         </div>
         <div class="pap-header-benefit-item">
           <span class="pap-header-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('benefit-returns'); ?></span>
-          <span><?php esc_html_e('Retur 30 zile', 'papetarie-storefront'); ?></span>
+          <span><?php esc_html_e('Retur 14 zile', 'papetarie-storefront'); ?></span>
         </div>
       </div>
     </div>

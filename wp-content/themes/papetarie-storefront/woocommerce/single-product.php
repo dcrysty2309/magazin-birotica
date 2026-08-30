@@ -323,7 +323,7 @@ get_header();
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('undo'); ?></span>
-            <span><?php esc_html_e('Retur 30 zile', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Retur 14 zile', 'papetarie-storefront'); ?></span>
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('shield'); ?></span>
