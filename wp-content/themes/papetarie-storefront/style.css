@@ -996,6 +996,15 @@ body.theme-papetarie .pap-site-header--checkout .pap-checkout-header__support-co
   justify-content: center;
 }
 
+/* Cosul gol nu mai afiseaza bula cu "0" - lasa impresia gresita ca ai
+   ceva in cos. "display:flex" de mai sus (regula CSS proprie) bate
+   implicit stilul de browser "[hidden]{display:none}" la specificitate
+   egala, deci fara asta atributul "hidden" pus in PHP/JS nu avea niciun
+   efect vizual. Semnalat live de user 2026-08-31. */
+.pap-tool-count-badge[hidden] {
+  display: none;
+}
+
 .pap-tool-icon {
   color: var(--pap-ink);
   display: inline-flex;
@@ -10437,6 +10446,39 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-contain
   width: 100% !important;
 }
 
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: #5f718d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* "display: flex" mai sus bate regula implicita "[hidden]{display:none}" a
+   browserului la specificitate egala (stilurile autorului castiga fata de
+   stylesheet-ul UA) - fara asta, elementul ramanea vizibil chiar si cu
+   atributul hidden setat corect de JS. Acelasi tipar gasit si reparat mai
+   devreme la badge-ul de cos (.pap-tool-count-badge[hidden]). */
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company-note[hidden] {
+  display: none;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company-note__icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: #97a4bb;
+}
+
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company-note__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields input.input-text,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select,
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields textarea,
@@ -10452,6 +10494,24 @@ body.theme-papetarie.woocommerce-checkout .pap-checkout-company .select2-contain
   background: #fff;
   color: #17324d;
   border-radius: 0;
+}
+
+/* Select-urile native (necontrolate de select2, ex. "Alege firma salvată")
+   nu primeau nicio sageata custom - ramaneau cu sageata implicita de
+   browser, care nu se aliniaza cu restul campurilor (select2 isi are deja
+   propria sageata, bine pozitionata, prin markup-ul lui separat). Acelasi
+   SVG/pozitionare ca ".pap-select" din styleguide, ca sa arate identic cu
+   restul selecturilor de pe checkout. Semnalat live de user 2026-08-31. */
+body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields select,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-address-form select,
+body.theme-papetarie.woocommerce-checkout .pap-checkout-company select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7a95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13.5px center;
+  background-size: 14px;
 }
 
 body.theme-papetarie.woocommerce-checkout .pap-checkout-card__fields .select2-container .select2-selection--single,
@@ -15105,10 +15165,6 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-nav li.is-active
   white-space: nowrap;
 }
 
-.pap-account-nav li.is-active .pap-account-nav-badge {
-  background: #ff5b1f;
-}
-
 .pap-account-nav a::before,
 .pap-account-nav a::after {
   content: none !important;
@@ -16106,6 +16162,11 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-
   color: #0d2e61;
 }
 
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-shipped {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-pending {
   background: #fef3c7;
   color: #b45309;
@@ -16180,7 +16241,12 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-filter-submit {
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-pagination-nav {
   justify-content: center;
-  padding-top: 8px;
+  /* Acum e mutata in afara cardului alb (.pap-account-simplecard), ca rand
+     separat sub el, direct pe fundalul paginii - fara padding propriu, gap-ul
+     de 32px de pe grid-ul ".pap-account-page" face deja spatierea fata de
+     card. Cerut explicit de user 2026-08-31 ("sa fie scoasa din afara
+     div-ului alb"). */
+  padding: 0;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-back-link {
@@ -16749,6 +16815,12 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-title {
   font-weight: 700;
 }
 
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-edit-toggle {
   border: 0;
   background: none;
@@ -16821,11 +16893,24 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-value em 
   font-style: normal;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint {
-  margin: 0;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
   padding: 12px 20px;
   background: #f5f6f8;
   border-top: 1px solid #dde1e8;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-footer-row .pap-account-danger-link {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint {
+  margin: 0;
   color: #6b7a95;
   font-size: 12px;
   line-height: 1.6;
@@ -16840,6 +16925,178 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint a {
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint a:hover,
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-detail-hint a:focus-visible {
   text-decoration: underline;
+}
+
+/* Cerere de stergere cont (GDPR) - link discret, nu buton dominant: e o
+   actiune rara si serioasa, nu una de evitat vizual sau de scos in fata ca
+   un CTA obisnuit. Aceeasi paleta rosie ca ".pap-account-row-action--danger"
+   (Sterge adresa), pentru consecventa vizuala intre cele doua actiuni
+   distructive din contul de utilizator. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-link:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-link:focus-visible {
+  color: #991b1b;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-link:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-hint {
+  margin: 0;
+  padding: 10px 20px 0;
+  color: #6b7a95;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Modal de confirmare pentru stergerea contului - acelasi tipar vizual ca
+   ".pap-account-address-modal" (fundal intunecat + dialog alb centrat),
+   dar cu nume propriu (nu cuplat de agenda de adrese) ca sa poata fi
+   refolosit si la alte confirmari viitoare pe pagina de cont. Inlocuieste
+   dialogul nativ window.confirm() - semnalat de user 2026-08-31, "ar trebui
+   sa fie conform stilului nostru, nu unul default de browser". */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10140;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal[hidden] {
+  display: none;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 0;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 24px 24px 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__head h2 {
+  margin: 0;
+  color: #0d2e61;
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__close {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dde1e8;
+  background: #fff;
+  color: #0d2e61;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__close:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__close:focus-visible {
+  border-color: #ff5b1f;
+  color: #d9480f;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__body {
+  display: grid;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  overflow: auto;
+  color: #364154;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__body p {
+  margin: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-button {
+  appearance: none;
+  border: 1px solid var(--pap-orange, #ff5b1f);
+  border-radius: 0;
+  padding: 11px 20px;
+  background: var(--pap-orange, #ff5b1f);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-button:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-button:focus-visible {
+  background: #d9480f;
+  border-color: #d9480f;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-danger-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 600px) {
+  body.theme-papetarie.woocommerce-account.logged-in .pap-account-confirm-modal__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
 }
 
 /* Floating-label inputs. */
@@ -17301,6 +17558,48 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-accou
    final cand sidebarul (cu 5-6 linkuri) e mai inalt decat continutul
    cardului. Revenim la inaltimea naturala doar pe aceasta pagina. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--edit-account {
+  align-items: start;
+}
+
+/* Acelasi bug ca la "--edit-account" de mai sus, dar aici stretch-ul chiar
+   trebuie pastrat pentru starea goala ("Nicio adresa salvata", centrata cu
+   margin:auto in cardul intins la inaltimea sidebarului) - vezi
+   ".pap-account-address-card--single .pap-account-address-card__empty" mai
+   jos. Doar cand exista o adresa reala (".__body" e randat in loc de
+   ".__empty" - my-address.php) continutul e scurt si fix, deci stretch-ul
+   lasa un gol alb mare sub card, la fel ca la "Detalii cont". Semnalat de
+   user 2026-08-31, cu o adresa salvata. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--addresses:has(.pap-account-address-card__body) {
+  align-items: start;
+}
+
+/* Acelasi bug, a patra oara, pe "Firmele mele": pagina refoloseste clasele
+   ".pap-account-address-card"/"__body" de la "Adresa mea", dar aici
+   ".pap-account-address-card__body" invaluie AMBELE stari (si cea goala -
+   vezi my-company.php linia ~67), deci selectorul de mai sus (":has(__body)")
+   nu se poate refolosi ca atare - ar anula si centrarea starii goale. Cheia
+   ".pap-account-company-grid" exista DOAR in ramura cu firme reale.
+   Semnalat de user 2026-08-31. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--companies:has(.pap-account-company-grid) {
+  align-items: start;
+}
+
+/* Acelasi bug, a treia oara, pe Acasa: grid-ul cu 2 minicard-uri ("Ultima
+   comanda"/"Adresa livrare") se intindea la inaltimea sidebar-ului chiar si
+   cand cel putin unul avea continut real (scurt, fix) - doar daca AMBELE
+   sunt in starea goala (".__body--empty") merita sa ramana intins, ca sa se
+   centreze frumos icon+text+CTA. Cu doar unul populat, intinderea lasa un
+   gol mare sub cardul scurt, dezechilibrat fata de celalalt. Semnalat de
+   user 2026-08-31. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--dashboard:has(.pap-account-minicard__body:not(.pap-account-minicard__body--empty)) {
+  align-items: start;
+}
+
+/* Acelasi bug, a patra oara, pe "Comenzile mele": cu putine comenzi
+   (randuri scurte, fara paginare), tabelul stretch-uit lasa un gol alb
+   mare sub el, la fel ca la adrese/dashboard/detalii cont mai sus.
+   Semnalat de user 2026-08-31, cu o singura comanda. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-page--orders:has(.pap-account-orders-list-table) {
   align-items: start;
 }
 
@@ -17928,6 +18227,11 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-processing {
   background: rgba(13, 46, 97, 0.09);
   color: #0d2e61;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-shipped {
+  background: rgba(109, 40, 217, 0.09);
+  color: #6d28d9;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-status-badge.is-pending {
@@ -18709,6 +19013,23 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--si
   min-height: 100%;
 }
 
+/* Acelasi bug ca la ".pap-account-simplecard" (Comenzile mele, gasit si
+   reparat separat mai sus 2026-08-31): "min-height:100%" de aici e
+   independent de fix-ul pe grid-ul parinte (":has(){align-items:start}",
+   mai sus in fisier) - cardul isi cerea oricum minim 100% din inaltimea
+   parintelui sau prin propriul min-height, vizibil doar pe ferestre late
+   (unde sidebar-ul are inaltime naturala mare). Clasa asta e refolosita de
+   DOUA pagini (my-address.php SI my-company.php), cu structuri diferite -
+   pe "Adresa mea" doar starea cu date reale are ".__body"; pe "Firmele
+   mele" ".__body" invaluie AMBELE stari, dar ".pap-company-grid" exista
+   doar cand sunt firme reale - de-aia doua selectoare distincte, nu unul
+   comun. Starea goala (fara niciunul din cele doua) ramane centrata ca
+   inainte, cu min-height:100% intact. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single:has(.pap-account-address-card__body),
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single:has(.pap-account-company-grid) {
+  min-height: 0;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__head {
   display: block;
   padding: 14px 20px;
@@ -18756,6 +19077,41 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--si
   color: #374151;
   font-size: 13px;
   line-height: 1.7;
+}
+
+/* Randuri etichetate ("Telefon:", "Cod postal:", "Observatii:") - inlocuiesc
+   ".pap-account-address-card__name"/"__lines" (bloc de text curgator, fara
+   nicio eticheta) pe cardul "Adresa mea". Nu refolosim direct
+   ".pap-account-detail-row" de la "Detalii cont" - are propriul
+   padding+border menit sa umple intreg latul cardului de-acolo, care aici ar
+   dubla padding-ul deja pus de ".pap-account-address-card__body". Semnalat
+   de user 2026-08-31. */
+/* Fara scoping la "--single" (spre deosebire de regula cu acelasi nume mai
+   sus) - randurile etichetate apar si in minicard-ul "Adresa livrare" de pe
+   Acasa (dashboard.php), care nu foloseste deloc ".pap-account-address-card",
+   doar acelasi nume de clasa pentru wrapper-ul de continut, ca sa mosteneasca
+   acelasi "gap" fara sa duplicam regula per context. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card__content {
+  display: grid;
+  gap: 8px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card__field {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card__field-label {
+  color: #0d2e61;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card__field-value {
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-card--single .pap-account-address-card__actions {
@@ -18895,6 +19251,13 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-company-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  /* Parintele (".pap-account-address-card__body" pe "Firmele mele") e
+     flex-column cu "align-items: flex-start" mostenit din regula de baza
+     partajata cu "Adresa mea" - fara "width:100%" explicit aici, grila
+     ramanea la latimea ei de continut in loc sa umple randul, lasand un
+     gol alb dupa a doua coloana (cardul "Adaugă firmă"). Semnalat live de
+     user 2026-08-31. */
+  width: 100%;
 }
 
 @media (max-width: 720px) {
@@ -19256,6 +19619,16 @@ body.theme-papetarie.woocommerce-checkout .pap-company-cui-row .pap-account-seco
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  /* "width: auto" explicit - fara el, "flex-basis: auto" (din shorthand-ul
+     de mai sus) nu revenea corect la dimensiunea continutului in acest
+     context (buton flex nested intr-un rand flex), iar butonul se intindea
+     sa umple tot randul, lasand campul CUI de langa el la latime 0 (textul
+     de eroare de sub camp aparea "scris vertical", cate o litera pe rand -
+     exact simptomul gasit live testand). Confirmat empiric ca fix-ul e
+     "width:auto" (sau echivalent "flex-basis:content"), nu vreo problema de
+     flex-shrink/min-width. Gasit live 2026-08-31, in timpul unei sesiuni de
+     testare completa a fluxului CUI la cererea userului. */
+  width: auto;
   height: var(--pap-input-height);
   min-height: 0;
   /* Vezi comentariul de la ".pap-company-cui-row" - ancoreaza butonul la
@@ -19371,6 +19744,9 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-company-cui-row .pap-flo
    stretch) - la fel cu campul CUI, dar independenta de eroarea lui. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-secondary-button.pap-company-autocomplete-btn {
   flex: 0 0 auto;
+  /* "width: auto" explicit - vezi comentariul de la varianta de checkout a
+     acestei reguli, mai sus in fisier, acelasi bug/fix exact. */
+  width: auto;
   height: 55px !important;
   min-height: 0;
   padding: 0 18px;
@@ -19631,7 +20007,7 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__d
   display: flex;
   flex-direction: column;
   background: #fff;
-  border-radius: 10px;
+  border-radius: 0;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
@@ -19705,7 +20081,26 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__n
   border-radius: 0;
   font-size: 14px;
   line-height: 1.55;
-  font-weight: 600;
+  /* 600 (semi-bold) pe tot blocul citea ca "tipat" la user - mai ales cu 2+
+     mesaje de validare inlantuite intr-un singur paragraf bold. Semnalat
+     live de user 2026-08-31. */
+  font-weight: 400;
+}
+
+/* Mai multe mesaje de validare deodata (ex. camp gol + judet neales) -
+   randate ca lista, nu inlantuite intr-un singur paragraf greu de scanat
+   ("Completează denumirea firmei. Alege județul. Alege localitatea."). */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__notice-list {
+  margin: 0;
+  padding: 0 0 0 20px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__notice-list li {
+  margin: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__notice-list li + li {
+  margin-top: 4px;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-address-modal__notice.is-success {
@@ -20611,39 +21006,6 @@ body.theme-papetarie .pap-footer-meta a:hover {
   border-radius: 2px;
 }
 
-body.theme-papetarie .pap-product-gallery-next {
-  position: absolute !important;
-  top: 50% !important;
-  right: 25px !important;
-  transform: translateY(-50%) !important;
-  width: 28px !important;
-  height: 28px !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-  border: 1px solid #dde1e8 !important;
-  background: #fff !important;
-  color: #0d2e61 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer;
-}
-
-body.theme-papetarie .pap-product-gallery-next span {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 14px !important;
-  height: 14px !important;
-  flex: 0 0 14px !important;
-}
-
-body.theme-papetarie .pap-product-gallery-next svg {
-  width: 14px !important;
-  height: 14px !important;
-  display: block !important;
-}
-
 .pap-product-gallery-thumbs-row {
   display: flex;
   align-items: center;
@@ -21441,7 +21803,10 @@ form.variations_form.cart {
   padding: 20px 24px 24px;
   border-top: 1px solid #f0f2f5;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* 3 coloane, nu 4 - "Ridicare din depozit" a fost eliminat (nu e un
+     serviciu oferit), au ramas 3 beneficii. Semnalat live de user
+     2026-08-31. */
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -21477,8 +21842,15 @@ form.variations_form.cart {
    Linia de separare border-top a fost eliminata (2026-08-29) - userul a
    semnalat-o ca linie ramasa nedorita. */
 .pap-product-tabs-section {
-  margin-top: 0;
-  padding: 0 24px 24px;
+  /* 16px - fara el, taburile porneau la doar 24px (padding-ul de jos al
+     .pap-product-info) sub butonul "Adaugă în coș", prea aproape. Cerut
+     explicit de user 2026-08-31. */
+  margin-top: 16px;
+  /* Jos 0, nu 24px - .pap-product-benefits de dedesubt are deja propriul
+     border-top + padding-top 20px ca separator; cu inca 24px aici pe langa,
+     se aduna la un gol alb prea mare intre tabel si randul de iconite.
+     Semnalat live de user 2026-08-31. */
+  padding: 0 24px 0;
 }
 
 body.theme-papetarie .pap-product-tabs-section .woocommerce-tabs {
@@ -21569,7 +21941,12 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel {
      deasupra - gasit live 2026-08-29 in urma semnalarii userului.
      Sus 32px - distanta ceruta explicit intre titlul "Descriere" (bara de
      tab-uri) si inceputul continutului, 2026-08-30. */
-  padding: 32px 0 24px !important;
+  /* Jos 0 - .pap-product-tabs-section are deja padding-bottom 24px pe
+     wrapper; cu si panoul avand inca 24px, cele doua se adunau la 48px
+     inainte de border-top-ul beneficiilor (+ inca 20px padding-top acolo),
+     un gol vizibil prea mare intre tabel si randul de iconite. Semnalat
+     live de user 2026-08-31. */
+  padding: 32px 0 0 !important;
   color: #374151 !important;
   font-size: 14px !important;
   line-height: 24.5px !important;
@@ -21583,6 +21960,9 @@ body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel h2 {
 
 body.theme-papetarie .pap-product-tabs-section .woocommerce-Tabs-panel table.shop_attributes {
   width: 100% !important;
+  /* margin-bottom:0 - fara el, tabelul mostenea ~21px margin implicit,
+     adaugandu-se la golul de sub el. Semnalat live de user 2026-08-31. */
+  margin-bottom: 0 !important;
   /* table-layout:fixed - fara el, browserul auto-dimensioneaza coloanele
      dupa continut, ignorand latimile procentuale de mai jos ori de cate
      ori o valoare (ex. lista lunga de culori) "cere" mai mult spatiu -
@@ -23556,26 +23936,6 @@ form.cart table.variations select:focus-visible {
    page (dashboard's two cards, order detail's Sumar/Adresă/Metodă cards).
    ========================================================================== */
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-head {
-  margin-bottom: 16px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-head h1 {
-  margin: 0;
-  color: #0d2e61;
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.5;
-  letter-spacing: -0.44px;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-head p {
-  margin: 2px 0 0;
-  color: #6b7a95;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -23628,6 +23988,14 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__head a
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__body {
   flex: 1;
   padding: 16px 18px;
+  /* Flex-column ca footer-ul (mai jos, "margin-top:auto") sa se poata lipi
+     de baza cardului cand acesta e intins de grid-ul cu 2 minicard-uri
+     (".pap-account-dashboard-grid" ramane "align-items:stretch" implicit,
+     ca sa egalizeze inaltimea celor doua carduri) - altfel banda gri
+     "Total" se opreste la finalul continutului, lasand un gol alb intre ea
+     si marginea de jos a cardului. Semnalat live de user 2026-08-31. */
+  display: flex;
+  flex-direction: column;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__body--empty {
@@ -23647,43 +24015,199 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__order-
   gap: 8px;
 }
 
+/* Data + ora comenzii, aliniata sus-dreapta, langa eticheta de status -
+   muta din randul "meta" (unde dubla cu numele lunii) direct pe randul cu
+   numarul comenzii. Cerut explicit de user 2026-08-31. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__order-date {
+  margin-left: auto;
+  color: #8a97ab;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__order-row strong {
   color: #0d2e61;
   font-size: 14px;
   font-weight: 700;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__meta {
-  margin: 6px 0 0;
-  color: #6b7a95;
-  font-size: 12px;
-  line-height: 1.5;
+/* Mini-preview cu produsele din ultima comanda - randuri verticale, cate
+   unul sub altul, cu numele produsului langa miniatura (nu doar imagini
+   inghesuite pe orizontala). Maxim 3 randuri reale - restul (comenzi cu
+   multe linii) se aduna intr-un singur rand text "+ inca N produse", nu
+   se randeaza cate o linie pentru fiecare produs. Cerut explicit de user
+   2026-08-31 ("nu putem face un carnat acolo de 1000 de produse", apoi
+   "poate unul sub altul e mai bine...si cu numele produsului"). Margin-bottom
+   14px - acum ca linia "meta" separata a fost eliminata (redundanta cu
+   cantitatea afisata pe fiecare rand), lista asta e ultimul element inainte
+   de footer si trebuie sa pastreze spatiul minim fata de el. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__items-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 14px;
+  padding: 0;
+  list-style: none;
 }
 
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__item-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8f9fb;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Cantitatea per produs (x2, x5...) - inlocuieste linia separata "N produse"
+   de sub lista, care era redundanta odata ce fiecare rand isi arata deja
+   propria cantitate. Cerut explicit de user 2026-08-31, cu referinta Figma. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__item-qty {
+  flex: 0 0 auto;
+  color: #8a97ab;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* "+N" ca piesa vizuala pe locul miniaturii (nu text indentat izolat, care
+   arata rupt de restul listei) - acelasi chenar/dimensiune ca thumbnail-urile
+   reale, doar cu fundal neutru si cifra in loc de imagine. Semnalat live de
+   user 2026-08-31 ("nu arata bine aia cu plus inca 5 produse"). */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__item-thumb--more {
+  color: #0d2e61;
+  font-size: 12px;
+  font-weight: 700;
+  background: #eef2f7;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__item-row--more .pap-account-minicard__item-name {
+  color: #6b7a95;
+  font-weight: 600;
+}
+
+/* Randurile "extra" (peste maximul vizibil initial) sunt randate direct in
+   pagina, doar ascunse cu atributul HTML "hidden" - fara aceasta regula,
+   "display:flex" de pe ".item-row" (mai sus) bate stilul implicit de
+   browser "[hidden]{display:none}" la specificitate egala, exact ca la
+   bula de cos gasita mai devreme (2026-08-31) - randurile ar ramane
+   vizibile chiar cu atributul prezent. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__item-row[hidden] {
+  display: none;
+}
+
+/* Butonul "inca N produse" / "Vezi mai putin" - acelasi layout ca un rand
+   normal de produs (thumb + text), dar e un <button> real (nu doar text),
+   ca sa poata extinde/restrange lista inline. Reset complet de stil nativ
+   de buton. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__items-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__items-toggle:hover .pap-account-minicard__item-name,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__items-toggle:focus-visible .pap-account-minicard__item-name {
+  color: #0d2e61;
+}
+
+/* Footer-ul cardului "Ultima comanda" - bandă distinctă (fundal gri deschis,
+   bleeding pana la marginile cardului prin margin negativ, taiata frumos de
+   "overflow:hidden" de pe .pap-account-minicard) cu eticheta "Total" deasupra
+   pretului si un buton plin (nu doar link text) pentru "Vezi detalii" -
+   design de referinta dat explicit de user 2026-08-31 ("nu prea imi place
+   cum arata partea aia de vezi detalii"). */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-top: 14px;
+  /* Sus "auto" - impinge banda pana la baza cardului cand ".pap-account-minicard__body"
+     (flex-column de mai sus) are inaltime in plus fata de continutul propriu
+     (cardul intins de grid-ul cu 2 minicard-uri de pe Acasa). Spatiul minim
+     fata de continutul de deasupra vine acum din ".pap-account-minicard__meta"
+     (margin-bottom 14px), nu de aici - altfel "auto" ar colaba la 0 exact in
+     cazul natural (fara intindere), lipind banda de text. Stanga/dreapta/jos
+     negative - bleed pana la marginile cardului (taiate frumos de
+     "overflow:hidden" de pe ".pap-account-minicard"). */
+  margin: auto -18px -16px;
+  padding: 14px 18px;
+  background: #f8f9fb;
+  border-top: 1px solid #eef1f5;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer-label {
+  color: #8a97ab;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer strong {
   color: #0d2e61;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer a {
-  color: #ff5b1f;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  background: #ff5b1f;
+  color: #fff;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
+  white-space: nowrap;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer a:hover,
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer a:focus-visible {
-  text-decoration: underline;
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer-button:hover,
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__footer-button:focus-visible {
+  background: #d9480f;
+  text-decoration: none;
 }
 
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-minicard__name {
@@ -23782,6 +24306,20 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard {
   min-height: 100%;
 }
 
+/* min-height:100% de mai sus e independent de fix-ul de pe grid-ul parinte
+   (".pap-account-page--orders:has(...){align-items:start}") - acolo am
+   oprit doar grid-ul sa INTINDA cardul, dar cardul isi cerea oricum minim
+   100% din inaltimea parintelui sau (real, mare, pe ecrane late unde
+   sidebar-ul are inaltime naturala mare) prin propriul "min-height",
+   independent de "align-items". Vizibil doar pe viewport-uri late (sidebar
+   destul de inalt incat sa conteze) - de-aia a scapat primei verificari, la
+   o fereastra mai ingusta. Cu comenzi reale in lista, revenim la inaltimea
+   naturala; starea goala ramane centrata ca inainte. Semnalat live de user
+   2026-08-31, pe fereastra lata de browser. */
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard:has(.pap-account-orders-list-table) {
+  min-height: 0;
+}
+
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-simplecard__head {
   display: flex;
   align-items: center;
@@ -23865,7 +24403,14 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-tabl
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head,
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(90px, 1fr) 130px;
+  /* Doar "Comandă" ramane "1fr" (absoarbe tot spatiul in plus, natural pe o
+     coloana ancorata la stanga) - celelalte au latime fixa, potrivita
+     continutului lor. Inainte toate 4 erau "1fr" egale, dar cu continut de
+     lungimi diferite (Data lunga, Total/Status scurte) - spatiul in plus se
+     aduna vizibil doar in jurul celor scurte (mai ales Status, centrat in
+     propria coloana larga), lasand un gol mare inainte de buton. Semnalat
+     live de user 2026-08-31 ("putin mai echilibrate coloanele"). */
+  grid-template-columns: minmax(120px, 1fr) 170px 100px 110px 130px;
   align-items: center;
   gap: 12px;
   padding: 10px 20px;
@@ -23916,23 +24461,28 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-tabl
   justify-content: flex-end;
 }
 
-/* Dată = coloana a 2-a, Status = a 3-a, atat in antet cat si in randuri -
-   centrate ca sa nu mai stea lipite de "Comandă", fara sa ating markup-ul
-   PHP (ordinea coloanelor e fixa prin grid-template-columns de mai sus). */
+/* Dată = coloana a 2-a, Status = a 4-a (dupa Total - ordine cerută explicit
+   de user 2026-08-31, era Status/Total, acum Total/Status), atat in antet
+   cat si in randuri - centrate ca sa nu mai stea lipite de coloana
+   anterioara, fara sa ating markup-ul PHP (ordinea coloanelor e fixa prin
+   grid-template-columns de mai sus). */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head > *:nth-child(2),
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row > *:nth-child(2) {
   text-align: center;
 }
 
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head > *:nth-child(3) {
-  text-align: center;
-}
-
-body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row > *:nth-child(3) {
-  justify-self: center;
-}
-
+/* Status aliniat la dreapta (nu centrat) - cerut explicit de user
+   2026-08-31, ca sa stea mai aproape de butonul "Vezi detalii" de langa
+   el, nu la mijlocul propriei coloane. */
 body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head > *:nth-child(4) {
+  text-align: right;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__row > *:nth-child(4) {
+  justify-self: end;
+}
+
+body.theme-papetarie.woocommerce-account.logged-in .pap-account-orders-list-table__head > *:nth-child(3) {
   text-align: right;
 }
 
@@ -24269,13 +24819,9 @@ body.theme-papetarie .select2-dropdown {
   /* margin-top desparte vizual panoul de camp - fara el panoul se lipeste
      direct de marginea de jos a input-ului (element pozitionat absolut, deci
      margin il muta efectiv, nu se prabuseste) si arata ca un bug, nu ca doua
-     elemente distincte (camp + panou plutitor deasupra lui). */
-  /* Select2 isi calculeaza pozitia INAINTE ca acest margin sa fie aplicat
-     (masoara inaltimea panoului fara el), asa ca doar o parte din valoare
-     ajunge sa fie vizibila ca gap real - empiric, ~10px sursa => ~5-6px
-     vizibil. Valoarea de mai jos e aleasa sa lase un gap vizibil, nu cea
-     "corecta" din punct de vedere logic. */
-  margin-top: 10px;
+     elemente distincte (camp + panou plutitor deasupra lui). Gap mic (3px),
+     ca sa ramana vizual "lipit" de camp - cerut explicit de user 2026-09-01. */
+  margin-top: 4px;
   font-size: 14px;
   overflow: hidden;
 }
@@ -24284,8 +24830,8 @@ body.theme-papetarie .select2-dropdown {
    partea opusa - "margin-top" de mai sus ar impinge panoul SPRE camp aici,
    nu departe de el. */
 body.theme-papetarie .select2-dropdown--above {
-  margin-top: -10px;
-  margin-bottom: 10px;
+  margin-top: -4px;
+  margin-bottom: 4px;
 }
 
 /* select2.css scoate implicit bordura dinspre camp ("border-top: none" la
@@ -24328,6 +24874,23 @@ body.theme-papetarie .select2-search--dropdown .select2-search__field:focus-visi
   background-repeat: no-repeat;
   background-position: 8px center;
   background-size: 13px 13px;
+}
+
+/* Reseteaza padding-left-ul mostenit de la ".entry-content ul" (regula
+   tipografica pentru liste dintr-un articol/pagina, style.css ~linia 15442)
+   - pe checkout, panoul select2 se ataseaza direct la <body> (in afara
+   oricarui ".entry-content"), dar in Contul meu, ".pap-account-address-modal"
+   e folosit ca dropdownParent (vezi pap-enhanced-selects.js), iar acesta
+   traieste in interiorul ".entry-content" al paginii - lista de rezultate
+   mostenea acel padding-left de 1.35em, aratand cu optiunile indentate,
+   diferit fata de checkout. Trei clase in selector (nu doua, ca restul
+   blocului) - are nevoie de specificitate mai mare decat regula de
+   ".entry-content ul" (2 clase + 1 tip), altfel ar pierde la cascada
+   indiferent de ordine. Semnalat live de user 2026-09-01. */
+body.theme-papetarie .select2-container .select2-results__options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 body.theme-papetarie .select2-results__option {

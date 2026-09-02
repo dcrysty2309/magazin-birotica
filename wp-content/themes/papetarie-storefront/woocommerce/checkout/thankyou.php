@@ -83,6 +83,50 @@ $mail_icon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable=
 		</section>
 	<?php endif; ?>
 
+	<?php if ($order) : ?>
+		<script>
+			(function () {
+				// Eveniment de conversie GA4 ("purchase") - singurul loc din care
+				// pleaca aici, fiindca templateul de multumire al temei nu mai
+				// apeleaza hook-ul standard WooCommerce "woocommerce_thankyou"
+				// (suprascris integral, fara acel do_action) - un handler agatat pe
+				// hook-ul lipsa nu ar fi rulat niciodata. Deduplicare prin
+				// sessionStorage: pagina de multumire poate fi reincarcata de user
+				// (F5, buton "inapoi") - fara aceasta verificare, fiecare refresh ar
+				// trimite din nou aceeasi comanda catre Analytics, umflând artificial
+				// veniturile raportate. Cerut de user 2026-09-01.
+				const orderKey = 'pap_ga4_purchase_<?php echo esc_js((string) $order->get_id()); ?>';
+				if (sessionStorage.getItem(orderKey)) {
+					return;
+				}
+				sessionStorage.setItem(orderKey, '1');
+
+				if (typeof gtag !== 'function') { return; }
+
+				gtag('event', 'purchase', {
+					transaction_id: <?php echo wp_json_encode($order->get_order_number()); ?>,
+					value: <?php echo wp_json_encode((float) $order->get_total()); ?>,
+					tax: <?php echo wp_json_encode((float) $order->get_total_tax()); ?>,
+					shipping: <?php echo wp_json_encode((float) $order->get_shipping_total()); ?>,
+					currency: <?php echo wp_json_encode($order->get_currency()); ?>,
+					items: <?php
+					$pap_ga4_items = [];
+					foreach ($order->get_items() as $pap_ga4_item) {
+						$pap_ga4_product = $pap_ga4_item->get_product();
+						$pap_ga4_items[] = [
+							'item_id' => $pap_ga4_product instanceof WC_Product ? $pap_ga4_product->get_sku() : (string) $pap_ga4_item->get_product_id(),
+							'item_name' => $pap_ga4_item->get_name(),
+							'price' => (float) $order->get_item_total($pap_ga4_item, false, false),
+							'quantity' => (int) $pap_ga4_item->get_quantity(),
+						];
+					}
+					echo wp_json_encode($pap_ga4_items);
+					?>,
+				});
+			}());
+		</script>
+	<?php endif; ?>
+
 	<?php $pap_order_received_phone = function_exists('papetarie_storefront_get_checkout_support_details') ? papetarie_storefront_get_checkout_support_details()['phone'] : ''; ?>
 	<?php if ($pap_order_received_phone !== '') : ?>
 		<p class="pap-order-received__help">

@@ -15,9 +15,27 @@
     var backdrop = drawer.querySelector('.pap-cart-drawer-backdrop');
     var closeButtons = Array.prototype.slice.call(drawer.querySelectorAll('[data-cart-drawer-close]'));
     var panel = drawer.querySelector('.pap-cart-drawer-panel');
-    var content = drawer.querySelector('[data-cart-drawer-content]');
-    var subtotalTargets = Array.prototype.slice.call(drawer.querySelectorAll('[data-cart-drawer-subtotal]'));
-    var totalTargets = Array.prototype.slice.call(drawer.querySelectorAll('[data-cart-drawer-total]'));
+    // "[data-cart-drawer-content]" si "[data-cart-drawer-total]" sunt
+    // inregistrate SI ca fragmente WooCommerce native
+    // (woocommerce_add_to_cart_fragments, functions.php ~linia 1223) - core-ul
+    // WC isi ruleaza propriul refresh de fragmente independent (pe langa
+    // sincronizarea noastra prin pap_cart_drawer_sync) si INLOCUIESTE efectiv
+    // nodul DOM (jQuery.replaceWith, nu doar innerHTML). Daca le prindem o
+    // singura data la init si le tinem in variabile cache-uite, dupa primul
+    // refresh de fragmente WC nodul din DOM e altul decat cel din variabila -
+    // continuam sa scriem intr-un nod detasat, invizibil, iar cosul pare ca
+    // "nu se actualizeaza" (produsul sters ramane afisat) desi server-ul a
+    // procesat corect cererea. De-aia se interogheaza proaspat de fiecare
+    // data, nu se mai cache-uiesc. Semnalat de user 2026-09-01.
+    function getContentNode() {
+      return document.querySelector('[data-cart-drawer-content]');
+    }
+    function getSubtotalTargets() {
+      return Array.prototype.slice.call(document.querySelectorAll('[data-cart-drawer-subtotal]'));
+    }
+    function getTotalTargets() {
+      return Array.prototype.slice.call(document.querySelectorAll('[data-cart-drawer-total]'));
+    }
     var deleteModal = document.querySelector('[data-cart-delete-modal]');
     var deleteModalName = deleteModal ? deleteModal.querySelector('[data-cart-delete-modal-name]') : null;
     var deleteModalCancel = deleteModal ? deleteModal.querySelector('[data-cart-delete-modal-cancel]') : null;
@@ -65,13 +83,13 @@
       }
 
       if (typeof data.subtotal_html === 'string') {
-        subtotalTargets.forEach(function (target) {
+        getSubtotalTargets().forEach(function (target) {
           target.innerHTML = data.subtotal_html;
         });
       }
 
       if (typeof data.total_html === 'string') {
-        totalTargets.forEach(function (target) {
+        getTotalTargets().forEach(function (target) {
           target.innerHTML = data.total_html;
         });
       }
@@ -96,7 +114,8 @@
     }
 
     function refreshEmptyState() {
-      var isEmpty = !!(content && content.querySelector('.pap-cart-drawer-empty'));
+      var contentNode = getContentNode();
+      var isEmpty = !!(contentNode && contentNode.querySelector('.pap-cart-drawer-empty'));
       drawer.classList.toggle('is-empty', isEmpty);
     }
 
@@ -105,8 +124,9 @@
         return;
       }
 
-      if (content && typeof data.items_html === 'string') {
-        content.innerHTML = data.items_html;
+      var contentNode = getContentNode();
+      if (contentNode && typeof data.items_html === 'string') {
+        contentNode.innerHTML = data.items_html;
       }
 
       updateSummary(data);
@@ -127,7 +147,19 @@
         return;
       }
 
-      var nextPayload = detail.cart_drawer || detail.cart_page || detail;
+      // "detail" vine in doua forme diferite dupa cine il trimite:
+      // fie deja e payload-ul de drawer (are "items_html" direct pe el -
+      // asa arata raspunsul lui pap_cart_drawer_sync, care are si campurile
+      // de drawer la nivelul de sus SI un "cart_page" imbricat pentru
+      // pagina de cos), fie e un payload combinat cu "cart_drawer" imbricat
+      // (asa arata raspunsul de login/auth). "cart_page" NU e niciodata
+      // formatul corect pentru drawer (are alt markup, ".pap-cart-item" nu
+      // ".pap-cart-drawer-item") - folosit ca fallback aici suprascria
+      // randarea corecta facuta cu putin timp inainte, cu marcaj gresit si
+      // cu produsul ANTERIOR (dinainte de stergere/adaugare), facand sa
+      // para ca stergerea din mini-cos nu a avut niciun efect. Semnalat de
+      // user 2026-09-01.
+      var nextPayload = detail.cart_drawer || (typeof detail.items_html === 'string' ? detail : null);
       if (nextPayload && typeof nextPayload === 'object') {
         applyCartDrawerPayload(nextPayload);
       }
@@ -135,7 +167,7 @@
 
     function ensureDrawerHydrated() {
       var lastPayload = window.__papLastCartDrawerPayload || null;
-      if (!lastPayload || !content) {
+      if (!lastPayload || !getContentNode()) {
         return;
       }
 

@@ -150,11 +150,6 @@ get_header();
             <span class="pap-product-gallery-badge">−<?php echo esc_html((string) $discount_percent); ?>%</span>
           <?php endif; ?>
           <img src="<?php echo esc_url($main_image_url); ?>" alt="<?php echo esc_attr($product_name); ?>" data-product-gallery-image>
-          <?php if (count($all_image_ids) > 1) : ?>
-            <button type="button" class="pap-product-gallery-next" data-product-gallery-next aria-label="<?php esc_attr_e('Imaginea următoare', 'papetarie-storefront'); ?>">
-              <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-            </button>
-          <?php endif; ?>
         </div>
         <div class="pap-product-gallery-thumbs-row">
           <?php if (count($all_image_ids) > 1) : ?>
@@ -316,10 +311,6 @@ get_header();
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('truck-outline'); ?></span>
             <span><?php esc_html_e('Livrare 24-48h', 'papetarie-storefront'); ?></span>
-          </li>
-          <li>
-            <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('package'); ?></span>
-            <span><?php esc_html_e('Ridicare din depozit', 'papetarie-storefront'); ?></span>
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('undo'); ?></span>
@@ -850,6 +841,47 @@ get_header();
       });
     }
   })();
+</script>
+
+<?php
+// Evenimente GA4 - "view_item" la fiecare afisare a paginii, "add_to_cart"
+// doar cand formularul de aici tocmai a fost trimis cu succes. Formularul de
+// pe pagina de produs NU merge prin AJAX (submit clasic - vezi comentariul
+// din archive-add-to-cart.js), iar WooCommerce NU adauga un query param
+// "?added-to-cart=" pe aceasta cale (doar daca e activata optiunea de
+// redirect catre cos, ceea ce nu e cazul aici) - POST-ul doar re-randeaza
+// aceeasi pagina. Semnalul folosit e global-ul populat de hook-ul
+// "woocommerce_add_to_cart" din functions.php, care ruleaza doar la o
+// adaugare reusita si contine si cantitatea corecta trimisa in formular.
+$pap_ga4_currency = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'RON';
+$pap_ga4_view_item = [
+    'item_id' => $product->get_sku() ?: (string) $product->get_id(),
+    'item_name' => $product->get_name(),
+    'price' => (float) $product->get_price(),
+];
+$pap_ga4_added_to_cart = $GLOBALS['pap_ga4_added_to_cart'] ?? null;
+$pap_ga4_added_to_cart_id = is_array($pap_ga4_added_to_cart) ? (int) $pap_ga4_added_to_cart['product_id'] : 0;
+?>
+<script>
+  (function () {
+    if (typeof gtag !== 'function') { return; }
+
+    gtag('event', 'view_item', {
+      currency: <?php echo wp_json_encode($pap_ga4_currency); ?>,
+      value: <?php echo wp_json_encode($pap_ga4_view_item['price']); ?>,
+      items: [<?php echo wp_json_encode($pap_ga4_view_item); ?>]
+    });
+
+    <?php if ($pap_ga4_added_to_cart_id === $product->get_id()) :
+        $pap_ga4_cart_qty = max(1, (int) $pap_ga4_added_to_cart['quantity']);
+        ?>
+    gtag('event', 'add_to_cart', {
+      currency: <?php echo wp_json_encode($pap_ga4_currency); ?>,
+      value: <?php echo wp_json_encode($pap_ga4_view_item['price'] * $pap_ga4_cart_qty); ?>,
+      items: [Object.assign({}, <?php echo wp_json_encode($pap_ga4_view_item); ?>, { quantity: <?php echo wp_json_encode($pap_ga4_cart_qty); ?> })]
+    });
+    <?php endif; ?>
+  }());
 </script>
 
 <?php get_footer(); ?>

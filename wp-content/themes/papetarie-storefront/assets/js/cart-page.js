@@ -919,6 +919,7 @@
           var safeBadgeCount = Math.max(0, parseInt(data.count, 10) || 0);
           Array.prototype.slice.call(document.querySelectorAll('[data-pap-cart-count-badge]')).forEach(function (badge) {
             badge.textContent = String(safeBadgeCount);
+            badge.hidden = safeBadgeCount === 0;
           });
         }
 

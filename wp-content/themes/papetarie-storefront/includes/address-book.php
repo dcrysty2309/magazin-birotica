@@ -12,6 +12,23 @@ function papetarie_storefront_address_book_default_id_meta_key(): string
     return 'papetarie_default_address_id';
 }
 
+/**
+ * Marcheaza faptul ca agenda de adrese a userului a fost deja gestionata
+ * explicit (adaugare/editare/stergere) cel putin o data - vezi
+ * papetarie_storefront_address_book_get_all() mai jos, care altfel re-seeda
+ * mereu un rand nou din billing/shipping (meta WC vechi, ramas populat de
+ * la orice comanda plasata) de fiecare data cand agenda ramane goala. Fara
+ * acest flag, stergerea SINGUREI adrese salvate parea sa "nu functioneze"
+ * - la urmatoarea incarcare a paginii, adresa reaparea identica, re-seedata
+ * din acelasi billing/shipping meta. Gasit live 2026-08-31, semnalat de
+ * user pe contul lui personal (d.crysty23), dupa o comanda reala plasata
+ * anterior.
+ */
+function papetarie_storefront_address_book_initialized_meta_key(): string
+{
+    return 'papetarie_address_book_initialized';
+}
+
 function papetarie_storefront_address_book_form_state_key(): string
 {
     return 'papetarie_address_book_form_state';
@@ -278,7 +295,9 @@ function papetarie_storefront_address_book_get_all(int $user_id, bool $migrate_l
         }
     }
 
-    if (empty($addresses) && $migrate_legacy) {
+    $already_initialized = get_user_meta($user_id, papetarie_storefront_address_book_initialized_meta_key(), true) === '1';
+
+    if (empty($addresses) && $migrate_legacy && !$already_initialized) {
         $addresses = papetarie_storefront_address_book_legacy_seed($user_id);
         if (!empty($addresses)) {
             $default_id = '';
@@ -294,6 +313,7 @@ function papetarie_storefront_address_book_get_all(int $user_id, bool $migrate_l
 
             update_user_meta($user_id, papetarie_storefront_address_book_meta_key(), $addresses);
             update_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key(), $default_id);
+            update_user_meta($user_id, papetarie_storefront_address_book_initialized_meta_key(), '1');
         }
     }
 
@@ -332,6 +352,7 @@ function papetarie_storefront_address_book_save_all(int $user_id, array $address
 
     update_user_meta($user_id, papetarie_storefront_address_book_meta_key(), $clean_addresses);
     update_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key(), $default_id);
+    update_user_meta($user_id, papetarie_storefront_address_book_initialized_meta_key(), '1');
 }
 
 function papetarie_storefront_address_book_get(int $user_id, string $address_id): ?array
@@ -1214,6 +1235,17 @@ function papetarie_storefront_address_book_render_form_fields(array $source): vo
     <?php papetarie_storefront_address_book_render_float_field('address_1', $fields['address_1'], (string) ($source['address_1'] ?? '')); ?>
     <?php papetarie_storefront_address_book_render_float_field('postcode', $fields['postcode'], (string) ($source['postcode'] ?? '')); ?>
     <?php
+    // Campul exista complet in schema (fields(), validare, sanitizare,
+    // afisare in format_lines() la linia ~887) dar nu era randat niciodata
+    // aici - userul nu avea cum sa completeze/editeze vreodata observatiile
+    // de livrare prin acest formular, desi campul are eticheta si
+    // placeholder gata scrise ("Interfon, reper, instructiuni pentru
+    // curier."), semn ca era menit sa fie folosit. Gasit prin testare
+    // sistematica a fluxului de salvare/editare, semnalat de user
+    // 2026-08-31.
+    ?>
+    <?php papetarie_storefront_address_book_render_float_field('delivery_notes', $fields['delivery_notes'], (string) ($source['delivery_notes'] ?? '')); ?>
+    <?php
 }
 
 function papetarie_storefront_address_book_render_form(array $address = [], string $mode = 'add'): void
@@ -1340,6 +1372,23 @@ function papetarie_storefront_address_book_process_request(array $request): arra
         return $errors;
     }
 
+    // "$clean" contine doar cele 8 campuri din address_book_fields() (cat
+    // randeaza formularul de editare) - "Firma", "Eticheta" (Acasa/Birou) si
+    // "Adresa 2" nu au deloc input in acest formular. Fara acest merge peste
+    // inregistrarea existenta, orice salvare (chiar doar schimbat telefonul)
+    // trecea prin sanitize_entry()/save_entry() cu aceste campuri absente
+    // din input, iar sanitize_entry() porneste de la empty_entry() (toate
+    // goale) si le suprascria tacit cu sir gol - o editare oarecare stergea
+    // "ARTFLEX SRL" de pe adresa de birou fara ca userul sa atinga vreun
+    // camp de firma. Semnalat de user 2026-08-31 ("gaseste bug-uri tu"),
+    // gasit prin testare directa a fluxului real de salvare.
+    if ($address_id !== '') {
+        $existing_entry = papetarie_storefront_address_book_get($user_id, $address_id);
+        if (is_array($existing_entry)) {
+            $clean = array_merge($existing_entry, $clean);
+        }
+    }
+
     $current_default_id = trim((string) get_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key(), true));
     $make_default = (!empty($request['pap_address_is_default']) && (string) $request['pap_address_is_default'] === '1')
         || $current_default_id === '';
@@ -1347,22 +1396,23 @@ function papetarie_storefront_address_book_process_request(array $request): arra
 
     if ($make_default) {
         update_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key(), (string) ($saved['id'] ?? ''));
-    } elseif ($address_id !== '' && $current_default_id === $address_id) {
-        $next_default = '';
-        foreach (papetarie_storefront_address_book_get_all($user_id, false) as $candidate) {
-            $candidate_id = (string) ($candidate['id'] ?? '');
-            if ($candidate_id !== '' && $candidate_id !== (string) ($saved['id'] ?? '')) {
-                $next_default = $candidate_id;
-                break;
-            }
-        }
-
-        if ($next_default === '') {
-            $next_default = (string) ($saved['id'] ?? '');
-        }
-
-        update_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key(), $next_default);
     }
+    // Nu exista alta ramura aici (ex. "un-default daca era deja default si
+    // checkbox-ul nu a fost bifat") - exista o asemenea logica inainte, dar
+    // ea trata orice simpla editare a adresei implicite (schimbat orasul,
+    // telefonul etc., fara sa atingi vreun checkbox de "seteaza implicita")
+    // ca pe o cerere de a scoate adresa din starea de implicita si a muta
+    // asta pe o alta adresa, aleasa arbitrar (prima gasita in lista). Asta
+    // facea ca orice editare a adresei implicite, cand userul avea 2+
+    // adrese salvate, sa "sara" pe alta adresa dupa salvare - datele
+    // editate se salvau corect, dar userul vedea alta adresa afisata si
+    // parea ca schimbarea lui nu s-a salvat. Reasignarea default-ului la
+    // stergere ramane corecta si separata, in
+    // address_book_delete_entry() - acolo chiar nu mai exista adresa veche,
+    // deci are sens sa promovam alta. La o simpla salvare, adresa editata
+    // trebuie sa ramana implicita daca era deja implicita. Semnalat de user
+    // 2026-08-31, cu 2 adrese salvate.
+
 
     papetarie_storefront_address_book_clear_form_state();
 
@@ -1530,7 +1580,7 @@ function papetarie_storefront_enqueue_address_book_script(): void
     wp_enqueue_script(
         'papetarie-storefront-address-book',
         get_stylesheet_directory_uri() . '/assets/js/address-book.js',
-        ['jquery'],
+        ['jquery', 'papetarie-storefront-confirm-modal'],
         $script_version,
         true
     );

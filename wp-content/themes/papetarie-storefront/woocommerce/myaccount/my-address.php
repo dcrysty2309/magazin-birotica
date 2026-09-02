@@ -33,18 +33,56 @@ $active_address = function_exists('papetarie_storefront_address_book_default_add
     : null;
 
 $has_address = !empty($active_address) && trim((string) ($active_address['address_1'] ?? '')) !== '';
-$full_name = '';
-$lines = [];
+// Randuri etichetate (Nume:/Telefon:/etc.), nu un bloc de text curgator ca
+// pe un plic - userul nu putea sti ce reprezinta fiecare linie fara eticheta
+// (ex. randul cu "Interfon 5, etaj 7" parea parte din adresa, nu observatie
+// separata). Semnalat de user 2026-08-31.
+$field_rows = [];
 
 if ($has_address) {
-    $lines = function_exists('papetarie_storefront_address_book_format_lines')
-        ? papetarie_storefront_address_book_format_lines($active_address)
-        : [];
-    $full_name = array_shift($lines) ?: '';
+    $company = trim((string) ($active_address['company'] ?? ''));
+    $full_name = trim(trim((string) ($active_address['first_name'] ?? '')) . ' ' . trim((string) ($active_address['last_name'] ?? '')));
+    if ($company !== '') {
+        $field_rows[] = [__('Firmă', 'papetarie-storefront'), $company];
+    }
+    if ($full_name !== '') {
+        $field_rows[] = [__('Nume', 'papetarie-storefront'), $full_name];
+    }
 
     $phone = trim((string) ($active_address['phone'] ?? ''));
     if ($phone !== '') {
-        $lines[] = $phone;
+        $field_rows[] = [__('Telefon', 'papetarie-storefront'), $phone];
+    }
+
+    $state_code = strtoupper(sanitize_key((string) ($active_address['state'] ?? '')));
+    $counties = function_exists('papetarie_storefront_romania_counties') ? papetarie_storefront_romania_counties() : [];
+    $state_label = $state_code !== '' && isset($counties[$state_code]) ? $counties[$state_code] : $state_code;
+    if ($state_label !== '') {
+        $field_rows[] = [__('Județ', 'papetarie-storefront'), $state_label];
+    }
+
+    $city = trim((string) ($active_address['city'] ?? ''));
+    if ($city !== '') {
+        $field_rows[] = [__('Localitate', 'papetarie-storefront'), $city];
+    }
+
+    $address_full = trim((string) ($active_address['address_1'] ?? ''));
+    $address_2 = trim((string) ($active_address['address_2'] ?? ''));
+    if ($address_2 !== '') {
+        $address_full .= ', ' . $address_2;
+    }
+    if ($address_full !== '') {
+        $field_rows[] = [__('Adresă', 'papetarie-storefront'), $address_full];
+    }
+
+    $postcode = trim((string) ($active_address['postcode'] ?? ''));
+    if ($postcode !== '') {
+        $field_rows[] = [__('Cod poștal', 'papetarie-storefront'), $postcode];
+    }
+
+    $delivery_notes = trim((string) ($active_address['delivery_notes'] ?? ''));
+    if ($delivery_notes !== '') {
+        $field_rows[] = [__('Observații', 'papetarie-storefront'), $delivery_notes];
     }
 }
 
@@ -99,14 +137,12 @@ $delete_action_url = function_exists('papetarie_storefront_address_book_base_url
       <?php if ($has_address) : ?>
         <div class="pap-account-address-card__body">
           <div class="pap-account-address-card__content">
-            <?php if ($full_name !== '') : ?>
-              <p class="pap-account-address-card__name"><?php echo esc_html($full_name); ?></p>
-            <?php endif; ?>
-            <div class="pap-account-address-card__lines">
-              <?php foreach ($lines as $line) : ?>
-                <p><?php echo esc_html($line); ?></p>
-              <?php endforeach; ?>
-            </div>
+            <?php foreach ($field_rows as $field_row) : ?>
+              <div class="pap-account-address-card__field">
+                <span class="pap-account-address-card__field-label"><?php echo esc_html($field_row[0]); ?>:</span>
+                <span class="pap-account-address-card__field-value"><?php echo esc_html($field_row[1]); ?></span>
+              </div>
+            <?php endforeach; ?>
           </div>
 
           <div class="pap-account-address-card__actions">
@@ -128,7 +164,6 @@ $delete_action_url = function_exists('papetarie_storefront_address_book_base_url
               <button
                 type="submit"
                 class="pap-account-row-action pap-account-row-action--danger"
-                onclick="return confirm('<?php echo esc_js(__('Sigur vrei să ștergi această adresă?', 'papetarie-storefront')); ?>');"
               >
                 <?php esc_html_e('Șterge', 'papetarie-storefront'); ?>
               </button>

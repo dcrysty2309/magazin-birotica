@@ -411,6 +411,20 @@
       });
     }
 
+    // [data-pap-cart-count-badge] (bulina numerica din header) - randata
+    // server-side cu atributul "hidden" cand cosul e gol; acest flux
+    // (adaugare rapida din arhiva) actualiza doar textul "X produse" de mai
+    // sus, niciodata bulina, care ramanea "hidden" pe vecie de la primul
+    // randare a paginii cu cos gol, chiar si dupa ce cosul avea produse
+    // reale. Semnalat live de user 2026-08-31.
+    if (typeof data.count !== 'undefined') {
+      var safeBadgeCount = Math.max(0, parseInt(data.count, 10) || 0);
+      Array.prototype.slice.call(document.querySelectorAll('[data-pap-cart-count-badge]')).forEach(function (badge) {
+        badge.textContent = String(safeBadgeCount);
+        badge.hidden = safeBadgeCount === 0;
+      });
+    }
+
     if (content && typeof data.items_html === 'string') {
       content.innerHTML = data.items_html;
 
@@ -615,6 +629,14 @@
         }
 
         dispatchCartEvents(data, button);
+
+        if (data.ga4_item && typeof gtag === 'function') {
+          gtag('event', 'add_to_cart', {
+            currency: data.ga4_item.currency,
+            value: data.ga4_item.price * data.ga4_item.quantity,
+            items: [data.ga4_item]
+          });
+        }
 
         window.requestAnimationFrame(function () {
           if (isCartPage()) {

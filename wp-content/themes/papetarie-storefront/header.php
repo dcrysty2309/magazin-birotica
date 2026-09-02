@@ -86,7 +86,7 @@ if (!is_tax('product_cat')) {
           >
             <span class="pap-tool-icon-badge" aria-hidden="true">
               <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('cart'); ?></i>
-              <span class="pap-tool-count-badge" data-pap-cart-count-badge><?php echo esc_html(papetarie_storefront_cart_count()); ?></span>
+              <span class="pap-tool-count-badge" data-pap-cart-count-badge<?php echo papetarie_storefront_cart_count() === '0' ? ' hidden' : ''; ?>><?php echo esc_html(papetarie_storefront_cart_count()); ?></span>
             </span>
             <span class="pap-tool-copy">
               <strong><?php esc_html_e('Coș', 'papetarie-storefront'); ?></strong>

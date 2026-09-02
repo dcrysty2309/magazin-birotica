@@ -1075,6 +1075,110 @@
     }
   }
 
+  function bindAccountDeletion() {
+    var trigger = document.querySelector('[data-account-delete-trigger]');
+    var modal = document.querySelector('[data-account-delete-modal]');
+    if (!trigger || !modal || trigger.getAttribute('data-account-deletion-initialized') === '1') {
+      return;
+    }
+    trigger.setAttribute('data-account-deletion-initialized', '1');
+
+    var feedback = document.querySelector('[data-account-delete-feedback]');
+    var confirmButton = modal.querySelector('[data-account-delete-confirm]');
+    var closeTriggers = modal.querySelectorAll('[data-account-delete-modal-close]');
+    var lastFocus = null;
+
+    function closeModal() {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+
+      if (window.papModalManager) {
+        window.papModalManager.close(modal);
+      }
+
+      window.setTimeout(function () {
+        modal.hidden = true;
+        if (lastFocus && typeof lastFocus.focus === 'function') {
+          lastFocus.focus({ preventScroll: true });
+        }
+      }, 180);
+    }
+
+    function openModal() {
+      lastFocus = trigger;
+      modal.hidden = false;
+      modal.setAttribute('aria-hidden', 'false');
+
+      if (window.papModalManager) {
+        window.papModalManager.open(modal, closeModal, { focusTarget: trigger });
+      }
+
+      window.requestAnimationFrame(function () {
+        modal.classList.add('is-open');
+      });
+
+      window.setTimeout(function () {
+        if (confirmButton) {
+          confirmButton.focus({ preventScroll: true });
+        }
+      }, 0);
+    }
+
+    trigger.addEventListener('click', openModal);
+
+    closeTriggers.forEach(function (node) {
+      node.addEventListener('click', closeModal);
+    });
+
+    if (confirmButton) {
+      confirmButton.addEventListener('click', function () {
+        if (!window.papAccountUi || !window.papAccountUi.ajaxUrl || !window.papAccountUi.deleteAccountNonce) {
+          return;
+        }
+
+        confirmButton.disabled = true;
+
+        var formData = new FormData();
+        formData.set('action', window.papAccountUi.deleteAccountAction || 'pap_account_deletion_request');
+        formData.set('nonce', window.papAccountUi.deleteAccountNonce);
+
+        fetch(window.papAccountUi.ajaxUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          body: formData,
+        })
+          .then(function (response) { return response.json(); })
+          .then(function (json) {
+            if (json && json.success) {
+              closeModal();
+              if (feedback) {
+                feedback.textContent = (json.data && json.data.message) || 'Cererea a fost înregistrată.';
+                feedback.hidden = false;
+              }
+              var redirectUrl = json.data && json.data.redirectUrl ? json.data.redirectUrl : '/';
+              window.setTimeout(function () {
+                window.location.href = redirectUrl;
+              }, 2500);
+              return;
+            }
+
+            confirmButton.disabled = false;
+            if (feedback) {
+              feedback.textContent = (json && json.data && json.data.message) || 'Nu am putut înregistra cererea. Încearcă din nou sau scrie-ne la contact@notix.ro.';
+              feedback.hidden = false;
+            }
+          })
+          .catch(function () {
+            confirmButton.disabled = false;
+            if (feedback) {
+              feedback.textContent = 'Nu am putut înregistra cererea. Încearcă din nou sau scrie-ne la contact@notix.ro.';
+              feedback.hidden = false;
+            }
+          });
+      });
+    }
+  }
+
   function bindAccountDetailsForm() {
     initAccountDetailToggle();
 
@@ -1254,6 +1358,54 @@
       .catch(function () {});
   });
 
+  // Butonul "x" de pe notificarile de cont ("Adresa a fost stearsa" etc.,
+  // vezi papetarie_storefront_render_account_notice() din functions.php)
+  // avea markup si aria-label, dar niciun handler JS nicaieri - clickul nu
+  // facea nimic, notificarea ramanea pe ecran. Delegat pe document, nu
+  // cauta elementul o singura data la incarcare - notificarea poate fi
+  // randata de orice pagina de cont, in diverse momente. Semnalat live de
+  // user 2026-08-31.
+  document.addEventListener('click', function (event) {
+    var closeButton = event.target.closest('[data-account-notice-close]');
+    if (!closeButton) {
+      return;
+    }
+
+    var notice = closeButton.closest('.pap-account-form-notice');
+    if (notice && notice.parentNode) {
+      notice.parentNode.removeChild(notice);
+    }
+  });
+
+  // "inca N produse" (minicard "Ultima comanda", Acasa) - extinde inline
+  // liniile ascunse ale comenzii, fara alt request (deja randate in pagina,
+  // doar cu atributul "hidden"), apoi comuta eticheta pe "Vezi mai putin"
+  // ca sa poata fi si restrans la loc. Cerut explicit de user 2026-08-31.
+  document.addEventListener('click', function (event) {
+    var toggle = event.target.closest('[data-order-items-toggle]');
+    if (!toggle) {
+      return;
+    }
+
+    var list = toggle.closest('[data-order-items-preview]');
+    if (!list) {
+      return;
+    }
+
+    var expanded = toggle.getAttribute('aria-expanded') === 'true';
+    var extraRows = list.querySelectorAll('.pap-account-minicard__item-row--extra');
+    Array.prototype.forEach.call(extraRows, function (row) {
+      row.hidden = expanded;
+    });
+
+    toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+
+    var label = toggle.querySelector('[data-order-items-toggle-label]');
+    if (label) {
+      label.textContent = expanded ? toggle.getAttribute('data-expand-label') : toggle.getAttribute('data-collapse-label');
+    }
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
     var hash = window.location.hash.replace('#', '');
     initAllAuthRoots();
@@ -1262,6 +1414,7 @@
     // deci le initializam separat, direct pe document.
     initPasswordFields(document);
     bindAccountDetailsForm();
+    bindAccountDeletion();
 
     if (hash === 'login' || hash === 'register') {
       getAuthRoots().forEach(function (root) {

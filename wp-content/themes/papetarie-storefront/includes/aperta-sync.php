@@ -1924,6 +1924,16 @@ function papetarie_storefront_aperta_extract_description_attributes(string $desc
         }
     }
 
+    // "Format A4" scris in proza, fara "Format:" - vocabular inchis (formate
+    // de hartie standard), deci sigur de extras oriunde apare in text, spre
+    // deosebire de o eticheta libera. Nu suprascrie un "Format: ..." deja
+    // gasit mai sus prin perechea eticheta:valoare. Gasit 2026-08-31 la un
+    // set creativ Carioca unde "Format A4" era ingropat intr-o singura
+    // propozitie lunga, fara ":", deci needetectat de regulile de mai sus.
+    if (!isset($attrs['Format']) && preg_match('/\bFormat\s+(A[0-9]|B[0-9]|DL)\b/iu', $description, $m)) {
+        $attrs['Format'] = strtoupper($m[1]);
+    }
+
     return $attrs;
 }
 
@@ -2079,6 +2089,33 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     $productId = $isVariable
         ? papetarie_storefront_aperta_find_parent_by_cod_produs($codProdus)
         : papetarie_storefront_aperta_find_by_sku_meta($primaryCodUnic);
+
+    // papetarie_storefront_aperta_lookup_maps() cauta INTENTIONAT si prin
+    // 'product_variation' (nu doar 'product'), ca sa detecteze exact cazul
+    // de mai jos - un cod care a ajuns sa fie deja variatia altui produs.
+    // Daca $productId gasit aici e de fapt o variatie, WC_Product_Variable/
+    // WC_Product_Simple('$productId') arunca "Invalid product." la citire
+    // (WC_Product_Data_Store_CPT::read() cere post_type==='product') si
+    // crapa tot lotul de sincronizare - fara recuperare, pentru ca $offset-ul
+    // urmator nu mai apuca sa fie programat. Confirmat live: sincronizarea
+    // de produse s-a blocat la acelasi offset la fiecare rulare de cand a
+    // aparut coliziunea (jurnal Action Scheduler, "Produsul nu este valid.").
+    // Acelasi tip de coliziune e deja tratat mai jos la nivel de variatie
+    // individuala (cauta "WC_Product_Variation arunca eroare") - aici lipsea
+    // echivalentul la nivel de produs-parinte. Tratam la fel: nu il folosim
+    // ca match valid (ramane candidat pentru migrarea manuala existenta),
+    // ca sa nu crape restul sincronizarii pentru toate produsele de dupa el.
+    if ($productId !== null && get_post_type($productId) !== 'product') {
+        $pendingMigrations = get_option('pap_aperta_pending_variation_migrations', []);
+        $pendingMigrations[$isVariable ? $codProdus : $primaryCodUnic] = [
+            'existing_post_id' => $productId,
+            'existing_post_type' => get_post_type($productId),
+            'context' => 'parent_lookup',
+            'found_at' => current_time('mysql'),
+        ];
+        update_option('pap_aperta_pending_variation_migrations', $pendingMigrations, false);
+        $productId = null;
+    }
 
     // Potrivirea dupa nume e gandita pentru produse vechi din importul JSON
     // original (fara SKU) - pentru un grup sintetic (creat de consolidare,
@@ -2830,7 +2867,35 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
             $startedAt
         );
 
-        $result = papetarie_storefront_aperta_upsert_product($grouped[$codes[$i]]);
+        // Plasa de siguranta: un singur produs cu date neasteptate (ex. o
+        // coliziune de tip post nedetectata de garda de mai sus, sau orice
+        // alta exceptie neprevazuta din WooCommerce) nu mai are voie sa
+        // opreasca sincronizarea pentru TOATE produsele ramase dupa el -
+        // exact ce se intampla inainte (fara try/catch aici, o exceptie
+        // scapa din bucla, intreaga bucata pica "esuata" in Action Scheduler
+        // si $nextOffset nu mai apuca sa fie programat, deci sincronizarea
+        // ramane blocata definitiv la acelasi offset). Rezultatul sintetic
+        // de mai jos are aceeasi forma ca cea folosita la "randuri goale"
+        // (linia ~2070) - deja verificata sigura de describe_upsert()/
+        // upsert_is_changed() cu is_new=false, is_variable=false.
+        try {
+            $result = papetarie_storefront_aperta_upsert_product($grouped[$codes[$i]]);
+        } catch (Throwable $e) {
+            papetarie_storefront_aperta_debug_checkpoint(
+                sprintf('chunk offset=%d item=%d/%d cod=%s - EROARE: %s', $offset, $i, $total, (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i]), $e->getMessage()),
+                $startedAt
+            );
+            $result = [
+                'product_id' => 0,
+                'is_new' => false,
+                'is_variable' => false,
+                'old_price' => null,
+                'new_price' => null,
+                'variations' => null,
+                'was_trashed' => false,
+                'sync_error' => $e->getMessage(),
+            ];
+        }
 
         papetarie_storefront_aperta_debug_checkpoint(
             sprintf('chunk offset=%d item=%d/%d cod=%s - DONE', $offset, $i, $total, (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i])),
@@ -2839,7 +2904,7 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
 
         $items[] = [
             'sku' => trim((string) $grouped[$codes[$i]][0]['Cod unic']),
-            'name' => trim((string) $grouped[$codes[$i]][0]['Denumire produs']) . ' (' . papetarie_storefront_aperta_describe_upsert($result) . ')',
+            'name' => trim((string) $grouped[$codes[$i]][0]['Denumire produs']) . ' (' . (isset($result['sync_error']) ? ('sărit, eroare: ' . $result['sync_error']) : papetarie_storefront_aperta_describe_upsert($result)) . ')',
             'changed' => papetarie_storefront_aperta_upsert_is_changed($result),
             'trashed' => $result['was_trashed'],
         ];
