@@ -32,6 +32,12 @@
     else { document.addEventListener('DOMContentLoaded', fn); }
   }
 
+  document.addEventListener('notix:cookie-consent-updated', function (e) {
+    if (e.detail && e.detail.analytics && window.papLoadGoogleAnalytics) {
+      window.papLoadGoogleAnalytics();
+    }
+  });
+
   ready(function () {
     var banner = document.getElementById('pap-cookie-banner');
     var modal = document.getElementById('pap-cookie-modal');

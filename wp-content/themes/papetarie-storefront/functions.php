@@ -17,6 +17,13 @@ add_filter('auto_update_plugin', '__return_false');
  * Google Analytics 4 (proprietate "notix.ro", ID de masurare G-FSKPFTHGK3) -
  * cont creat de user 2026-09-01. Doar pe front-end (nu si in wp-admin), ca sa
  * nu polueze rapoartele cu activitatea din panoul de administrare.
+ *
+ * Scriptul GA nu se incarca automat aici - doar se pregateste coada
+ * dataLayer/gtag si o functie de incarcare (papLoadGoogleAnalytics). GA
+ * porneste efectiv doar cand assets/js/cookie-consent.js o apeleaza, dupa ce
+ * vizitatorul a acceptat explicit categoria "Analiza" din bannerul de
+ * cookie-uri - altfel s-ar seta cookie-uri de tracking fara acord, ceea ce
+ * incalca GDPR.
  */
 function papetarie_storefront_google_analytics_tag(): void
 {
@@ -24,14 +31,20 @@ function papetarie_storefront_google_analytics_tag(): void
         return;
     }
     ?>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FSKPFTHGK3"></script>
+    <!-- Google tag (gtag.js) - incarcat doar dupa consimtamant, vezi cookie-consent.js -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-FSKPFTHGK3');
+      window.papLoadGoogleAnalytics = function () {
+        if (window.papGaLoaded) { return; }
+        window.papGaLoaded = true;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-FSKPFTHGK3';
+        document.head.appendChild(s);
+        gtag('js', new Date());
+        gtag('config', 'G-FSKPFTHGK3');
+      };
     </script>
     <?php
 }
