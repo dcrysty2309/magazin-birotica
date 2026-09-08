@@ -24830,7 +24830,8 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-detail-gri
   text-decoration: none;
 }
 
-.pap-404-hero__primary {
+.pap-404-hero__primary,
+.pap-404-hero__primary:visited {
   height: 44px;
   background: #0d2e61;
   color: #fff;
@@ -24847,7 +24848,8 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-detail-gri
   color: #fff;
 }
 
-.pap-404-hero__secondary {
+.pap-404-hero__secondary,
+.pap-404-hero__secondary:visited {
   height: 47px;
   background: #fff;
   border: 1.5px solid #dde1e8;
@@ -24883,7 +24885,8 @@ body.theme-papetarie.woocommerce-account.logged-in .pap-account-order-detail-gri
   gap: 8px;
 }
 
-.pap-404-hero__chip {
+.pap-404-hero__chip,
+.pap-404-hero__chip:visited {
   display: inline-flex;
   align-items: center;
   height: 30px;
