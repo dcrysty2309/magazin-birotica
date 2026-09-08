@@ -184,18 +184,18 @@
       openMenu(slug);
     });
 
-    // Touch tablets land here too: wide enough for the two-column desktop
-    // flyout (not the narrow drill-down below), but with no real hover to
-    // reveal a category's panel before the tap navigates. Without this, a
-    // tap on a category with children just followed its link straight
-    // through - there was no way to see the panel at all. Same behavior
-    // as eMAG: a tap on a parent with children only ever opens its panel,
-    // never navigates directly - "Vezi toate produsele" inside the panel
-    // is the way to reach the parent's own page.
+    // Same behavior as eMAG on desktop too, not just touch tablets: a click
+    // on a level-1 category with children never navigates, mouse or touch -
+    // hover already reveals its panel, and "Vezi toate produsele" inside
+    // the panel is the only way to reach the parent's own page. Confirmed
+    // against eMAG's live desktop site 2026-09-02 (their top-level category
+    // links are inert too, hover-only) - previously this was gated to
+    // touch-only (`hoverQuery.matches` excluded), which let a desktop mouse
+    // click fall through and navigate away.
     const hasChildren = item.getAttribute('data-header-catmenu-has-children') === '1';
     if (hasChildren) {
       item.addEventListener('click', (event) => {
-        if (hoverQuery.matches || mobileQuery.matches) {
+        if (mobileQuery.matches) {
           return;
         }
 

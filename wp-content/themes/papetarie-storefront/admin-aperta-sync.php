@@ -220,6 +220,16 @@ function papetarie_storefront_render_aperta_sync_page(): void
         </div>
       </div>
 
+      <div class="notice notice-info inline pap-aperta-legacy-notice">
+        <p>
+          <?php esc_html_e('Reaplică regulile curente de normalizare a etichetelor de filtru (ex. "Nr. file" / "Număr file" devin un singur filtru, "80 g" / "80 g/mp" la fel) pe toate produsele deja sincronizate — util după ce regulile s-au schimbat/completat, ca vechile etichete duplicate să se consolideze fără să aștepți o resincronizare completă. Nu atinge preț, stoc sau descriere.', 'papetarie-storefront'); ?>
+        </p>
+        <p>
+          <button type="button" class="button button-secondary" id="pap-aperta-backfill-attrs"><?php esc_html_e('Actualizează filtrele de atribute', 'papetarie-storefront'); ?></button>
+          <span id="pap-aperta-backfill-progress" style="margin-left:8px;"></span>
+        </p>
+      </div>
+
       <?php if ($legacyCount > 0) : ?>
         <div class="notice notice-warning inline pap-aperta-legacy-notice">
           <p>
@@ -997,6 +1007,52 @@ function papetarie_storefront_render_aperta_sync_page(): void
           });
         });
 
+        $('#pap-aperta-backfill-attrs').on('click', function () {
+          var $button = $(this);
+          var $progress = $('#pap-aperta-backfill-progress');
+          if (!window.confirm('<?php echo esc_js(__('Sigur reaplici regulile de filtrare pe toate produsele? Nu atinge preț/stoc, doar etichetele de filtru.', 'papetarie-storefront')); ?>')) {
+            return;
+          }
+
+          $button.prop('disabled', true);
+          $message.prop('hidden', true);
+          var offset = 0;
+          var totalTagged = 0;
+
+          function runChunk() {
+            $progress.text('<?php echo esc_js(__('Procesez...', 'papetarie-storefront')); ?> ' + offset);
+            $.post(ajaxurl, {
+              action: 'pap_aperta_backfill_attrs',
+              offset: offset,
+              nonce: nonce
+            }).done(function (response) {
+              if (!response || !response.success) {
+                showMessage('error', (response && response.data && response.data.message) ? response.data.message : '<?php echo esc_js(__('A apărut o eroare.', 'papetarie-storefront')); ?>');
+                $button.prop('disabled', false);
+                return;
+              }
+
+              var data = response.data;
+              totalTagged += data.tagged;
+              offset += data.processed;
+
+              if (data.processed > 0 && offset < data.total) {
+                runChunk();
+                return;
+              }
+
+              $progress.text('');
+              showMessage('success', '<?php echo esc_js(__('Gata — verificate', 'papetarie-storefront')); ?> ' + offset + ' <?php echo esc_js(__('produse, actualizate', 'papetarie-storefront')); ?> ' + totalTagged + '.');
+              $button.prop('disabled', false);
+            }).fail(function () {
+              showMessage('error', '<?php echo esc_js(__('A apărut o eroare de conexiune.', 'papetarie-storefront')); ?>');
+              $button.prop('disabled', false);
+            });
+          }
+
+          runChunk();
+        });
+
         // O verificare imediată la deschiderea paginii, ca să reflecte o
         // rulare deja în curs (pornită din altă filă sau automat).
         poll();
@@ -1136,7 +1192,11 @@ function papetarie_storefront_aperta_ajax_backfill_attrs(): void
 
     $offset = isset($_POST['offset']) ? max(0, (int) $_POST['offset']) : 0;
 
-    wp_send_json_success(papetarie_storefront_aperta_backfill_attributes_chunk($offset, 300));
+    // 100, nu 300 - un lot de 300 a durat ~33s pe un test direct 2026-09-04,
+    // suficient cat sa expire timeout-ul din fata (server/proxy) inainte sa
+    // ajunga raspunsul la browser, aparand ca "eroare de conexiune" desi
+    // PHP-ul chiar terminase cu succes. 100 tine fiecare cerere sub ~11-12s.
+    wp_send_json_success(papetarie_storefront_aperta_backfill_attributes_chunk($offset, 100));
 }
 add_action('wp_ajax_pap_aperta_backfill_attrs', 'papetarie_storefront_aperta_ajax_backfill_attrs');
 

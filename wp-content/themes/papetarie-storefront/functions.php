@@ -3296,7 +3296,13 @@ function papetarie_storefront_catalog_orderby_labels(array $options): array
 }
 add_filter('woocommerce_catalog_orderby', 'papetarie_storefront_catalog_orderby_labels');
 add_filter('woocommerce_default_catalog_orderby_options', 'papetarie_storefront_catalog_orderby_labels');
-add_filter('woocommerce_default_catalog_orderby', static fn (): string => 'title');
+// "menu_order" - ordinea reala aplicata cererii WooCommerce cand vizitatorul
+// nu a ales el manual altceva (fara "orderby" in URL) - trebuie sa fie in
+// acord cu implicitul afisat in dropdown-ul custom din archive-product.php
+// ($active_orderby), altfel eticheta zice "Recomandate" dar produsele tot
+// apar alfabetic (gasit live 2026-09-04, dupa ce dropdown-ul a fost
+// actualizat dar acest filtru a ramas la vechea valoare 'title').
+add_filter('woocommerce_default_catalog_orderby', static fn (): string => 'menu_order');
 
 // 60 products per page on shop/category archives before pagination kicks in
 // (see docs/pagination.md for the full reasoning behind this threshold).
@@ -3312,14 +3318,6 @@ function papetarie_storefront_filter_sort_url(string $base_url, string $orderby)
     $query = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
     return $query !== '' ? $base_url . '?' . $query : $base_url;
-}
-
-function papetarie_storefront_stock_status_options(): array
-{
-    return [
-        'instock' => __('În stoc', 'papetarie-storefront'),
-        'outofstock' => __('Stoc epuizat', 'papetarie-storefront'),
-    ];
 }
 
 function papetarie_storefront_romania_counties(): array
@@ -4218,66 +4216,6 @@ function papetarie_storefront_get_price_range_counts(?\WP_Term $term = null): ar
     return $counts;
 }
 
-function papetarie_storefront_get_stock_status_counts(?\WP_Term $term = null): array
-{
-    $counts = [];
-    $base_args = papetarie_storefront_get_base_archive_query_args($term);
-
-    if (isset($base_args['meta_query']) && is_array($base_args['meta_query'])) {
-        $base_args['meta_query'] = papetarie_storefront_strip_meta_query_by_key($base_args['meta_query'], '_stock_status');
-    }
-
-    foreach (array_keys(papetarie_storefront_stock_status_options()) as $status) {
-        $args = $base_args;
-        $args['meta_query'] = papetarie_storefront_append_meta_query(
-            $args['meta_query'] ?? [],
-            [
-                'key' => '_stock_status',
-                'value' => $status,
-                'compare' => '=',
-            ]
-        );
-
-        $count_query = new \WP_Query($args);
-        $counts[$status] = (int) $count_query->found_posts;
-    }
-
-    return $counts;
-}
-
-
-function papetarie_storefront_filter_stock_status_query(array $meta_query, $query): array
-{
-    if (is_admin()) {
-        return $meta_query;
-    }
-
-    if (!(is_shop() || is_product_category() || is_product_taxonomy())) {
-        return $meta_query;
-    }
-
-    $stock_status = isset($_GET['stock_status']) ? sanitize_key(wp_unslash($_GET['stock_status'])) : '';
-
-    if ($stock_status === '' || $stock_status === 'all') {
-        return $meta_query;
-    }
-
-    $allowed_statuses = array_keys(papetarie_storefront_stock_status_options());
-
-    if (!in_array($stock_status, $allowed_statuses, true)) {
-        return $meta_query;
-    }
-
-    $meta_query[] = [
-        'key' => '_stock_status',
-        'value' => $stock_status,
-        'compare' => '=',
-    ];
-
-    return $meta_query;
-}
-add_filter('woocommerce_product_query_meta_query', 'papetarie_storefront_filter_stock_status_query', 20, 2);
-
 function papetarie_storefront_filter_subcategory_query(\WP_Query $query): void
 {
     if (is_admin() || !$query->is_main_query()) {
@@ -4381,6 +4319,12 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
 
     global $wpdb;
 
+    // JOIN pe wp_posts + "post_status = publish" - fara el, un produs pe
+    // ciorna (stoc epuizat, disparut din feed etc.) tot apare ca optiune de
+    // filtru, cu numar langa el, dar clientul care da click nu gaseste
+    // niciun rezultat (produsul nu e vizibil pe site). Gasit live 2026-09-04
+    // la filtrul Culoare -> "Ultra", categoria Notesuri adezive. Regula
+    // globala, se aplica la orice categorie.
     $rows = $wpdb->get_results($wpdb->prepare(
         "SELECT tt2.term_id AS term_id, COUNT(DISTINCT tr1.object_id) AS cnt
          FROM {$wpdb->term_relationships} tr1
@@ -4389,6 +4333,7 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
          INNER JOIN {$wpdb->term_relationships} tr2 ON tr2.object_id = tr1.object_id
          INNER JOIN {$wpdb->term_taxonomy} tt2 ON tt2.term_taxonomy_id = tr2.term_taxonomy_id
              AND tt2.taxonomy = 'product_attr_value'
+         INNER JOIN {$wpdb->posts} p ON p.ID = tr1.object_id AND p.post_status = 'publish'
          GROUP BY tt2.term_id",
         $term->term_id
     ));
@@ -4439,10 +4384,102 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
     // deci exact cazul "Greutate: 0,42kg" vs "0,46kg" din comentariul de mai
     // jos; niciun prag de numarare nu rezolva asta corect (17-20 valori
     // aproape unice trec totusi de pragul de "20 valori maxim").
-    $nonFilterableGroups = ['Greutate'];
+    // "Detalii" e un cosulet generic (orice specificatie fara o eticheta mai
+    // buna ajunge aici) - aproape mereu dubleaza alt grup deja normalizat
+    // (ex. "100 buc/cutie" langa "Număr bucăți/set: 100/cutie", exact acelasi
+    // produs) si restul valorilor sunt prea eterogene ca sa filtreze ceva
+    // real (verificat 2026-09-06: 76 de valori distincte pe 324 de produse in
+    // tot catalogul). Decizie user: ascuns ca filtru peste tot, la fel ca
+    // Greutate - informatia ramane pe pagina produsului, doar nu mai apare ca
+    // optiune de bifat in bara laterala.
+    // "Etichete/Cutie" e mereu "Etichete/A4" inmultit cu 100 (o cutie are
+    // mereu 100 de coli) - nu aduce nicio informatie in plus fata de
+    // "Etichete/A4", doar dubleaza acelasi numar. Ascuns ca filtru, la fel ca
+    // Greutate/Detalii - informatia ramane pe fisa produsului. Decizie user
+    // 2026-09-08, gasit la "Etichete universale copiator".
+    $nonFilterableGroups = ['Greutate', 'Detalii', 'Etichete/Cutie'];
+    // Un grup care acopera doar o mana de produse din categorie nu ajuta la
+    // filtrare, chiar daca trece pragurile de mai jos (ex. "Detalii" cu 3
+    // produse din 43 la Notesuri adezive) - clientul l-ar vedea ca optiune,
+    // dar aproape orice alta selectie l-ar face sa dispara din rezultate.
+    // Prag relativ (20% din categorie) cu un minim absolut (3 produse) ca sa
+    // nu penalizeze categoriile foarte mici. Decizie user 2026-09-04, regula
+    // globala - se aplica automat la orice categorie, nu doar la cea
+    // verificata atunci.
+    $categoryTotal = (int) ($term->count ?? 0);
+    $minCoverage = max(3, (int) ceil($categoryTotal * 0.2));
 
-    return array_filter($grouped, static function (array $values, string $group) use ($nonFilterableGroups): bool {
-        if (in_array($group, $nonFilterableGroups, true)) {
+    // Grupuri ascunse punctual la o singura categorie - folosit la "Hârtie
+    // color" (2026-09-04): cele 40 de nuante exacte (Roz, Roz intens, Roz
+    // Fluo...) sunt inlocuite cu grupul "Stil culoare" (Pastelate/Intense/
+    // Fluo, 3 optiuni), mai util la nivel de listare a categoriei - alegerea
+    // nuantei exacte se face oricum pe pagina produsului. Decizie user, nu se
+    // aplica automat la alte categorii.
+    $categoryGroupExclusions = [
+        'hartie-color' => ['Culoare'],
+        // "Accesorii pentru birou" amesteca tipuri de produse foarte diferite
+        // (cuttere, agrafe, cosuri de hartie, huse tableta...) - Culoare si
+        // Numar bucati/set erau confuze fara sa se stie mai intai LA CE
+        // produs se refera (o cutie de 100 agrafe vs un cos de hartie).
+        // Inlocuite cu "Tip produs" (Cuttere si lame / Agrafe, cleme si
+        // pioneze / Cosuri de hartie / Diverse birou). Decizie user
+        // 2026-09-06, nu se aplica automat la alte categorii.
+        'accesorii-pentru-birou' => ['Culoare', 'Număr bucăți/set'],
+        // "Dimensiuni" (A3/A4) dubleaza exact "Format" (A3/A4/65x95mm) la
+        // toate cele 4 produse care au ambele grupuri - Format le acopera pe
+        // toate, deci ascundem Dimensiuni doar aici. Decizie user 2026-09-06.
+        'masini-de-laminat' => ['Dimensiuni'],
+        // "Ambalare" e un grup generic folosit peste tot in site cu sensuri
+        // diferite (topuri de hartie, kg de cauciuc, role de etichete etc.),
+        // deci NU poate fi unificat global cu "Numar bucati/set" - dar la
+        // "Mape si accesorii" specific, cele 8 produse care il foloseau
+        // spuneau EXACT acelasi lucru ca "Numar bucati/set" (verificat produs
+        // cu produs), doar scris diferit - curatat valorile existente si
+        // ascuns grupul aici, ca sa nu reapara confuz la o resincronizare
+        // viitoare. Decizie user 2026-09-08, nu se aplica automat la alte
+        // categorii.
+        'mape-si-accesorii' => ['Ambalare'],
+        // La "Intercalatoare", "Ambalare" (25/50 seturi/cutie) descrie cate
+        // seturi vin intr-o cutie de angro - info de depozit, nu un criteriu
+        // real de alegere pentru un cumparator care ia un singur set. Spre
+        // deosebire de "Mape si accesorii", aici NU e o dubla a "Numar
+        // bucati/set" (produse diferite, informatie diferita) - doar nu
+        // ajuta la alegere, deci il ascundem, pastram "Numar bucati/set".
+        // Decizie user 2026-09-08, nu se aplica automat la alte categorii.
+        'intercalatoare' => ['Ambalare'],
+        // Acelasi caz ca la Intercalatoare - "Ambalare" (25 seturi/cutie, 36
+        // buc./cutie) e o valoare constanta pe mai multe produse cu marimi de
+        // set diferite, deci descrie cutia de angro, nu produsul cumparat -
+        // nu ajuta la alegere. Pastram "Numar bucati/set". Decizie user
+        // 2026-09-08, nu se aplica automat la alte categorii.
+        'etichete-pret-si-autoadezive' => ['Ambalare'],
+        // "Ambalare" (kg/bax, buc./bax) descrie cate pungi/bucati vin intr-un
+        // bax de angro, nu produsul cumparat efectiv - nu ajuta la alegere,
+        // acelasi caz ca mai sus. "Diametru" era o specificatie reala (grosimea
+        // benzii), dar grupul e generic si e folosit si de creioane cerate,
+        // spire de plastic, magneti si etichete rotunde, cu ACELEASI valori
+        // exacte (ex. "40 mm" apare identic la toate) - nu se poate grupa in
+        // intervale fara sa afecteze si acelea. Inlocuit aici cu un grup nou,
+        // exclusiv pentru benzi, "Diametru Bandă" (Pana la 60mm/Peste 60mm),
+        // iar vechiul "Diametru" e ascuns doar la aceasta categorie. Decizie
+        // user 2026-09-08, nu se aplica automat la alte categorii.
+        'benzi-din-cauciuc-si-adezive' => ['Ambalare', 'Diametru'],
+        // "Numar bucati/set" si "Numar culori" erau EXACT aceeasi informatie
+        // (cate creioane vin in set) impartita din greseala, dupa cum scria
+        // titlul Aperta: cu cuvantul "culori" -> Numar culori, fara el ->
+        // Numar bucati/set. Migrat retroactiv (2026-09-08) sub "Numar
+        // culori" pe ambele categorii, dar daca un produs nou Carioca-style
+        // se sincronizeaza fara cuvantul "culori" in titlu, ar recrea
+        // "Numar bucati/set" - ascuns ca plasa de siguranta, ca sa nu
+        // reapara filtrul dublu. Decizie user.
+        'creioane-color' => ['Număr bucăți/set'],
+        'creioane-cerate' => ['Număr bucăți/set'],
+    ];
+    $categorySlug = (string) ($term->slug ?? '');
+    $excludedGroups = $categoryGroupExclusions[$categorySlug] ?? [];
+
+    $filtered = array_filter($grouped, static function (array $values, string $group) use ($nonFilterableGroups, $minCoverage, $excludedGroups): bool {
+        if (in_array($group, $nonFilterableGroups, true) || in_array($group, $excludedGroups, true)) {
             return false;
         }
 
@@ -4453,6 +4490,11 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
         }
 
         $totalProducts = array_sum(array_column($values, 'count'));
+
+        if ($totalProducts < $minCoverage) {
+            return false;
+        }
+
         $avgProductsPerValue = $totalProducts / $distinctCount;
 
         // 1.2 (nu 1.5) - la categorii mici (sub ~10 produse), un atribut cu
@@ -4475,6 +4517,33 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
 
         return $avgWordsPerValue <= 3;
     }, ARRAY_FILTER_USE_BOTH);
+
+    // Prioritate de afisare punctuala, per categorie - "Stil culoare" e
+    // criteriul principal de alegere la Hârtie color, nu ar trebui sa fie
+    // ultimul in lista doar pentru ca a fost adaugat ultimul. Decizie user
+    // 2026-09-04, nu se aplica automat la alte categorii/grupuri.
+    $groupPriorityOverrides = [
+        'hartie-color' => ['Stil culoare'],
+        'accesorii-pentru-birou' => ['Tip produs'],
+    ];
+    $priorityGroups = $groupPriorityOverrides[$categorySlug] ?? [];
+
+    if ($priorityGroups) {
+        $ordered = [];
+        foreach ($priorityGroups as $priorityGroup) {
+            if (isset($filtered[$priorityGroup])) {
+                $ordered[$priorityGroup] = $filtered[$priorityGroup];
+            }
+        }
+        foreach ($filtered as $group => $values) {
+            if (!isset($ordered[$group])) {
+                $ordered[$group] = $values;
+            }
+        }
+        $filtered = $ordered;
+    }
+
+    return $filtered;
 }
 
 function papetarie_storefront_get_selected_attribute_terms(): array
@@ -7767,6 +7836,23 @@ function papetarie_storefront_term_order(\WP_Term $term): int
     return (int) get_term_meta($term->term_id, 'order', true);
 }
 
+// Multe valori de filtru incep cu un numar ("10 mm", "2,9 mm", "12/set", "24
+// culori") - sortate ca text simplu, "10 mm" ajunge inaintea lui "2,9 mm"
+// pentru ca primul caracter "1" < "2", desi 10 > 2,9 numeric. Extragem
+// numarul de la inceput (cu virgula zecimala romaneasca) ca sa sortam corect
+// orice astfel de valoare, oriunde apare pe site - pentru valori care nu
+// incep cu un numar (culori etc.) comportamentul ramane neschimbat
+// (alfabetic). Gasit 2026-09-08 la "Diametrul minei", dar bug-ul de sortare
+// era in functia generala, folosita de toate filtrele de categorie.
+function papetarie_storefront_extract_leading_number(string $value): ?float
+{
+    if (preg_match('/^\s*(\d+(?:[.,]\d+)?)/u', $value, $m)) {
+        return (float) str_replace(',', '.', $m[1]);
+    }
+
+    return null;
+}
+
 function papetarie_storefront_sort_terms(array $terms): array
 {
     usort(
@@ -7775,11 +7861,18 @@ function papetarie_storefront_sort_terms(array $terms): array
             $left_order = papetarie_storefront_term_order($left);
             $right_order = papetarie_storefront_term_order($right);
 
-            if ($left_order === $right_order) {
-                return strcasecmp($left->name, $right->name);
+            if ($left_order !== $right_order) {
+                return $left_order <=> $right_order;
             }
 
-            return $left_order <=> $right_order;
+            $left_number = papetarie_storefront_extract_leading_number($left->name);
+            $right_number = papetarie_storefront_extract_leading_number($right->name);
+
+            if ($left_number !== null && $right_number !== null && $left_number !== $right_number) {
+                return $left_number <=> $right_number;
+            }
+
+            return strcasecmp($left->name, $right->name);
         }
     );
 
@@ -11105,6 +11198,42 @@ function papetarie_storefront_redirect_checkout_test_cases_nested_path(): void
 }
 
 add_action('template_redirect', 'papetarie_storefront_redirect_checkout_test_cases_nested_path', 0);
+
+/**
+ * Redirect 301 de la un slug vechi de produs (trecut la gunoi la o
+ * consolidare de variante de culoare - vezi
+ * tools/consolidate-single-variant-wrappers.php) catre produsul nou,
+ * consolidat - ca un link vechi salvat/indexat sa nu ajunga la "pagina
+ * inexistenta" ci direct la produsul curent.
+ */
+function papetarie_storefront_old_product_redirect(): void
+{
+    if (!is_404()) {
+        return;
+    }
+
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? (string) wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $path = trim((string) wp_parse_url($request_uri, PHP_URL_PATH), '/');
+
+    if (!preg_match('#^product/([^/]+)$#', $path, $m)) {
+        return;
+    }
+
+    $redirects = get_option('pap_old_product_slug_redirects', []);
+    if (!is_array($redirects) || !isset($redirects[$m[1]])) {
+        return;
+    }
+
+    $newProductId = (int) $redirects[$m[1]];
+    $url = get_permalink($newProductId);
+    if (!$url) {
+        return;
+    }
+
+    wp_safe_redirect($url, 301);
+    exit;
+}
+add_action('template_redirect', 'papetarie_storefront_old_product_redirect', 0);
 
 function papetarie_storefront_get_checkout_test_cases_title(): string
 {

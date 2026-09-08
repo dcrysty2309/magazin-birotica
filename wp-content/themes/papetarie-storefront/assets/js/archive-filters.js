@@ -62,4 +62,17 @@
       }
     });
   });
+
+  document.querySelectorAll('.pap-archive-filter-more').forEach((button) => {
+    button.addEventListener('click', () => {
+      const body = button.closest('.pap-archive-filter-body');
+      if (!body) {
+        return;
+      }
+      body.querySelectorAll('.pap-archive-check-option--collapsed').forEach((option) => {
+        option.classList.remove('pap-archive-check-option--collapsed');
+      });
+      button.remove();
+    });
+  });
 })();

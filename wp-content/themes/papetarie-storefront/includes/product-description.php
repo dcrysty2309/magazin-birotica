@@ -108,6 +108,19 @@ function papetarie_storefront_classify_description_line(string $line): string
         return 'bullet';
     }
 
+    // O eticheta simpla, fara nicio valoare pe acelasi rand ("Detalii:",
+    // "Conținut:", "Suprafețe:", "Caracteristici:") - apare des in feedul
+    // Kreul, ca heading deasupra unei liste HTML de pe randul urmator. Lista
+    // e oricum mutata separat in Specificatii (randare de tip 'html' mai
+    // jos), deci eticheta ramane orfana si fara sens dac-o lasam ca proza -
+    // acelasi tratament ca la heading-urile HTML izolate de mai jos
+    // ("<strong>Caracteristici:</strong>" fara lista). Gasit 2026-09-08 la
+    // categoriile Kreul din Arta (91 de produse, 229 de aparitii ale acestui
+    // tipar). Decizie user: eticheta se elimina, nu se afiseaza goala.
+    if (preg_match('/^[\p{L}][\p{L}\s\/\-]{1,60}:\s*$/u', $line)) {
+        return 'empty-label';
+    }
+
     // O pereche "Eticheta: valoare" pe rand simplu (fara "-"/<li>) e tot o
     // lista, cu un singur element - extract_description_attributes() din
     // aperta-sync.php o prinde si o promoveaza in Specificatii (acelasi
@@ -152,6 +165,11 @@ function papetarie_storefront_render_description_run(array $run): string
         case 'bullet':
             // Fara exceptie, orice bullet se muta in Specificatii - vezi
             // comentariul de la inceputul fisierului.
+            return '';
+
+        case 'empty-label':
+            // Eticheta fara valoare - vezi comentariul din
+            // classify_description_line().
             return '';
 
         case 'prose':

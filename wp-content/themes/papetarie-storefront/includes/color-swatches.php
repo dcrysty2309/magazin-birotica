@@ -253,18 +253,55 @@ function papetarie_storefront_color_swatch_dropdown_html(string $html, array $ar
         return $html;
     }
 
+    $options = array_values($options);
+
+    // Harta optiune => in stoc (macar o varianta cu acea valoare e instock) -
+    // o optiune fara nicio varianta gasita ramane implicit "in stoc" (nu
+    // ascundem/dezactivam ceva ce nu putem verifica sigur). Decizie user
+    // 2026-09-04: culorile epuizate trebuie sa fie nealese implicit, imposibil
+    // de selectat, si mutate la finalul listei, nu la inceput.
+    $inStockByOption = [];
+    if ($product instanceof WC_Product && $product->is_type('variable')) {
+        $attributeKey = sanitize_title($attribute);
+        foreach ($product->get_children() as $childId) {
+            $child = wc_get_product($childId);
+            if (!$child instanceof WC_Product_Variation || $child->get_status() !== 'publish') {
+                continue;
+            }
+            $value = $child->get_attributes()[$attributeKey] ?? null;
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $inStock = $child->get_stock_status() === 'instock';
+            foreach ($options as $opt) {
+                if ($opt === $value) {
+                    $inStockByOption[$opt] = ($inStockByOption[$opt] ?? false) || $inStock;
+                }
+            }
+        }
+    }
+    $isOptionInStock = static fn (string $opt): bool => $inStockByOption[$opt] ?? true;
+
     if ($product instanceof WC_Product) {
         $thumbnailColor = papetarie_storefront_thumbnail_matched_color($product, sanitize_title($attribute));
-        if ($thumbnailColor !== null) {
-            $matchIndex = array_search($thumbnailColor, array_values($options), true);
+        // Nu promovam in fata o culoare epuizata doar pentru ca poza
+        // principala a produsului intampla sa fie a ei - altfel prima
+        // incarcare a paginii ar arata implicit exact varianta care nu se
+        // poate cumpara. Decizie user 2026-09-04.
+        if ($thumbnailColor !== null && $isOptionInStock($thumbnailColor)) {
+            $matchIndex = array_search($thumbnailColor, $options, true);
             if ($matchIndex !== false && $matchIndex !== 0) {
-                $options = array_values($options);
                 unset($options[$matchIndex]);
                 array_unshift($options, $thumbnailColor);
                 $options = array_values($options);
             }
         }
     }
+
+    // Reordonare finala: pastreaza ordinea relativa in interiorul fiecarui
+    // grup (usort e stabil din PHP 8), doar muta tot ce e epuizat la finalul
+    // listei - "pune-l ultimul, nu primul" (user 2026-09-04).
+    usort($options, static fn (string $a, string $b): int => (int) !$isOptionInStock($a) <=> (int) !$isOptionInStock($b));
 
     $selectName = $args['name'] ? (string) $args['name'] : 'attribute_' . sanitize_title($attribute);
     $selected = (string) ($args['selected'] ?? '');
@@ -293,15 +330,17 @@ function papetarie_storefront_color_swatch_dropdown_html(string $html, array $ar
             $isSelected = $selected !== '' && ($selected === $option || $selected === sanitize_title($option));
             $hex = papetarie_storefront_color_name_to_hex($option);
             $isExtra = $index >= $visibleLimit;
+            $isOos = !$isOptionInStock($option);
         ?>
             <button
                 type="button"
-                class="pap-color-swatch<?php echo $isSelected ? ' is-selected' : ''; ?><?php echo $isExtra ? ' pap-color-swatch--extra' : ''; ?>"
+                class="pap-color-swatch<?php echo $isSelected ? ' is-selected' : ''; ?><?php echo $isExtra ? ' pap-color-swatch--extra' : ''; ?><?php echo $isOos ? ' pap-color-swatch--oos' : ''; ?>"
                 data-value="<?php echo esc_attr($option); ?>"
                 style="--pap-swatch-color: <?php echo esc_attr($hex); ?>;"
-                title="<?php echo esc_attr($option); ?>"
-                aria-label="<?php echo esc_attr($option); ?>"
+                title="<?php echo esc_attr($isOos ? $option . ' — ' . __('stoc epuizat', 'papetarie-storefront') : $option); ?>"
+                aria-label="<?php echo esc_attr($isOos ? $option . ' — ' . __('stoc epuizat', 'papetarie-storefront') : $option); ?>"
                 aria-pressed="<?php echo $isSelected ? 'true' : 'false'; ?>"
+                <?php if ($isOos) : ?>aria-disabled="true" data-oos-label="<?php echo esc_attr(__('Stoc epuizat', 'papetarie-storefront')); ?>"<?php endif; ?>
             ></button>
         <?php endforeach; ?>
         <?php if ($extraCount > 0) : ?>
@@ -340,7 +379,7 @@ function papetarie_storefront_enqueue_color_swatch_script(): void
             }
 
             var swatch = event.target.closest('.pap-color-swatch');
-            if (!swatch) {
+            if (!swatch || swatch.classList.contains('pap-color-swatch--oos')) {
                 return;
             }
 

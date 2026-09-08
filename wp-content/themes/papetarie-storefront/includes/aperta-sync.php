@@ -14,8 +14,19 @@ const PAP_APERTA_STOCK_FEED_URL = 'https://www.aperta.ro/feed-stoc.csv';
 // 2026-07-28) - verificate pe segmentul 0 al coloanei "Categorie produs" din
 // feed, nu pe taxonomia noastra rezolvata (Molotow nu are propria categorie
 // de top pe site, se mapeaza in subcategorii sub "Arta" - vezi
-// papetarie_storefront_aperta_top_level_map()).
-const PAP_APERTA_EXCLUDED_TOP_LEVEL_CATEGORIES = ['Molotow', 'Universul copiilor'];
+// papetarie_storefront_aperta_top_level_map()). "Curatenie si sanitare"
+// adaugata 2026-09-02 (decizie user) - categorie de risc legal, produsele
+// chimice de curatenie/dezinfectie pot necesita autorizatii/notificari
+// suplimentare pe care afacerea nu le are; cele 201 produse deja importate
+// au fost mutate manual la cosul de gunoi in aceeasi sesiune.
+const PAP_APERTA_EXCLUDED_TOP_LEVEL_CATEGORIES = ['Molotow', 'Universul copiilor', 'Curățenie și sanitare'];
+// Sub-categorii excluse (nu sunt segmentul 0, deci nu pot fi prinse de lista
+// de mai sus) - verificate dupa slug (sanitize_title), pe orice segment al
+// caii brute din feed, nu doar ultimul. "intretinere-si-curatenie" adaugata
+// 2026-09-02 (decizie user, acelasi motiv ca mai sus - spray-uri/solutii
+// chimice de curatare electronice); cele 13 produse deja importate au fost
+// mutate manual la cosul de gunoi in aceeasi sesiune.
+const PAP_APERTA_EXCLUDED_SUBCATEGORY_SLUGS = ['intretinere-si-curatenie'];
 const PAP_APERTA_CHUNK_SIZE = 25;
 // Produsele nu mai sunt impartite pe un numar fix per bucata (vezi
 // PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET mai jos) - un numar fix de 10 insemna
@@ -459,6 +470,350 @@ function papetarie_storefront_aperta_discount_percent(string $group): float
     return $map[$group] ?? 0.0;
 }
 
+/**
+ * Calculeaza pretul de vanzare dintr-un rand din feed, cu garda de
+ * siguranta: NU intoarce niciodata 0, negativ sau NaN. Un rand cu
+ * "Pret produs" gol/nenumeric (celula lipsa in CSV, eroare de export la
+ * Aperta etc.) ar fi produs altfel un pret de 0 lei scris direct pe site -
+ * (float) pe un string gol/invalid da 0.0 in PHP, fara nicio eroare. Decizie
+ * user 2026-09-04: niciodata nu trebuie sa fie posibil sa apara pe site un
+ * produs cu pret 0, negativ, sau sub costul real de achizitie.
+ *
+ * @return float|null null daca randul nu ofera un pret valid - apelantul
+ *                     trebuie sa NU scrie pretul (pastreaza pretul vechi
+ *                     daca produsul exista deja, sau il lasa nesetat daca e
+ *                     nou) si sa raporteze un avertisment.
+ */
+function papetarie_storefront_aperta_safe_price(string $rawPretProdus, float $discountPercent): ?float
+{
+    $normalized = trim(str_replace(',', '.', $rawPretProdus));
+    // is_numeric() accepta si notatie stiintifica ("1e10") si hex ("0x1A" pe
+    // PHP vechi) - un rand corupt in acel format ar trece testul de mai jos
+    // si ar produce un pret absurd (ex. 8 miliarde de lei), nu 0/negativ, dar
+    // tot un pret care n-are ce cauta pe site (gasit prin testare directa
+    // 2026-09-04). Acceptam doar forma normala de pret: cifre, punct zecimal
+    // optional, semn minus optional la inceput (respins mai jos oricum de
+    // verificarea <= 0).
+    if ($normalized === '' || !preg_match('/^-?\d+(\.\d+)?$/', $normalized)) {
+        return null;
+    }
+
+    $base = (float) $normalized;
+    if ($base <= 0) {
+        return null;
+    }
+
+    // Plasa de siguranta suplimentara: niciun produs real de birotica/papetarie
+    // nu costa peste acest prag - un pret care il depaseste e aproape sigur o
+    // eroare de date (virgula zecimala lipsa, cifra in plus etc.), nu un pret
+    // real. Prag generos, cu marja, ca sa nu blocheze din greseala un produs
+    // scump dar real (cel mai scump produs vazut in studiul de pricing a fost
+    // ~1.500 lei, un distrugator de documente).
+    if ($base > 50000) {
+        return null;
+    }
+
+    $price = round($base * (1 - $discountPercent / 100), 2);
+    if ($price <= 0) {
+        return null;
+    }
+
+    return $price;
+}
+
+/**
+ * Inregistreaza un avertisment de pret invalid din feed, intr-o lista
+ * capata (acelasi tipar ca pap_aperta_pending_variation_migrations), ca sa
+ * poata fi verificata oricand, nu doar in log-ul unei singure rulari.
+ */
+function papetarie_storefront_aperta_record_price_warning(string $sku, string $name, string $rawValue, string $context): void
+{
+    $warnings = get_option('pap_aperta_price_warnings', []);
+    if (!is_array($warnings)) {
+        $warnings = [];
+    }
+
+    $warnings[] = [
+        'sku' => $sku,
+        'name' => $name,
+        'raw_value' => $rawValue,
+        'context' => $context,
+        'found_at' => current_time('mysql'),
+    ];
+
+    $keep = 200;
+    if (count($warnings) > $keep) {
+        $warnings = array_slice($warnings, -$keep);
+    }
+
+    update_option('pap_aperta_price_warnings', $warnings, false);
+}
+
+/**
+ * Retine produsele nou-create de sincronizare azi (intra ca ciorna, vezi
+ * mai sus), ca sa poata fi mentionate in digest-ul zilnic - inainte nu
+ * exista nicio notificare pentru "produs nou" (user 2026-09-04: "nu am
+ * vazut niciodata un email cu produsul acesta este nou").
+ */
+function papetarie_storefront_aperta_record_new_product(int $productId, string $name): void
+{
+    $newToday = get_option('pap_new_products_today', []);
+    if (!is_array($newToday)) {
+        $newToday = [];
+    }
+
+    $newToday[$productId] = ['name' => $name, 'found_at' => current_time('mysql')];
+
+    update_option('pap_new_products_today', $newToday, false);
+}
+
+/**
+ * Produse/variatii PUBLICATE si INCA COMANDABILE (in stoc sau on-backorder)
+ * pe site, al caror SKU nu mai apare deloc in feedul curent Aperta - adica
+ * probabil Aperta nu le mai are in oferta, dar la noi tot pot fi comandate.
+ * Risc de business direct: un client comanda, noi n-avem de unde sa il
+ * aprovizionam (decizie user 2026-09-04, "asta e foarte important").
+ *
+ * Sincronizarea normala nu poate detecta singura acest caz - merge "dinspre
+ * feed spre site" (parcurge doar randurile primite de la Aperta), deci un
+ * SKU disparut complet din feed nu mai e vizitat niciodata. Verificarea de
+ * aici merge invers: dinspre catalogul nostru spre feed.
+ *
+ * @return array<int, array{post_id:int, sku:string, name:string, type:string, stock:?int, price:?string}>
+ */
+function papetarie_storefront_aperta_products_missing_from_feed_but_orderable(): array
+{
+    $feedPath = papetarie_storefront_aperta_feed_path('feed');
+    if (!file_exists($feedPath)) {
+        return [];
+    }
+
+    $fh = fopen($feedPath, 'r');
+    if ($fh === false) {
+        return [];
+    }
+    $header = fgetcsv($fh, 0, ',', '"', '\\');
+    if ($header === false) {
+        fclose($fh);
+        return [];
+    }
+    $colIndex = array_flip($header);
+    if (!isset($colIndex['Cod unic'])) {
+        fclose($fh);
+        return [];
+    }
+
+    $feedSkus = [];
+    while (($row = fgetcsv($fh, 0, ',', '"', '\\')) !== false) {
+        $sku = trim((string) ($row[$colIndex['Cod unic']] ?? ''));
+        if ($sku !== '') {
+            $feedSkus[$sku] = true;
+        }
+    }
+    fclose($fh);
+
+    global $wpdb;
+    $rows = $wpdb->get_results("
+        SELECT p.ID, p.post_type,
+               MAX(CASE WHEN pm.meta_key = '_sku' THEN pm.meta_value END) AS sku,
+               MAX(CASE WHEN pm.meta_key = '_stock_status' THEN pm.meta_value END) AS stock_status,
+               MAX(CASE WHEN pm.meta_key = '_stock' THEN pm.meta_value END) AS stock,
+               MAX(CASE WHEN pm.meta_key = '_regular_price' THEN pm.meta_value END) AS regular_price
+        FROM {$wpdb->posts} p
+        JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID
+        WHERE p.post_type IN ('product', 'product_variation')
+          AND p.post_status IN ('publish', 'private')
+          AND pm.meta_key IN ('_sku', '_stock_status', '_stock', '_regular_price')
+        GROUP BY p.ID
+    ");
+
+    $atRisk = [];
+    foreach ($rows as $r) {
+        $sku = trim((string) $r->sku);
+        if ($sku === '' || isset($feedSkus[$sku])) {
+            continue;
+        }
+        // Doar cele chiar comandabile - "outofstock" deja e blocat la
+        // adaugare in cos, nu reprezinta risc real.
+        if (!in_array($r->stock_status, ['instock', 'onbackorder'], true)) {
+            continue;
+        }
+
+        $atRisk[] = [
+            'post_id' => (int) $r->ID,
+            'post_type' => $r->post_type,
+            'sku' => $sku,
+            'name' => get_the_title($r->ID),
+            'type' => $r->post_type === 'product_variation' ? 'variantă' : 'produs',
+            'stock' => $r->stock !== null && $r->stock !== '' ? (int) $r->stock : null,
+            'price' => $r->regular_price !== '' ? $r->regular_price : null,
+        ];
+    }
+
+    return $atRisk;
+}
+
+/**
+ * Muta automat in ciorna orice produs/varianta INCA comandabil(a) al carui
+ * SKU a disparut din feedul curent Aperta - decizie user 2026-09-04: nu
+ * doar raportare (vezi papetarie_storefront_aperta_products_missing_from_feed_but_orderable()
+ * mai sus), ci inchiderea efectiva a posibilitatii de comanda, automat,
+ * fara sa astepte verificarea manuala. Lasa o nota vizibila pe fiecare
+ * produs atins (comentariu WP standard, vizibil in Comentarii din admin) si
+ * retine lista intr-o optiune capata, citita si golita de digest-ul de la
+ * 18:00 (vezi papetarie_storefront_aperta_send_restock_digest_cb()).
+ *
+ * De ce "draft" si nu doar "stoc epuizat": la o VARIANTA, WooCommerce
+ * verifica si post_status in variation_is_visible() - o varianta cu status
+ * 'draft' dispare complet din selectorul de pe pagina de produs, nu doar
+ * apare "indisponibila". La un produs simplu/parinte, e acelasi
+ * comportament ca la orice alt produs pus manual pe ciorna.
+ *
+ * @return array<int, array{post_id:int, sku:string, name:string, type:string}>
+ */
+function papetarie_storefront_aperta_auto_draft_vanished_products(): array
+{
+    $candidates = papetarie_storefront_aperta_products_missing_from_feed_but_orderable();
+    if (empty($candidates)) {
+        return [];
+    }
+
+    $drafted = [];
+    $autoDraftedToday = get_option('pap_auto_drafted_today', []);
+    if (!is_array($autoDraftedToday)) {
+        $autoDraftedToday = [];
+    }
+
+    foreach ($candidates as $item) {
+        $product = wc_get_product($item['post_id']);
+        if (!($product instanceof WC_Product)) {
+            continue;
+        }
+
+        $product->set_stock_quantity(0);
+        $product->set_stock_status('outofstock');
+        $product->save();
+
+        wp_update_post(['ID' => $item['post_id'], 'post_status' => 'draft']);
+
+        $note = sprintf(
+            'Mutat automat în ciornă de sincronizarea Aperta pe %s: SKU %s nu mai apare deloc în feedul curent Aperta (probabil produsul a fost scos din oferta lor). Verifică manual dacă mai există la Aperta înainte să-l republici.',
+            date('d.m.Y H:i'),
+            $item['sku']
+        );
+        papetarie_storefront_aperta_note_product($item['post_id'], $note);
+        // Comentariul WP e o urma persistenta, dar WooCommerce redenumeste
+        // cutia de comentarii in "Reviews" pe ecranul de editare produs -
+        // usor de ratat, se amesteca vizual cu recenzii reale de clienti
+        // (gasit prin intrebarea directa a user-ului 2026-09-04, dupa un
+        // test real). Metadata de mai jos alimenteaza un banner vizibil sus
+        // pe pagina - vezi papetarie_storefront_aperta_vanished_notice().
+        update_post_meta($item['post_id'], '_pap_aperta_vanished_note', $note);
+
+        $entry = [
+            'post_id' => $item['post_id'],
+            'sku' => $item['sku'],
+            'name' => $item['name'],
+            'type' => $item['type'],
+        ];
+        $drafted[] = $entry;
+        $autoDraftedToday[$item['post_id']] = $entry;
+    }
+
+    update_option('pap_auto_drafted_today', $autoDraftedToday, false);
+
+    return $drafted;
+}
+
+/**
+ * Adauga un comentariu WP standard (vizibil in Comentarii din admin,
+ * filtrat pe acel produs) - urma persistenta, nu doar emailul de moment.
+ */
+function papetarie_storefront_aperta_note_product(int $postId, string $note): void
+{
+    wp_insert_comment([
+        'comment_post_ID' => $postId,
+        'comment_content' => $note,
+        'comment_author' => 'Sincronizare Aperta',
+        'comment_author_email' => '',
+        'comment_type' => '',
+        'comment_approved' => 1,
+        'user_id' => 0,
+    ]);
+}
+
+/**
+ * Banner vizibil, sus pe ecranul de editare produs, cu motivul mutarii
+ * automate in ciorna (vezi meta '_pap_aperta_vanished_note' mai sus) - nu
+ * doar comentariul din cutia "Reviews", usor de ratat.
+ */
+function papetarie_storefront_aperta_vanished_notice(): void
+{
+    global $pagenow, $post;
+
+    if ($pagenow !== 'post.php' || !($post instanceof WP_Post) || $post->post_type !== 'product') {
+        return;
+    }
+
+    $note = get_post_meta($post->ID, '_pap_aperta_vanished_note', true);
+    if ($note === '') {
+        return;
+    }
+
+    echo '<div class="notice notice-warning"><p><strong>De ce e acest produs în ciornă:</strong> '
+        . esc_html($note)
+        . '</p></div>';
+}
+add_action('admin_notices', 'papetarie_storefront_aperta_vanished_notice');
+
+/**
+ * Curata meta banner-ului de mai sus cand un admin republica manual
+ * produsul - altfel avertismentul ar ramane afisat la nesfarsit, chiar si
+ * dupa ce problema a fost rezolvata.
+ */
+function papetarie_storefront_aperta_clear_vanished_notice(int $postId): void
+{
+    if (get_post_meta($postId, '_pap_aperta_vanished_note', true) !== '') {
+        delete_post_meta($postId, '_pap_aperta_vanished_note');
+    }
+}
+add_action('publish_product', 'papetarie_storefront_aperta_clear_vanished_notice');
+
+/**
+ * Callback pentru cron-ul de la 01:30 - ruleaza auto-draft-ul si trimite
+ * imediat un email (nu asteapta digest-ul de la 18:00), cu formularea
+ * ceruta de user: "am mutat in draft acest produs pentru ca nu mai apare
+ * in feedul de la Aperta".
+ */
+function papetarie_storefront_aperta_auto_draft_vanished_cb(): void
+{
+    $drafted = papetarie_storefront_aperta_auto_draft_vanished_products();
+    if (empty($drafted)) {
+        return;
+    }
+
+    $lines = [];
+    foreach ($drafted as $item) {
+        $lines[] = sprintf(
+            "- [%s] %s (SKU %s)\n  Am mutat în draft acest produs pentru că nu mai apare în feedul de la Aperta.\n  %s",
+            $item['type'],
+            $item['name'],
+            $item['sku'],
+            admin_url('post.php?post=' . $item['post_id'] . '&action=edit')
+        );
+    }
+
+    $to = ['d.crysty23@gmail.com', 'laviniamuntean40@gmail.com'];
+    $subject = sprintf('[Notix] %d produse mutate automat în ciornă (dispărute din feedul Aperta)', count($drafted));
+    $body = "Sincronizarea a găsit produse/variante încă în stoc pe site, al căror SKU nu mai apare deloc în feedul curent Aperta.\n"
+        . "Au fost mutate automat în ciornă (nu mai pot fi comandate) și marcate cu o notă pe fiecare produs.\n\n"
+        . implode("\n\n", $lines)
+        . "\n\nVerifică manual fiecare - dacă produsul chiar mai există la Aperta, poți să-l republici.";
+
+    wp_mail($to, $subject, $body);
+}
+add_action('pap_aperta_auto_draft_vanished', 'papetarie_storefront_aperta_auto_draft_vanished_cb');
+
 function papetarie_storefront_aperta_feed_dir(): string
 {
     $upload = wp_upload_dir();
@@ -549,8 +904,22 @@ function papetarie_storefront_aperta_read_products_grouped(): array
         // in special nu are propria categorie de top pe site (se mapeaza in
         // subcategorii sub "Arta"), deci excluderea trebuie facuta aici, pe
         // datele brute din feed, nu pe taxonomia noastra rezolvata.
-        $topLevelCategory = trim((string) explode('>', (string) ($assoc['Categorie produs'] ?? ''))[0]);
-        if (in_array($topLevelCategory, PAP_APERTA_EXCLUDED_TOP_LEVEL_CATEGORIES, true)) {
+        $categorySegments = array_map('trim', explode('>', (string) ($assoc['Categorie produs'] ?? '')));
+        if (in_array($categorySegments[0] ?? '', PAP_APERTA_EXCLUDED_TOP_LEVEL_CATEGORIES, true)) {
+            continue;
+        }
+
+        // Sub-categorii excluse (nu sunt segmentul 0) - verificam slug-ul
+        // fiecarui segment, nu doar continutul brut, ca sa nu ratam din
+        // cauza vreunei diferente de diacritice fata de numele site-ului.
+        $isExcludedSubcategory = false;
+        foreach ($categorySegments as $segment) {
+            if (in_array(sanitize_title($segment), PAP_APERTA_EXCLUDED_SUBCATEGORY_SLUGS, true)) {
+                $isExcludedSubcategory = true;
+                break;
+            }
+        }
+        if ($isExcludedSubcategory) {
             continue;
         }
 
@@ -997,6 +1366,42 @@ function papetarie_storefront_aperta_log_unmatched_category(string $feedCategory
     update_option('pap_aperta_unmatched_categories', $log, false);
 }
 
+/**
+ * Cand Aperta trimite "Brand produs" gol dar denumirea produsului contine
+ * clar un brand cunoscut (ex. "Pix Schneider K1", "Pix ICO Metal" - gasit
+ * 2026-09-06 la 4 produse din Pixuri cu pasta, verificat direct in feed ca
+ * Aperta chiar trimite campul gol pentru ele, desi la alte produse Schneider/
+ * ICO il completeaza corect), incercam sa ghicim brandul din nume - dar DOAR
+ * dintre brandurile deja existente in taxonomia noastra (product_brand), ca
+ * sa nu inventam brand-uri noi dintr-un cuvant oarecare din titlu. Potrivire
+ * pe granita de cuvant (nu substring brut), altfel un brand scurt gen "M" ar
+ * "gasi" potriviri false peste tot. Decizie user 2026-09-06.
+ */
+function papetarie_storefront_aperta_guess_brand_from_name(string $name): string
+{
+    static $knownBrands = null;
+
+    if ($knownBrands === null) {
+        $knownBrands = [];
+        foreach (get_terms(['taxonomy' => 'product_brand', 'hide_empty' => false]) as $term) {
+            if ($term instanceof WP_Term && mb_strlen($term->name) >= 3) {
+                $knownBrands[] = $term->name;
+            }
+        }
+        // brandurile mai lungi primele, ca "Erich Krause" sa fie gasit
+        // inaintea unui eventual brand mai scurt continut in el.
+        usort($knownBrands, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
+    }
+
+    foreach ($knownBrands as $brand) {
+        if (preg_match('/\b' . preg_quote($brand, '/') . '\b/iu', $name) === 1) {
+            return $brand;
+        }
+    }
+
+    return '';
+}
+
 function papetarie_storefront_aperta_resolve_brand(string $brandName): int
 {
     $brandName = trim($brandName);
@@ -1408,6 +1813,187 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
         return 'Matematică';
     }
 
+    // "Franceză" si "Tip francez" sunt aceeasi liniatura, scrisa diferit intre
+    // descriere si titlu - unificate sub "Tip francez" (mai frecventa, 11 vs 2
+    // produse la data verificarii). Decizie user 2026-09-05.
+    if ($group === 'Liniatură' && mb_stripos($value, 'francez') !== false) {
+        return 'Tip francez';
+    }
+
+    // "Vowen" e o greseala de scriere chiar din feedul Aperta ("Logo: vowen"
+    // la gama Pulse Anatomic Cube) - probabil voiau "Woven" (tesut). Unificat
+    // cu valoarea corecta deja existenta "Țesătură". Decizie user 2026-09-05.
+    if ($group === 'Logo' && mb_strtolower(trim($value)) === 'vowen') {
+        return 'Țesătură';
+    }
+
+    // "Golden" si "Gold" sunt aceeasi culoare (auriu), scrisa diferit -
+    // unificate sub "Gold" (deja folosita de 8 produse in alte categorii, ex.
+    // vopsele acrilice), la penarul din piele Cuirise care era singurul cu
+    // "Golden". Decizie user 2026-09-05.
+    if ($group === 'Culoare' && mb_strtolower(trim($value)) === 'golden') {
+        return 'Gold';
+    }
+
+    // "Albă"/"Neagră" (forma de feminin) sunt aceeasi culoare ca "Alb"/"Negru"
+    // (forma de masculin, majoritara covarsitor - 114 si 454 produse) - apar
+    // ocazional cand descrierea Aperta foloseste un substantiv feminin (ex.
+    // "folie albă" in loc de "folie alb"). Verificat 2026-09-08 pe tot site-ul
+    // ca nu mai exista alte perechi de genul asta (Roșie/Galbenă/Portocalie
+    // etc. nu apar deloc separat). Decizie user.
+    if ($group === 'Culoare' && trim($value) === 'Albă') {
+        return 'Alb';
+    }
+    if ($group === 'Culoare' && trim($value) === 'Neagră') {
+        return 'Negru';
+    }
+
+    // "100 bucăți în cutie de carton" si "100 buc/cutie" sunt acelasi lucru,
+    // scris diferit ("Pioneze color 100/cutie EK" era singurul cu formularea
+    // lunga). Decizie user 2026-09-06.
+    if ($group === 'Detalii' && mb_stripos($value, 'bucăți în cutie de carton') !== false) {
+        return preg_replace('/^(\d+)\s*bucăți în cutie de carton$/iu', '$1 buc/cutie', trim($value));
+    }
+
+    // "Capacitate de capsare" avea 9 valori aproape unice (10, 15, 16, 20,
+    // 25, 30, 50, 70, 100 coli, scrise si "Max."/"Maxim" inconsecvent) pe
+    // doar 18 produse - un filtru unde bifezi o valoare si gasesti 1 singur
+    // produs nu ajuta la alegere. Regrupat in 3 intervale late, ca la "Numar
+    // file" - spre deosebire de Greutate/Dimensiuni, capacitatea de capsare
+    // chiar conteaza la alegere, deci pastram filtrul, doar il facem
+    // folositor. Decizie user 2026-09-06.
+    if ($group === 'Capacitate De Capsare' && preg_match('/(\d+)\s*coli/iu', trim($value), $m)) {
+        $n = (int) $m[1];
+        if ($n <= 20) {
+            return 'Până la 20 coli';
+        }
+        if ($n <= 30) {
+            return '21–30 coli';
+        }
+        return 'Peste 30 coli';
+    }
+
+    // Aceeasi problema, acelasi remediu, la "Adâncime de capsare" (13 valori
+    // aproape unice intre 29-96 mm, unele cu "Max." altele fara). Decizie
+    // user 2026-09-06.
+    if ($group === 'Adâncime De Capsare' && preg_match('/(\d+)\s*mm/iu', trim($value), $m)) {
+        $n = (int) $m[1];
+        if ($n <= 40) {
+            return 'Până la 40 mm';
+        }
+        if ($n <= 60) {
+            return '41–60 mm';
+        }
+        return 'Peste 60 mm';
+    }
+
+    // Grupul generic "Capacitate" e refolosit de MAI MULTE categorii fara
+    // nicio legatura intre ele - "10 coli"/"25 coli"/etc la decapsatoare si
+    // capse (capacitatea capsatorului potrivit), dar si "120 coli" la mape
+    // (Folii si mape de protectie) sau "400 coli" la tavi de documente
+    // (Suporturi pentru birou) - ACELASI text de valoare, produse complet
+    // diferite. O regula pe baza de regex numeric ar fi grupat gresit si
+    // acelea sub etichetele de mai jos, care au sens doar la capse. De-aia
+    // verificam o lista EXACTA de valori (cele 7 confirmate manual ca apartin
+    // categoriei Decapsatoare si capse), nu un tipar general. Gasit si
+    // verificat 2026-09-06 inainte sa aplic vreo schimbare - nu generaliza
+    // fara sa verifici din nou la ce categorie apartine fiecare valoare.
+    $decapsatoareCapacityBuckets = [
+        '10 coli' => 'Până la 25 coli',
+        '25 coli' => 'Până la 25 coli',
+        '40 coli' => '26–50 coli',
+        '50 coli' => '26–50 coli',
+        '70 coli' => 'Peste 50 coli',
+        '100 coli' => 'Peste 50 coli',
+        '130 coli' => 'Peste 50 coli',
+    ];
+    if ($group === 'Capacitate' && isset($decapsatoareCapacityBuckets[trim($value)])) {
+        return $decapsatoareCapacityBuckets[trim($value)];
+    }
+
+    if ($group === 'Capacitate De Perforare' && preg_match('/^(?:Max\.?\s*)?(\d+)\s*coli$/iu', trim($value), $m)) {
+        $n = (int) $m[1];
+        if ($n <= 20) {
+            return 'Până la 20 coli';
+        }
+        if ($n <= 40) {
+            return '21–40 coli';
+        }
+        return 'Peste 40 coli';
+    }
+
+    // "Etichete/A4" (cate etichete incap pe o coala) avea 16 valori aproape
+    // unice pe 21 de produse la "Etichete universale copiator" - un numar
+    // mic inseamna etichete mari, un numar mare inseamna etichete mici, deci
+    // conteaza real la alegere. Grupat in 3 marimi, ca la Capacitate/
+    // Adancime de mai sus. Decizie user 2026-09-08.
+    if ($group === 'Etichete/A4' && preg_match('/^(\d+)$/', trim($value), $m)) {
+        $n = (int) $m[1];
+        if ($n <= 8) {
+            return 'Etichete mari (1-8/coală)';
+        }
+        if ($n <= 24) {
+            return 'Etichete medii (10-24/coală)';
+        }
+        return 'Etichete mici (36-96/coală)';
+    }
+
+    // "Grosime de scriere" de 0,4 mm (varful de mijloc, cel mai comun) era
+    // scrisa in 4 feluri diferite pe tot site-ul (63 de produse: pixuri,
+    // mine, linere, markere) - "0,4 (M)" (fara "mm"), "0,4 mm" (fara "(M)"),
+    // "0,4 mm (M)" (forma completa, majoritara - 39 produse) si "0.4 mm (M)"
+    // (punct in loc de virgula zecimala). Unificate sub forma completa.
+    // Verificat 2026-09-06 ca grupul e folosit STRICT la instrumente de scris
+    // (nicio suprapunere cu alta categorie fara legatura, spre deosebire de
+    // grupul generic "Capacitate"), deci sigur de unificat printr-o regula
+    // generala. Decizie user.
+    if ($group === 'Grosime de scriere' && preg_match('/^0[,.]4\s*(?:mm)?\s*(?:\(M\))?$/iu', trim($value))) {
+        return '0,4 mm (M)';
+    }
+
+    // "Diametrul minei" avea unele valori cu simbolul "Ø" in fata ("Ø 2,9
+    // mm") si altele fara ("3 mm") - aceeasi informatie, scrisa inconsecvent.
+    // Verificat 2026-09-08 ca grupul e folosit STRICT la Creioane color/HB
+    // (nicio suprapunere cu alta categorie), deci sigur de uniformizat.
+    // Decizie user.
+    if ($group === 'Diametrul Minei' && preg_match('/^Ø\s*(.+)$/u', trim($value), $m)) {
+        return trim($m[1]);
+    }
+
+    // La markerele OHP Schneider unitatea "mm" lipsea inconsecvent din
+    // valoare - unele o au ("0,7 mm"), altele nu ("0,3 (S)", "0,5 (F)",
+    // "1-1,5 (M)", "2-3 (B)") desi e aceeasi masuratoare, doar scrisa diferit
+    // - facea filtrul sa para dezordonat. Adaugam "mm" oriunde lipseste,
+    // pastram codul de varf (S/M/F/B) neschimbat. Decizie user 2026-09-07.
+    if ($group === 'Grosime de scriere' && mb_stripos($value, 'mm') === false
+        && preg_match('/^([\d.,]+(?:-[\d.,]+)?)\s*(\([^)]*\))?$/u', trim($value), $m)) {
+        $code = isset($m[2]) ? ' ' . trim($m[2]) : '';
+        return trim($m[1]) . ' mm' . $code;
+    }
+
+    // Multe stilouri/rollere Schneider au anul de editie lipit direct in
+    // fata culorii in descrierea Aperta (ex. "2024 Negru", "2025/2026
+    // Vernil+Roz") desi e acelasi Negru/Vernil ca la restul produselor fara
+    // an - doar sparge aceeasi culoare in mai multe optiuni de filtru.
+    // Eliminam anul, pastram doar culoarea. Decizie user 2026-09-07.
+    if ($group === 'Culoare' && preg_match('/^\d{4}(?:\/\d{4})?\s+(.+)$/u', trim($value), $m)) {
+        return trim($m[1]);
+    }
+
+    // "Alb/Albstru" - litera lipsa in feedul Aperta pentru un calculator de
+    // birou (celelalte combinatii de 2 culori, ex. "Negru/Albastru", sunt
+    // scrise corect). Decizie user 2026-09-06.
+    if ($group === 'Culoare' && trim($value) === 'Alb/Albstru') {
+        return 'Alb/Albastru';
+    }
+
+    // "Baterie + solar" si "Baterie+solar" sunt aceeasi sursa de alimentare,
+    // scrisa cu/fara spatii - unificate sub forma majoritara (17 vs 2
+    // produse). Decizie user 2026-09-06.
+    if ($group === 'Sursă Alimentare' && preg_match('/^baterie\s*\+\s*solar$/iu', trim($value))) {
+        return 'Baterie+solar';
+    }
+
     // "160 g", "160 g/mp", "80g/mp" sunt aceeasi gramaj, doar scrise diferit
     // intre descriere (Aperta) si titlu (extract_text_attributes) - pastram
     // doar numarul + "g", indiferent de sufixul "/mp" sau spatiere.
@@ -1421,6 +2007,39 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
     // fragmenteaza si Ambalare in 2 optiuni pentru acelasi numar.
     if ($group === 'Ambalare' && preg_match('/^(\d+\s*coli\s*\/\s*top)/iu', $value, $m)) {
         return trim($m[1]);
+    }
+
+    // "Numar file" avea pana la 19 valori distincte pe o singura categorie
+    // (Notesuri adezive), majoritatea cu 1-2 produse fiecare - un filtru cu
+    // atatea bife aproape unice nu ajuta clientul sa aleaga. Regrupam in 3
+    // intervale late. Pentru formatul "12 x 100" (pachet de 12 blocuri a
+    // cate 100 file), folosim numarul per bloc (100), nu totalul - clientul
+    // vede oricum numarul exact in titlul produsului, aici conteaza doar
+    // gruparea utila la filtrare. Decizie user 2026-09-04, regula globala.
+    if ($group === 'Număr file') {
+        $n = null;
+        if (preg_match('/^\s*\d+\s*x\s*(\d+)\s*$/i', $value, $m)) {
+            $n = (int) $m[1];
+        } elseif (preg_match('/^\s*(\d+)\s*$/', $value, $m)) {
+            $n = (int) $m[1];
+        }
+        if ($n !== null) {
+            if ($n <= 100) {
+                return 'Până la 100 file';
+            }
+            if ($n <= 400) {
+                return '100–400 file';
+            }
+            return 'Peste 400 file';
+        }
+    }
+
+    // "Dimensiuni: 135" pentru "Foarfecă 13.5 cm zigzag" (SD-000349) - eroare
+    // de scriere chiar in descrierea trimisa de Aperta (lipseste virgula
+    // zecimala), corectata punctual aici ca sa nu fie suprascrisa la
+    // urmatoarea resincronizare. Decizie user 2026-09-04.
+    if ($group === 'Dimensiuni' && trim($value) === '135') {
+        return '13,5 cm';
     }
 
     return $value;
@@ -1535,6 +2154,20 @@ function papetarie_storefront_aperta_build_extra_wc_attributes(array $groupValue
         $value = trim((string) $value);
         if ($group === '' || $value === '') {
             continue;
+        }
+
+        // "Dimensiuni: 135" pentru "Foarfecă 13.5 cm zigzag" (SD-000349) -
+        // aceeasi eroare de scriere din descrierea Aperta ca la
+        // normalize_attr_value(), dar aici corectam tab-ul Specificatii
+        // (atribut local WooCommerce, nu taxonomia de filtrare) - altfel
+        // orice corectie manuala e suprascrisa la urmatoarea resincronizare.
+        // Nu refolosim normalize_attr_value() intreaga aici pentru ca are si
+        // reguli cu scop opus (ex. "Numar file" transforma "80" in intervalul
+        // "Pana la 100 file" - potrivit pentru un filtru, dar gresit/vag pe
+        // tab-ul de Specificatii, unde vrem valoarea exacta). Decizie user
+        // 2026-09-04.
+        if ($group === 'Dimensiuni' && $value === '135') {
+            $value = '13,5 cm';
         }
 
         $attribute = new WC_Product_Attribute();
@@ -1865,7 +2498,17 @@ function papetarie_storefront_aperta_extract_text_attributes(string $name, strin
         $attrs['Număr straturi'] = $m[1] . ' straturi';
     }
 
-    if (preg_match('/\b(\d{1,2})\s*\+/', $name, $m)) {
+    // Tiparul "numar+" din denumire NU inseamna mereu varsta - apare si la
+    // specificatii tehnice ("8+8 digits" la un aparat de preturi, "3.0 + QC
+    // 3.0" la un incarcator, "15 + capse" la un capsator cu set, "12 + 3
+    // culori" la un set de creioane) - gasite 9 produse gresit etichetate cu
+    // varsta din cauza asta (2026-09-08), inclusiv 2 produse de colorat
+    // pentru copii mici etichetate absurd "18+ ani". Toate cele 15 etichete
+    // CORECTE de varsta au cuvantul "Baby" in denumire (conventia reala
+    // Aperta pt produse pentru bebelusi/copii mici, ex. "Carioca Baby 1+") -
+    // cerem explicit acest cuvant inainte sa presupunem ca e varsta. Decizie
+    // user.
+    if (mb_stripos($name, 'baby') !== false && preg_match('/\b(\d{1,2})\s*\+/', $name, $m)) {
         $attrs['Vârstă'] = $m[1] . '+ ani';
     }
 
@@ -1919,6 +2562,21 @@ function papetarie_storefront_aperta_extract_description_attributes(string $desc
         if ($line === '' || !str_contains($line, ':')) {
             continue;
         }
+
+        // "Ghiozdan Pulse Saturn Black" (SD-018788) are doua perechi
+        // eticheta:valoare pe ACELASI rand in descrierea Aperta
+        // ("Fermoare: SBS, Logo: metal"), format neobisnuit fata de restul
+        // feed-ului (o pereche pe rand) - regula generala de mai jos ar fi
+        // citit gresit tot ce e dupa primul ":" ca fiind valoarea lui
+        // "Fermoare", pierzand complet "Logo: metal". Separate punctual aici,
+        // fara sa schimbam regula generala (risc de fals-pozitive pe alte
+        // produse). Decizie user 2026-09-05.
+        if (preg_match('/^Fermoare:\s*SBS,\s*Logo:\s*metal$/iu', $line)) {
+            papetarie_storefront_aperta_collect_desc_attr($attrs, 'Fermoare', 'SBS', $maxValueLength);
+            papetarie_storefront_aperta_collect_desc_attr($attrs, 'Logo', 'metal', $maxValueLength);
+            continue;
+        }
+
         if (preg_match('/^([\p{L}][\p{L}\s\/\-]{1,39}):\s*(\S.*)$/u', $line, $m)) {
             papetarie_storefront_aperta_collect_desc_attr($attrs, $m[1], $m[2], $maxValueLength);
         }
@@ -1952,6 +2610,22 @@ function papetarie_storefront_aperta_collect_desc_attr(array &$attrs, string $ra
     // get_or_create_attr_term() - acolo trec si variantele produselor
     // variabile (text brut din feed), nu doar cele extrase aici.
     $group = mb_convert_case($rawGroup, MB_CASE_TITLE, 'UTF-8');
+
+    // Aperta foloseste 2 etichete diferite pentru acelasi lucru la
+    // perforatoare ("Capacitate de perforare" vs "Capacitate maxima de
+    // perforare") - fara asta ajungeau 2 grupuri de filtru separate pentru
+    // aceeasi informatie. Decizie user 2026-09-06.
+    if ($group === 'Capacitate Maximă De Perforare') {
+        $group = 'Capacitate De Perforare';
+    }
+
+    // Aceeasi informatie (cat scrie o mina/rezerva pana se termina) apare sub
+    // 2 nume la "Mine pentru pixuri" - "Lungime Scriere" (9 produse) si
+    // "Lungime De Scriere" (1 produs). Unificate sub forma corecta
+    // gramatical. Decizie user 2026-09-07.
+    if ($group === 'Lungime Scriere') {
+        $group = 'Lungime De Scriere';
+    }
 
     $attrs[$group] = $value;
 }
@@ -2067,7 +2741,7 @@ function papetarie_storefront_aperta_product_needs_work(array $rows): bool
 function papetarie_storefront_aperta_upsert_product(array $rows): array
 {
     if (empty($rows)) {
-        return ['product_id' => 0, 'is_new' => false, 'is_variable' => false, 'old_price' => null, 'new_price' => null, 'was_trashed' => false];
+        return ['product_id' => 0, 'is_new' => false, 'is_variable' => false, 'old_price' => null, 'new_price' => null, 'was_trashed' => false, 'price_warning' => null];
     }
 
     $first = $rows[0];
@@ -2077,6 +2751,83 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     $brandName = (string) $first['Brand produs'];
     $discountGroup = (string) $first['Discount'];
     $discountPercent = papetarie_storefront_aperta_discount_percent($discountGroup);
+
+    // Denumirea Aperta pentru "Copertă caiet A5 margine color" (Cod produs
+    // 2660) nu spune ca e un pachet de 50 de bucati - pretul de 35,35 lei
+    // parea gresit langa celelalte coperti de 0,54-2,12 lei/bucata. Adaugat
+    // punctual sufixul, ca clientul sa inteleaga pretul dintr-o privire, fara
+    // sa deschida tab-ul de Specificatii. Decizie user 2026-09-05.
+    if (trim((string) $first['Cod produs']) === '2660') {
+        $name .= ' (set 50 buc.)';
+    }
+
+    // 6 produse "Benzi de cauciuc" au ramas cu "Forster" in denumirea trimisa
+    // de Aperta, desi campul lor de brand a fost actualizat la producatorul
+    // real, Scriva (probabil furnizorul s-a schimbat si Aperta nu a
+    // actualizat si titlul) - confuz pentru client, care vede "Forster" in
+    // titlu dar "Scriva" la brand. Corectat punctual, pe codurile de produs
+    // confirmate cu aceasta problema. Decizie user 2026-09-08.
+    $forsterToScrivaCodes = ['2577', '2581', '2580', '2579', '2578', '5931'];
+    if (in_array(trim((string) $first['Cod produs']), $forsterToScrivaCodes, true)) {
+        $name = str_ireplace('Forster', 'Scriva', $name);
+    }
+
+    // Denumirile Aperta pentru gama Kreul (categoriile Fun, Craft, Sticla si
+    // portelan din Arta) erau in mare parte netraduse din germana/engleza
+    // ("KREUL Glass & Porcelain Pen...", "KREUL Tattoo Pen..."), spre
+    // deosebire de tot restul catalogului care e in romana. Traduse punctual,
+    // pe cele 29 de coduri de produs confirmate cu aceasta problema (numele
+    // de gama ale brandului, ex. "Happy Effects", "PaperLove", "Golden
+    // Elegance", raman nemodificate, la fel ca "Slider"/"Faber-Castell" in
+    // alte categorii). Decizie user 2026-09-08.
+    $kreulTranslations = [
+        'SKP172' => 'Marker tatuaje temporare Kreul Tribal, set 4 buc.',
+        'SKP245' => 'Marker tatuaje temporare Kreul',
+        'SKP173' => 'Marker tatuaje temporare Kreul (ancoră, stele, fluture), set 4 buc.',
+        'SKP263' => 'Lac lucios pentru transfer foto Kreul Potch 50 ml',
+        'SKP262' => 'Lac satinat pentru transfer foto pe lumânări Kreul Potch 50 ml',
+        'SKP261' => 'Adeziv pentru transfer foto Kreul Potch 150 ml',
+        'SKP168' => 'Set Kreul Happy Effects, 6 buc.',
+        'SKP175' => 'Marker grund Kreul pentru foiță metalică',
+        'SKP174' => 'Set aurire cu foiță metalică Kreul Golden Elegance',
+        'SKP166' => 'Set markere pentru lumânări Kreul Glamour Lighting, 4 buc.',
+        'SKP169' => 'Set Kreul PaperLove',
+        'SKP162' => 'Set markere lucioase Kreul, vârf mediu, 4 buc.',
+        'SKP125' => 'Vopsea acrilică Kreul care luminează în întuneric 150 ml',
+        'SKR258' => 'Marker sticlă și porțelan Kreul Glitter, vârf mediu, 5/set',
+        'SKP260' => 'Marker sticlă și porțelan Kreul transparent, vârf fin',
+        'SKP254' => 'Marker-pensulă sticlă și porțelan Kreul',
+        'SKP251' => 'Marker sticlă și porțelan Kreul metalizat, vârf mediu, 5/set',
+        'SKP256' => 'Marker sticlă și porțelan Kreul transparent, vârf mediu',
+        'SKP255' => 'Marker sticlă și porțelan Kreul Glitter, vârf mediu',
+        'SKP253' => 'Marker sticlă și porțelan Kreul Classic, vârf caligrafic',
+        'SKP252' => 'Marker sticlă și porțelan Kreul Classic, vârf fin',
+        'SKP250' => 'Marker sticlă și porțelan Kreul metalizat, vârf fin',
+        'SKP249' => 'Marker sticlă și porțelan Kreul metalizat, vârf mediu',
+        'SKP248' => 'Marker sticlă și porțelan Kreul Classic, vârf mediu',
+        'SKP247' => 'Marker porțelan Kreul, vârf mediu',
+        'PMK077' => 'Set markere porțelan Kreul pentru copii „Colorează-ți cana", vârf mediu',
+        'SKP159' => 'Marker sticlă și porțelan Kreul transparent, 5/set',
+        'SKP069' => 'Vopsea sticlă și porțelan Kreul Classic Color Living, 6 culori x 20 ml',
+        'SKP068' => 'Vopsea sticlă și porțelan Kreul Chalky, 6 culori x 20 ml',
+        // Continuare traduceri Kreul, gasite la auditul "Acrilice si culori
+        // ulei" / "Mucki" (2026-09-08) - acelasi motiv ca mai sus.
+        'SKP269' => 'Vopsea acrilică Solo Goya Fluorescentă 100 ml',
+        'SKP151' => 'Set Solo Goya premixat Pouring 6 x 80 ml',
+        'SKP078' => 'Vopsea Mucki pentru copii, care luminează în întuneric, 150 ml',
+        'SKP077' => 'Vopsea Mucki sclipitoare, 4/set',
+        'SKP076' => 'Vopsea decorativă Mucki 80 ml 6/set',
+        'SKP081' => 'Vopsea textilă pentru pictat cu degetele Mucki 150 ml 4/set',
+        'SKP075' => 'Vopsea pentru pictat cu degetele Mucki, efect sclipitor, 150 ml 4/set',
+        'SKP072' => 'Vopsea pentru pictat cu degetele Mucki Royal Children, 50 ml, 6 culori/set',
+        'SKP071' => 'Vopsea pentru pictat cu degetele Mucki Children of Fortune, 50 ml, 6 culori/set',
+        'SKP074' => 'Vopsea pentru pictat cu degetele Mucki 150 ml 6/set',
+        'SKP073' => 'Vopsea pentru pictat cu degetele Mucki 150 ml 4/set',
+    ];
+    $codProdusForKreul = trim((string) $first['Cod produs']);
+    if (isset($kreulTranslations[$codProdusForKreul])) {
+        $name = $kreulTranslations[$codProdusForKreul];
+    }
 
     $isVariable = count($rows) > 1 || trim((string) $first['Variant']) !== '';
     $primaryCodUnic = trim((string) $first['Cod unic']);
@@ -2200,6 +2951,7 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
                 'new_price' => $oldPrice,
                 'variations' => null,
                 'was_trashed' => $wasTrashed,
+                'price_warning' => null,
             ];
         }
     }
@@ -2222,6 +2974,9 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
         $product->set_category_ids([$categoryId]);
     }
 
+    if ($brandName === '') {
+        $brandName = papetarie_storefront_aperta_guess_brand_from_name($name);
+    }
     $brandId = papetarie_storefront_aperta_resolve_brand($brandName);
 
     $productId = $product->save();
@@ -2241,10 +2996,14 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     }
 
     $newPrice = null;
+    $priceWarning = null;
     $variationsSummary = null;
 
     if ($isVariable) {
         $variationsSummary = papetarie_storefront_aperta_sync_variations($productId, $rows, $discountPercent, $name, $description, $categoryPath);
+        if (!empty($variationsSummary['price_warnings'])) {
+            $priceWarning = implode('; ', $variationsSummary['price_warnings']);
+        }
 
         // Daca TOTI membrii familiei erau deja produse simple publicate
         // (sync_variations sare peste fiecare, vezi "Skip (don't crash)..."),
@@ -2264,15 +3023,32 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
                 'new_price' => null,
                 'variations' => $variationsSummary,
                 'was_trashed' => true,
+                'price_warning' => !empty($variationsSummary['price_warnings']) ? implode('; ', $variationsSummary['price_warnings']) : null,
             ];
         }
     } else {
-        $price = round(((float) str_replace(',', '.', (string) $first['Pret produs'])) * (1 - $discountPercent / 100), 2);
-        $newPrice = $price;
+        $price = papetarie_storefront_aperta_safe_price((string) $first['Pret produs'], $discountPercent);
+
+        if ($price === null) {
+            // Nu scriem niciodata 0/negativ pe site: pastram pretul vechi la
+            // un produs existent, sau il lasam nesetat la unul nou (oricum
+            // intra ca ciorna) - vezi papetarie_storefront_aperta_safe_price().
+            $priceWarning = sprintf(
+                'preț invalid în feed ("%s") pentru %s — prețul NU a fost modificat',
+                (string) $first['Pret produs'],
+                $primaryCodUnic
+            );
+            papetarie_storefront_aperta_record_price_warning($primaryCodUnic, $name, (string) $first['Pret produs'], 'produs simplu');
+            $newPrice = $oldPrice;
+        } else {
+            $newPrice = $price;
+        }
 
         $simple = new WC_Product_Simple($productId);
         $simple->set_sku($primaryCodUnic);
-        $simple->set_regular_price((string) $price);
+        if ($price !== null) {
+            $simple->set_regular_price((string) $price);
+        }
         $simple->set_manage_stock(true);
         $simple->set_stock_status(papetarie_storefront_aperta_stock_status_from_text((string) $first['Status stoc']));
 
@@ -2310,6 +3086,10 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
 
     update_post_meta($productId, '_pap_aperta_row_hash', $rowHash);
 
+    if ($isNew) {
+        papetarie_storefront_aperta_record_new_product($productId, $name);
+    }
+
     return [
         'product_id' => $productId,
         'is_new' => $isNew,
@@ -2318,6 +3098,7 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
         'new_price' => $newPrice,
         'variations' => $variationsSummary,
         'was_trashed' => $wasTrashed,
+        'price_warning' => $priceWarning,
     ];
 }
 
@@ -2474,6 +3255,7 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
     $totalVariations = 0;
     $newVariations = 0;
     $changedVariations = 0;
+    $priceWarnings = [];
 
     foreach ($rows as $row) {
         $codUnic = trim((string) $row['Cod unic']);
@@ -2542,13 +3324,27 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
         $variation->set_attributes([$attributeKey => $variantValue]);
         $variation->set_sku($codUnic);
 
-        $price = round(((float) str_replace(',', '.', (string) $row['Pret produs'])) * (1 - $discountPercent / 100), 2);
-        $variation->set_regular_price((string) $price);
+        $price = papetarie_storefront_aperta_safe_price((string) $row['Pret produs'], $discountPercent);
+
+        if ($price === null) {
+            // Nu scriem niciodata 0/negativ pe site: pastram pretul vechi al
+            // variantei (sau il lasam nesetat daca e noua) - vezi
+            // papetarie_storefront_aperta_safe_price().
+            $priceWarnings[] = sprintf(
+                'variantă "%s" (SKU %s): preț invalid în feed ("%s") — prețul NU a fost modificat',
+                $variantValue,
+                $codUnic,
+                (string) $row['Pret produs']
+            );
+            papetarie_storefront_aperta_record_price_warning($codUnic, $name . ' — ' . $variantValue, (string) $row['Pret produs'], 'variantă');
+        } else {
+            $variation->set_regular_price((string) $price);
+        }
 
         $totalVariations++;
         if ($isNewVariation) {
             $newVariations++;
-        } elseif ($oldPrice === null || $oldPrice !== $price) {
+        } elseif ($price !== null && ($oldPrice === null || $oldPrice !== $price)) {
             $changedVariations++;
         }
         $variation->set_manage_stock(true);
@@ -2592,6 +3388,7 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
         'total' => $totalVariations,
         'new' => $newVariations,
         'changed' => $changedVariations,
+        'price_warnings' => $priceWarnings,
     ];
 }
 
@@ -2665,6 +3462,19 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
         $isZeroStock = in_array($expectedStatus, ['outofstock', 'onbackorder'], true);
         if ($isZeroStock && $currentPostStatus === 'publish') {
             wp_update_post(['ID' => $postId, 'post_status' => 'draft']);
+
+            // Acelasi banner vizibil ca la produsele disparute din feed (vezi
+            // papetarie_storefront_aperta_vanished_notice()) - decizie user
+            // 2026-09-04: motivul mutarii in ciorna trebuie sa fie clar,
+            // indiferent de cauza (stoc 0 sau disparut din feed), nu doar de
+            // ghicit sau de cautat prin log-uri.
+            update_post_meta($postId, '_pap_aperta_vanished_note', sprintf(
+                'Mutat automat în ciornă de sincronizarea Aperta pe %s: stocul a scăzut de la %s la %d bucăți (status: %s).',
+                date('d.m.Y H:i'),
+                $oldQuantity === null ? 'necunoscut' : (string) $oldQuantity,
+                $quantity,
+                $expectedStatus === 'onbackorder' ? 'precomandă' : 'stoc epuizat'
+            ));
         } elseif (!$isZeroStock && $currentPostStatus === 'draft'
             && in_array($oldStatus, ['outofstock', 'onbackorder'], true)) {
             // Revenit pe stoc, dar ramane draft - publicarea e decizie
@@ -2673,6 +3483,49 @@ function papetarie_storefront_aperta_apply_stock(array $stockByCodUnic): array
             $restockedToday = get_option('pap_restocked_today', []);
             $restockedToday[$postId] = time();
             update_option('pap_restocked_today', $restockedToday);
+        }
+
+        // Aceeasi regula, extinsa la produsele cu variante: daca varianta de
+        // mai sus e ULTIMA ramasa cumparabila a familiei ei (parintele are
+        // alte culori, dar toate sunt acum epuizate), ascundem si parintele -
+        // decizie user 2026-09-04: "daca nu poate fi cumparat acum, nu
+        // trebuie sa fie vizibil pe site", aceeasi regula ca la stoc 0 pe
+        // produs simplu, doar ca aici cauza e "toate variantele lui, nu doar
+        // el". Cazul normal (macar o culoare inca cumparabila) NU e atins -
+        // parintele ramane vizibil neschimbat, exact ca acum.
+        if ($product instanceof WC_Product_Variation) {
+            $parentId = $product->get_parent_id();
+            $parentStatus = $parentId ? get_post_status($parentId) : false;
+            $parent = ($parentId && in_array($parentStatus, ['publish', 'draft'], true)) ? wc_get_product($parentId) : null;
+
+            if ($parent instanceof WC_Product_Variable) {
+                $anyInStock = false;
+                foreach ($parent->get_children() as $siblingId) {
+                    $sibling = ((int) $siblingId === $postId) ? $product : wc_get_product($siblingId);
+                    if ($sibling && $sibling->get_stock_status() === 'instock') {
+                        $anyInStock = true;
+                        break;
+                    }
+                }
+
+                if (!$anyInStock && $parentStatus === 'publish') {
+                    wp_update_post(['ID' => $parentId, 'post_status' => 'draft']);
+                    update_post_meta($parentId, '_pap_aperta_vanished_note', sprintf(
+                        'Mutat automat în ciornă de sincronizarea Aperta pe %s: toate variantele (culorile) au ajuns pe stoc epuizat.',
+                        date('d.m.Y H:i')
+                    ));
+                } elseif ($anyInStock && $parentStatus === 'draft'
+                    && get_post_meta($parentId, '_pap_aperta_vanished_note', true) !== '') {
+                    // Revenit pe stoc (macar o culoare), dar ramane draft -
+                    // publicarea e decizie manuala, la fel ca la produsele
+                    // simple. Verificam nota, nu doar statusul, ca sa nu
+                    // notificam din greseala un produs pus manual pe draft
+                    // dintr-un alt motiv, nelegat de stoc.
+                    $restockedToday = get_option('pap_restocked_today', []);
+                    $restockedToday[$parentId] = time();
+                    update_option('pap_restocked_today', $restockedToday);
+                }
+            }
         }
 
         $oldLabel = $oldQuantity === null ? '—' : (string) $oldQuantity;
@@ -2893,6 +3746,7 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
                 'new_price' => null,
                 'variations' => null,
                 'was_trashed' => false,
+                'price_warning' => null,
                 'sync_error' => $e->getMessage(),
             ];
         }
@@ -2902,9 +3756,16 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
             $startedAt
         );
 
+        $itemDescription = isset($result['sync_error'])
+            ? ('sărit, eroare: ' . $result['sync_error'])
+            : papetarie_storefront_aperta_describe_upsert($result);
+        if (!empty($result['price_warning'])) {
+            $itemDescription .= ' — ⚠ ' . $result['price_warning'];
+        }
+
         $items[] = [
             'sku' => trim((string) $grouped[$codes[$i]][0]['Cod unic']),
-            'name' => trim((string) $grouped[$codes[$i]][0]['Denumire produs']) . ' (' . (isset($result['sync_error']) ? ('sărit, eroare: ' . $result['sync_error']) : papetarie_storefront_aperta_describe_upsert($result)) . ')',
+            'name' => trim((string) $grouped[$codes[$i]][0]['Denumire produs']) . ' (' . $itemDescription . ')',
             'changed' => papetarie_storefront_aperta_upsert_is_changed($result),
             'trashed' => $result['was_trashed'],
         ];
@@ -3126,53 +3987,135 @@ function papetarie_storefront_aperta_schedule_cron(): void
         }
         as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_send_restock_digest', [], 'aperta-sync');
     }
+
+    // 01:30 - dupa ce feed.csv de noapte s-a redescarcat (~00:43-01:xx, vezi
+    // pap_aperta_sync_products_start), cu marja de siguranta. Decizie user
+    // 2026-09-04: nu doar raportare, ci actiune automata - vezi
+    // papetarie_storefront_aperta_auto_draft_vanished_cb().
+    if (!as_next_scheduled_action('pap_aperta_auto_draft_vanished', [], 'aperta-sync')) {
+        $timestamp = papetarie_storefront_aperta_romania_time_today('01:30:00');
+        if ($timestamp < time()) {
+            $timestamp += DAY_IN_SECONDS;
+        }
+        as_schedule_recurring_action($timestamp, DAY_IN_SECONDS, 'pap_aperta_auto_draft_vanished', [], 'aperta-sync');
+    }
 }
 add_action('init', 'papetarie_storefront_aperta_schedule_cron');
 
 /**
- * Raport zilnic (18:00 ora Romaniei) cu produsele care au revenit pe stoc in
- * ziua respectiva si au ramas draft (vezi papetarie_storefront_aperta_apply_stock() -
- * decizie Lavinia 2026-08-07: publicarea ramane manuala, dar fara notificare
- * per produs, un singur rezumat pe zi e suficient).
+ * Raport zilnic de sincronizare (18:00 ora Romaniei), trimis intotdeauna -
+ * chiar si cand nu e nimic de semnalat - ca sa nu existe ambiguitate intre
+ * "azi n-a fost nimic" si "s-a stricat ceva" (user 2026-09-04: emailul
+ * vechi tacea complet cand nu erau restock-uri, ceea ce a fost confundat cu
+ * o defectiune). Trei sectiuni:
+ *
+ * 1. Produse revenite pe stoc azi, dar ramase draft (comportament vechi,
+ *    vezi papetarie_storefront_aperta_apply_stock() - decizie Lavinia
+ *    2026-08-07: publicarea ramane manuala).
+ * 2. Produse noi adaugate azi de sincronizare (nou - nu exista deloc
+ *    notificare pentru asta pana acum).
+ * 3. Produse INCA publicate si comandabile la noi, al caror SKU a disparut
+ *    complet din feedul curent Aperta - risc direct de a primi o comanda
+ *    pe care n-o putem onora. Nou, si cel mai important (user: "asta e
+ *    foarte important") - lista curenta completa, nu doar ce s-a schimbat
+ *    azi, ca sa ramana vizibila pana e rezolvata, nu doar o data.
+ *
+ * Merge la ambele adrese (user + Lavinia) - inainte mergea doar la Lavinia.
  */
 function papetarie_storefront_aperta_send_restock_digest_cb(): void
 {
+    $to = ['d.crysty23@gmail.com', 'laviniamuntean40@gmail.com'];
+    $today = date('d.m.Y');
+    $sections = [];
+
+    // 1. Revenite pe stoc, ramase draft.
     $restockedToday = get_option('pap_restocked_today', []);
-
-    if (empty($restockedToday)) {
-        return;
-    }
-
-    $lines = [];
+    $restockLines = [];
     foreach ($restockedToday as $postId => $timestamp) {
         $product = wc_get_product($postId);
         if (!($product instanceof WC_Product)) {
             continue;
         }
-
-        $lines[] = sprintf(
+        $restockLines[] = sprintf(
             '- %s (stoc: %d) — %s',
             $product->get_name(),
             $product->get_stock_quantity(),
             admin_url('post.php?post=' . $postId . '&action=edit')
         );
     }
+    $sections[] = "PRODUSE REVENITE PE STOC AZI (raman draft pana le publici manual):\n"
+        . (empty($restockLines) ? 'Niciunul azi.' : implode("\n", $restockLines));
+    update_option('pap_restocked_today', []);
 
-    if (empty($lines)) {
-        // Toate au fost sterse/nu mai exista ca produse WC - nu trimitem un
-        // email gol.
-        update_option('pap_restocked_today', []);
-        return;
+    // 2. Produse noi adaugate azi (intra ca draft, de verificat manual).
+    $newToday = get_option('pap_new_products_today', []);
+    $newLines = [];
+    foreach ($newToday as $postId => $info) {
+        if (!get_post($postId)) {
+            continue;
+        }
+        $newLines[] = sprintf(
+            '- %s — %s',
+            is_array($info) ? ($info['name'] ?? '') : '',
+            admin_url('post.php?post=' . $postId . '&action=edit')
+        );
     }
+    $sections[] = "PRODUSE NOI ADAUGATE AZI (intra ca ciorna, de verificat manual):\n"
+        . (empty($newLines) ? 'Niciunul azi.' : implode("\n", $newLines));
+    update_option('pap_new_products_today', []);
 
-    $to = 'laviniamuntean40@gmail.com';
-    $subject = sprintf('[Notix] %d produse revenite pe stoc azi (%s)', count($lines), date('d.m.Y'));
-    $body = "Produsele de mai jos au revenit pe stoc azi si sunt gata de revizuit/publicat:\n\n"
-        . implode("\n", $lines)
-        . "\n\nToate raman draft pana le publici tu manual.";
+    // 3a. Ce a mutat automat azi job-ul de 01:30 (vezi
+    // papetarie_storefront_aperta_auto_draft_vanished_cb()) - doar raportare
+    // aici, actiunea deja s-a intamplat, cu email separat, imediat, la ora
+    // aceea.
+    $autoDrafted = get_option('pap_auto_drafted_today', []);
+    $autoDraftedLines = [];
+    foreach ($autoDrafted as $postId => $info) {
+        $autoDraftedLines[] = sprintf(
+            '- [%s] %s (SKU %s) — %s',
+            is_array($info) ? ($info['type'] ?? '') : '',
+            is_array($info) ? ($info['name'] ?? '') : '',
+            is_array($info) ? ($info['sku'] ?? '') : '',
+            admin_url('post.php?post=' . $postId . '&action=edit')
+        );
+    }
+    $sections[] = "PRODUSE MUTATE AUTOMAT IN CIORNA AZI (disparute din feedul Aperta, deja opriti sa mai fie comandate - vezi si comentariul de pe fiecare produs):\n"
+        . (empty($autoDraftedLines) ? 'Niciunul azi.' : implode("\n", $autoDraftedLines));
+    update_option('pap_auto_drafted_today', []);
+
+    // 3b. Plasa de siguranta: re-verificare live, in caz ca a scapat ceva
+    // intre rularea de la 01:30 si acum (ex. un produs revenit pe stoc la
+    // pranz si disparut din feed abia dupa aceea). In mod normal gol.
+    $atRisk = papetarie_storefront_aperta_products_missing_from_feed_but_orderable();
+    $riskLines = [];
+    foreach ($atRisk as $item) {
+        $riskLines[] = sprintf(
+            '- [%s] %s (SKU %s, stoc: %s) — %s',
+            $item['type'],
+            $item['name'],
+            $item['sku'],
+            $item['stock'] ?? '?',
+            admin_url('post.php?post=' . $item['post_id'] . '&action=edit')
+        );
+    }
+    $riskHeader = empty($riskLines)
+        ? "PLASA DE SIGURANTA - INCA COMANDABILE SI DISPARUTE DIN FEED (neasteptat, ar trebui sa fie mereu gol): Niciunul."
+        : sprintf(
+            "⚠ NEASTEPTAT — %d PRODUSE INCA COMANDABILE, DISPARUTE DIN FEEDUL APERTA, NEACTIONATE de job-ul automat (verifica manual, ceva pare in neregula cu automatizarea):\n%s",
+            count($riskLines),
+            implode("\n", $riskLines)
+        );
+    $sections[] = $riskHeader;
+
+    $issueCount = count($restockLines) + count($newLines) + count($autoDraftedLines) + count($riskLines);
+    $subject = $issueCount > 0
+        ? sprintf('[Notix] Raport sincronizare Aperta (%s) — %d de verificat', $today, $issueCount)
+        : sprintf('[Notix] Raport sincronizare Aperta (%s) — totul OK', $today);
+
+    $body = "Raport zilnic automat de sincronizare Aperta.\n\n"
+        . implode("\n\n", $sections)
+        . "\n\n---\nAcest email se trimite in fiecare zi, indiferent daca e ceva de semnalat sau nu.";
 
     wp_mail($to, $subject, $body);
-
-    update_option('pap_restocked_today', []);
 }
 add_action('pap_aperta_send_restock_digest', 'papetarie_storefront_aperta_send_restock_digest_cb');

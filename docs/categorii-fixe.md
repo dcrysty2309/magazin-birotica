@@ -46,7 +46,12 @@ articole-pentru-birou (Articole pentru birou)
   10. distrugatoare-hartie (Distrugătoare hârtie)
   11. ghilotine-pentru-hartie (Ghilotine pentru hârtie)
   12. masini-de-laminat (Mașini de laminat)
-  13. intretinere-si-curatenie (Întreținere și curățenie)
+  <!-- 13. intretinere-si-curatenie (Întreținere și curățenie) - ELIMINATĂ 2026-09-02,
+       decizie user: risc legal (spray-uri/solutii chimice de curatare electronice
+       pot necesita autorizatii pe care afacerea nu le are). Cele 13 produse mutate
+       la cosul de gunoi, exclusa din import (vezi PAP_APERTA_EXCLUDED_SUBCATEGORY_SLUGS
+       in includes/aperta-sync.php). -->
+
 
 accesorii-pentru-scris (Accesorii pentru scris)
   1. pixuri-cu-pasta (Pixuri cu pastă)
@@ -129,18 +134,15 @@ periferice (Periferice)
   7. incarcatoare (Încărcătoare)
   8. cabluri (Cabluri)
 
-curatenie-si-sanitare (Curățenie și sanitare)
-  1. lavete (Lavete)
-  2. maturi-si-mopuri (Mături și mopuri)
-  3. detergenti-de-vase-si-geamuri (Detergenți de vase și geamuri)
-  4. solutii-diverse-pentru-curatenie (Soluții diverse pentru curățenie)
-  5. bureti-pentru-vase (Bureți pentru vase)
-  6. accesorii-menaj (Accesorii menaj)
-  7. manusi-menaj (Mănuși menaj)
-  8. hartie-igienica-si-dispensere (Hârtie igienică și dispensere)
-  9. prosoape-de-hartie-si-dispensere (Prosoape de hârtie și dispensere)
-  10. sapunuri-si-dispensere (Săpunuri și dispensere)
-  11. sanitare (Sanitare)
+<!-- curatenie-si-sanitare (Curățenie și sanitare) - RAMURA ELIMINATĂ COMPLET 2026-09-02,
+     decizie user: risc legal (produse chimice de curatenie/dezinfectie pot necesita
+     autorizatii/notificari suplimentare pe care afacerea nu le are). Cele 201 produse
+     din cele 10 subcategorii de mai jos (lavete, maturi-si-mopuri,
+     detergenti-de-vase-si-geamuri, solutii-diverse-pentru-curatenie, bureti-pentru-vase,
+     accesorii-menaj, hartie-igienica-si-dispensere, prosoape-de-hartie-si-dispensere,
+     sapunuri-si-dispensere, sanitare) au fost mutate la cosul de gunoi. Categoria
+     e exclusa definitiv din import - vezi PAP_APERTA_EXCLUDED_TOP_LEVEL_CATEGORIES
+     in includes/aperta-sync.php. -->
 ```
 
 9 categorii de top nivel, 114 categorii în total (inclusiv top-level) — actualizat

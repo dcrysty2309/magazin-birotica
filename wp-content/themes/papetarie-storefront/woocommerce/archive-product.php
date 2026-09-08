@@ -26,25 +26,28 @@ if (is_wp_error($archive_action_url) || !$archive_action_url) {
     $archive_action_url = home_url('/');
 }
 
-$current_stock_status = isset($_GET['stock_status']) ? sanitize_key(wp_unslash($_GET['stock_status'])) : 'all';
-$stock_status_options = function_exists('papetarie_storefront_stock_status_options') ? papetarie_storefront_stock_status_options() : [];
 $current_orderby = isset($_GET['orderby']) ? sanitize_key(wp_unslash($_GET['orderby'])) : '';
 $sort_options = [
+    'menu_order' => __('Recomandate', 'papetarie-storefront'),
     'price' => __('Preț crescător', 'papetarie-storefront'),
     'price-desc' => __('Preț descrescător', 'papetarie-storefront'),
 ];
-$active_orderby = isset($sort_options[$current_orderby]) ? $current_orderby : 'price';
+// Implicit "Recomandate" (ordine manuala per produs, vezi menu_order) -
+// decizie user 2026-09-04: clientul trebuie sa vada intai ordinea aleasa de
+// magazin, nu automat pretul crescator. Categoriile unde nu s-a setat inca
+// nicio ordine manuala raman, deocamdata, in ordinea lor implicita
+// (menu_order 0 la toate => alfabetic dupa titlu, tiebreak-ul normal WC) -
+// nu arata stricat, doar neselectat manual, pana se seteaza si acolo.
+$active_orderby = isset($sort_options[$current_orderby]) ? $current_orderby : 'menu_order';
 $price_ranges = function_exists('papetarie_storefront_price_ranges') ? papetarie_storefront_price_ranges($current_term) : [];
 $selected_price_ranges = function_exists('papetarie_storefront_get_selected_price_range_keys') ? papetarie_storefront_get_selected_price_range_keys($current_term) : [];
 $price_range_counts = function_exists('papetarie_storefront_get_price_range_counts') ? papetarie_storefront_get_price_range_counts($current_term) : [];
 $has_meaningful_price_filter = count(array_filter($price_range_counts, static fn (int $count): bool => $count > 0)) >= 2;
-$stock_status_counts = function_exists('papetarie_storefront_get_stock_status_counts') ? papetarie_storefront_get_stock_status_counts($current_term) : [];
 $selected_subcategories = isset($_GET['product_cat_child']) ? array_map('sanitize_key', (array) wp_unslash($_GET['product_cat_child'])) : [];
 $attribute_filter_groups = function_exists('papetarie_storefront_get_category_attribute_filters') ? papetarie_storefront_get_category_attribute_filters($current_term) : [];
 $selected_attributes = function_exists('papetarie_storefront_get_selected_attribute_terms') ? papetarie_storefront_get_selected_attribute_terms() : [];
 
 $has_active_filters = !empty($selected_subcategories)
-    || $current_stock_status !== 'all'
     || !empty($selected_price_ranges)
     || !empty($selected_attributes);
 
@@ -81,13 +84,6 @@ foreach ($selected_subcategories as $selected_slug) {
             break;
         }
     }
-}
-
-if ($current_stock_status !== 'all') {
-    $active_filter_chips[] = [
-        'label' => $stock_status_options[$current_stock_status] ?? $current_stock_status,
-        'url' => papetarie_storefront_filter_removal_url($archive_action_url, ['stock_status' => null]),
-    ];
 }
 
 foreach ($selected_price_ranges as $selected_range_key) {
@@ -269,39 +265,52 @@ get_header();
             </div>
           <?php endif; ?>
 
-          <div class="pap-filter-card">
-            <div class="pap-archive-filter-section-title">
-              <span><?php esc_html_e('Disponibilitate', 'papetarie-storefront'); ?></span>
-            </div>
-            <div class="pap-archive-filter-body pap-archive-filter-checklist pap-archive-filter-checklist--radio">
-              <label class="pap-archive-radio-option">
-                <input type="radio" class="pap-radio-input" name="stock_status" value="all" <?php checked($current_stock_status, 'all'); ?>>
-                <span class="pap-archive-check-label"><?php esc_html_e('Toate produsele', 'papetarie-storefront'); ?></span>
-              </label>
-              <?php foreach ($stock_status_options as $stock_status_key => $stock_status_label) : ?>
-                <label class="pap-archive-radio-option">
-                  <input type="radio" class="pap-radio-input" name="stock_status" value="<?php echo esc_attr($stock_status_key); ?>" <?php checked($current_stock_status, $stock_status_key); ?>>
-                  <span class="pap-archive-check-label"><?php echo esc_html($stock_status_label); ?></span>
-                  <span class="pap-archive-check-count"><?php echo esc_html((string) ($stock_status_counts[$stock_status_key] ?? 0)); ?></span>
-                </label>
-              <?php endforeach; ?>
-            </div>
-          </div>
-
           <?php foreach ($attribute_filter_groups as $attr_group_name => $attr_values) : ?>
+            <?php
+            // Grupurile mari (ex. Culoare cu 40 de valori la o categorie cu 9
+            // produse) devin o lista ilizibila daca le aratam pe toate deodata -
+            // ascundem tot ce trece de acest prag sub un "Arata mai multe",
+            // acelasi principiu ca la selectorul de culori de pe pagina de
+            // produs. Decizie user 2026-09-04.
+            $attr_visible_limit = 10;
+            $attr_extra_count = max(0, count($attr_values) - $attr_visible_limit);
+            // Daca una din valorile ascunse e deja bifata (ex. link direct cu
+            // ?attr[]=... catre o culoare de dupa pragul de 10), nu o ascunde -
+            // clientul ar vedea filtrul "activ" fara sa gaseasca bifa lui.
+            foreach (array_slice($attr_values, $attr_visible_limit) as $attr_hidden_value) {
+                if (in_array($attr_hidden_value['slug'], $selected_attributes, true)) {
+                    $attr_visible_limit = count($attr_values);
+                    $attr_extra_count = 0;
+                    break;
+                }
+            }
+            // "Numar bucati/set" e numele real folosit peste tot in cod
+            // (extragere, excluderi de categorie etc.) - NU se schimba, ca sa
+            // nu stricam acele verificari. Aici schimbam doar ce vede
+            // clientul, intr-o eticheta mai naturala. Decizie user 2026-09-08.
+            $attr_group_display_labels = [
+                'Număr bucăți/set' => 'Bucăți în set',
+            ];
+            $attr_group_display_name = $attr_group_display_labels[$attr_group_name] ?? $attr_group_name;
+            ?>
             <div class="pap-filter-card">
               <div class="pap-archive-filter-section-title">
-                <span><?php echo esc_html($attr_group_name); ?></span>
+                <span><?php echo esc_html($attr_group_display_name); ?></span>
               </div>
               <div class="pap-archive-filter-body pap-archive-filter-checklist">
-                <?php foreach ($attr_values as $attr_value) : ?>
+                <?php foreach ($attr_values as $attr_index => $attr_value) : ?>
                   <?php $is_checked = in_array($attr_value['slug'], $selected_attributes, true); ?>
-                  <label class="pap-archive-check-option">
+                  <label class="pap-archive-check-option<?php echo $attr_index >= $attr_visible_limit ? ' pap-archive-check-option--collapsed' : ''; ?>">
                     <input type="checkbox" class="pap-checkbox-input" name="attr[]" value="<?php echo esc_attr($attr_value['slug']); ?>" <?php checked($is_checked); ?>>
                     <span class="pap-archive-check-label"><?php echo esc_html($attr_value['name']); ?></span>
                     <span class="pap-archive-check-count">(<?php echo esc_html((string) $attr_value['count']); ?>)</span>
                   </label>
                 <?php endforeach; ?>
+                <?php if ($attr_extra_count > 0) : ?>
+                  <button type="button" class="pap-archive-filter-more">
+                    <?php echo esc_html(sprintf(_n('Arată încă %d', 'Arată încă %d', $attr_extra_count, 'papetarie-storefront'), $attr_extra_count)); ?>
+                  </button>
+                <?php endif; ?>
               </div>
             </div>
           <?php endforeach; ?>

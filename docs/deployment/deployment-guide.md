@@ -24,7 +24,7 @@ Roluri:
 - FTP host: `rs.nsh.ro`
 - FTP port: `21`
 - protocol recomandat: `FTP explicit TLS`
-- folder public: `public_html`
+- folder public: **rădăcina contului FTP** (`/`), NU `public_html` — vezi 6.2
 - platformă: WordPress + WooCommerce
 
 ## 3. Structura reală a proiectului
@@ -80,7 +80,7 @@ Există override-uri custom în:
 
 După deploy trebuie verificat `WooCommerce > Status` pentru template-uri outdated.
 
-## 6. Fișiere care trebuie publicate în `public_html`
+## 6. Fișiere care trebuie publicate pe server (rădăcina contului FTP — vezi 6.2)
 
 În fluxul actual de staging publicăm doar codul care trebuie executat de site:
 
@@ -116,26 +116,26 @@ Ce rămâne în afara acestui flux, intenționat, deocamdată:
 - **`tools/build-staging-package.ps1`, `tools/sync-staging.ps1`, `tools/sync-staging-db.ps1`, `tools/prepare-sync-package.ps1`** — varianta cu pachet ZIP + runner PHP server-side care le folosea a cauzat majoritatea problemelor istorice (cale de extragere greșită, timeout-uri, verificare nesigură) și rămân dezactivate; nu se reactivează fără o decizie explicită;
 - **workflow-ul GitHub Actions** (`.github/workflows/deploy-staging.yml`) — a fost șters (2026-07-23); reactivarea automatizării CI e o decizie separată, ulterioară, după ce fluxul manual e validat.
 
-## 6.2. IMPORTANT — calea reală de pe server e `/public_html/wp-content/...`, nu `/wp-content/...`
+## 6.2. IMPORTANT — calea reală de pe server e `/wp-content/...` (rădăcina FTP), NU `/public_html/wp-content/...`
 
-Descoperit pe 2026-07-23 după ore de debugging inutil: contul cPanel `memoreaz` are **trei foldere `wp-content` diferite** pe server:
+Descoperit pe 2026-07-23, apoi **răsturnat din nou pe 2026-07-27** — istoricul contează, ca să nu se repete confuzia:
 
-- `/wp-content/` — la rădăcina contului FTP (`/home/memoreaz/`). E ținta VECHE, greșită, folosită de `deploy-staging.ps1` înainte de 2026-07-23. FTP-ul urcă fișierele acolo fără nicio eroare — upload-ul "reușește" complet, verificarea de hash pe `style.css` trece, dar acel folder **nu e văzut de site**.
-- `/public_html/wp-content/` — **acesta e folderul real servit de Apache** pentru `memoreaza.ro` și alias-ul `notix.ro` (confirmat explicit în cPanel → Domains → Document Root: `/public_html` pentru ambele domenii).
-- `/www/wp-content/` — un al treilea folder, aparent o copie/snapshot vechi, neclar dacă mai e folosit de ceva; nu s-a investigat mai departe.
+- Inițial (până pe 2026-07-23): se credea că `/public_html/wp-content/` e folderul real servit de Apache (confirmat atunci în cPanel → Domains → Document Root: `/public_html`), iar `/wp-content/` de la rădăcina contului FTP era ținta veche/greșită.
+- Pe **2026-07-27** configurația de pe server s-a schimbat (document root real re-mutat) și situația s-a **inversat complet**: acum contul cPanel `memoreaz` are `wp-load.php`, `wp-config.php`, `wp-admin`, `wp-includes` etc. direct în **rădăcina contului FTP** (`/home/memoreaz/`) — acela e docroot-ul live, real, servit de Apache. `/public_html/` a rămas un folder orfan, mort, care conține doar un `wp-content` vechi (fără `wp-load.php` alături) — nu mai e văzut de site din 2026-07-27.
+- Reconfirmat live pe 2026-09-04: `ftp://rs.nsh.ro/` listează `wp-load.php`, `wp-config.php`, `wp-admin/` etc. direct la rădăcină; `ftp://rs.nsh.ro/public_html/` conține doar `wp-content/` (ultima modificare 27 iulie), fără niciun fișier core WordPress alături — exact tiparul unui folder mort.
 
-Simptomul: cod nou + bază de date nouă corect urcate/importate, dar site-ul live continuă să arate design-ul vechi la nesfârșit, indiferent de schimbări de versiune PHP, restart PHP-FPM, sau `.user.ini` cu `opcache.validate_timestamps=1` — pentru că PHP-ul executat efectiv de Apache nu vedea niciodată fișierele noi, nu conta ce cache era golit.
+Simptomul dacă publici din greșeală în locul greșit: upload-ul FTP "reușește" complet, fără nicio eroare, fișierele chiar ajung pe disc — dar cererile HTTP către site tot ajung goale/404 (WordPress le prinde prin propriul rewrite și randează pagina lui de "not found"), pentru că Apache/PHP nu execută niciodată din acel folder.
 
-**Fix aplicat**: `tools/deploy-staging.ps1` are acum implicit `-RemoteThemePath "/public_html/wp-content/themes/papetarie-storefront"` și `-RemotePluginPath "/public_html/wp-content/plugins"`. Dacă rulezi scriptul cu path-uri custom sau faci vreun upload manual prin FTP, **asigură-te mereu că țintești `/public_html/wp-content/...`**, nu `/wp-content/...` de la rădăcină.
+**Configurația corectă, actuală**: `tools/deploy-staging.ps1` are implicit `-RemoteThemePath "/wp-content/themes/papetarie-storefront"` și `-RemotePluginPath "/wp-content/plugins"` — fără niciun prefix `/public_html`. Scriptul e deja corect (comentariul din el documentează exact această situație). Dacă faci vreun upload manual prin FTP (script de diagnostic, fix punctual etc.), **țintește direct rădăcina FTP** (`ftp://rs.nsh.ro/wp-content/...`), niciodată `/public_html/wp-content/...`.
 
 Cum verifici rapid, dacă bănuiești din nou o desincronizare:
 
 ```bash
-curl --ssl-reqd -s --user "FTP_USER:FTP_PASS" "ftp://rs.nsh.ro/public_html/wp-content/themes/papetarie-storefront/style.css" -o /tmp/live.css
+curl --ssl-reqd -s --user "FTP_USER:FTP_PASS" "ftp://rs.nsh.ro/wp-content/themes/papetarie-storefront/style.css" -o /tmp/live.css
 diff /tmp/live.css wp-content/themes/papetarie-storefront/style.css && echo "OK, identic"
 ```
 
-Nu te încrede orbește în hash-check-ul automat al scriptului dacă ai schimbat manual `RemoteThemePath` — verificarea HTTP a scriptului presupune că path-ul FTP e deja relativ la docroot (fără prefixul `/public_html`), altfel dă fals-pozitiv 404 la verificare chiar dacă upload-ul FTP a mers bine.
+Dacă vrei să reconfirmi din nou care e configurația curentă (poate să se schimbe iar, ca pe 27 iulie): listează ambele locații prin FTP și vezi unde stau `wp-load.php`/`wp-config.php` direct alături de `wp-content/` — acolo e docroot-ul live, nu presupune nimic doar din acest document.
 
 ## 7. Fișiere care NU trebuie publicate
 
@@ -148,7 +148,7 @@ Nu urca niciodată:
 - `docs`
 - `tests`
 - `tmp`
-- dump-uri SQL în `public_html`
+- dump-uri SQL pe server (nici la rădăcina FTP, nici în `public_html`)
 - fișiere de backup
 - screenshot-uri locale
 - fișiere de tooling care nu sunt folosite de WordPress în runtime

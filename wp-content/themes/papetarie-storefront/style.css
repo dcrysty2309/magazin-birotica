@@ -4,7 +4,7 @@ Theme URI: http://localhost:8080
 Description: Child theme Storefront pentru magazinul online de papetarie.
 Author: Codex
 Template: storefront
-Version: 1.1.2
+Version: 1.1.3
 Text Domain: papetarie-storefront
 */
 
@@ -3863,6 +3863,27 @@ body.theme-papetarie .pap-archive-titlebar-copy p {
   color: #9ca3af;
   font-size: 12px;
   font-weight: 500;
+}
+
+.pap-archive-check-option--collapsed {
+  display: none;
+}
+
+.pap-archive-filter-more {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #0d2e61;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pap-archive-filter-more:hover {
+  color: #d95c1f;
 }
 
 .pap-archive-content {
@@ -21787,6 +21808,17 @@ form.variations_form.cart {
   display: none;
 }
 
+/* Exceptie de la regula de mai sus: mesajul de sub selectorul de culoare
+   ("Stoc epuizat"), care apare DINAMIC cand clientul alege o varianta
+   indisponibila, nu e text generic redundant ca restul - e singurul
+   feedback vizibil ca varianta aleasa nu poate fi cumparata (butonul
+   "Adauga in cos" ramane vizual identic, doar blocat pe dedesubt - fara
+   mesajul asta, clientul apasa si nu se intampla nimic, fara nicio
+   explicatie). Gasit live 2026-09-04. */
+.pap-product-actions-row--fallback .woocommerce-variation-availability .stock {
+  display: block;
+}
+
 /* 4 coloane egale, iconita deasupra textului, centrat - varianta ceruta
    explicit de user (2026-08-29), inlocuind randul unic cu puncte
    despartitoare de mai devreme. Grid, nu flex, deci fara riscul de
@@ -23839,8 +23871,9 @@ form.cart table.variations select:focus-visible {
 .pap-color-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 8px 0 0;
+  gap: 16px;
+  row-gap: 18px;
+  margin: 12px 0 0;
   max-width: 100%;
 }
 
@@ -23875,6 +23908,72 @@ form.cart table.variations select:focus-visible {
 .pap-color-swatch:focus-visible {
   outline: 2px solid #2f6fb3;
   outline-offset: 2px;
+}
+
+/* Culoare epuizata: nu se poate selecta (vezi JS-ul din color-swatches.php,
+   ignora click-ul). Linia diagonala + tooltip la hover, ca la marile
+   magazine online - clientul intelege dintr-o privire ca nu e disponibila,
+   fara sa mai fie nevoie sa dea click ca sa afle. Decizie user 2026-09-04,
+   global pe tot site-ul (nu doar pe un produs).
+   IMPORTANT: nu folosim "opacity" pe tot elementul - ar estompa in acelasi
+   fel si linia diagonala de mai jos, facand-o aproape invizibila (gasit
+   live 2026-09-04, prima varianta era prea slaba). Estomparea culorii vine
+   doar din filter (nu atinge alte pseudo-elemente la fel de tare) + un voal
+   alb separat, iar linia ramane opaca, cu propriul ei contrast. */
+.pap-color-swatch--oos {
+  cursor: not-allowed;
+  filter: grayscale(45%) brightness(1.12);
+}
+
+.pap-color-swatch--oos::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      to top right,
+      transparent calc(50% - 1.5px),
+      var(--pap-red) calc(50% - 1.5px),
+      var(--pap-red) calc(50% + 1.5px),
+      transparent calc(50% + 1.5px)
+    ),
+    rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+.pap-color-swatch--oos:hover {
+  outline: none;
+}
+
+/* Tooltip la hover/focus - text preluat din data-oos-label (setat in PHP),
+   nu depindem doar de tooltip-ul nativ al "title" (lent, stil inconsistent
+   intre browsere). */
+.pap-color-swatch--oos::after {
+  content: attr(data-oos-label);
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--pap-navy, #0d2e61);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  padding: 4px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms ease;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.pap-color-swatch--oos:hover::after,
+.pap-color-swatch--oos:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Products with 30-50+ color variants would otherwise wrap the swatch row
