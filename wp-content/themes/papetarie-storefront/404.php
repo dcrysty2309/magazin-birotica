@@ -24,7 +24,6 @@ $pap_404_categories = ['articole-scolare', 'accesorii-pentru-scris', 'organizare
 
     <div class="pap-404-hero__actions">
       <a class="pap-404-hero__primary" href="<?php echo esc_url(home_url('/')); ?>">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2"></path><path d="M5 10.5V21h14V10.5"></path></svg>
         <?php esc_html_e('Pagina principală', 'papetarie-storefront'); ?>
       </a>
       <a class="pap-404-hero__secondary" href="<?php echo esc_url($pap_404_account_url); ?>">

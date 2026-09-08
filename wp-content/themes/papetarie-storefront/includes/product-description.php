@@ -34,6 +34,17 @@ function papetarie_storefront_format_description_content(string $raw): string
         return '';
     }
 
+    // Descrierile Aperta contin uneori link-uri catre propriile site-uri
+    // (aperta.ro - catre produsul "sot" dintr-un set; aperta.shop - pagina
+    // proiectului "Caietele care spun povesti") - functionale, dar ar
+    // trimite clientul direct pe site-ul furnizorului/concurentei, adesea
+    // fara sa arate vizual ca link. Pastram textul ancorei, eliminam doar
+    // link-ul. Gasit 2026-09-08, 19 produse afectate pe Descriere cu
+    // aperta.ro (alte 8 aveau link-ul intr-o lista, care oricum e mutata in
+    // Specificatii si deja iese ca text simplu acolo) + ~30 produse "Caiet
+    // Aperta" cu aperta.shop. Decizie user.
+    $raw = preg_replace('/<a\b[^>]*\bhref=(["\'])https?:\/\/(?:www\.)?aperta\.(?:ro|shop)[^"\']*\1[^>]*>(.*?)<\/a>/is', '$2', $raw);
+
     // Produse adăugate manual din editorul cu blocuri (Gutenberg) - au deja
     // structură reală, lăsăm WordPress să le randeze nativ în loc să aplicăm
     // euristica de mai jos, gândită pentru text simplu venit din feed.
