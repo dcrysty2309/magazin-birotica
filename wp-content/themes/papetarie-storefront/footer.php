@@ -13,7 +13,7 @@ $logo_image_on_dark = get_stylesheet_directory_uri() . '/assets/images/logo-noti
     <div class="pap-footer-meta">
       <div class="pap-shell pap-footer-meta-inner">
         <p>&copy; <?php echo esc_html(date_i18n('Y')); ?> <?php bloginfo('name'); ?>. <?php esc_html_e('Toate drepturile rezervate.', 'papetarie-storefront'); ?></p>
-        <p class="pap-footer-meta-legal">ARTFLEX SRL, CUI: 49485790, Reg. Com.: J2024000512123</p>
+        <p class="pap-footer-meta-legal">ARTFLEX SRL, CUI: 49485790, Reg. Com.: J2024000512123, Florești, str. Lacului, nr. 2, jud. Cluj &middot; <a href="mailto:contact@notix.ro">contact@notix.ro</a> &middot; <a href="tel:0740123456">0740 123 456</a> &middot; <a href="#" data-pap-cookie-reopen><?php esc_html_e('Setări cookies', 'papetarie-storefront'); ?></a></p>
       </div>
     </div>
   </footer>
@@ -124,11 +124,65 @@ $logo_image_on_dark = get_stylesheet_directory_uri() . '/assets/images/logo-noti
     <div class="pap-footer-meta">
       <div class="pap-shell pap-footer-meta-inner">
         <p>&copy; <?php echo esc_html(date_i18n('Y')); ?> <?php bloginfo('name'); ?>. <?php esc_html_e('Toate drepturile rezervate.', 'papetarie-storefront'); ?></p>
-        <p class="pap-footer-meta-legal">ARTFLEX SRL, CUI: 49485790, Reg. Com.: J2024000512123</p>
+        <p class="pap-footer-meta-legal">ARTFLEX SRL, CUI: 49485790, Reg. Com.: J2024000512123, Florești, str. Lacului, nr. 2, jud. Cluj &middot; <a href="mailto:contact@notix.ro">contact@notix.ro</a> &middot; <a href="tel:0740123456">0740 123 456</a> &middot; <a href="#" data-pap-cookie-reopen><?php esc_html_e('Setări cookies', 'papetarie-storefront'); ?></a></p>
       </div>
     </div>
   </footer>
 <?php endif; ?>
+
+<div class="pap-cookie-banner" id="pap-cookie-banner" role="dialog" aria-live="polite" aria-label="<?php esc_attr_e('Preferințe cookie-uri', 'papetarie-storefront'); ?>" hidden>
+  <div class="pap-shell pap-cookie-banner-inner">
+    <p class="pap-cookie-banner-text">
+      <?php
+      printf(
+          /* translators: %s: link to the cookie policy page */
+          esc_html__('Folosim cookie-uri strict necesare funcționării site-ului și, doar cu acordul tău, cookie-uri de analiză, ca să înțelegem cum e folosit site-ul. Poți afla mai multe în %s.', 'papetarie-storefront'),
+          '<a href="' . esc_url(home_url('/politica-de-cookie-uri/')) . '" target="_blank">' . esc_html__('Politica de cookie-uri', 'papetarie-storefront') . '</a>'
+      );
+      ?>
+    </p>
+    <div class="pap-cookie-banner-actions">
+      <button type="button" class="pap-cookie-btn pap-cookie-btn--ghost" data-pap-cookie-settings><?php esc_html_e('Setări cookies', 'papetarie-storefront'); ?></button>
+      <button type="button" class="pap-cookie-btn pap-cookie-btn--outline" data-pap-cookie-refuse><?php esc_html_e('Refuză cookie-urile neesențiale', 'papetarie-storefront'); ?></button>
+      <button type="button" class="pap-cookie-btn pap-cookie-btn--primary" data-pap-cookie-accept-all><?php esc_html_e('Acceptă toate', 'papetarie-storefront'); ?></button>
+    </div>
+  </div>
+</div>
+
+<div class="pap-cookie-modal" id="pap-cookie-modal" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('Setări cookies', 'papetarie-storefront'); ?>" hidden>
+  <div class="pap-cookie-modal-panel">
+    <div class="pap-cookie-modal-head">
+      <h2><?php esc_html_e('Setări cookies', 'papetarie-storefront'); ?></h2>
+      <button type="button" class="pap-cookie-modal-close" data-pap-cookie-close aria-label="<?php esc_attr_e('Închide', 'papetarie-storefront'); ?>">&times;</button>
+    </div>
+    <div class="pap-cookie-modal-body">
+      <div class="pap-cookie-category">
+        <div class="pap-cookie-category-head">
+          <span class="pap-cookie-category-title"><?php esc_html_e('Necesare', 'papetarie-storefront'); ?></span>
+          <label class="pap-cookie-switch pap-cookie-switch--locked">
+            <input type="checkbox" checked disabled>
+            <span class="pap-cookie-switch-track"></span>
+          </label>
+        </div>
+        <p class="pap-cookie-category-desc"><?php esc_html_e('Necesare pentru funcționarea site-ului: coșul de cumpărături, sesiunea de autentificare, finalizarea comenzii. Nu pot fi dezactivate.', 'papetarie-storefront'); ?></p>
+      </div>
+      <div class="pap-cookie-category">
+        <div class="pap-cookie-category-head">
+          <span class="pap-cookie-category-title"><?php esc_html_e('Analiză', 'papetarie-storefront'); ?></span>
+          <label class="pap-cookie-switch">
+            <input type="checkbox" data-pap-cookie-analytics>
+            <span class="pap-cookie-switch-track"></span>
+          </label>
+        </div>
+        <p class="pap-cookie-category-desc"><?php esc_html_e('Ne ajută să înțelegem cum e folosit site-ul (pagini vizitate, trafic), ca să-l îmbunătățim. Se activează doar cu acordul tău.', 'papetarie-storefront'); ?></p>
+      </div>
+    </div>
+    <div class="pap-cookie-modal-actions">
+      <button type="button" class="pap-cookie-btn pap-cookie-btn--outline" data-pap-cookie-save><?php esc_html_e('Salvează preferințele', 'papetarie-storefront'); ?></button>
+      <button type="button" class="pap-cookie-btn pap-cookie-btn--primary" data-pap-cookie-accept-all-modal><?php esc_html_e('Acceptă toate', 'papetarie-storefront'); ?></button>
+    </div>
+  </div>
+</div>
 
 <?php wp_footer(); ?>
 </body>
