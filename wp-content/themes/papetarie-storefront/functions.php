@@ -58,15 +58,15 @@ add_action('widgets_init', 'papetarie_storefront_widgets_init');
 if (is_admin()) {
     require_once __DIR__ . '/admin-category-ordering.php';
     require_once __DIR__ . '/admin-aperta-sync.php';
-    require_once __DIR__ . '/admin-newsletter.php';
-    require_once __DIR__ . '/admin-oblio.php';
+    if (file_exists(__DIR__ . '/admin-newsletter.php')) { require_once __DIR__ . '/admin-newsletter.php'; }
+    if (file_exists(__DIR__ . '/admin-oblio.php')) { require_once __DIR__ . '/admin-oblio.php'; }
 }
 
 require_once __DIR__ . '/includes/address-book.php';
-require_once __DIR__ . '/includes/company-book.php';
+if (file_exists(__DIR__ . '/includes/company-book.php')) { require_once __DIR__ . '/includes/company-book.php'; }
 require_once __DIR__ . '/includes/aperta-sync.php';
 require_once __DIR__ . '/includes/color-swatches.php';
-require_once __DIR__ . '/includes/newsletter.php';
+if (file_exists(__DIR__ . '/includes/newsletter.php')) { require_once __DIR__ . '/includes/newsletter.php'; }
 
 function papetarie_storefront_enqueue_styles(): void
 {
@@ -1104,6 +1104,23 @@ function papetarie_storefront_enqueue_checkout_scripts(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_checkout_scripts');
 
+function papetarie_storefront_enqueue_cookie_consent_script(): void
+{
+    $script_path = get_stylesheet_directory() . '/assets/js/cookie-consent.js';
+    $script_version = file_exists($script_path)
+        ? (string) filemtime($script_path)
+        : wp_get_theme()->get('Version');
+
+    wp_enqueue_script(
+        'papetarie-storefront-cookie-consent',
+        get_stylesheet_directory_uri() . '/assets/js/cookie-consent.js',
+        [],
+        $script_version,
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_cookie_consent_script');
+
 /**
  * Județ/Localitate <select> fields render as the native OS popup (some
  * counties have 700+ localities) — enhance them with WooCommerce's bundled
@@ -1178,16 +1195,24 @@ function papetarie_storefront_checkout_notice_hooks(): void
 }
 add_action('wp', 'papetarie_storefront_checkout_notice_hooks', 20);
 
-function papetarie_storefront_remove_checkout_privacy_policy_text(string $text, string $type = ''): string
+function papetarie_storefront_checkout_privacy_policy_text(string $text, string $type = ''): string
 {
-    if ($type !== 'checkout' || !function_exists('is_checkout') || !is_checkout()) {
+    if ($type !== 'checkout') {
         return $text;
     }
 
-    return '';
-}
+    $privacy_url = home_url('/politica-de-confidentialitate/');
 
-add_filter('woocommerce_get_privacy_policy_text', 'papetarie_storefront_remove_checkout_privacy_policy_text', 20, 2);
+    return sprintf(
+        '<p>%s</p>',
+        sprintf(
+            /* translators: %s: link to the privacy policy page */
+            esc_html__('Datele dumneavoastră sunt prelucrate pentru procesarea și livrarea comenzii, conform %s.', 'papetarie-storefront'),
+            '<a href="' . esc_url($privacy_url) . '" class="woocommerce-privacy-policy-link" target="_blank">' . esc_html__('Politicii de confidențialitate', 'papetarie-storefront') . '</a>'
+        )
+    );
+}
+add_filter('woocommerce_get_privacy_policy_text', 'papetarie_storefront_checkout_privacy_policy_text', 20, 2);
 
 function papetarie_storefront_get_checkout_notices_html(): string
 {
