@@ -1965,8 +1965,10 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
     // "1-1,5 (M)", "2-3 (B)") desi e aceeasi masuratoare, doar scrisa diferit
     // - facea filtrul sa para dezordonat. Adaugam "mm" oriunde lipseste,
     // pastram codul de varf (S/M/F/B) neschimbat. Decizie user 2026-09-07.
+    // Extins 2026-09-08: intervalul poate fi despartit si cu "/" (ex.
+    // "2,6/4,7", varf dublu Birello), nu doar cu "-" (ex. "1-4,7").
     if ($group === 'Grosime de scriere' && mb_stripos($value, 'mm') === false
-        && preg_match('/^([\d.,]+(?:-[\d.,]+)?)\s*(\([^)]*\))?$/u', trim($value), $m)) {
+        && preg_match('/^([\d.,]+(?:[-\/][\d.,]+)?)\s*(\([^)]*\))?$/u', trim($value), $m)) {
         $code = isset($m[2]) ? ' ' . trim($m[2]) : '';
         return trim($m[1]) . ' mm' . $code;
     }
