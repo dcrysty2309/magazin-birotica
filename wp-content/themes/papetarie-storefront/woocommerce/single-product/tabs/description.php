@@ -2,12 +2,21 @@
 
 defined('ABSPATH') || exit;
 
-global $product;
+global $product, $post;
 
 $tag_names = $product instanceof WC_Product ? wp_list_pluck(get_the_terms($product->get_id(), 'product_tag') ?: [], 'name') : [];
+
+// Randare uniforma a descrierii (proza recompusa din hard-wrap, randuri
+// "Eticheta: valoare" grupate separat, liste "- element" convertite in
+// <ul>, HTML existent neatins) - vezi
+// includes/product-description.php pentru detalii si motivul euristicii.
+// Continutul original din baza de date nu e modificat, doar randarea.
+$raw_content = (string) ($post->post_content ?? '');
+$description_html = papetarie_storefront_format_description_content($raw_content);
+$description_html = str_replace(']]>', ']]&gt;', $description_html);
 ?>
 <div class="pap-product-description-box" data-description-box>
-  <?php the_content(); ?>
+  <?php echo $description_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
   <div class="pap-product-description-fade" aria-hidden="true"></div>
 </div>
 

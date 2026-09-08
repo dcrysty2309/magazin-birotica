@@ -1503,6 +1503,64 @@ function papetarie_storefront_aperta_get_or_create_attr_term(string $group, stri
 }
 
 /**
+ * Construieste atribute WooCommerce reale (locale, nu taxonomie) dintr-un
+ * set de perechi grup=>valoare extrase din descriere/nume - astea sunt ce
+ * populeaza efectiv tab-ul "Specificatii" de pe pagina de produs
+ * ($product->set_attributes()), spre deosebire de taxonomia
+ * product_attr_value (tag_attr_terms()/tag_multiple_attrs()/
+ * tag_variant_and_extra_attrs() de mai jos), care serveste DOAR filtrul de
+ * pe pagina de arhiva si nu are nicio legatura cu ce se afiseaza pe tab-ul
+ * de produs. Pana acum doar taxonomia era populata - Specificatii ramanea
+ * gol la toate produsele simple si arata doar culoarea la cele variabile,
+ * desi extract_description_attributes()/extract_text_attributes() gaseau
+ * deja Format/Material/Dimensiuni/Greutate etc., pur si simplu nimeni nu le
+ * punea si pe produs, doar in taxonomia de filtrare. Gasit 2026-08-30.
+ *
+ * $plainListItems (vezi extract_plain_list_items()) sunt bullet-uri fara
+ * eticheta scurta - merg toate sub UN singur atribut generic "Caracteristici"
+ * (WooCommerce afiseaza mai multe valori pe acelasi atribut local ca lista
+ * separata prin virgula) - fara exceptie, orice bullet ajunge in
+ * Specificatii, decizie explicita a userului 2026-08-30.
+ *
+ * @param array<string, string> $groupValuePairs grup => valoare
+ * @param string[] $plainListItems
+ * @return WC_Product_Attribute[]
+ */
+function papetarie_storefront_aperta_build_extra_wc_attributes(array $groupValuePairs, array $plainListItems = []): array
+{
+    $attributes = [];
+
+    foreach ($groupValuePairs as $group => $value) {
+        $group = trim((string) $group);
+        $value = trim((string) $value);
+        if ($group === '' || $value === '') {
+            continue;
+        }
+
+        $attribute = new WC_Product_Attribute();
+        $attribute->set_id(0);
+        $attribute->set_name($group);
+        $attribute->set_options([$value]);
+        $attribute->set_visible(true);
+        $attribute->set_variation(false);
+        $attributes[] = $attribute;
+    }
+
+    $plainListItems = array_values(array_filter(array_map('trim', $plainListItems), static fn (string $v): bool => $v !== ''));
+    if (!empty($plainListItems)) {
+        $attribute = new WC_Product_Attribute();
+        $attribute->set_id(0);
+        $attribute->set_name(__('Caracteristici', 'papetarie-storefront'));
+        $attribute->set_options($plainListItems);
+        $attribute->set_visible(true);
+        $attribute->set_variation(false);
+        $attributes[] = $attribute;
+    }
+
+    return $attributes;
+}
+
+/**
  * Eticheteaza produsul-parinte cu termenii (grup, valoare) pentru toate
  * valorile distincte gasite la variantele lui - asa poate fi gasit prin
  * filtrare chiar daca pagina de arhiva listeaza doar produsul-parinte, nu
@@ -1613,22 +1671,6 @@ function papetarie_storefront_aperta_backfill_attributes_chunk(int $offset, int 
             continue;
         }
 
-        if ($product instanceof WC_Product_Variable) {
-            $attributes = $product->get_attributes();
-            if (empty($attributes)) {
-                continue;
-            }
-            $attribute = reset($attributes);
-            $group = $attribute->get_name();
-            $values = $attribute->get_options();
-            if ($group === '' || empty($values)) {
-                continue;
-            }
-            papetarie_storefront_aperta_tag_attr_terms($id, $group, $values);
-            $tagged++;
-            continue;
-        }
-
         $name = $product->get_name();
         $description = $product->get_description();
         $categoryNames = wp_get_post_terms($id, 'product_cat', ['fields' => 'names']);
@@ -1636,10 +1678,52 @@ function papetarie_storefront_aperta_backfill_attributes_chunk(int $offset, int 
 
         $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
         $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
-        $allAttrs = $descAttrs + $textAttrs;
+        $extraAttrs = $descAttrs + $textAttrs;
+        $plainItems = papetarie_storefront_aperta_extract_plain_list_items($description, $descAttrs);
 
-        if ($allAttrs) {
-            papetarie_storefront_aperta_tag_multiple_attrs($id, $allAttrs);
+        if ($product instanceof WC_Product_Variable) {
+            // Nu recalculam atributul de variatie (culoare) - nu avem
+            // randurile din feed aici, doar ce e deja salvat. Pastram
+            // atributul de variatie existent neatins, adaugam doar
+            // extra-atributele descoperite acum in descriere/nume - vezi
+            // build_extra_wc_attributes() (populeaza tab-ul "Specificatii",
+            // gol pana acum la produsele variabile in afara de culoare).
+            $existingAttributes = $product->get_attributes();
+            $variationAttribute = null;
+            foreach ($existingAttributes as $attr) {
+                if ($attr->get_variation()) {
+                    $variationAttribute = $attr;
+                    break;
+                }
+            }
+            if ($variationAttribute === null) {
+                continue;
+            }
+
+            $group = $variationAttribute->get_name();
+            $values = $variationAttribute->get_options();
+            if ($group === '' || empty($values)) {
+                continue;
+            }
+            unset($extraAttrs[$group]);
+
+            $product->set_attributes(array_merge(
+                [$variationAttribute],
+                papetarie_storefront_aperta_build_extra_wc_attributes($extraAttrs, $plainItems)
+            ));
+            $product->save();
+
+            papetarie_storefront_aperta_tag_variant_and_extra_attrs($id, $group, $values, $extraAttrs);
+            $tagged++;
+            continue;
+        }
+
+        if ($extraAttrs || $plainItems) {
+            $product->set_attributes(papetarie_storefront_aperta_build_extra_wc_attributes($extraAttrs, $plainItems));
+            $product->save();
+            if ($extraAttrs) {
+                papetarie_storefront_aperta_tag_multiple_attrs($id, $extraAttrs);
+            }
             $tagged++;
         }
     }
@@ -1803,11 +1887,19 @@ function papetarie_storefront_aperta_extract_text_attributes(string $name, strin
  * nu doar cateva anume - functioneaza pe orice categorie, fara reguli
  * speciale per tip de produs.
  *
- * Doar valorile scurte devin filtre (sub PAP_ATTR_DESC_MAX_VALUE_LENGTH) -
- * unele etichete (ex. "Compartimente", "Caracteristici suplimentare") au
- * propozitii intregi ca valoare, unice per produs, care n-ar functiona ca
- * optiune de filtru (fiecare produs ar avea alta valoare, deci n-ar filtra
- * nimic util) - lungimea e un filtru simplu, generic, pentru asta.
+ * Prinde perechile atat in <li>...</li> CAT SI pe rand simplu de text, fara
+ * <li> (ex. "Dimensiuni: L 32 x h 41 x l 15 cm." pe propriul rand) - gasit
+ * 2026-08-30 la rucsacul Exacompta: "Dimensiuni" nu era in <li>, ramanea
+ * needetectat cu regex-ul vechi (doar <li>), deci nepromovat ca atribut si
+ * nescos din tab-ul Descriere - inconsecventa semnalata de user.
+ *
+ * Doar valorile scurte devin atribute - unele etichete (ex.
+ * "Caracteristici") au propozitii intregi ca valoare, care nu functioneaza
+ * nici ca optiune de filtru, nici ca randul unui tabel de specificatii -
+ * lungimea e un filtru simplu, generic, pentru asta. Astea NU se pierd -
+ * vezi extract_plain_list_items() mai jos, care le string sub un atribut
+ * generic "Caracteristici" (orice bullet ajunge in Specificatii, fara
+ * exceptie, decizie explicita a userului 2026-08-30).
  *
  * @return array<string, string> grup => valoare
  */
@@ -1816,29 +1908,104 @@ function papetarie_storefront_aperta_extract_description_attributes(string $desc
     $attrs = [];
     $maxValueLength = 40;
 
-    if (!preg_match_all('/<li>\s*([^:<]{2,40}):\s*([^<]+?)\s*<\/li>/iu', $description, $matches, PREG_SET_ORDER)) {
-        return $attrs;
+    if (preg_match_all('/<li>\s*([^:<]{2,40}):\s*([^<]+?)\s*<\/li>/iu', $description, $matches, PREG_SET_ORDER)) {
+        foreach ($matches as $match) {
+            papetarie_storefront_aperta_collect_desc_attr($attrs, $match[1], $match[2], $maxValueLength);
+        }
     }
 
-    foreach ($matches as $match) {
-        $rawGroup = trim($match[1]);
-        $value = trim($match[2]);
-
-        if ($rawGroup === '' || $value === '' || mb_strlen($value) > $maxValueLength) {
+    foreach (preg_split('/\r\n|\r|\n/', $description) as $line) {
+        $line = trim(wp_strip_all_tags($line));
+        if ($line === '' || !str_contains($line, ':')) {
             continue;
         }
+        if (preg_match('/^([\p{L}][\p{L}\s\/\-]{1,39}):\s*(\S.*)$/u', $line, $m)) {
+            papetarie_storefront_aperta_collect_desc_attr($attrs, $m[1], $m[2], $maxValueLength);
+        }
+    }
 
-        // Normalizare simpla de capitalizare, ca "Nr. file" si "Nr. FILE" sa
-        // devina acelasi grup (altfel am avea carduri de filtru duplicate).
-        // Capitalizarea VALORII se face centralizat, in
-        // get_or_create_attr_term() - acolo trec si variantele produselor
-        // variabile (text brut din feed), nu doar cele extrase aici.
-        $group = mb_convert_case($rawGroup, MB_CASE_TITLE, 'UTF-8');
-
-        $attrs[$group] = $value;
+    // "Format A4" scris in proza, fara "Format:" - vocabular inchis (formate
+    // de hartie standard), deci sigur de extras oriunde apare in text, spre
+    // deosebire de o eticheta libera. Nu suprascrie un "Format: ..." deja
+    // gasit mai sus prin perechea eticheta:valoare. Gasit 2026-08-31 la un
+    // set creativ Carioca unde "Format A4" era ingropat intr-o singura
+    // propozitie lunga, fara ":", deci needetectat de regulile de mai sus.
+    if (!isset($attrs['Format']) && preg_match('/\bFormat\s+(A[0-9]|B[0-9]|DL)\b/iu', $description, $m)) {
+        $attrs['Format'] = strtoupper($m[1]);
     }
 
     return $attrs;
+}
+
+function papetarie_storefront_aperta_collect_desc_attr(array &$attrs, string $rawGroup, string $rawValue, int $maxValueLength): void
+{
+    $rawGroup = trim($rawGroup);
+    $value = trim($rawValue);
+
+    if ($rawGroup === '' || $value === '' || mb_strlen($value) > $maxValueLength) {
+        return;
+    }
+
+    // Normalizare simpla de capitalizare, ca "Nr. file" si "Nr. FILE" sa
+    // devina acelasi grup (altfel am avea carduri de filtru duplicate).
+    // Capitalizarea VALORII se face centralizat, in
+    // get_or_create_attr_term() - acolo trec si variantele produselor
+    // variabile (text brut din feed), nu doar cele extrase aici.
+    $group = mb_convert_case($rawGroup, MB_CASE_TITLE, 'UTF-8');
+
+    $attrs[$group] = $value;
+}
+
+/**
+ * Extrage textul TUTUROR elementelor de lista care NU sunt deja perechi
+ * "Eticheta: valoare" (vezi extract_description_attributes() mai sus) -
+ * bullet-uri pur descriptive (<li>Compact si usor de transportat</li>) sau
+ * cu valoare prea lunga ca sa fi devenit atribut. Decizie explicita a
+ * userului 2026-08-30: ORICE bullet/lista trebuie sa ajunga in tab-ul
+ * Specificatii, fara exceptie, nu doar cele care arata ca o specificatie
+ * scurta - randurile astea nu mai raman deloc in Descriere (vezi
+ * includes/product-description.php).
+ *
+ * @param array<string, string> $labeledAttrs perechile deja extrase, ca sa nu le numaram de doua ori
+ * @return string[] textul fiecarui bullet, in ordinea din sursa, fara duplicate
+ */
+function papetarie_storefront_aperta_extract_plain_list_items(string $description, array $labeledAttrs): array
+{
+    $items = [];
+
+    if (preg_match_all('/<li>\s*(.*?)\s*<\/li>/isu', $description, $matches, PREG_SET_ORDER)) {
+        foreach ($matches as $match) {
+            $text = trim(wp_strip_all_tags($match[1]));
+            if ($text !== '' && !papetarie_storefront_aperta_text_matches_labeled_attr($text, $labeledAttrs)) {
+                $items[] = $text;
+            }
+        }
+    }
+
+    foreach (preg_split('/\r\n|\r|\n/', $description) as $line) {
+        $line = trim($line);
+        if (!preg_match('/^(?:[-*•]|\d+[.\)])\s+(\S.*)$/u', $line, $m)) {
+            continue;
+        }
+        $text = trim(wp_strip_all_tags($m[1]));
+        if ($text !== '' && !papetarie_storefront_aperta_text_matches_labeled_attr($text, $labeledAttrs)) {
+            $items[] = $text;
+        }
+    }
+
+    return array_values(array_unique($items));
+}
+
+function papetarie_storefront_aperta_text_matches_labeled_attr(string $text, array $labeledAttrs): bool
+{
+    if (!preg_match('/^([\p{L}][\p{L}\s\/\-]{1,39}):\s*(\S.*)$/u', $text, $m)) {
+        return false;
+    }
+
+    $group = mb_convert_case(trim($m[1]), MB_CASE_TITLE, 'UTF-8');
+    $value = trim($m[2]);
+
+    return isset($labeledAttrs[$group]) && $labeledAttrs[$group] === $value;
 }
 
 function papetarie_storefront_aperta_stock_status_from_text(string $statusText): string
@@ -1922,6 +2089,33 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     $productId = $isVariable
         ? papetarie_storefront_aperta_find_parent_by_cod_produs($codProdus)
         : papetarie_storefront_aperta_find_by_sku_meta($primaryCodUnic);
+
+    // papetarie_storefront_aperta_lookup_maps() cauta INTENTIONAT si prin
+    // 'product_variation' (nu doar 'product'), ca sa detecteze exact cazul
+    // de mai jos - un cod care a ajuns sa fie deja variatia altui produs.
+    // Daca $productId gasit aici e de fapt o variatie, WC_Product_Variable/
+    // WC_Product_Simple('$productId') arunca "Invalid product." la citire
+    // (WC_Product_Data_Store_CPT::read() cere post_type==='product') si
+    // crapa tot lotul de sincronizare - fara recuperare, pentru ca $offset-ul
+    // urmator nu mai apuca sa fie programat. Confirmat live: sincronizarea
+    // de produse s-a blocat la acelasi offset la fiecare rulare de cand a
+    // aparut coliziunea (jurnal Action Scheduler, "Produsul nu este valid.").
+    // Acelasi tip de coliziune e deja tratat mai jos la nivel de variatie
+    // individuala (cauta "WC_Product_Variation arunca eroare") - aici lipsea
+    // echivalentul la nivel de produs-parinte. Tratam la fel: nu il folosim
+    // ca match valid (ramane candidat pentru migrarea manuala existenta),
+    // ca sa nu crape restul sincronizarii pentru toate produsele de dupa el.
+    if ($productId !== null && get_post_type($productId) !== 'product') {
+        $pendingMigrations = get_option('pap_aperta_pending_variation_migrations', []);
+        $pendingMigrations[$isVariable ? $codProdus : $primaryCodUnic] = [
+            'existing_post_id' => $productId,
+            'existing_post_type' => get_post_type($productId),
+            'context' => 'parent_lookup',
+            'found_at' => current_time('mysql'),
+        ];
+        update_option('pap_aperta_pending_variation_migrations', $pendingMigrations, false);
+        $productId = null;
+    }
 
     // Potrivirea dupa nume e gandita pentru produse vechi din importul JSON
     // original (fara SKU) - pentru un grup sintetic (creat de consolidare,
@@ -2090,14 +2284,25 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
             $simple->set_gallery_image_ids(array_slice($imageIds, 1));
         }
 
-        $simple->save();
-
         // Descrierea e o sursa mai bogata si mai fiabila (liste structurate
         // "Eticheta: Valoare") decat titlul - o citim intai, apoi completam
-        // cu ce mai gasim in titlu daca nu a fost deja acolo.
+        // cu ce mai gasim in titlu daca nu a fost deja acolo. Setate direct
+        // pe produs (nu doar in taxonomia de filtrare de mai jos) ca sa
+        // populeze si tab-ul "Specificatii" de pe pagina de produs, gol pana
+        // acum la toate produsele simple (vezi build_extra_wc_attributes()).
+        // Bullet-urile fara eticheta scurta (extract_plain_list_items) merg
+        // si ele acolo, sub "Caracteristici" - fara exceptie, orice bullet
+        // ajunge in Specificatii, nu ramane in Descriere.
         $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
         $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
         $allAttrs = $descAttrs + $textAttrs;
+        $plainItems = papetarie_storefront_aperta_extract_plain_list_items($description, $descAttrs);
+        if ($allAttrs || $plainItems) {
+            $simple->set_attributes(papetarie_storefront_aperta_build_extra_wc_attributes($allAttrs, $plainItems));
+        }
+
+        $simple->save();
+
         if ($allAttrs) {
             papetarie_storefront_aperta_tag_multiple_attrs($productId, $allAttrs);
         }
@@ -2231,6 +2436,19 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
     }
     $values = array_keys($values);
 
+    // Atributele suplimentare extrase din descriere/nume (Format, Gramaj,
+    // Ambalare etc.) - multe produse variabile au si ele liste structurate
+    // in descriere, pierdute pana acum fiindca doar culoarea/varianta
+    // ajungea pe produs (vezi build_extra_wc_attributes() mai sus).
+    // Bullet-urile fara eticheta scurta merg si ele acolo, sub
+    // "Caracteristici" - fara exceptie, orice bullet ajunge in
+    // Specificatii, nu ramane in Descriere.
+    $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
+    $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
+    $extraAttrs = $descAttrs + $textAttrs;
+    unset($extraAttrs[$attributeName]);
+    $plainItems = papetarie_storefront_aperta_extract_plain_list_items($description, $descAttrs);
+
     $attribute = new WC_Product_Attribute();
     $attribute->set_id(0);
     $attribute->set_name($attributeName);
@@ -2239,19 +2457,15 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
     $attribute->set_variation(true);
 
     $variable = new WC_Product_Variable($productId);
-    $variable->set_attributes([$attribute]);
+    $variable->set_attributes(array_merge(
+        [$attribute],
+        papetarie_storefront_aperta_build_extra_wc_attributes($extraAttrs, $plainItems)
+    ));
     $variable->save();
 
-    // Etichetare pentru filtrare pe pagina de arhiva (separat de atributul
-    // WooCommerce de mai sus, care e pentru afisare/variatii, nu pentru query).
-    // Combinam si atributele extrase din descriere/nume (Format, Gramaj,
-    // Ambalare etc.) - multe produse variabile au si ele liste structurate
-    // in descriere, pierdute pana acum fiindca doar culoarea/varianta se
-    // etticheta pentru produsele variabile.
-    $descAttrs = papetarie_storefront_aperta_extract_description_attributes($description);
-    $textAttrs = papetarie_storefront_aperta_extract_text_attributes($name, $categoryPath);
-    $extraAttrs = $descAttrs + $textAttrs;
-    unset($extraAttrs[$attributeName]);
+    // Etichetare pentru filtrare pe pagina de arhiva (separat de atributele
+    // WooCommerce de mai sus, care alimenteaza tab-ul "Specificatii" - asta
+    // e doar pentru query-ul de filtrare de pe pagina de arhiva).
     papetarie_storefront_aperta_tag_variant_and_extra_attrs($productId, $attributeName, $values, $extraAttrs);
 
     $attributeKey = sanitize_title($attributeName);
@@ -2653,7 +2867,35 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
             $startedAt
         );
 
-        $result = papetarie_storefront_aperta_upsert_product($grouped[$codes[$i]]);
+        // Plasa de siguranta: un singur produs cu date neasteptate (ex. o
+        // coliziune de tip post nedetectata de garda de mai sus, sau orice
+        // alta exceptie neprevazuta din WooCommerce) nu mai are voie sa
+        // opreasca sincronizarea pentru TOATE produsele ramase dupa el -
+        // exact ce se intampla inainte (fara try/catch aici, o exceptie
+        // scapa din bucla, intreaga bucata pica "esuata" in Action Scheduler
+        // si $nextOffset nu mai apuca sa fie programat, deci sincronizarea
+        // ramane blocata definitiv la acelasi offset). Rezultatul sintetic
+        // de mai jos are aceeasi forma ca cea folosita la "randuri goale"
+        // (linia ~2070) - deja verificata sigura de describe_upsert()/
+        // upsert_is_changed() cu is_new=false, is_variable=false.
+        try {
+            $result = papetarie_storefront_aperta_upsert_product($grouped[$codes[$i]]);
+        } catch (Throwable $e) {
+            papetarie_storefront_aperta_debug_checkpoint(
+                sprintf('chunk offset=%d item=%d/%d cod=%s - EROARE: %s', $offset, $i, $total, (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i]), $e->getMessage()),
+                $startedAt
+            );
+            $result = [
+                'product_id' => 0,
+                'is_new' => false,
+                'is_variable' => false,
+                'old_price' => null,
+                'new_price' => null,
+                'variations' => null,
+                'was_trashed' => false,
+                'sync_error' => $e->getMessage(),
+            ];
+        }
 
         papetarie_storefront_aperta_debug_checkpoint(
             sprintf('chunk offset=%d item=%d/%d cod=%s - DONE', $offset, $i, $total, (string) ($grouped[$codes[$i]][0]['Cod produs'] ?? $codes[$i])),
@@ -2662,7 +2904,7 @@ function papetarie_storefront_aperta_sync_products_chunk_cb(int $offset = 0): vo
 
         $items[] = [
             'sku' => trim((string) $grouped[$codes[$i]][0]['Cod unic']),
-            'name' => trim((string) $grouped[$codes[$i]][0]['Denumire produs']) . ' (' . papetarie_storefront_aperta_describe_upsert($result) . ')',
+            'name' => trim((string) $grouped[$codes[$i]][0]['Denumire produs']) . ' (' . (isset($result['sync_error']) ? ('sărit, eroare: ' . $result['sync_error']) : papetarie_storefront_aperta_describe_upsert($result)) . ')',
             'changed' => papetarie_storefront_aperta_upsert_is_changed($result),
             'trashed' => $result['was_trashed'],
         ];

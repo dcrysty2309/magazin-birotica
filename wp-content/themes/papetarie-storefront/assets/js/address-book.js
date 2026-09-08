@@ -258,24 +258,39 @@
     return isValid;
   };
 
+  // "message" poate fi un string simplu (mesaj de succes) sau un array de
+  // mesaje de validare - randate ca lista, nu inlantuite intr-un singur
+  // paragraf ("Completează denumirea. Alege județul...", greu de citit).
+  // Semnalat live de user 2026-08-31.
   const setNotice = ($form, message, type) => {
     const $noticeWrap = $form.closest('.pap-account-address-modal').find('[data-address-book-form-notice]').first();
     if (!$noticeWrap.length) {
       return;
     }
 
-    if (!message) {
+    const messages = Array.isArray(message) ? message.filter(Boolean) : (message ? [message] : []);
+    if (!messages.length) {
       $noticeWrap.empty();
       return;
     }
 
     const noticeClass = type === 'success' ? 'is-success' : 'is-error';
-    const html = $('<div>', {
+    const $notice = $('<div>', {
       class: `pap-account-address-modal__notice ${noticeClass}`,
       role: 'alert',
-      text: message,
     });
-    $noticeWrap.empty().append(html);
+
+    if (messages.length > 1) {
+      const $list = $('<ul>', { class: 'pap-account-address-modal__notice-list' });
+      messages.forEach((msg) => {
+        $('<li>').text(msg).appendTo($list);
+      });
+      $notice.append($list);
+    } else {
+      $notice.text(messages[0]);
+    }
+
+    $noticeWrap.empty().append($notice);
   };
 
   const clearNotice = ($form) => setNotice($form, '', '');
@@ -307,6 +322,7 @@
     setValue('[name="address_1"]', entry.address_1 || '');
     setValue('[name="postcode"]', entry.postcode || '');
     setValue('[name="country"]', entry.country || 'RO');
+    setValue('[name="delivery_notes"]', entry.delivery_notes || '');
 
     window.setTimeout(() => syncCitySelect($form), 0);
     window.setTimeout(() => syncCitySelect($form), 120);
@@ -426,8 +442,10 @@
     const json = await response.json();
     if (!json || !json.success) {
       const errorMessages = json && json.data && Array.isArray(json.data.messages) ? json.data.messages : [];
-      const message = errorMessages.length ? errorMessages.join(' ') : (json && json.data && json.data.message) || 'Nu am putut salva adresa.';
-      throw new Error(message);
+      const fallbackMessage = (json && json.data && json.data.message) || 'Nu am putut salva adresa.';
+      const requestError = new Error(errorMessages.length ? errorMessages.join(' ') : fallbackMessage);
+      requestError.messages = errorMessages.length ? errorMessages : [fallbackMessage];
+      throw requestError;
     }
 
     return json.data || {};
@@ -486,7 +504,7 @@
         await requestAddressBook($form.get(0));
         window.location.reload();
       } catch (error) {
-        setNotice($form, error && error.message ? error.message : 'Nu am putut salva adresa.', 'error');
+        setNotice($form, (error && error.messages) || (error && error.message) || 'Nu am putut salva adresa.', 'error');
         setBusyState($form, false);
       }
     });
@@ -497,7 +515,10 @@
     $(document).on('submit.papAddressBookDelete', '[data-address-delete-form]', async function (event) {
       event.preventDefault();
 
-      if (!window.confirm(deleteConfirm)) {
+      const confirmed = window.papConfirmModal
+        ? await window.papConfirmModal(deleteConfirm, { title: 'Ștergi adresa?', confirmLabel: 'Da, șterge' })
+        : window.confirm(deleteConfirm);
+      if (!confirmed) {
         return;
       }
 

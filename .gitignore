@@ -25,3 +25,6 @@ wp-content/plugins/
 # (.gitignore nu foloseste ghilimele shell - spatiile din nume sunt literale)
 contract client  (inclus clauza directiva UE 679_680 si acord fc electr).._Artflex (1).doc
 contract client - anexa _dropshipping ARTFLEX.doc
+
+# Directorul local al Claude Code (setari, worktree-uri de agenti) - nu e cod versionat
+.claude/

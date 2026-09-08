@@ -86,7 +86,7 @@ if (!is_tax('product_cat')) {
           >
             <span class="pap-tool-icon-badge" aria-hidden="true">
               <i class="pap-tool-icon"><?php echo papetarie_storefront_icon('cart'); ?></i>
-              <span class="pap-tool-count-badge" data-pap-cart-count-badge><?php echo esc_html(papetarie_storefront_cart_count()); ?></span>
+              <span class="pap-tool-count-badge" data-pap-cart-count-badge<?php echo papetarie_storefront_cart_count() === '0' ? ' hidden' : ''; ?>><?php echo esc_html(papetarie_storefront_cart_count()); ?></span>
             </span>
             <span class="pap-tool-copy">
               <strong><?php esc_html_e('Coș', 'papetarie-storefront'); ?></strong>
@@ -100,12 +100,18 @@ if (!is_tax('product_cat')) {
 
       <div class="pap-nav-row" id="pap-nav-row" data-mobile-nav-panel>
         <div class="pap-mobile-nav-head">
-          <span class="pap-mobile-nav-head-title"><?php esc_html_e('Meniu', 'papetarie-storefront'); ?></span>
+          <a class="pap-logo pap-mobile-nav-logo" href="<?php echo esc_url(home_url('/')); ?>">
+            <?php if (papetarie_storefront_has_real_logo()) : ?>
+              <span class="pap-logo-image"><?php the_custom_logo(); ?></span>
+            <?php else : ?>
+              <span class="pap-logo-image">
+                <img src="<?php echo esc_url(get_stylesheet_directory_uri() . '/assets/images/logo-notix.png'); ?>" alt="<?php esc_attr_e('Notix', 'papetarie-storefront'); ?>">
+              </span>
+            <?php endif; ?>
+          </a>
           <button class="pap-mobile-nav-close" type="button" aria-label="<?php esc_attr_e('Închide meniul', 'papetarie-storefront'); ?>" data-mobile-nav-close>&times;</button>
         </div>
         <div class="pap-shell pap-nav-inner">
-          <div class="pap-mobile-nav-section-title"><?php esc_html_e('Categorii', 'papetarie-storefront'); ?></div>
-
           <div class="pap-category-menu-anchor">
             <button
               class="pap-category-trigger"
@@ -138,18 +144,31 @@ if (!is_tax('product_cat')) {
           </nav>
 
           <div class="pap-help-links">
-            <?php
-            wp_nav_menu(
-                [
-                    'theme_location' => 'utility',
-                    'container' => false,
-                    'menu_class' => 'pap-utility-menu',
-                    'fallback_cb' => static function (): void {
-                        echo '<ul class="pap-utility-menu"><li><a href="#">' . papetarie_storefront_icon('headset-outline') . '<span>Ai nevoie de ajutor?</span></a></li></ul>';
-                    },
-                ]
-            );
-            ?>
+            <?php $header_support = papetarie_storefront_get_checkout_support_details(); ?>
+            <div class="pap-help-dropdown" data-help-dropdown>
+              <button
+                type="button"
+                class="pap-help-trigger"
+                data-help-trigger
+                aria-haspopup="true"
+                aria-expanded="false"
+              >
+                <?php echo papetarie_storefront_icon('headset-outline'); ?>
+                <span><?php esc_html_e('Ai nevoie de ajutor?', 'papetarie-storefront'); ?></span>
+              </button>
+              <div class="pap-help-panel" data-help-panel hidden>
+                <?php if ($header_support['phone'] !== '') : ?>
+                  <a class="pap-help-panel-item" href="<?php echo esc_attr('tel:+4' . preg_replace('/\s+/', '', $header_support['phone'])); ?>">
+                    <?php echo papetarie_storefront_checkout_address_card_icon_svg('phone'); ?>
+                    <span><?php echo esc_html($header_support['phone']); ?></span>
+                  </a>
+                <?php endif; ?>
+                <a class="pap-help-panel-item" href="mailto:contact@notix.ro">
+                  <?php echo papetarie_storefront_checkout_address_card_icon_svg('email'); ?>
+                  <span>contact@notix.ro</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -177,6 +196,63 @@ if (!is_tax('product_cat')) {
       try {
         window.sessionStorage.setItem(storageKey, '1');
       } catch (error) {}
+    });
+  })();
+
+  (function () {
+    var wrap = document.querySelector('[data-help-dropdown]');
+    var trigger = wrap ? wrap.querySelector('[data-help-trigger]') : null;
+    var panel = wrap ? wrap.querySelector('[data-help-panel]') : null;
+    if (!wrap || !trigger || !panel) {
+      return;
+    }
+
+    // Continut simplu, non-interactiv (doar 2 linkuri de contact) - hover
+    // e mai natural decat click pentru un dropdown asa de mic (semnalat de
+    // user: click-ul il tinea deschis pana la urmatorul click, nu se
+    // inchidea la mutarea cursorului). Pastram si click/tastatura ca sa
+    // ramana utilizabil pe touch si de la tastatura.
+    var closeTimer = null;
+
+    function close() {
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function open() {
+      window.clearTimeout(closeTimer);
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    function scheduleClose() {
+      window.clearTimeout(closeTimer);
+      closeTimer = window.setTimeout(close, 150);
+    }
+
+    wrap.addEventListener('mouseenter', open);
+    wrap.addEventListener('mouseleave', scheduleClose);
+
+    trigger.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (panel.hidden) {
+        open();
+      } else {
+        close();
+      }
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!panel.hidden && !wrap.contains(event.target)) {
+        close();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !panel.hidden) {
+        close();
+        trigger.focus();
+      }
     });
   })();
 </script>

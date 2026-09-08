@@ -38,6 +38,7 @@ if (function_exists('WC') && WC() && WC()->cart && WC()->cart->is_empty()) {
           <main id="customer_details" class="pap-checkout-main" aria-label="<?php esc_attr_e('Informații client', 'papetarie-storefront'); ?>">
             <div class="pap-checkout-steps<?php echo $is_guest_checkout ? ' pap-checkout-steps--guest' : ''; ?>">
               <?php wc_get_template('checkout/form-shipping.php', ['checkout' => $checkout]); ?>
+              <?php echo function_exists('papetarie_storefront_get_checkout_company_card_html') ? papetarie_storefront_get_checkout_company_card_html() : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <?php echo papetarie_storefront_get_checkout_shipping_methods_card_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
               <?php echo papetarie_storefront_get_checkout_payment_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </div>

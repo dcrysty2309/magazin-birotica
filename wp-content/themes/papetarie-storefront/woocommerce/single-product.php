@@ -18,43 +18,100 @@ get_header();
         continue;
     }
 
+    // woocommerce_before_single_product doar afiseaza notificarile (adaugat
+    // in cos, erori) - implicit needvelite in nicio bordura de latime, ies
+    // full-bleed (dincolo de .pap-shell folosit de restul paginii). Le
+    // capturam aici (hook-ul trebuie sa ruleze la locul lui in flow-ul
+    // WooCommerce), dar le afisam mai jos, DUPA breadcrumbs - inainte de ele
+    // arata ca ies din pagina inaintea oricarui context (semnalat live
+    // 2026-08-31 de user).
+    ob_start();
     do_action('woocommerce_before_single_product');
+    $pap_before_single_product_html = trim((string) ob_get_clean());
 
     $product_id = $product->get_id();
+
+    // Thumbnail-ul parintelui (poza de pe categorie/cardul de produs) e
+    // sursa de adevar - swatch-urile se reordoneaza la afisare ca sa
+    // inceapa cu culoarea ei (vezi papetarie_storefront_thumbnail_matched_color
+    // in color-swatches.php), iar aici gasim aceeasi variatie doar ca sa-i
+    // preluam SKU-ul implicit mai jos - poza principala ramane oricum
+    // $product->get_image_id() direct, deci mereu identica cu cea de pe
+    // categorie (gasit live 2026-08-29: inainte porneam de la "prima
+    // culoare din lista de atribute", care putea sa nu corespunda cu
+    // thumbnail-ul parintelui).
+    $default_color_variation = null;
+    if ($product->is_type('variable')) {
+        $thumbnail_id = (int) $product->get_image_id();
+        if ($thumbnail_id !== 0) {
+            foreach ($product->get_children() as $child_id) {
+                $child = wc_get_product($child_id);
+                if ($child && $child->get_status() === 'publish' && (int) $child->get_image_id() === $thumbnail_id) {
+                    $default_color_variation = $child;
+                    break;
+                }
+            }
+        }
+    }
+
     $main_image_id = $product->get_image_id();
     $gallery_image_ids = $product->get_gallery_image_ids();
     $all_image_ids = array_values(array_filter(array_merge([$main_image_id], $gallery_image_ids)));
     $main_image_url = $main_image_id ? wp_get_attachment_image_url($main_image_id, 'large') : wc_placeholder_img_src('woocommerce_single');
     $product_name = $product->get_name();
     $sku = $product->get_sku();
+    // Produsele variabile nu au SKU propriu (fiecare culoare are al ei) -
+    // afisam implicit SKU-ul variatiei gasite mai sus (cea a carei imagine e
+    // chiar thumbnail-ul), la fel cum pretul mare implicit e cel al variatiei
+    // minime; JS-ul de mai jos il inlocuieste live cu SKU-ul culorii alese
+    // (vezi found_variation mai jos).
+    if ($sku === '' && $default_color_variation) {
+        $sku = $default_color_variation->get_sku();
+    } elseif ($sku === '' && $product->is_type('variable')) {
+        foreach ($product->get_children() as $child_id) {
+            $child_sku = get_post_meta($child_id, '_sku', true);
+            if ($child_sku !== '') {
+                $sku = $child_sku;
+                break;
+            }
+        }
+    }
     $brand_name = '';
     $brand_terms = get_the_terms($product_id, 'product_brand');
     if (!is_wp_error($brand_terms) && !empty($brand_terms)) {
         $brand_name = $brand_terms[0]->name;
     }
-    $rating_count = $product->get_rating_count();
-    $average_rating = (float) $product->get_average_rating();
-    $star_icon = papetarie_storefront_icon('star');
     $is_on_sale = $product->is_on_sale();
     $regular_price = (float) $product->get_regular_price();
     $sale_price = $product->is_on_sale() ? (float) $product->get_sale_price() : null;
     $discount_percent = ($is_on_sale && $regular_price > 0 && $sale_price !== null)
         ? (int) round((($regular_price - $sale_price) / $regular_price) * 100)
         : 0;
-    $price_excl_vat = '';
-    $vat_rate = '';
-    if (function_exists('wc_get_price_excluding_tax') && wc_tax_enabled()) {
-        $price_excl_vat = wc_price(wc_get_price_excluding_tax($product));
-        $tax_rates = \WC_Tax::get_rates($product->get_tax_class());
-        if (!empty($tax_rates)) {
-            $first_rate = reset($tax_rates);
-            $vat_rate = isset($first_rate['rate']) ? round((float) $first_rate['rate']) : '';
+    $is_in_stock = $product->is_in_stock();
+    $is_simple_purchasable = $product->is_type('simple') && $product->is_purchasable();
+    // Static reference line under the main price ("Interval preț: min - max")
+    // for variable products whose variations actually span a price range -
+    // stays fixed regardless of which color is picked, unlike the big price
+    // above it (swapped live to the selected variation's own price_html by
+    // the inline script further down, via WooCommerce's found_variation/
+    // reset_data events - same pattern already used there for the gallery
+    // image swap).
+    // The big price is always a single number, never WooCommerce's own
+    // range HTML - before any color is picked that means "starting from"
+    // (the lowest variation price); once one is picked, the inline script
+    // further down swaps it to that variation's own price via
+    // found_variation, and reset_data brings it back to this same
+    // starting-from value (it's what $default_price_html renders here).
+    $variation_price_range_html = '';
+    $default_price_html = $product->get_price_html();
+    if ($product->is_type('variable')) {
+        $min_variation_price = $product->get_variation_price('min', true);
+        $max_variation_price = $product->get_variation_price('max', true);
+        if ($min_variation_price !== '' && $max_variation_price !== '' && $min_variation_price !== $max_variation_price) {
+            $variation_price_range_html = wc_format_price_range($min_variation_price, $max_variation_price);
+            $default_price_html = wc_price($min_variation_price);
         }
     }
-    $is_in_stock = $product->is_in_stock();
-    $manages_stock = $product->managing_stock();
-    $stock_quantity = $manages_stock ? $product->get_stock_quantity() : null;
-    $is_simple_purchasable = $product->is_type('simple') && $product->is_purchasable();
     ?>
 
     <div class="pap-shell pap-page-breadcrumbs pap-product-breadcrumbs">
@@ -70,6 +127,22 @@ get_header();
       ?>
     </div>
 
+    <?php
+    // woocommerce_output_all_notices() scoate mereu wrapper-ul
+    // <div class="woocommerce-notices-wrapper">, chiar si fara nicio
+    // notificare inauntru - un simplu "!== ''" nu prindea asta, lasand un
+    // <div> gol (0 inaltime, dar tot prezent in DOM) dupa breadcrumbs pe
+    // orice pagina fara notificare. Verificam continutul FARA tag-uri, nu
+    // doar string-ul brut. Gasit live 2026-08-31, semnalat de user.
+    if (trim(wp_strip_all_tags($pap_before_single_product_html)) !== '') :
+        ?>
+        <div class="pap-shell pap-product-notices">
+          <?php echo $pap_before_single_product_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
+        <?php
+    endif;
+    ?>
+
     <div id="product-<?php echo esc_attr((string) $product_id); ?>" <?php wc_product_class('pap-shell pap-product-summary', $product); ?>>
       <div class="pap-product-gallery" data-product-gallery>
         <div class="pap-product-gallery-main" data-gallery-lightbox-open aria-label="<?php esc_attr_e('Deschide galeria foto', 'papetarie-storefront'); ?>">
@@ -77,36 +150,33 @@ get_header();
             <span class="pap-product-gallery-badge">−<?php echo esc_html((string) $discount_percent); ?>%</span>
           <?php endif; ?>
           <img src="<?php echo esc_url($main_image_url); ?>" alt="<?php echo esc_attr($product_name); ?>" data-product-gallery-image>
+        </div>
+        <div class="pap-product-gallery-thumbs-row">
           <?php if (count($all_image_ids) > 1) : ?>
-            <button type="button" class="pap-product-gallery-next" data-product-gallery-next aria-label="<?php esc_attr_e('Imaginea următoare', 'papetarie-storefront'); ?>">
+            <button type="button" class="pap-product-gallery-thumbs-nav pap-product-gallery-thumbs-nav--prev" data-gallery-thumbs-prev aria-label="<?php esc_attr_e('Thumbnail-uri anterioare', 'papetarie-storefront'); ?>" hidden>
+              <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+            </button>
+          <?php endif; ?>
+          <div class="pap-product-gallery-thumbs" data-gallery-thumbs-track>
+            <?php foreach ($all_image_ids as $index => $image_id) : ?>
+              <?php $thumb_url = wp_get_attachment_image_url($image_id, 'thumbnail'); ?>
+              <button
+                type="button"
+                class="pap-product-gallery-thumb<?php echo $index === 0 ? ' is-active' : ''; ?>"
+                data-product-gallery-thumb
+                data-index="<?php echo esc_attr((string) $index); ?>"
+                data-full-src="<?php echo esc_url(wp_get_attachment_image_url($image_id, 'large')); ?>"
+              >
+                <img src="<?php echo esc_url($thumb_url); ?>" alt="" loading="lazy">
+              </button>
+            <?php endforeach; ?>
+          </div>
+          <?php if (count($all_image_ids) > 1) : ?>
+            <button type="button" class="pap-product-gallery-thumbs-nav pap-product-gallery-thumbs-nav--next" data-gallery-thumbs-next aria-label="<?php esc_attr_e('Thumbnail-uri următoare', 'papetarie-storefront'); ?>">
               <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
             </button>
           <?php endif; ?>
         </div>
-        <?php if (count($all_image_ids) > 1) : ?>
-          <div class="pap-product-gallery-thumbs-row">
-            <button type="button" class="pap-product-gallery-thumbs-nav pap-product-gallery-thumbs-nav--prev" data-gallery-thumbs-prev aria-label="<?php esc_attr_e('Thumbnail-uri anterioare', 'papetarie-storefront'); ?>" hidden>
-              <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-            </button>
-            <div class="pap-product-gallery-thumbs" data-gallery-thumbs-track>
-              <?php foreach ($all_image_ids as $index => $image_id) : ?>
-                <?php $thumb_url = wp_get_attachment_image_url($image_id, 'thumbnail'); ?>
-                <button
-                  type="button"
-                  class="pap-product-gallery-thumb<?php echo $index === 0 ? ' is-active' : ''; ?>"
-                  data-product-gallery-thumb
-                  data-index="<?php echo esc_attr((string) $index); ?>"
-                  data-full-src="<?php echo esc_url(wp_get_attachment_image_url($image_id, 'large')); ?>"
-                >
-                  <img src="<?php echo esc_url($thumb_url); ?>" alt="" loading="lazy">
-                </button>
-              <?php endforeach; ?>
-            </div>
-            <button type="button" class="pap-product-gallery-thumbs-nav pap-product-gallery-thumbs-nav--next" data-gallery-thumbs-next aria-label="<?php esc_attr_e('Thumbnail-uri următoare', 'papetarie-storefront'); ?>">
-              <span aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
-            </button>
-          </div>
-        <?php endif; ?>
       </div>
 
       <div id="pap-gallery-lightbox" class="pap-gallery-lightbox" hidden aria-hidden="true">
@@ -167,6 +237,7 @@ get_header();
         </div>
       </div>
 
+      <div class="pap-product-right-col">
       <div class="pap-product-info">
         <?php if ($brand_name !== '' || $sku !== '') : ?>
           <div class="pap-product-info-top">
@@ -174,90 +245,50 @@ get_header();
               <span class="pap-product-brand"><?php echo esc_html($brand_name); ?></span>
             <?php endif; ?>
             <?php if ($sku !== '') : ?>
-              <span class="pap-product-sku"><?php echo esc_html(sprintf(
-                  /* translators: %s: product SKU */
-                  __('SKU: %s', 'papetarie-storefront'),
-                  $sku
-              )); ?></span>
+              <span class="pap-product-sku"><?php esc_html_e('SKU:', 'papetarie-storefront'); ?> <span data-product-sku><?php echo esc_html($sku); ?></span></span>
             <?php endif; ?>
           </div>
         <?php endif; ?>
 
         <h1 class="pap-product-title"><?php echo esc_html($product_name); ?></h1>
 
-        <div class="pap-product-rating-row">
-          <?php if ($rating_count > 0) : ?>
-            <div class="pap-product-rating-row-stars" aria-hidden="true">
-              <?php for ($i = 1; $i <= 5; $i++) : ?>
-                <span class="pap-product-rating-row-star<?php echo $i <= round($average_rating) ? ' is-filled' : ''; ?>"><?php echo $star_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-              <?php endfor; ?>
-            </div>
-            <span class="pap-product-rating-row-value"><?php echo esc_html(number_format_i18n($average_rating, 1)); ?></span>
-            <a class="pap-product-rating-row-count" href="#tab-reviews"><?php echo esc_html(sprintf(
-                /* translators: %d: review count */
-                _n('%d recenzie', '%d recenzii', $rating_count, 'papetarie-storefront'),
-                $rating_count
-            )); ?></a>
-            <span class="pap-product-rating-row-divider" aria-hidden="true"></span>
-          <?php endif; ?>
-          <button type="button" class="pap-product-share" data-product-share data-share-title="<?php echo esc_attr($product_name); ?>">
-            <span aria-hidden="true"><?php echo papetarie_storefront_icon('share'); ?></span>
-            <span><?php esc_html_e('Distribuie', 'papetarie-storefront'); ?></span>
-          </button>
-        </div>
-
         <div class="pap-product-price-block">
           <div class="pap-product-price-row">
-            <?php echo wp_kses_post($product->get_price_html()); ?>
+            <span data-product-price-html><?php echo wp_kses_post($default_price_html); ?></span>
             <?php if ($is_on_sale && $discount_percent > 0) : ?>
               <span class="pap-product-price-discount">−<?php echo esc_html((string) $discount_percent); ?>%</span>
             <?php endif; ?>
           </div>
-          <?php if ($price_excl_vat !== '') : ?>
-            <p class="pap-product-price-vat">
-              <?php echo esc_html(sprintf(
-                  /* translators: 1: price excluding VAT, 2: VAT rate */
-                  __('Preț fără TVA: %1$s · TVA %2$s%% inclus', 'papetarie-storefront'),
-                  wp_strip_all_tags($price_excl_vat),
-                  $vat_rate
-              )); ?>
+          <?php if ($variation_price_range_html !== '') : ?>
+            <p class="pap-product-price-range">
+              <?php esc_html_e('Interval preț:', 'papetarie-storefront'); ?>
+              <?php echo wp_kses_post($variation_price_range_html); ?>
             </p>
-          <?php endif; ?>
-        </div>
-
-        <div class="pap-product-stock-row">
-          <span class="pap-product-stock-dot pap-product-stock-dot--<?php echo $is_in_stock ? 'in' : 'out'; ?>" aria-hidden="true"></span>
-          <span class="pap-product-stock-label pap-product-stock-label--<?php echo $is_in_stock ? 'in' : 'out'; ?>">
-            <?php echo $is_in_stock ? esc_html__('În stoc', 'papetarie-storefront') : esc_html__('Stoc epuizat', 'papetarie-storefront'); ?>
-          </span>
-          <?php if ($is_in_stock && $manages_stock && $stock_quantity !== null) : ?>
-            <span class="pap-product-stock-count"><?php echo esc_html(sprintf(
-                /* translators: %d: available stock quantity */
-                __('(%d disponibile)', 'papetarie-storefront'),
-                $stock_quantity
-            )); ?></span>
           <?php endif; ?>
         </div>
 
         <?php if ($is_simple_purchasable && $is_in_stock) : ?>
           <form class="cart pap-product-actions-row" action="<?php echo esc_url(apply_filters('woocommerce_add_to_cart_form_action', $product->get_permalink())); ?>" method="post" enctype="multipart/form-data">
-            <div class="pap-product-qty-stepper" data-qty-stepper>
-              <button type="button" class="pap-product-qty-btn" data-qty-decrease aria-label="<?php esc_attr_e('Scade cantitatea', 'papetarie-storefront'); ?>">
-                <?php echo papetarie_storefront_icon('minus'); ?>
-              </button>
-              <input
-                type="number"
-                name="quantity"
-                class="qty pap-product-qty-input"
-                value="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
-                min="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
-                <?php if ($product->get_max_purchase_quantity() > 0) : ?>max="<?php echo esc_attr((string) $product->get_max_purchase_quantity()); ?>"<?php endif; ?>
-                inputmode="numeric"
-                aria-label="<?php esc_attr_e('Cantitate', 'papetarie-storefront'); ?>"
-              >
-              <button type="button" class="pap-product-qty-btn" data-qty-increase aria-label="<?php esc_attr_e('Crește cantitatea', 'papetarie-storefront'); ?>">
-                <?php echo papetarie_storefront_icon('plus'); ?>
-              </button>
+            <div class="pap-product-qty-stack" data-qty-stack>
+              <div class="pap-product-qty-stepper" data-qty-stepper>
+                <button type="button" class="pap-product-qty-btn" data-qty-decrease aria-label="<?php esc_attr_e('Scade cantitatea', 'papetarie-storefront'); ?>">
+                  <?php echo papetarie_storefront_icon('minus'); ?>
+                </button>
+                <input
+                  type="number"
+                  name="quantity"
+                  class="qty pap-product-qty-input"
+                  value="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
+                  min="<?php echo esc_attr((string) $product->get_min_purchase_quantity()); ?>"
+                  <?php if ($product->get_max_purchase_quantity() > 0) : ?>max="<?php echo esc_attr((string) $product->get_max_purchase_quantity()); ?>"<?php endif; ?>
+                  inputmode="numeric"
+                  aria-label="<?php esc_attr_e('Cantitate', 'papetarie-storefront'); ?>"
+                >
+                <button type="button" class="pap-product-qty-btn" data-qty-increase aria-label="<?php esc_attr_e('Crește cantitatea', 'papetarie-storefront'); ?>">
+                  <?php echo papetarie_storefront_icon('plus'); ?>
+                </button>
+              </div>
+              <div class="pap-product-qty-tooltip" data-qty-tooltip hidden aria-hidden="true"></div>
             </div>
             <button type="submit" name="add-to-cart" value="<?php echo esc_attr((string) $product_id); ?>" class="pap-product-add-to-cart single_add_to_cart_button">
               <span aria-hidden="true"><?php echo papetarie_storefront_icon('bag'); ?></span>
@@ -270,29 +301,27 @@ get_header();
           </div>
         <?php endif; ?>
 
+      </div>
+
+        <div class="pap-product-tabs-section">
+          <?php woocommerce_output_product_data_tabs(); ?>
+        </div>
+
         <ul class="pap-product-benefits">
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('truck-outline'); ?></span>
-            <span><?php esc_html_e('Livrare 24-48h pentru comenzile plasate până la 15:00', 'papetarie-storefront'); ?></span>
-          </li>
-          <li>
-            <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('package'); ?></span>
-            <span><?php esc_html_e('Ridicare gratuită din depozit disponibilă', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Livrare 24-48h', 'papetarie-storefront'); ?></span>
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('undo'); ?></span>
-            <span><?php esc_html_e('Retur gratuit în 30 de zile', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Retur 14 zile', 'papetarie-storefront'); ?></span>
           </li>
           <li>
             <span class="pap-product-benefit-icon" aria-hidden="true"><?php echo papetarie_storefront_icon('shield'); ?></span>
-            <span><?php esc_html_e('Plată 100% securizată · SSL', 'papetarie-storefront'); ?></span>
+            <span><?php esc_html_e('Plată securizată', 'papetarie-storefront'); ?></span>
           </li>
         </ul>
       </div>
-    </div>
-
-    <div class="pap-shell pap-product-tabs-section">
-      <?php woocommerce_output_product_data_tabs(); ?>
     </div>
 
     <div class="pap-shell pap-product-related-section">
@@ -316,6 +345,17 @@ get_header();
     var activeIndex = 0;
     var defaultImageSrc = mainImage ? mainImage.src : '';
 
+    // The big price always starts as the product's own range (server-
+    // rendered) - swapped to the selected variation's own price_html (which
+    // WooCommerce already formats, sale strike-through included) while one
+    // is picked, restored verbatim on reset_data. The small "Interval preț"
+    // line underneath is server-rendered once and never touched here - it's
+    // meant to stay the fixed overall range regardless of selection.
+    var priceEl = document.querySelector('[data-product-price-html]');
+    var defaultPriceHTML = priceEl ? priceEl.innerHTML : '';
+    var skuEl = document.querySelector('[data-product-sku]');
+    var defaultSkuText = skuEl ? skuEl.textContent : '';
+
     function activate(index) {
       var thumb = thumbs[index];
       if (!thumb || !mainImage) {
@@ -333,6 +373,14 @@ get_header();
     var variationsForm = document.querySelector('.variations_form');
     if (variationsForm && window.jQuery) {
       window.jQuery(variationsForm).on('found_variation', function (event, variation) {
+        if (priceEl && variation && variation.price_html) {
+          priceEl.innerHTML = variation.price_html;
+        }
+
+        if (skuEl && variation && variation.sku) {
+          skuEl.textContent = variation.sku;
+        }
+
         if (!mainImage || !variation || !variation.image || !variation.image.src) {
           return;
         }
@@ -354,6 +402,14 @@ get_header();
       });
 
       window.jQuery(variationsForm).on('reset_data', function () {
+        if (priceEl) {
+          priceEl.innerHTML = defaultPriceHTML;
+        }
+
+        if (skuEl) {
+          skuEl.textContent = defaultSkuText;
+        }
+
         if (mainImage) {
           mainImage.src = defaultImageSrc;
         }
@@ -378,13 +434,35 @@ get_header();
         return;
       }
 
+      // Toleranta mare intentionat (jumatate de thumbnail) - track.scrollWidth
+      // vs track.clientWidth (folosit inainte) da rezultate usor diferite
+      // intre motoare de randare (subpixel/gap in flexbox), lasand sageata
+      // "urmatoare" vizibila cu 1-2px in plus desi vizual toate pozele
+      // incapeau deja - semnalat live 2026-08-31 (Rhodia, 5 poze). Comparam
+      // direct marginea DREAPTA a ultimului thumbnail cu marginea vizibila
+      // a track-ului - mai robust decat scrollWidth, si oricum o depasire
+      // REALA (nevoie efectiva de scroll) e intotdeauna mult mai mare decat
+      // toleranta asta (cel putin latimea unui thumbnail intreg).
+      var OVERFLOW_TOLERANCE = 34;
+
+      function hasOverflow() {
+        var lastThumb = track.lastElementChild;
+        if (!lastThumb) {
+          return false;
+        }
+        var trackRight = track.getBoundingClientRect().right;
+        var lastThumbRight = lastThumb.getBoundingClientRect().right;
+        return lastThumbRight > trackRight + OVERFLOW_TOLERANCE;
+      }
+
       function refresh() {
         var maxScroll = track.scrollWidth - track.clientWidth;
+        var overflowing = hasOverflow();
         if (prevBtn) {
           prevBtn.hidden = track.scrollLeft <= 4;
         }
         if (nextBtn) {
-          nextBtn.hidden = track.scrollLeft >= maxScroll - 4;
+          nextBtn.hidden = !overflowing || track.scrollLeft >= maxScroll - 4;
         }
       }
 
@@ -407,6 +485,20 @@ get_header();
       track.addEventListener('scroll', refresh);
       window.addEventListener('resize', refresh);
       refresh();
+
+      // refresh() ruleaza sincron, la parsarea scriptului - daca layout-ul
+      // real (fonturi web incarcate, orice reflow ulterior) se aseaza DUPA
+      // acest moment, latimea masurata atunci poate fi usor diferita de
+      // cea finala, lasand sageata "urmatoare" vizibila desi thumbnail-
+      // urile incap deja toate intr-un singur rand - fara alt trigger
+      // (scroll/resize), starea gresita ramanea permanenta. Reverificam
+      // dupa incarcarea completa a paginii si dupa ce fonturile web s-au
+      // asezat. Gasit live 2026-08-31, semnalat de user (Rhodia, 5 poze
+      // care incap toate, dar sageata "urmatoare" tot aparea).
+      window.addEventListener('load', refresh);
+      if (window.document.fonts && window.document.fonts.ready && typeof window.document.fonts.ready.then === 'function') {
+        window.document.fonts.ready.then(refresh);
+      }
     }
 
     initThumbSlider(
@@ -572,6 +664,8 @@ get_header();
       var input = stepper.querySelector('.pap-product-qty-input');
       var decrease = stepper.querySelector('[data-qty-decrease]');
       var increase = stepper.querySelector('[data-qty-increase]');
+      var qtyStack = stepper.closest('[data-qty-stack]');
+      var qtyTooltip = qtyStack ? qtyStack.querySelector('[data-qty-tooltip]') : null;
 
       function clamp(value) {
         var min = parseInt(input.getAttribute('min'), 10) || 1;
@@ -583,17 +677,87 @@ get_header();
         return next;
       }
 
+      function hideQtyTooltip() {
+        if (!qtyTooltip) {
+          return;
+        }
+        qtyTooltip.hidden = true;
+        qtyTooltip.setAttribute('aria-hidden', 'true');
+      }
+
+      // Limita min/max se comunica printr-un tooltip la hover, nu printr-un
+      // stil vizual "stins" pe buton (butonul disabled arata identic cu cel
+      // activ - vezi .pap-product-qty-btn:disabled in CSS). Cerut explicit
+      // 2026-08-31.
+      function maybeShowQtyTooltip(button) {
+        if (!qtyTooltip || !button || !button.disabled) {
+          return;
+        }
+
+        var min = parseInt(input.getAttribute('min'), 10) || 1;
+        var max = input.getAttribute('max') ? parseInt(input.getAttribute('max'), 10) : null;
+        var text = '';
+
+        if (button === decrease) {
+          text = '<?php echo esc_js(__('Cantitatea minimă este', 'papetarie-storefront')); ?> ' + min + '.';
+        } else if (button === increase && max !== null) {
+          text = '<?php echo esc_js(__('Ai atins limita maximă disponibilă', 'papetarie-storefront')); ?> (' + max + ' <?php echo esc_js(__('bucăți', 'papetarie-storefront')); ?>).';
+        }
+
+        if (!text) {
+          return;
+        }
+
+        qtyTooltip.textContent = text;
+        qtyTooltip.hidden = false;
+        qtyTooltip.setAttribute('aria-hidden', 'false');
+      }
+
+      // Dezactiveaza (functional, nu doar vizual) - / + cand valoarea
+      // curenta e deja la limita (min/max) - altfel butoanele raman
+      // "clicabile" fara niciun efect.
+      function updateDisabledState() {
+        var min = parseInt(input.getAttribute('min'), 10) || 1;
+        var max = input.getAttribute('max') ? parseInt(input.getAttribute('max'), 10) : null;
+        var current = parseInt(input.value, 10) || min;
+        if (decrease) {
+          decrease.disabled = current <= min;
+        }
+        if (increase) {
+          increase.disabled = max !== null && current >= max;
+        }
+        hideQtyTooltip();
+      }
+
+      [decrease, increase].forEach(function (button) {
+        if (!button) {
+          return;
+        }
+        button.addEventListener('mouseenter', function () {
+          maybeShowQtyTooltip(button);
+        });
+        button.addEventListener('mouseleave', hideQtyTooltip);
+        button.addEventListener('focus', function () {
+          maybeShowQtyTooltip(button);
+        });
+        button.addEventListener('blur', hideQtyTooltip);
+      });
+
       if (decrease) {
         decrease.addEventListener('click', function () {
           input.value = clamp((parseInt(input.value, 10) || 1) - 1);
+          updateDisabledState();
         });
       }
 
       if (increase) {
         increase.addEventListener('click', function () {
           input.value = clamp((parseInt(input.value, 10) || 1) + 1);
+          updateDisabledState();
         });
       }
+
+      updateDisabledState();
     }
 
     var shareButton = document.querySelector('[data-product-share]');
@@ -616,20 +780,108 @@ get_header();
     }
 
     var readMoreButton = document.querySelector('[data-read-more]');
-    if (readMoreButton) {
-      var descriptionBox = document.querySelector('[data-description-box]');
-      readMoreButton.addEventListener('click', function () {
-        if (!descriptionBox) {
+    var descriptionBox = document.querySelector('[data-description-box]');
+    if (readMoreButton && descriptionBox) {
+      // "Citește mai mult" pe baza inaltimii REALE randate a continutului,
+      // nu a unui numar fix de randuri - un numar fix (incercat inainte:
+      // 3 randuri/78px) fie taia descrieri scurte fara niciun rost (un
+      // singur rand deja incape, dar tot arata butonul), fie e prea putin
+      // pentru descrieri cu paragrafe/liste. Recalculat la fiecare
+      // resize, fiindca acelasi text randeaza la inaltimi total diferite
+      // pe desktop vs mobil (rewrapping). Cerut explicit 2026-08-31.
+      //
+      // COLLAPSE_THRESHOLD: sub-asta descrierea se arata mereu integral.
+      // GRACE: daca depaseste pragul cu mai putin de-atat (~2 randuri),
+      // tot o aratam integral - nu are sens un buton "Citește mai mult"
+      // care ar mai descoperi doar o bucatica de rand.
+      var COLLAPSE_THRESHOLD = 280;
+      var GRACE = 60;
+      var isUserExpanded = false;
+      var resizeTimer = null;
+
+      function evaluateDescriptionCollapse() {
+        var naturalHeight = descriptionBox.scrollHeight;
+        var needsCollapse = naturalHeight > COLLAPSE_THRESHOLD + GRACE;
+
+        if (!needsCollapse) {
+          // Incape deja integral - fara buton, si is-expanded ca sa
+          // stinga fade-ul (regula CSS existenta il ascunde doar cand
+          // clasa asta e prezenta, indiferent de motiv).
+          readMoreButton.style.display = 'none';
+          descriptionBox.classList.add('is-expanded');
+          descriptionBox.style.maxHeight = naturalHeight + 'px';
           return;
         }
-        var expanded = descriptionBox.classList.toggle('is-expanded');
-        readMoreButton.classList.toggle('is-expanded', expanded);
-        readMoreButton.querySelector('span').textContent = expanded
+
+        readMoreButton.style.display = '';
+
+        if (isUserExpanded) {
+          descriptionBox.classList.add('is-expanded');
+          descriptionBox.style.maxHeight = naturalHeight + 'px';
+        } else {
+          descriptionBox.classList.remove('is-expanded');
+          descriptionBox.style.maxHeight = COLLAPSE_THRESHOLD + 'px';
+        }
+      }
+
+      evaluateDescriptionCollapse();
+
+      window.addEventListener('resize', function () {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(evaluateDescriptionCollapse, 150);
+      });
+
+      readMoreButton.addEventListener('click', function () {
+        isUserExpanded = !isUserExpanded;
+        readMoreButton.classList.toggle('is-expanded', isUserExpanded);
+        readMoreButton.querySelector('span').textContent = isUserExpanded
           ? '<?php echo esc_js(__('Arată mai puțin', 'papetarie-storefront')); ?>'
           : '<?php echo esc_js(__('Citește mai mult', 'papetarie-storefront')); ?>';
+        evaluateDescriptionCollapse();
       });
     }
   })();
+</script>
+
+<?php
+// Evenimente GA4 - "view_item" la fiecare afisare a paginii, "add_to_cart"
+// doar cand formularul de aici tocmai a fost trimis cu succes. Formularul de
+// pe pagina de produs NU merge prin AJAX (submit clasic - vezi comentariul
+// din archive-add-to-cart.js), iar WooCommerce NU adauga un query param
+// "?added-to-cart=" pe aceasta cale (doar daca e activata optiunea de
+// redirect catre cos, ceea ce nu e cazul aici) - POST-ul doar re-randeaza
+// aceeasi pagina. Semnalul folosit e global-ul populat de hook-ul
+// "woocommerce_add_to_cart" din functions.php, care ruleaza doar la o
+// adaugare reusita si contine si cantitatea corecta trimisa in formular.
+$pap_ga4_currency = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'RON';
+$pap_ga4_view_item = [
+    'item_id' => $product->get_sku() ?: (string) $product->get_id(),
+    'item_name' => $product->get_name(),
+    'price' => (float) $product->get_price(),
+];
+$pap_ga4_added_to_cart = $GLOBALS['pap_ga4_added_to_cart'] ?? null;
+$pap_ga4_added_to_cart_id = is_array($pap_ga4_added_to_cart) ? (int) $pap_ga4_added_to_cart['product_id'] : 0;
+?>
+<script>
+  (function () {
+    if (typeof gtag !== 'function') { return; }
+
+    gtag('event', 'view_item', {
+      currency: <?php echo wp_json_encode($pap_ga4_currency); ?>,
+      value: <?php echo wp_json_encode($pap_ga4_view_item['price']); ?>,
+      items: [<?php echo wp_json_encode($pap_ga4_view_item); ?>]
+    });
+
+    <?php if ($pap_ga4_added_to_cart_id === $product->get_id()) :
+        $pap_ga4_cart_qty = max(1, (int) $pap_ga4_added_to_cart['quantity']);
+        ?>
+    gtag('event', 'add_to_cart', {
+      currency: <?php echo wp_json_encode($pap_ga4_currency); ?>,
+      value: <?php echo wp_json_encode($pap_ga4_view_item['price'] * $pap_ga4_cart_qty); ?>,
+      items: [Object.assign({}, <?php echo wp_json_encode($pap_ga4_view_item); ?>, { quantity: <?php echo wp_json_encode($pap_ga4_cart_qty); ?> })]
+    });
+    <?php endif; ?>
+  }());
 </script>
 
 <?php get_footer(); ?>

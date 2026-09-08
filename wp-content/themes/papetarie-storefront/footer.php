@@ -35,8 +35,14 @@ $logo_image_on_dark = get_stylesheet_directory_uri() . '/assets/images/logo-noti
         </div>
       </div>
 
-      <div class="pap-footer-links-group">
-        <h3><?php esc_html_e('Magazin', 'papetarie-storefront'); ?></h3>
+      <div class="pap-footer-links-group" data-footer-accordion>
+        <h3 class="pap-footer-links-group-heading">
+          <button type="button" class="pap-footer-accordion-toggle" aria-expanded="false" data-footer-accordion-toggle>
+            <span><?php esc_html_e('Magazin', 'papetarie-storefront'); ?></span>
+            <span class="pap-footer-accordion-chevron" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+          </button>
+        </h3>
+        <div class="pap-footer-accordion-content" data-footer-accordion-content>
         <?php
         wp_nav_menu(
             [
@@ -49,10 +55,17 @@ $logo_image_on_dark = get_stylesheet_directory_uri() . '/assets/images/logo-noti
             ]
         );
         ?>
+        </div>
       </div>
 
-      <div class="pap-footer-links-group">
-        <h3><?php esc_html_e('Ajutor si contact', 'papetarie-storefront'); ?></h3>
+      <div class="pap-footer-links-group" data-footer-accordion>
+        <h3 class="pap-footer-links-group-heading">
+          <button type="button" class="pap-footer-accordion-toggle" aria-expanded="false" data-footer-accordion-toggle>
+            <span><?php esc_html_e('Ajutor si contact', 'papetarie-storefront'); ?></span>
+            <span class="pap-footer-accordion-chevron" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+          </button>
+        </h3>
+        <div class="pap-footer-accordion-content" data-footer-accordion-content>
         <?php
         wp_nav_menu(
             [
@@ -65,10 +78,17 @@ $logo_image_on_dark = get_stylesheet_directory_uri() . '/assets/images/logo-noti
             ]
         );
         ?>
+        </div>
       </div>
 
-      <div class="pap-footer-links-group">
-        <h3><?php esc_html_e('Companie', 'papetarie-storefront'); ?></h3>
+      <div class="pap-footer-links-group" data-footer-accordion>
+        <h3 class="pap-footer-links-group-heading">
+          <button type="button" class="pap-footer-accordion-toggle" aria-expanded="false" data-footer-accordion-toggle>
+            <span><?php esc_html_e('Companie', 'papetarie-storefront'); ?></span>
+            <span class="pap-footer-accordion-chevron" aria-hidden="true"><?php echo papetarie_storefront_icon('chevron'); ?></span>
+          </button>
+        </h3>
+        <div class="pap-footer-accordion-content" data-footer-accordion-content>
         <?php
         wp_nav_menu(
             [
@@ -81,6 +101,7 @@ $logo_image_on_dark = get_stylesheet_directory_uri() . '/assets/images/logo-noti
             ]
         );
         ?>
+        </div>
       </div>
 
       <div class="pap-footer-newsletter">

@@ -411,6 +411,20 @@
       });
     }
 
+    // [data-pap-cart-count-badge] (bulina numerica din header) - randata
+    // server-side cu atributul "hidden" cand cosul e gol; acest flux
+    // (adaugare rapida din arhiva) actualiza doar textul "X produse" de mai
+    // sus, niciodata bulina, care ramanea "hidden" pe vecie de la primul
+    // randare a paginii cu cos gol, chiar si dupa ce cosul avea produse
+    // reale. Semnalat live de user 2026-08-31.
+    if (typeof data.count !== 'undefined') {
+      var safeBadgeCount = Math.max(0, parseInt(data.count, 10) || 0);
+      Array.prototype.slice.call(document.querySelectorAll('[data-pap-cart-count-badge]')).forEach(function (badge) {
+        badge.textContent = String(safeBadgeCount);
+        badge.hidden = safeBadgeCount === 0;
+      });
+    }
+
     if (content && typeof data.items_html === 'string') {
       content.innerHTML = data.items_html;
 
@@ -562,14 +576,6 @@
     return config.shopUrl || window.location.href;
   }
 
-  function shouldHandleForm(form) {
-    return !(
-      form.classList.contains('variations_form')
-      || form.classList.contains('grouped_form')
-      || form.classList.contains('external')
-    );
-  }
-
   function sendAddToCart(button, form) {
     var productId = getProductId(button, form);
     if (!productId) {
@@ -623,6 +629,14 @@
         }
 
         dispatchCartEvents(data, button);
+
+        if (data.ga4_item && typeof gtag === 'function') {
+          gtag('event', 'add_to_cart', {
+            currency: data.ga4_item.currency,
+            value: data.ga4_item.price * data.ga4_item.quantity,
+            items: [data.ga4_item]
+          });
+        }
 
         window.requestAnimationFrame(function () {
           if (isCartPage()) {
@@ -685,20 +699,12 @@
     sendAddToCart(button, null);
   }, true);
 
-  document.addEventListener('submit', function (event) {
-    var form = event.target.closest('form.cart');
-    if (!form || !shouldHandleForm(form)) {
-      return;
-    }
-
-    var button = form.querySelector('.single_add_to_cart_button');
-    var productId = getProductId(button, form);
-    if (!productId) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    sendAddToCart(button || form, form);
-  }, true);
+  // Fara AJAX pentru formularul de pe pagina de produs (submit clasic,
+  // reload complet) - unificat intentionat cu notificarea de sub
+  // breadcrumbs, aceeasi experienta indiferent daca produsul e simplu sau
+  // cu variante. Pana acum doar produsele CU variante treceau prin acest
+  // flux (formularul lor are clasa variations_form, exclusa explicit mai
+  // sus in vechiul shouldHandleForm()) - produsele simple erau interceptate
+  // aici si aratau in schimb modalul AJAX, o experienta diferita pentru
+  // aceeasi actiune. Semnalat de user 2026-08-31.
 })();

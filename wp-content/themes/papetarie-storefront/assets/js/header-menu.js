@@ -12,7 +12,23 @@
   const items = Array.from(shell.querySelectorAll('[data-header-catmenu-item]'));
   const panels = Array.from(shell.querySelectorAll('[data-header-catmenu-panel]'));
   const hoverQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const mobileQuery = window.matchMedia('(max-width: 980px)');
   const panelSlugs = new Set(panels.map((panel) => panel.getAttribute('data-header-catmenu-panel')).filter(Boolean));
+
+  // MICRO-MOTION: mirrors the --menu-motion-fast/-normal/--menu-ease
+  // custom properties in style.css (kept as plain JS values since Web
+  // Animations keyframes need numbers/strings, not var() lookups). Only
+  // the accordion open/close uses this now - level 1<->level 2 had its
+  // own crossfade here too, but it read as a glitchy overlap (both
+  // screens visibly on screen at once) no matter how the stacking was
+  // tuned, and was dropped back to the plain instant swap per explicit
+  // request. Gated through canAnimate() so reduced-motion users (or a
+  // browser without Element.animate) get exactly the previous instant
+  // behavior, never a partial/broken animation.
+  const MOTION_NORMAL = 220;
+  const MOTION_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const canAnimate = () => !reducedMotionQuery.matches && typeof Element.prototype.animate === 'function';
 
   let isOpen = false;
   let closeTimer = null;
@@ -104,7 +120,12 @@
   const scheduleClose = () => {
     clearCloseTimer();
 
-    if (!hoverQuery.matches) {
+    // Same desktop-only intent as the pointerover listener below: a real
+    // mouse still reports hover:hover/pointer:fine at mobile widths, so
+    // without this guard a mouseleave off the shell/menu (e.g. the cursor
+    // leaving the page to pick an element in DevTools) would schedule
+    // closeMenu() and blank out the mobile drawer's category shell.
+    if (!hoverQuery.matches || mobileQuery.matches) {
       return;
     }
 
@@ -144,12 +165,44 @@
     const slug = item.getAttribute('data-header-catmenu-target');
 
     item.addEventListener('mouseenter', () => {
+      // Ambient hover only means something for the desktop flyout; on
+      // mobile it would otherwise let a real mouse silently swap the
+      // active panel just by passing over an item (e.g. while inspecting
+      // in DevTools), fighting the explicit tap-driven drilldown below.
+      if (mobileQuery.matches) {
+        return;
+      }
+
       openMenu(slug);
     });
 
     item.addEventListener('focus', () => {
+      if (mobileQuery.matches) {
+        return;
+      }
+
       openMenu(slug);
     });
+
+    // Touch tablets land here too: wide enough for the two-column desktop
+    // flyout (not the narrow drill-down below), but with no real hover to
+    // reveal a category's panel before the tap navigates. Without this, a
+    // tap on a category with children just followed its link straight
+    // through - there was no way to see the panel at all. Same behavior
+    // as eMAG: a tap on a parent with children only ever opens its panel,
+    // never navigates directly - "Vezi toate produsele" inside the panel
+    // is the way to reach the parent's own page.
+    const hasChildren = item.getAttribute('data-header-catmenu-has-children') === '1';
+    if (hasChildren) {
+      item.addEventListener('click', (event) => {
+        if (hoverQuery.matches || mobileQuery.matches) {
+          return;
+        }
+
+        event.preventDefault();
+        openMenu(slug);
+      });
+    }
   });
 
   // Mobile drill-down: tapping a level-1 category with children swaps the
@@ -159,7 +212,6 @@
   // rather than drilling into a third screen. Gated to the same breakpoint
   // as the drawer itself, so a real mouse at a wider width keeps the
   // desktop hover flyout untouched.
-  const mobileQuery = window.matchMedia('(max-width: 980px)');
   const backButton = document.querySelector('[data-header-catmenu-back]');
   const backLabel = backButton ? backButton.querySelector('[data-header-catmenu-back-label]') : null;
   const groupToggles = Array.from(shell.querySelectorAll('[data-header-catmenu-group-toggle]'));
@@ -233,6 +285,61 @@
     });
   }
 
+  // MICRO-MOTION: accordion open/close. `container` is what carries
+  // .is-expanded (drives the chevron rotation via the existing
+  // aria-expanded CSS rules, untouched by this) and what the transient
+  // .pap-catmenu-accordion-transitioning override targets; `content` is
+  // the element whose real, measured scrollHeight is animated between
+  // 0 and its natural height - no hardcoded/arbitrary max, and no
+  // display:none jump cutting the animation off (see the CSS rule
+  // pairs above .pap-header-catmenu-group--expandable:not(.is-expanded)
+  // and .pap-showcase-panel-columns-column:not(.is-expanded)). Falls
+  // back to the previous instant class toggle under reduced motion.
+  const animateAccordion = (container, content, toggle, expanding) => {
+    toggle.setAttribute('aria-expanded', expanding ? 'true' : 'false');
+
+    if (!canAnimate()) {
+      container.classList.toggle('is-expanded', expanding);
+      return;
+    }
+
+    content.getAnimations().forEach((anim) => anim.cancel());
+    container.classList.remove('pap-catmenu-accordion-transitioning');
+    content.style.overflow = '';
+
+    if (expanding) {
+      container.classList.add('is-expanded');
+      const targetHeight = content.scrollHeight;
+      content.style.overflow = 'hidden';
+
+      content.animate(
+        [
+          { height: '0px', opacity: 0 },
+          { height: `${targetHeight}px`, opacity: 1 },
+        ],
+        { duration: MOTION_NORMAL, easing: MOTION_EASE }
+      ).onfinish = () => {
+        content.style.overflow = '';
+      };
+    } else {
+      const startHeight = content.scrollHeight;
+      container.classList.add('pap-catmenu-accordion-transitioning');
+      container.classList.remove('is-expanded');
+      content.style.overflow = 'hidden';
+
+      content.animate(
+        [
+          { height: `${startHeight}px`, opacity: 1 },
+          { height: '0px', opacity: 0 },
+        ],
+        { duration: MOTION_NORMAL, easing: MOTION_EASE, fill: 'forwards' }
+      ).onfinish = () => {
+        content.style.overflow = '';
+        container.classList.remove('pap-catmenu-accordion-transitioning');
+      };
+    }
+  };
+
   groupToggles.forEach((toggle) => {
     toggle.addEventListener('click', (event) => {
       if (!mobileQuery.matches) {
@@ -242,13 +349,13 @@
       event.preventDefault();
 
       const group = toggle.closest('.pap-header-catmenu-group');
-      if (!group) {
+      const content = group ? group.querySelector('.pap-header-catmenu-sublist') : null;
+      if (!group || !content) {
         return;
       }
 
       const wasExpanded = group.classList.contains('is-expanded');
-      group.classList.toggle('is-expanded', !wasExpanded);
-      toggle.setAttribute('aria-expanded', wasExpanded ? 'false' : 'true');
+      animateAccordion(group, content, toggle, !wasExpanded);
     });
   });
 
@@ -274,16 +381,27 @@
         : columnToggles;
 
       scopedToggles.forEach((candidate) => {
-        candidate.setAttribute('aria-expanded', 'false');
+        if (candidate === toggle) {
+          return;
+        }
+
         const candidateColumn = candidate.closest('.pap-showcase-panel-columns-column');
-        if (candidateColumn) {
-          candidateColumn.classList.remove('is-expanded');
+        const candidateContent = candidateColumn
+          ? candidateColumn.querySelector('.pap-showcase-panel-columns-column-groups')
+          : null;
+
+        if (!candidateColumn || !candidateContent) {
+          return;
+        }
+
+        if (candidateColumn.classList.contains('is-expanded')) {
+          animateAccordion(candidateColumn, candidateContent, candidate, false);
         }
       });
 
-      if (!wasExpanded) {
-        column.classList.add('is-expanded');
-        toggle.setAttribute('aria-expanded', 'true');
+      const content = column.querySelector('.pap-showcase-panel-columns-column-groups');
+      if (content) {
+        animateAccordion(column, content, toggle, !wasExpanded);
       }
     });
   });
@@ -297,7 +415,16 @@
   }
 
   document.addEventListener('pointerover', (event) => {
-    if (!hoverQuery.matches || !isOpen) {
+    // Desktop-only "close the flyout when the mouse wanders off elsewhere
+    // on the page" behavior. hover:hover/pointer:fine reflects the input
+    // device (a real mouse), not the viewport width, so it stays true even
+    // when a desktop browser is narrowed or DevTools device mode emulates
+    // a mobile width - without this guard, the exact same shell reused by
+    // the off-canvas drawer would close itself the instant the cursor
+    // crossed anything outside the anchor (e.g. while inspecting an
+    // element), even though the mobile drawer should only ever close via
+    // its own explicit controls (X, overlay tap, back button).
+    if (!hoverQuery.matches || !isOpen || mobileQuery.matches) {
       return;
     }
 

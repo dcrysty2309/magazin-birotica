@@ -31,6 +31,7 @@ if ($pap_full_name === '') {
     </div>
 
     <?php papetarie_storefront_render_account_notice(); ?>
+    <p class="pap-account-danger-hint" data-account-delete-feedback hidden></p>
 
     <div class="pap-account-detail-view" data-account-detail-view>
       <div class="pap-account-detail-row">
@@ -127,17 +128,51 @@ if ($pap_full_name === '') {
          everything else about "your info" lives on this card. This note
          points people to where it actually lives instead of leaving them to
          search for a field that was never here. -->
-    <p class="pap-account-detail-hint">
+    <div class="pap-account-detail-footer-row">
+      <p class="pap-account-detail-hint">
+        <?php
+        $pap_addresses_url = function_exists('wc_get_endpoint_url') ? wc_get_endpoint_url('edit-address') : '';
+        printf(
+            /* translators: %s: link to the Adrese account page */
+            esc_html__('Telefonul de contact pentru livrări se administrează din pagina %s.', 'papetarie-storefront'),
+            '<a href="' . esc_url($pap_addresses_url) . '">' . esc_html__('Adrese', 'papetarie-storefront') . '</a>' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        );
+        ?>
+      </p>
       <?php
-      $pap_addresses_url = function_exists('wc_get_endpoint_url') ? wc_get_endpoint_url('edit-address') : '';
-      printf(
-          /* translators: %s: link to the Adrese account page */
-          esc_html__('Telefonul de contact pentru livrări se administrează din pagina %s.', 'papetarie-storefront'),
-          '<a href="' . esc_url($pap_addresses_url) . '">' . esc_html__('Adrese', 'papetarie-storefront') . '</a>' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-      );
+      // Dreptul la stergerea datelor (GDPR) - vezi includes/account-deletion.php
+      // pentru fluxul complet (blocare cont + stergere date "sigure" imediat,
+      // notificare pe contact@notix.ro pentru finalizare manuala, comenzile
+      // si facturile raman pentru arhiva fiscala obligatorie). Pe acelasi
+      // rand cu hint-ul de telefon, aliniat complet la dreapta - cerere user
+      // 2026-08-31 (nu langa "Editeaza", nu izolat jos pe randul lui).
       ?>
-    </p>
+      <button type="button" class="pap-account-danger-link" data-account-delete-trigger>
+        <?php esc_html_e('Solicită ștergerea contului', 'papetarie-storefront'); ?>
+      </button>
+    </div>
   </section>
+</div>
+
+<div class="pap-account-confirm-modal" id="pap-account-delete-modal" data-account-delete-modal hidden aria-hidden="true">
+  <div class="pap-account-confirm-modal__backdrop" data-account-delete-modal-close aria-hidden="true"></div>
+  <div class="pap-account-confirm-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="pap-account-delete-modal-title">
+    <div class="pap-account-confirm-modal__head">
+      <h2 id="pap-account-delete-modal-title"><?php esc_html_e('Sigur vrei să ștergi contul?', 'papetarie-storefront'); ?></h2>
+    </div>
+    <div class="pap-account-confirm-modal__body">
+      <p><?php esc_html_e('Adresele și datele de firmă salvate vor fi șterse imediat, iar contul va fi blocat pe loc.', 'papetarie-storefront'); ?></p>
+      <p><?php esc_html_e('Vei primi un email de confirmare.', 'papetarie-storefront'); ?></p>
+      <div class="pap-account-confirm-modal__actions">
+        <button type="button" class="pap-account-secondary-button" data-account-delete-modal-close>
+          <?php esc_html_e('Anulează', 'papetarie-storefront'); ?>
+        </button>
+        <button type="button" class="pap-account-danger-button" data-account-delete-confirm>
+          <?php esc_html_e('Da, șterge contul', 'papetarie-storefront'); ?>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <?php do_action('woocommerce_after_edit_account_form'); ?>

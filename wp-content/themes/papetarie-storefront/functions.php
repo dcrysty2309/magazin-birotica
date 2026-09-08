@@ -13,6 +13,46 @@ declare(strict_types=1);
  */
 add_filter('auto_update_plugin', '__return_false');
 
+/**
+ * Google Analytics 4 (proprietate "notix.ro", ID de masurare G-FSKPFTHGK3) -
+ * cont creat de user 2026-09-01. Doar pe front-end (nu si in wp-admin), ca sa
+ * nu polueze rapoartele cu activitatea din panoul de administrare.
+ */
+function papetarie_storefront_google_analytics_tag(): void
+{
+    if (is_admin()) {
+        return;
+    }
+    ?>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FSKPFTHGK3"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-FSKPFTHGK3');
+    </script>
+    <?php
+}
+add_action('wp_head', 'papetarie_storefront_google_analytics_tag', 1);
+
+/**
+ * Capteaza adaugarea reusita in cos pe calea de submit clasic (formularul de
+ * pe pagina de produs, fara AJAX). WooCommerce NU adauga niciun query param
+ * "?added-to-cart=" pe aceasta cale decat daca optiunea "redirect to cart
+ * after add" e activata (nu e cazul aici) - fara ea, request-ul de tip POST
+ * doar re-randeaza aceeasi pagina, deci singurul semnal fiabil ca produsul
+ * chiar a fost adaugat este acest hook, care ruleaza doar la succes.
+ */
+$GLOBALS['pap_ga4_added_to_cart'] = null;
+add_action('woocommerce_add_to_cart', function ($cart_item_key, $product_id, $quantity): void {
+    $GLOBALS['pap_ga4_added_to_cart'] = [
+        'product_id' => (int) $product_id,
+        'quantity' => (int) $quantity,
+    ];
+}, 10, 3);
+
 function papetarie_storefront_setup(): void
 {
     add_theme_support(
@@ -67,6 +107,9 @@ if (file_exists(__DIR__ . '/includes/company-book.php')) { require_once __DIR__ 
 require_once __DIR__ . '/includes/aperta-sync.php';
 require_once __DIR__ . '/includes/color-swatches.php';
 if (file_exists(__DIR__ . '/includes/newsletter.php')) { require_once __DIR__ . '/includes/newsletter.php'; }
+require_once __DIR__ . '/includes/product-description.php';
+require_once __DIR__ . '/includes/contact-form.php';
+require_once __DIR__ . '/includes/account-deletion.php';
 
 function papetarie_storefront_enqueue_styles(): void
 {
@@ -146,6 +189,44 @@ function papetarie_storefront_dequeue_legacy_child_style(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_dequeue_legacy_child_style', 40);
 
+/**
+ * WordPress core's emoji-compatibility script/style (~22KB JS + an inline
+ * shim + a DNS-prefetch hint on every single page load) exists to render
+ * emoji as images on browsers too old to draw them as real glyphs -
+ * every browser this site needs to support already renders emoji
+ * natively. Site-wide, added during the 2026-08-27 performance audit.
+ */
+function papetarie_storefront_disable_emoji_assets(): void
+{
+    remove_action('wp_head', 'print_emoji_detection_script', 7);
+    remove_action('admin_print_scripts', 'print_emoji_detection_script');
+    remove_action('wp_print_styles', 'print_emoji_styles');
+    remove_action('admin_print_styles', 'print_emoji_styles');
+    remove_filter('the_content_feed', 'wp_staticize_emoji');
+    remove_filter('comment_text_rss', 'wp_staticize_emoji');
+    remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+    remove_action('embed_head', 'print_emoji_detection_script');
+
+    add_filter('emoji_svg_url', '__return_false');
+    add_filter(
+        'tiny_mce_plugins',
+        static fn (array $plugins): array => array_diff($plugins, ['wpemoji'])
+    );
+    add_filter(
+        'wp_resource_hints',
+        static function (array $hints, string $relation_type): array {
+            if ('dns-prefetch' === $relation_type) {
+                $hints = array_diff($hints, ['//s.w.org']);
+            }
+
+            return $hints;
+        },
+        10,
+        2
+    );
+}
+add_action('init', 'papetarie_storefront_disable_emoji_assets');
+
 function papetarie_storefront_force_utf8_charset(string $charset): string
 {
     return 'UTF-8';
@@ -156,7 +237,19 @@ add_filter('option_blog_charset', 'papetarie_storefront_force_utf8_charset');
 
 function papetarie_storefront_dequeue_checkout_legacy_icons(): void
 {
-    if (!function_exists('is_checkout') || !is_checkout()) {
+    // Confirmed zero references to storefront-icons/dashicons/font-awesome
+    // classes anywhere in this theme's own CSS (papetarie-storefront relies
+    // entirely on inline SVGs via papetarie_storefront_icon()) - originally
+    // only dequeued on checkout, extended to the homepage too during the
+    // 2026-08-27 performance audit (80KB render-blocking CSS the homepage
+    // never used). Left scoped to just these two rather than site-wide since
+    // that's what's actually been verified so far - other templates
+    // (single product, etc.) haven't been checked for a stray Storefront-
+    // default icon reference.
+    $is_checkout = function_exists('is_checkout') && is_checkout();
+    $is_front_page = function_exists('is_front_page') && is_front_page();
+
+    if (!$is_checkout && !$is_front_page) {
         return;
     }
 
@@ -232,14 +325,26 @@ add_action('phpmailer_init', 'papetarie_storefront_configure_local_mailer');
 function papetarie_storefront_local_mail_from(string $from): string
 {
     $override = (string) getenv('PAP_MAIL_FROM');
-    return '' !== $override ? $override : $from;
+    if ('' !== $override) {
+        return $override;
+    }
+
+    // Fara override de mediu (adica pe site-ul real, nu local cu Mailpit),
+    // $from ar ramane pe implicitul WordPress "wordpress@notix.ro" - nimeni
+    // nu a setat vreodata un From real pentru email-urile trimise de site.
+    // Semnalat de user 2026-08-31.
+    return 'contact@notix.ro';
 }
 add_filter('wp_mail_from', 'papetarie_storefront_local_mail_from');
 
 function papetarie_storefront_local_mail_from_name(string $name): string
 {
     $override = (string) getenv('PAP_MAIL_FROM_NAME');
-    return '' !== $override ? $override : $name;
+    if ('' !== $override) {
+        return $override;
+    }
+
+    return 'Notix';
 }
 add_filter('wp_mail_from_name', 'papetarie_storefront_local_mail_from_name');
 
@@ -697,6 +802,17 @@ function papetarie_storefront_enqueue_modal_manager_script(): void
         $modal_manager_version,
         true
     );
+
+    $confirm_modal_script = get_stylesheet_directory() . '/assets/js/confirm-modal.js';
+    $confirm_modal_version = file_exists($confirm_modal_script) ? (string) filemtime($confirm_modal_script) : wp_get_theme()->get('Version');
+
+    wp_enqueue_script(
+        'papetarie-storefront-confirm-modal',
+        get_stylesheet_directory_uri() . '/assets/js/confirm-modal.js',
+        ['papetarie-storefront-modal-manager'],
+        $confirm_modal_version,
+        true
+    );
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_modal_manager_script');
 
@@ -825,10 +941,15 @@ function papetarie_storefront_enqueue_cart_page_script(): void
         'papCartPage',
         [
             'ajaxUrl' => admin_url('admin-ajax.php'),
+            // Acelasi nonce/actiune AJAX ca la mini-cosul din header
+            // (pap_cart_drawer_sync) - eliminarea de pe pagina de cos
+            // reutilizeaza acelasi endpoint, in loc de un handler PHP nou.
+            'removeNonce' => wp_create_nonce('pap_cart_drawer'),
             'minimumOrder' => papetarie_storefront_cart_minimum_order_data(),
             'messages' => [
                 'updateOverlay' => __('Coșul se actualizează...', 'papetarie-storefront'),
                 'removeOverlay' => __('Se elimină produsul...', 'papetarie-storefront'),
+                'removeError' => __('Nu am putut elimina produsul. Încearcă din nou.', 'papetarie-storefront'),
             ],
             'initialNotice' => ($cart_updated_notice = papetarie_storefront_consume_cart_updated_notice())
                 ? [
@@ -863,6 +984,26 @@ function papetarie_storefront_enqueue_product_slider_script(): void
 }
 add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_product_slider_script');
 
+function papetarie_storefront_enqueue_footer_accordion_script(): void
+{
+    // The checkout footer (.pap-footer--checkout) is just a copyright
+    // line, no link groups to collapse.
+    if (function_exists('papetarie_storefront_is_checkout_or_order_received_page') && papetarie_storefront_is_checkout_or_order_received_page()) {
+        return;
+    }
+
+    $footer_accordion_script = get_stylesheet_directory() . '/assets/js/footer-accordion.js';
+
+    wp_enqueue_script(
+        'papetarie-storefront-footer-accordion',
+        get_stylesheet_directory_uri() . '/assets/js/footer-accordion.js',
+        [],
+        file_exists($footer_accordion_script) ? (string) filemtime($footer_accordion_script) : wp_get_theme()->get('Version'),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'papetarie_storefront_enqueue_footer_accordion_script');
+
 add_filter('woocommerce_product_description_tab_title', static function (): string {
     return __('Descriere', 'papetarie-storefront');
 });
@@ -871,27 +1012,122 @@ add_filter('woocommerce_product_additional_information_tab_title', static functi
     return __('Specificații', 'papetarie-storefront');
 });
 
-add_filter('woocommerce_product_reviews_tab_title', static function ($title, $key) {
-    global $product;
+// "Informații suplimentare" (heading implicit WooCommerce deasupra
+// tabelului de atribute) e o ierarhie redundanta - tab-ul se numeste deja
+// "Specificații", nu mai are nevoie de alt titlu intern identic ca rol.
+// Eliminat global, la nivel de filtru (nu template nou), ca sa functioneze
+// pe orice produs, vechi sau nou, fara nicio interventie manuala.
+add_filter('woocommerce_product_additional_information_heading', static function (): string {
+    return '';
+});
 
-    $count = $product instanceof WC_Product ? $product->get_review_count() : 0;
+/**
+ * Etichetele de atribut (coloana din stanga a tabelului de Specificatii)
+ * vin din feed formatate cu Title Case pe fiecare cuvant (vezi
+ * mb_convert_case(..., MB_CASE_TITLE) in aperta-sync.php) - corect pentru
+ * primul cuvant, dar gresit pentru restul ("Adâncime De Capsare" in loc de
+ * "Adâncime de capsare"). NU modificam datele din DB - doar afisarea,
+ * aici, la randare in tabel. Pastram neschimbate: acronime (2+ litere/
+ * cifre majuscule, ex. "USB", "A4"), cuvinte cu majuscula interna (ex.
+ * "iPhone" - semn de denumire speciala) si orice cuvant care se
+ * potriveste cu un nume de brand cunoscut (taxonomia product_brand, ex.
+ * "Kreul", "Clairefontaine") - restul cuvintelor (in afara de primul)
+ * devin minuscule. Cerut explicit 2026-08-30, cu grija sa nu strice
+ * acronime/branduri.
+ */
+function papetarie_storefront_normalize_attribute_label(string $label): string
+{
+    $label = trim($label);
+    if ($label === '') {
+        return $label;
+    }
 
-    return sprintf(
-        /* translators: %d: review count */
-        _n('Recenzie (%d)', 'Recenzii (%d)', $count, 'papetarie-storefront'),
-        $count
-    );
-}, 10, 2);
+    static $brand_names = null;
+    if ($brand_names === null) {
+        $brand_names = [];
+        if (taxonomy_exists('product_brand')) {
+            $terms = get_terms(['taxonomy' => 'product_brand', 'hide_empty' => false, 'fields' => 'names']);
+            if (is_array($terms)) {
+                foreach ($terms as $name) {
+                    $brand_names[mb_strtolower((string) $name, 'UTF-8')] = true;
+                }
+            }
+        }
+    }
+
+    $tokens = preg_split('/(\s+)/u', $label, -1, PREG_SPLIT_DELIM_CAPTURE);
+    if (!is_array($tokens)) {
+        return $label;
+    }
+
+    $result = '';
+    $word_index = 0;
+
+    foreach ($tokens as $token) {
+        if (trim($token) === '') {
+            $result .= $token;
+            continue;
+        }
+
+        $lower = mb_strtolower($token, 'UTF-8');
+        // Cuvintele cu punctuatie in fata (ex. "(Burduf)") isi au litera
+        // reala pe pozitia 1, nu 0 - fara sa sarim peste punctuatia de la
+        // inceput, verificarea de mai jos le confunda cu "capitalizare
+        // interna speciala" si le lasa gresit neschimbate.
+        $core = (string) preg_replace('/^[^\p{L}\d]+/u', '', $token);
+        $is_all_caps = preg_match('/^[\p{Lu}\d]{2,}$/u', $core) === 1;
+        $is_known_brand = isset($brand_names[$lower]);
+        $has_internal_cap = preg_match('/\p{Lu}/u', mb_substr($core, 1, null, 'UTF-8')) === 1;
+
+        if ($is_all_caps || $is_known_brand || $has_internal_cap) {
+            // Neschimbat - acronim, brand cunoscut sau capitalizare speciala.
+        } elseif ($word_index === 0) {
+            $token = mb_strtoupper(mb_substr($token, 0, 1, 'UTF-8'), 'UTF-8')
+                . mb_strtolower(mb_substr($token, 1, null, 'UTF-8'), 'UTF-8');
+        } else {
+            $token = $lower;
+        }
+
+        $result .= $token;
+        $word_index++;
+    }
+
+    return $result;
+}
+
+// Reviews are off sitewide - no reviews tab on the product page, no rating
+// stars on product cards (see papetarie_storefront_render_product_rating_html
+// call site removal below).
+add_filter('woocommerce_product_tabs', static function (array $tabs): array {
+    unset($tabs['reviews']);
+
+    // Descriere arata acum STRICT proza (vezi
+    // includes/product-description.php) - orice lista/bullet a fost mutata
+    // in Specificatii. Un produs a carui descriere din feed e formata DOAR
+    // din liste (fara nicio propozitie de proza) ramane fara nimic de aratat
+    // pe acest tab - il ascundem, in loc sa afisam un tab clickabil, gol.
+    if (isset($tabs['description']) && function_exists('papetarie_storefront_format_description_content')) {
+        global $product;
+        $description = $product instanceof WC_Product ? (string) $product->get_description() : '';
+        $formatted = papetarie_storefront_format_description_content($description);
+        if (trim(wp_strip_all_tags($formatted)) === '') {
+            unset($tabs['description']);
+        }
+    }
+
+    return $tabs;
+}, 98);
+
+// Linkul implicit "Anulează"/"Șterge opțiunile" de sub swatch-urile de
+// culoare (reset_variations) e superfluu la interfata noastra - swatch-urile
+// sunt butoane cu click direct, deci schimbarea culorii nu are nevoie de un
+// pas separat de "curatare"; linkul doar ocupa loc si nu era stilizat.
+add_filter('woocommerce_reset_variations_link', static function (): string {
+    return '';
+});
 
 add_filter('woocommerce_product_related_products_heading', static function (): string {
     return __('Produse similare', 'papetarie-storefront');
-});
-
-add_filter('woocommerce_output_related_products_args', static function (array $args): array {
-    $args['posts_per_page'] = 8;
-    $args['columns'] = 4;
-
-    return $args;
 });
 
 function papetarie_storefront_clear_orphaned_cart_notices_on_account_pages(): void
@@ -1034,7 +1270,7 @@ function papetarie_storefront_cart_fragments(array $fragments): array
 
     ob_start();
     ?>
-    <span class="pap-tool-count-badge" data-pap-cart-count-badge><?php echo esc_html(papetarie_storefront_cart_count()); ?></span>
+    <span class="pap-tool-count-badge" data-pap-cart-count-badge<?php echo papetarie_storefront_cart_count() === '0' ? ' hidden' : ''; ?>><?php echo esc_html(papetarie_storefront_cart_count()); ?></span>
     <?php
     $fragments['[data-pap-cart-count-badge]'] = ob_get_clean();
 
@@ -2315,7 +2551,15 @@ function papetarie_storefront_checkout_standard_address_snapshot(): array
                 'shipping_postcode' => trim((string) ($account_snapshot['postcode'] ?? '')),
                 'shipping_address_1' => trim((string) ($account_snapshot['address_1'] ?? '')),
                 'shipping_address_2' => trim((string) ($account_snapshot['address_2'] ?? '')),
-                'order_comments' => '',
+                // Era hardcodat gol - observatiile de livrare salvate pe
+                // adresa din "Adrese" nu ajungeau niciodata in campul
+                // "Observatii pentru livrare / curier" de la checkout, desi
+                // tot restul campurilor (nume, telefon, adresa) se
+                // precompletau corect. Nici rezumatul Pasului 1 nu le arata,
+                // desi are deja logica gata pentru un al 5-lea rand
+                // "Observatii: ..." (vezi checkout_standard_address_lines())
+                // - doar sursa lipsea. Semnalat de user 2026-08-31.
+                'order_comments' => trim((string) ($account_snapshot['delivery_notes'] ?? '')),
             ];
         }
     }
@@ -2469,6 +2713,9 @@ function papetarie_storefront_checkout_standard_account_address_snapshot(): arra
         'address_1' => trim((string) ($address['address_1'] ?? '')),
         'address_2' => trim((string) ($address['address_2'] ?? '')),
         'email' => $user_email,
+        // Optional - nu intra in lista $required de mai jos, doar preluat
+        // daca exista pe adresa salvata.
+        'delivery_notes' => trim((string) ($address['delivery_notes'] ?? '')),
     ];
 
     $required = ['first_name', 'last_name', 'phone', 'state', 'city', 'address_1', 'postcode'];
@@ -2758,6 +3005,9 @@ function papetarie_storefront_checkout_update_review_fragments(array $fragments)
     $fragments['section[data-pap-checkout-section="order-summary"]'] = papetarie_storefront_get_checkout_order_review_html();
     $fragments['div.woocommerce-checkout-review-order-table'] = papetarie_storefront_get_checkout_order_review_html();
     $fragments['section[data-pap-checkout-section="shipping-address"]'] = papetarie_storefront_get_checkout_shipping_address_html();
+    if (function_exists('papetarie_storefront_get_checkout_company_card_html')) {
+        $fragments['section[data-pap-checkout-section="company-invoice"]'] = papetarie_storefront_get_checkout_company_card_html();
+    }
     $fragments['section[data-pap-checkout-section="shipping-methods"]'] = papetarie_storefront_get_checkout_shipping_methods_card_html();
     $fragments['section[data-pap-checkout-section="payment"]'] = papetarie_storefront_get_checkout_payment_html();
 
@@ -2843,6 +3093,8 @@ function papetarie_storefront_enqueue_account_scripts(): void
             'modalSelector' => '#pap-auth-modal',
             'accountSelector' => '[data-pap-auth-account]',
             'authState' => papetarie_storefront_get_current_user_auth_state(),
+            'deleteAccountAction' => 'pap_account_deletion_request',
+            'deleteAccountNonce' => is_user_logged_in() ? wp_create_nonce('pap_account_deletion') : '',
         ]
     );
 }
@@ -3452,7 +3704,7 @@ function papetarie_storefront_is_checkout_or_order_received_page(): bool
 
 function papetarie_storefront_get_checkout_support_details(): array
 {
-    $phone = (string) apply_filters('papetarie_storefront_checkout_support_phone', '0740 123 456');
+    $phone = (string) apply_filters('papetarie_storefront_checkout_support_phone', '0736 628 325');
     $support_url = (string) apply_filters(
         'papetarie_storefront_checkout_support_url',
         function_exists('wc_get_account_endpoint_url')
@@ -4352,20 +4604,228 @@ add_filter('woocommerce_product_query_meta_query', 'papetarie_storefront_filter_
 
 function papetarie_storefront_related_products_args(array $args): array
 {
-    $args['posts_per_page'] = 4;
+    // Tinta 6 produse - logica reala de selectie (subcategorie -> parinte
+    // -> nivel superior) e in papetarie_storefront_hierarchical_related_
+    // products() mai jos, agatata pe filtrul woocommerce_related_products.
+    $args['posts_per_page'] = 6;
     $args['columns'] = 4;
-    $args['orderby'] = 'rand';
+    // woocommerce_related_products() (in core) reordoneaza DIN NOU lista
+    // finala prin wc_products_array_orderby($products, $args['orderby'],
+    // $args['order']) - implicit orderby='rand' (amesteca tot) SI
+    // order='desc' (inverseaza rezultatul, chiar si cu orderby='none').
+    // Fara sa le suprascriem explicit aici, ordinea intentionata
+    // (subcategorie INTAI, completari din parinte DUPA) se pierde a doua
+    // oara, dupa filtrul woocommerce_related_products de mai jos. Gasit
+    // live 2026-08-31.
+    $args['orderby'] = 'none';
+    $args['order'] = 'asc';
 
     return $args;
 }
-add_filter('woocommerce_output_related_products_args', 'papetarie_storefront_related_products_args');
+// Prioritate 20, nu implicit (10) - Storefront (tema parinte) isi
+// inregistreaza propriul callback (Storefront_WooCommerce::
+// related_products_args) tot pe woocommerce_output_related_products_args,
+// dar mai tarziu in ciclul de viata WP (dintr-o clasa, nu direct la
+// incarcarea fisierului) - la aceeasi prioritate 10, al lui rula AL
+// DOILEA si suprascria inapoi posts_per_page la 3 (valoarea implicita
+// Storefront). Gasit live 2026-08-31, verificat direct in $wp_filter.
+add_filter('woocommerce_output_related_products_args', 'papetarie_storefront_related_products_args', 20);
 
+/**
+ * "Produse similare" - inlocuieste algoritmul implicit WooCommerce
+ * (categorii + etichete amestecate, des insuficient - cateva subcategorii
+ * mici ajungeau sa arate doar 2-3 produse) cu o ierarhie explicita pe
+ * arborele REAL de categorii: cea mai specifica (sub)categorie a
+ * produsului curent, apoi parintele ei, apoi bunicul, oprindu-se imediat
+ * ce s-au adunat $limit produse eligibile. Fara nicio hardcodare de nume/
+ * ID de categorie - functioneaza identic pentru orice produs si orice
+ * adancime de arbore, actuala sau viitoare (categoriile insele raman
+ * neatinse - vezi docs/categorii-fixe.md, aici doar CITIM arborele).
+ *
+ * @param int[] $related_posts
+ * @param array{limit: int, excluded_ids: int[]} $args
+ * @return int[]
+ */
+function papetarie_storefront_hierarchical_related_products($related_posts, $product_id, $args)
+{
+    $limit = isset($args['limit']) && (int) $args['limit'] > 0 ? (int) $args['limit'] : 6;
+    $product_id = (int) $product_id;
+
+    $selected = papetarie_storefront_get_hierarchical_related_product_ids($product_id, $limit);
+
+    return !empty($selected) ? $selected : $related_posts;
+}
+add_filter('woocommerce_related_products', 'papetarie_storefront_hierarchical_related_products', 10, 3);
+
+// Array-ul de mai sus e deja ordonat intentionat (subcategoria cea mai
+// specifica INTAI, apoi umpluturile din parinte) - shuffle-ul implicit
+// WooCommerce (pe rezultatul FINAL, dupa orice filtru) ar amesteca totul
+// laolalta si ar distruge exact prioritatea ceruta explicit ("produsele
+// din subcategoria directa trebuie sa aiba intotdeauna prioritate fata de
+// cele din parinte"). Rotatia intre incarcari vine deja din interiorul
+// functiei de mai sus (orderby=rand PE FIECARE nivel in parte), nu mai e
+// nevoie si de shuffle global.
+add_filter('woocommerce_product_related_posts_shuffle', '__return_false');
+
+/**
+ * @return int[] ID-uri de produse
+ */
+function papetarie_storefront_get_hierarchical_related_product_ids(int $product_id, int $limit): array
+{
+    $term_ids = wc_get_product_term_ids($product_id, 'product_cat');
+    if (empty($term_ids)) {
+        return [];
+    }
+
+    // Nivelurile de cautare: nivelul 0 = categoriile asignate direct
+    // produsului (de obicei cea mai specifica), nivelul 1 = parintii lor,
+    // nivelul 2 = bunicii, etc. - urcam pana la radacina arborelui. Un
+    // termen deja vazut la un nivel mai specific nu se repeta la unul
+    // superior (evita cautari redundante).
+    $levels = [];
+    $seen = [];
+    $current = array_unique(array_map('intval', $term_ids));
+
+    while (!empty($current)) {
+        $current = array_values(array_diff($current, $seen));
+        if (empty($current)) {
+            break;
+        }
+
+        $levels[] = $current;
+        $seen = array_merge($seen, $current);
+
+        $parents = [];
+        foreach ($current as $term_id) {
+            $term = get_term($term_id, 'product_cat');
+            if ($term instanceof WP_Term && (int) $term->parent > 0) {
+                $parents[] = (int) $term->parent;
+            }
+        }
+        $current = array_unique($parents);
+    }
+
+    $excluded_ids = [$product_id];
+    $selected_ids = [];
+
+    foreach ($levels as $level_term_ids) {
+        $remaining = $limit - count($selected_ids);
+        if ($remaining <= 0) {
+            break;
+        }
+
+        $picked = papetarie_storefront_pick_products_in_categories($level_term_ids, $excluded_ids, $remaining);
+        foreach ($picked as $id) {
+            $selected_ids[] = $id;
+            $excluded_ids[] = $id;
+        }
+    }
+
+    return $selected_ids;
+}
+
+/**
+ * Alege pana la $limit produse publicate din categoriile date (inclusiv
+ * subcategoriile lor - la nivelul "parinte", asta aduce natural toate
+ * celelalte subcategorii surori, nu doar produsele asignate literal
+ * parintelui, care de obicei n-are produse asignate direct). Produsele in
+ * stoc au intotdeauna prioritate; ordinea in cadrul fiecarui grup de stoc
+ * e aleatorie (orderby=rand la nivel de query DB) - rotatie rezonabila
+ * intre incarcari cand exista mai multi candidati eligibili decat locuri
+ * disponibile, fara sa fie mereu aceleasi produse.
+ *
+ * @param int[] $term_ids
+ * @param int[] $excluded_ids
+ * @return int[]
+ */
+function papetarie_storefront_pick_products_in_categories(array $term_ids, array $excluded_ids, int $limit): array
+{
+    if ($limit <= 0 || empty($term_ids)) {
+        return [];
+    }
+
+    $base_args = [
+        'post_type' => 'product',
+        'post_status' => 'publish',
+        'fields' => 'ids',
+        'orderby' => 'rand',
+        'post__not_in' => $excluded_ids,
+        'tax_query' => [[ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+            'taxonomy' => 'product_cat',
+            'field' => 'term_id',
+            'terms' => $term_ids,
+            'include_children' => true,
+        ]],
+    ];
+
+    $in_stock_args = $base_args;
+    $in_stock_args['posts_per_page'] = $limit;
+    $in_stock_args['meta_query'] = [[ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+        'key' => '_stock_status',
+        'value' => 'instock',
+        'compare' => '=',
+    ]];
+    $picked = array_map('intval', get_posts($in_stock_args));
+
+    if (count($picked) >= $limit) {
+        return $picked;
+    }
+
+    $still_needed = $limit - count($picked);
+    $rest_args = $base_args;
+    $rest_args['posts_per_page'] = $still_needed;
+    $rest_args['post__not_in'] = array_merge($excluded_ids, $picked);
+    $rest = array_map('intval', get_posts($rest_args));
+
+    return array_merge($picked, $rest);
+}
+
+/**
+ * Reface complet notificarea "adaugat in cos" (in loc sa doar curete link-ul
+ * "wc-forward" din mesajul implicit WooCommerce) - titlul reusitei ("Produs
+ * adaugat in cos") devine elementul vizual principal, iar numele produsului
+ * (fara ghilimele) trece pe rand secundar, ca sa nu mai domine notificarea la
+ * denumiri lungi. Reconstruim din $products (product_id => qty), nu din
+ * $message primit, ca sa avem numele curat fara HTML-ul implicit WooCommerce
+ * in jurul lui. Pastreaza CTA-ul "Vezi cosul" catre pagina reala de cos, fara
+ * flux paralel.
+ */
 function papetarie_storefront_add_to_cart_message_html(string $message, $products, bool $show_qty): string
 {
-    $message = preg_replace('/\s*<a[^>]+class="button wc-forward[^"]*"[^>]*>.*?<\/a>/is', '', $message) ?? $message;
-    $message = preg_replace('/\s{2,}/', ' ', $message) ?? $message;
+    if (!is_array($products) || empty($products)) {
+        return $message;
+    }
 
-    return trim($message);
+    $items = [];
+    foreach ($products as $product_id => $qty) {
+        $title = wp_strip_all_tags(get_the_title((int) $product_id));
+        if ($title === '') {
+            continue;
+        }
+        $qty = $show_qty ? (int) $qty : 1;
+        $items[] = $qty > 1 ? ($qty . ' × ' . $title) : $title;
+    }
+
+    if (empty($items)) {
+        return $message;
+    }
+
+    ob_start();
+    ?>
+    <div class="pap-atc-message">
+      <div class="pap-atc-message-text">
+        <span class="pap-atc-message-title"><?php esc_html_e('Produs adăugat în coș', 'papetarie-storefront'); ?></span>
+        <span class="pap-atc-message-product"><?php echo esc_html(implode(', ', $items)); ?></span>
+      </div>
+      <?php if (function_exists('wc_get_cart_url')) : ?>
+        <a href="<?php echo esc_url(wc_get_cart_url()); ?>" class="pap-atc-message-cta">
+          <?php esc_html_e('Vezi coșul', 'papetarie-storefront'); ?>
+        </a>
+      <?php endif; ?>
+    </div>
+    <?php
+
+    return (string) ob_get_clean();
 }
 add_filter('wc_add_to_cart_message_html', 'papetarie_storefront_add_to_cart_message_html', 10, 3);
 
@@ -4468,9 +4928,73 @@ add_filter('woocommerce_email_styles', 'papetarie_storefront_email_styles');
 
 function papetarie_storefront_email_footer_text(): string
 {
-    return __('Notix — papetărie și birotică.<br>Contact: 0722 123 456 &middot; <a href="mailto:contact@notix.ro" style="color:#173764;">contact@notix.ro</a>', 'papetarie-storefront');
+    $phone = papetarie_storefront_get_checkout_support_details()['phone'];
+
+    return sprintf(
+        /* translators: 1: support phone number */
+        __('Notix — papetărie și birotică.<br>Contact: %1$s &middot; <a href="mailto:contact@notix.ro" style="color:#173764;">contact@notix.ro</a>', 'papetarie-storefront'),
+        esc_html($phone)
+    );
 }
 add_filter('woocommerce_email_footer_text', 'papetarie_storefront_email_footer_text');
+
+/**
+ * WooCommerce insereaza un <hr> "divider de sectiune" intre tabelul de
+ * produse si cel de totaluri, si intre totaluri si nota clientului
+ * (email-order-details.php / email-addresses.php) - randat corect ca linie
+ * subtire de 1px in majoritatea clientilor de email, dar Gmail il afiseaza
+ * ca un bloc portocaliu gros (semnalat de user cu screenshot din inspector -
+ * elementul in sine are stilul corect de 1px, e strict o particularitate de
+ * randare Gmail pe acest <hr> gol). Cel mai simplu si robust fix: scoatem
+ * elementul complet din DOM, prin filtrul oficial WC pentru asta, in loc sa
+ * incercam sa "reparam" randarea lui doar in Gmail.
+ */
+add_filter('woocommerce_email_body_display_section_divider', '__return_false');
+
+/**
+ * WooCommerce adauga automat "Procesezi comenzile din mers. Descarca
+ * aplicatia." in emailul "Comanda noua" (trimis catre magazin, nu catre
+ * client) - promovare pentru aplicatia mobila WooCommerce, nefolosita aici.
+ * WC_Email_New_Order::mobile_messaging() se auto-inregistreaza pe
+ * woocommerce_email_footer (prioritate 9) chiar in constructorul clasei,
+ * deci trebuie scoasa explicit, cu referinta la instanta reala a clasei de
+ * email (WC()->mailer()->get_emails()), nu doar cu numele metodei.
+ */
+function papetarie_storefront_disable_email_mobile_app_promo(): void
+{
+    if (!function_exists('WC') || !WC()->mailer()) {
+        return;
+    }
+
+    $email = WC()->mailer()->get_emails()['WC_Email_New_Order'] ?? null;
+    if ($email instanceof WC_Email) {
+        remove_action('woocommerce_email_footer', [$email, 'mobile_messaging'], 9);
+    }
+}
+add_action('woocommerce_email_footer', 'papetarie_storefront_disable_email_mobile_app_promo', 1);
+
+/**
+ * Subiectul implicit ("Comandă nouă #{nr}") repeta aproape identic titlul
+ * (H1) din corpul emailului ("Comandă nouă: nr. {nr}") - in lista de inbox
+ * (subiect + preview text alaturate) parea ca a venit de doua ori. Adaugam
+ * si numele clientului, ca subiectul sa fie util de la sine (fara sa
+ * deschizi emailul ca sa stii cine a comandat) si vizual distinct de titlul
+ * din corp. Cerut explicit de user 2026-08-31.
+ */
+function papetarie_storefront_new_order_email_subject($subject, $order)
+{
+    if (!$order instanceof WC_Order) {
+        return $subject;
+    }
+
+    $customer_name = trim($order->get_formatted_billing_full_name());
+    if ($customer_name === '') {
+        $customer_name = $order->get_billing_email();
+    }
+
+    return sprintf('Comandă nouă – #%s (%s)', $order->get_order_number(), $customer_name);
+}
+add_filter('woocommerce_email_subject_new_order', 'papetarie_storefront_new_order_email_subject', 20, 2);
 
 /**
  * Antetul emailurilor WooCommerce foloseste implicit un mov (#8526ff) ramas
@@ -4559,6 +5083,69 @@ function papetarie_storefront_wrap_email_html(string $heading, string $bodyHtml)
     return $html;
 }
 
+/**
+ * WC_Gateway_COD isi ataseaza singur instructiunile de plata ("Plătești la
+ * livrare.", text din WooCommerce -> Setari -> Plati -> Ramburs) atat pe
+ * pagina de multumire, CAT SI in email, chiar inaintea tabelului cu
+ * "Rezumat comanda" - care are deja propriul rand "Metoda de plata: Plata la
+ * livrare" in totaluri (vezi woocommerce/emails/email-order-details.php).
+ * Acelasi lucru aparea de doua ori in email. Scoatem hook-ul DOAR pentru
+ * email (woocommerce_email_before_order_table) - pagina de multumire
+ * (woocommerce_thankyou_cod) ramane neatinsa, acolo nu exista duplicare.
+ * Declansat pe "init" cu prioritate mare, ca sa ruleze dupa ce
+ * WC_Payment_Gateways si-a inregistrat singur porile de plata (accesarea
+ * WC()->payment_gateways() aici garanteaza initializarea, indiferent de
+ * ordinea reala de incarcare). Semnalat de user 2026-09-01.
+ */
+function papetarie_storefront_remove_cod_email_instructions(): void
+{
+    if (!function_exists('WC')) {
+        return;
+    }
+
+    $gateways = WC()->payment_gateways()->payment_gateways();
+    if (isset($gateways['cod']) && $gateways['cod'] instanceof WC_Gateway_COD) {
+        remove_action('woocommerce_email_before_order_table', [$gateways['cod'], 'email_instructions'], 10);
+    }
+}
+add_action('init', 'papetarie_storefront_remove_cod_email_instructions', 20);
+
+/**
+ * Textul implicit WooCommerce pentru emailul "Comandă finalizată" e "Comanda
+ * ta este pe drum!" - potrivit pentru un magazin unde "Completed" chiar
+ * inseamna "tocmai expediat". La noi insa "Completed" se seteaza manual,
+ * DUPA ce livrarea si incasarea au fost deja confirmate (vezi flux-emailuri.md,
+ * pasul 5) - textul "e pe drum" ajunge la ore/zile dupa livrarea reala si e
+ * pur si simplu gresit in acel moment. Filtrele dedicate WooCommerce, pentru
+ * subiect si titlu, sunt folosite in loc de mapa generica de traduceri
+ * (papetarie_storefront_translate_frontend_strings), pentru ca aceea sare
+ * peste orice se genereaza din contextul admin (is_admin() === true), context
+ * in care se schimba de obicei statusul unei comenzi. Semnalat de user
+ * 2026-09-01.
+ */
+function papetarie_storefront_completed_order_email_subject(string $subject, $order): string
+{
+    if (!$order instanceof WC_Order) {
+        return $subject;
+    }
+
+    /* translators: %s: order number */
+    return sprintf(__('Comanda ta #%s a fost livrată!', 'papetarie-storefront'), $order->get_order_number());
+}
+add_filter('woocommerce_email_subject_customer_completed_order', 'papetarie_storefront_completed_order_email_subject', 10, 2);
+
+function papetarie_storefront_completed_order_email_heading(): string
+{
+    return __('Comanda ta a fost livrată!', 'papetarie-storefront');
+}
+add_filter('woocommerce_email_heading_customer_completed_order', 'papetarie_storefront_completed_order_email_heading');
+
+function papetarie_storefront_completed_order_email_additional_content(): string
+{
+    return __('Mulțumim că ai ales Notix! Sperăm să te bucuri de produsele comandate.', 'papetarie-storefront');
+}
+add_filter('woocommerce_email_additional_content_customer_completed_order', 'papetarie_storefront_completed_order_email_additional_content');
+
 function papetarie_storefront_cart_count(): string
 {
     if (!function_exists('WC') || !WC()->cart) {
@@ -4604,6 +5191,52 @@ function papetarie_storefront_cart_quantity_bounds(WC_Product $product): array
     return [$min_value, $max_value];
 }
 
+/**
+ * Reconstruieste "Eticheta: valoare" pentru fiecare atribut de variatie al
+ * unui item din cos - practic aceeasi logica ca wc_get_formatted_cart_item_data()
+ * din core, DAR fara verificarea ei "sari peste daca valoarea e deja in
+ * numele produsului" (wc_is_attribute_in_product_name()). Acea verificare
+ * presupune ca numele afisat e cel brut al variatiei, care include automat
+ * "- Valoare" (WC_Product_Variation::get_name()) - noi afisam insa numele
+ * curat al produsului-parinte (vezi mai jos, fixul pentru trunchierea
+ * numelui la "-..."), asa ca acea verificare ar ascunde complet valoarea
+ * variantei alese, fara sa apara nicaieri. Gasit live 2026-08-30.
+ *
+ * @return string ex. "Liniatură: Matematică"
+ */
+function papetarie_storefront_format_cart_item_variation(array $cart_item): string
+{
+    $product = $cart_item['data'] ?? null;
+    if (!($product instanceof WC_Product_Variation) || !is_array($cart_item['variation'] ?? null)) {
+        return '';
+    }
+
+    $parts = [];
+    foreach ($cart_item['variation'] as $name => $value) {
+        $taxonomy = wc_attribute_taxonomy_name(str_replace('attribute_pa_', '', urldecode((string) $name)));
+
+        if (taxonomy_exists($taxonomy)) {
+            $term = get_term_by('slug', $value, $taxonomy);
+            if (!is_wp_error($term) && $term && $term->name) {
+                $value = $term->name;
+            }
+            $label = wc_attribute_label($taxonomy);
+        } else {
+            $value = apply_filters('woocommerce_variation_option_name', $value, null, $taxonomy, $product);
+            $label = wc_attribute_label(str_replace('attribute_', '', (string) $name), $product);
+        }
+
+        $value = (string) $value;
+        if ($value === '') {
+            continue;
+        }
+
+        $parts[] = $label . ': ' . $value;
+    }
+
+    return implode(', ', $parts);
+}
+
 function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, array $cart_item): string
 {
     $product = $cart_item['data'] ?? null;
@@ -4633,9 +5266,22 @@ function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, a
     }
 
     $product_id = (int) ($cart_item['product_id'] ?? ($is_product_valid ? $product->get_id() : 0));
-    $product_name = $is_product_valid ? $product->get_name() : __('Produs indisponibil', 'papetarie-storefront');
+    // WC_Product_Variation::get_name() adauga automat " - Eticheta atribut"
+    // la numele parintelui (ex. "... Rhodia Classic, black - Dictando") -
+    // aceeasi informatie apare oricum mai jos, structurat, in
+    // .pap-cart-item-description (wc_get_formatted_cart_item_data). Cu
+    // sufixul dublat aici, un nume de produs deja lung depasea clema de 2
+    // randuri exact la sufix, taind vizual "- Dictando" la "-..." si
+    // ascunzand ce variantă a fost aleasă - semnalat de user 2026-08-30.
+    // Pentru variatii folosim numele curat al produsului-parinte.
+    if ($is_product_valid && $product instanceof WC_Product_Variation) {
+        $parent_product = wc_get_product($product->get_parent_id());
+        $product_name = $parent_product instanceof WC_Product ? $parent_product->get_name() : $product->get_name();
+    } else {
+        $product_name = $is_product_valid ? $product->get_name() : __('Produs indisponibil', 'papetarie-storefront');
+    }
     $product_permalink = $is_product_valid && $product->is_visible() ? $product->get_permalink($cart_item) : '';
-    $variation_html = $is_product_valid ? wc_get_formatted_cart_item_data($cart_item, true) : '';
+    $variation_html = $is_product_valid ? papetarie_storefront_format_cart_item_variation($cart_item) : '';
     $description_source = $variation_html ? wp_strip_all_tags((string) $variation_html) : ($is_product_valid ? wp_strip_all_tags((string) $product->get_short_description()) : '');
     $product_description = trim(preg_replace('/\s+/', ' ', (string) $description_source));
     $thumbnail = $is_product_valid ? $product->get_image('woocommerce_thumbnail', ['loading' => 'lazy', 'alt' => $product_name]) : '';
@@ -5149,7 +5795,16 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
 
     $quantity = max(1, (int) $cart_item['quantity']);
     $product_id = (int) ($cart_item['product_id'] ?? $product->get_id());
-    $product_name = $product->get_name();
+    // Vezi acelasi fix in papetarie_storefront_render_cart_item_row_html() -
+    // get_name() pe o variatie adauga automat " - Eticheta atribut", care
+    // dubleaza informatia deja aratata mai jos in .pap-cart-drawer-variation
+    // si trunchiaza numele (o singura linie, ellipsis) exact la sufix.
+    if ($product instanceof WC_Product_Variation) {
+        $parent_product = wc_get_product($product->get_parent_id());
+        $product_name = $parent_product instanceof WC_Product ? $parent_product->get_name() : $product->get_name();
+    } else {
+        $product_name = $product->get_name();
+    }
     $product_permalink = $product->is_visible() ? $product->get_permalink($cart_item) : '';
     $thumbnail = $product->get_image('woocommerce_thumbnail', ['loading' => 'lazy', 'alt' => $product_name]);
 
@@ -5157,7 +5812,7 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
         $thumbnail = '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($product_name) . '" loading="lazy">';
     }
 
-    $variation_html = wc_get_formatted_cart_item_data($cart_item, true);
+    $variation_html = papetarie_storefront_format_cart_item_variation($cart_item);
     ?>
     <article class="pap-cart-drawer-item" data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>" data-cart-item-id="<?php echo esc_attr($product_id); ?>">
       <a class="pap-cart-drawer-thumb" href="<?php echo esc_url($product_permalink ? $product_permalink : '#'); ?>" <?php echo $product_permalink ? '' : 'aria-hidden="true" tabindex="-1"'; ?>>
@@ -6029,7 +6684,7 @@ function papetarie_storefront_render_auth_hero(string $context = 'login'): void
                 ['icon' => 'cart', 'title' => __('Comandă rapidă', 'papetarie-storefront'), 'text' => __('Finalizezi achizițiile fără pași suplimentari.', 'papetarie-storefront')],
                 ['icon' => 'archive', 'title' => __('Istoric clar al comenzilor', 'papetarie-storefront'), 'text' => __('Ai acces ușor la ce ai comandat deja.', 'papetarie-storefront')],
             ],
-            'image' => $assets . '/showcase-hero-user.png',
+            'image' => $assets . '/showcase-hero-user.jpg',
         ],
         'lost-password' => [
             'eyebrow' => '',
@@ -7002,33 +7657,6 @@ function papetarie_storefront_get_product_primary_category(WC_Product $product):
     return (string) $terms[0]->name;
 }
 
-function papetarie_storefront_render_product_rating_html(WC_Product $product): string
-{
-    $rating_count = $product->get_rating_count();
-    if ($rating_count < 1) {
-        return '';
-    }
-
-    $average = (float) $product->get_average_rating();
-    $star_icon = papetarie_storefront_icon('star');
-
-    ob_start();
-    ?>
-    <div class="pap-product-rating" aria-label="<?php echo esc_attr(sprintf(
-        /* translators: %s: average rating out of 5 */
-        __('Rating %s din 5', 'papetarie-storefront'),
-        number_format_i18n($average, 1)
-    )); ?>">
-      <?php for ($i = 1; $i <= 5; $i++) : ?>
-        <span class="pap-product-rating__star<?php echo $i <= round($average) ? ' is-filled' : ''; ?>" aria-hidden="true"><?php echo $star_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-      <?php endfor; ?>
-      <span class="pap-product-rating__count">(<?php echo esc_html((string) $rating_count); ?>)</span>
-    </div>
-    <?php
-
-    return (string) ob_get_clean();
-}
-
 function papetarie_storefront_render_product_slider_section(string $title, string $subtitle, array $products, string $see_all_url, array $extra_section_classes = [], string $id = ''): string
 {
     $products = array_values(array_filter($products, static function ($product): bool {
@@ -7980,6 +8608,17 @@ function papetarie_storefront_ajax_add_to_cart(): void
 
     papetarie_storefront_send_json_success_fast([
         'message' => __('Produsul a fost adăugat în coș', 'papetarie-storefront'),
+        // Date pentru evenimentul GA4 "add_to_cart" - impinse in dataLayer de
+        // JS-ul apelant (archive-add-to-cart.js), nu direct de aici (raspunsul
+        // e JSON, nu se poate injecta <script> in el). Vezi si single-product.php
+        // pentru cazul de submit clasic (fara AJAX) al formularului.
+        'ga4_item' => [
+            'item_id' => $product->get_sku() ?: (string) $product_id,
+            'item_name' => $product->get_name(),
+            'price' => (float) $product->get_price(),
+            'quantity' => $quantity,
+            'currency' => function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'RON',
+        ],
         'name' => $product->get_name(),
         'price_html' => $product->get_price_html(),
         'cart_item_unit_price_text' => html_entity_decode(wp_strip_all_tags($product->get_price_html()), ENT_QUOTES, 'UTF-8'),
@@ -8335,6 +8974,11 @@ function papetarie_storefront_render_checkout_company_block(WC_Checkout $checkou
         <span><?php esc_html_e('Doresc factură pe firmă', 'papetarie-storefront'); ?></span>
       </label>
 
+      <p class="pap-checkout-company-note" data-checkout-company-note <?php echo $has_value ? 'hidden' : ''; ?>>
+        <span class="pap-checkout-company-note__icon" aria-hidden="true"><?php echo papetarie_storefront_notice_icon('info'); ?></span>
+        <span><?php esc_html_e('Pentru persoane fizice, adresa de livrare este folosită automat și ca adresă de facturare.', 'papetarie-storefront'); ?></span>
+      </p>
+
       <div class="pap-checkout-company-fields" data-checkout-company-fields <?php echo $has_value ? '' : 'hidden'; ?>>
         <?php if (!empty($saved_companies)) : ?>
           <div class="pap-form-row pap-form-row--stack">
@@ -8349,6 +8993,28 @@ function papetarie_storefront_render_checkout_company_block(WC_Checkout $checkou
             </select>
           </div>
         <?php endif; ?>
+
+        <?php
+        // Singurul loc din care Oblio afla daca firma e platitoare de TVA
+        // (papetarie_storefront_oblio_issue_document() in admin-oblio.php,
+        // via meta "_billing_vat_payer") - fara el, CUI-ul primea mereu
+        // prefixul "RO" pe factura, indiferent de statusul real. Populat din
+        // JS: fie din lookup-ul ANAF (campul "vat_payer" din raspuns), fie
+        // din atributul "data-vat-payer" al firmei salvate alese mai sus.
+        // Valoarea initiala reflecta firma implicita preselectata (daca
+        // exista) sau ce s-a trimis deja la o re-incarcare dupa eroare.
+        $vat_payer_initial = $checkout->get_value('billing_vat_payer');
+        if ($vat_payer_initial === '' || $vat_payer_initial === null) {
+            $vat_payer_initial = '0';
+            foreach ($saved_companies as $saved_company) {
+                if (!empty($saved_company['is_default'])) {
+                    $vat_payer_initial = !empty($saved_company['vat_payer']) ? '1' : '0';
+                    break;
+                }
+            }
+        }
+        ?>
+        <input type="hidden" name="billing_vat_payer" id="billing_vat_payer" data-checkout-company-vat-payer value="<?php echo esc_attr((string) $vat_payer_initial); ?>">
 
         <?php
         // Progresiv, ca in modalul "Adaugă firmă" din Contul meu: doar CUI-ul
@@ -9196,6 +9862,56 @@ function papetarie_storefront_checkout_persist_snapshot_to_account(array $snapsh
     $customer->set_shipping_address_2($billing_address_2);
     $customer->set_shipping_company($billing_company);
     $customer->save();
+
+    // Bifa "Actualizează adresa din contul meu cu aceste date" scria doar
+    // meta-ul vechi billing_*/shipping_* de mai sus - "Adresa mea" nu
+    // citeste niciodata de-acolo, doar din agenda proprie de adrese (vezi
+    // address_book_default_address() in includes/address-book.php), deci
+    // bifarea parea sa nu faca nimic acolo, desi tehnic scria altceva. Adaug
+    // aici si actualizarea reala a intrarii implicite din agenda. Semnalat
+    // de user 2026-08-31.
+    if (function_exists('papetarie_storefront_address_book_save_entry')) {
+        $delivery_notes_value = trim((string) ($snapshot['order_comments'] ?? $snapshot['#order_comments'] ?? ''));
+
+        $existing_default_id = '';
+        if (function_exists('papetarie_storefront_address_book_default_id_meta_key')) {
+            $existing_default_id = trim((string) get_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key(), true));
+        }
+
+        $saved_entry = papetarie_storefront_address_book_save_entry($user_id, [
+            'first_name' => $billing_first_name,
+            'last_name' => $billing_last_name,
+            'phone' => $billing_phone,
+            'company' => $billing_company,
+            'country' => $billing_country !== '' ? $billing_country : 'RO',
+            'state' => $billing_state,
+            'city' => $billing_city,
+            'postcode' => $billing_postcode,
+            'address_1' => $billing_address_1,
+            'address_2' => $billing_address_2,
+            'delivery_notes' => $delivery_notes_value,
+        ], $existing_default_id);
+
+        if ($existing_default_id === '' && function_exists('papetarie_storefront_address_book_default_id_meta_key')) {
+            update_user_meta($user_id, papetarie_storefront_address_book_default_id_meta_key(), (string) ($saved_entry['id'] ?? ''));
+        }
+
+        // Fara asta, checkout-ul tot arata datele "temporare" din sesiune
+        // (ce a tastat userul ultima data la Pasul 1, cf.
+        // checkout_standard_address_snapshot() - prioritatea ei cea mai
+        // mare) in loc de agenda de adrese tocmai actualizata mai sus -
+        // odata ce datele astea au devenit adresa reala salvata, nu mai are
+        // sens sa ramana marcate separat ca "temporare". Fara aceasta
+        // curatare, un checkout mai vechi cu alte observatii (ex. "etaj 9")
+        // ramanea blocat la loc, suprascriind vizual chiar adresa proaspat
+        // salvata ("etaj 7"). Semnalat de user 2026-08-31.
+        if (function_exists('papetarie_storefront_address_book_checkout_clear_temporary_snapshot')) {
+            papetarie_storefront_address_book_checkout_clear_temporary_snapshot();
+        }
+        if (function_exists('papetarie_storefront_address_book_checkout_set_temporary_address')) {
+            papetarie_storefront_address_book_checkout_set_temporary_address(false);
+        }
+    }
 }
 
 function papetarie_storefront_checkout_mirror_shipping_to_order($order, array $data): void
@@ -9243,6 +9959,71 @@ function papetarie_storefront_checkout_save_address_for_future($order, array $da
 add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_save_address_for_future', 20, 2);
 
 /**
+ * Salveaza datele de facturare pe firma (CUI, reg. com., adresa sediului)
+ * ca meta pe COMANDA insasi - fara asta, singurul camp care ajungea pe
+ * comanda era billing_company (numele firmei), fiindca e singurul camp
+ * nativ WooCommerce din tot blocul "Doresc factura pe firma". Restul
+ * (billing_cui/billing_reg_no/billing_company_state/_city/_address) erau
+ * validate la checkout si aratau corect completate in formular (inclusiv
+ * cele populate automat prin lookup-ul ANAF), dar se pierdeau complet dupa
+ * plasarea comenzii - nimeni nu le putea vedea pe comanda ca sa emita o
+ * factura corecta pe firma. Gasit live 2026-08-31, testand fluxul complet
+ * de comanda persoana juridica. Distinct de
+ * papetarie_storefront_checkout_save_company_for_future() de mai jos, care
+ * salveaza firma in "Contul meu" pentru refolosire - asta ruleaza mereu
+ * cand se factureaza pe firma, indiferent daca userul vrea sau nu s-o
+ * refoloseasca data viitoare.
+ */
+function papetarie_storefront_checkout_save_company_meta_to_order($order, array $data): void
+{
+    // $data (WC_Checkout::get_posted_data()) contine doar campurile oficial
+    // inregistrate prin woocommerce_checkout_fields - "pap_invoice_on_company"
+    // e un simplu checkbox custom, nu un camp WC inregistrat, deci nu apare
+    // acolo. Citim direct din $_POST, sursa reala trimisa de formular (la
+    // fel cum face deja papetarie_storefront_checkout_validate() pentru
+    // acelasi checkbox, in hook-ul de validare).
+    $posted = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+    if (empty($posted['pap_invoice_on_company'])) {
+        return;
+    }
+
+    // Prefix "_" obligatoriu pe cheia de meta - e conventia WooCommerce
+    // pentru toate campurile billing/shipping (asa citeste $order->get_billing_company()
+    // intern din "_billing_company"), si mai ales e EXACT ce citeste deja
+    // papetarie_storefront_oblio_issue_document() din admin-oblio.php
+    // (get_meta('_billing_cui'), get_meta('_billing_reg_no') etc.) - fara
+    // prefix, integrarea Oblio nu ar fi gasit niciodata aceste date, chiar
+    // daca ar fi fost salvate.
+    $fields = [
+        'billing_cui' => '_billing_cui',
+        'billing_reg_no' => '_billing_reg_no',
+        'billing_company_state' => '_billing_company_state',
+        'billing_company_city' => '_billing_company_city',
+        'billing_company_address' => '_billing_company_address',
+    ];
+
+    foreach ($fields as $post_key => $meta_key) {
+        $value = isset($posted[$post_key]) ? sanitize_text_field(wp_unslash((string) $posted[$post_key])) : '';
+        if ($value !== '') {
+            $order->update_meta_data($meta_key, $value);
+        }
+    }
+
+    // "1"/"0" din campul ascuns "billing_vat_payer" (vezi
+    // papetarie_storefront_render_checkout_company_block() mai sus) - unica
+    // sursa pentru papetarie_storefront_oblio_issue_document() sa stie daca
+    // adauga prefixul "RO" la CUI pe factura sau nu. Salvat mereu, chiar
+    // "0" (spre deosebire de campurile de mai sus, unde "" inseamna
+    // "nesalvat") - altfel un CUI neplatitor de TVA la a doua comanda ar
+    // ramane cu meta veche de la o comanda anterioara platitoare.
+    if (isset($posted['billing_vat_payer'])) {
+        $order->update_meta_data('_billing_vat_payer', sanitize_text_field(wp_unslash((string) $posted['billing_vat_payer'])) === '1' ? '1' : '0');
+    }
+}
+add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_save_company_meta_to_order', 20, 2);
+
+/**
  * "Salvează firma în contul meu" (checkbox separat de "Doresc factură pe
  * firmă" - poti factura pe firma o singura data, fara sa vrei sa o mai
  * refolosesti). Nu suprascrie/sterge nimic din firmele deja salvate daca
@@ -9251,7 +10032,20 @@ add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_s
  */
 function papetarie_storefront_checkout_save_company_for_future($order, array $data): void
 {
-    if (empty($data['pap_invoice_on_company']) || empty($data['pap_save_company_for_future']) || !is_user_logged_in()) {
+    // La fel ca in papetarie_storefront_checkout_save_company_meta_to_order()
+    // de mai sus: "pap_invoice_on_company" si "pap_save_company_for_future"
+    // sunt checkbox-uri custom, nu campuri WC inregistrate prin
+    // woocommerce_checkout_fields, deci NU apar in $data
+    // (WC_Checkout::get_posted_data()) - citite de acolo erau intotdeauna
+    // goale, functia iesea mereu pe return-ul de mai jos si firma nu se
+    // salva niciodata in "Firmele mele", indiferent de bifa. Gasit live
+    // 2026-08-31, semnalat de user ("am bifat sa se salveze firma... si nu
+    // se salveaza"). "billing_company_state"/"_city"/"_address"/"billing_cui"/
+    // "billing_reg_no" raman citite din $data - alea SUNT inregistrate (vezi
+    // $fields['billing'][...] mai sus in fisier), deci apar corect acolo.
+    $posted_raw = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+    if (empty($posted_raw['pap_invoice_on_company']) || empty($posted_raw['pap_save_company_for_future']) || !is_user_logged_in()) {
         return;
     }
 
@@ -9273,7 +10067,7 @@ function papetarie_storefront_checkout_save_company_for_future($order, array $da
     }
 
     $user_id = get_current_user_id();
-    $selected_company_id = isset($data['pap_checkout_company_select']) ? sanitize_text_field((string) $data['pap_checkout_company_select']) : '';
+    $selected_company_id = isset($posted_raw['pap_checkout_company_select']) ? sanitize_text_field(wp_unslash((string) $posted_raw['pap_checkout_company_select'])) : '';
     papetarie_storefront_company_book_save_entry($user_id, $posted, $selected_company_id);
 }
 add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_save_company_for_future', 20, 2);
@@ -9660,11 +10454,79 @@ function papetarie_storefront_account_order_display_number(WC_Order $order): str
     return '#SH-' . $normalized_number;
 }
 
+/**
+ * "#NOTIX-0023" (functia de mai sus) e formatul prietenos, dar era apelat
+ * manual doar in Contul meu (lista de comenzi, minicard dashboard). Oriunde
+ * altundeva trece prin $order->get_order_number() direct - subiectul
+ * emailurilor native WooCommerce, pagina "Am primit comanda", emailurile
+ * custom (AWB, "comanda noua") - se afisa ID-ul brut din baza de date (ex.
+ * "24225"), un numar mare fara legatura vizibila cu contorul propriu al
+ * magazinului. Filtrul standard WooCommerce e punctul central prin care
+ * toate acele locuri trec deja (vezi WC_Order::get_order_number()) - o
+ * singura modificare aici corecteaza totul deodata. Foloseste direct
+ * argumentul $order_number primit (ID-ul brut, valoarea implicita a
+ * filtrului) ca fallback, nu get_order_number() din nou - ar re-declansa
+ * acelasi filtru la infinit. Semnalat de user 2026-09-01.
+ */
+function papetarie_storefront_friendly_order_number($order_number, WC_Order $order): string
+{
+    $sequence_number = (int) $order->get_meta('_pap_order_seq', true);
+
+    if ($sequence_number > 0) {
+        return 'NOTIX-' . str_pad((string) $sequence_number, 4, '0', STR_PAD_LEFT);
+    }
+
+    return (string) $order_number;
+}
+add_filter('woocommerce_order_number', 'papetarie_storefront_friendly_order_number', 10, 2);
+
+/**
+ * Status custom de comanda "Expediata" - intre "Processing" (comanda
+ * primita, inca la magazin) si "Completed" (livrare confirmata manual).
+ * Setat automat cand AWB-ul e generat si trimis clientului (vezi
+ * admin-oblio.php, papetarie_storefront_oblio_handle_generate_ajax()) -
+ * inainte de asta, comanda ramanea "Processing" tot intervalul cat coletul
+ * era efectiv la curier, ceea ce nu reflecta starea reala. Cerut de user
+ * 2026-09-01.
+ */
+function papetarie_storefront_register_shipped_order_status(): void
+{
+    register_post_status('wc-expediat', [
+        'label' => _x('Expediată', 'Order status', 'papetarie-storefront'),
+        'public' => false,
+        'exclude_from_search' => false,
+        'show_in_admin_all_list' => true,
+        'show_in_admin_status_list' => true,
+        /* translators: %s: number of orders */
+        'label_count' => _n_noop('Expediată <span class="count">(%s)</span>', 'Expediate <span class="count">(%s)</span>', 'papetarie-storefront'),
+    ]);
+}
+add_action('init', 'papetarie_storefront_register_shipped_order_status');
+
+function papetarie_storefront_add_shipped_order_status(array $order_statuses): array
+{
+    $new_statuses = [];
+
+    foreach ($order_statuses as $key => $label) {
+        $new_statuses[$key] = $label;
+        if ($key === 'wc-processing') {
+            $new_statuses['wc-expediat'] = _x('Expediată', 'Order status', 'papetarie-storefront');
+        }
+    }
+
+    return $new_statuses;
+}
+add_filter('wc_order_statuses', 'papetarie_storefront_add_shipped_order_status');
+
 function papetarie_storefront_account_order_status_data(WC_Order $order): array
 {
     $status = $order->get_status();
 
     $map = [
+        'expediat' => [
+            'label' => __('Expediată', 'papetarie-storefront'),
+            'class' => 'is-shipped',
+        ],
         'completed' => [
             'label' => __('Livrat', 'papetarie-storefront'),
             'class' => 'is-success',
@@ -9839,6 +10701,41 @@ function papetarie_storefront_account_order_items_count(WC_Order $order): int
     return $count;
 }
 
+/**
+ * Miniaturi de produse pentru minicard-ul "Ultima comanda" (Acasa) - doar
+ * cateva imagini reprezentative, nu toate liniile comenzii (o comanda cu
+ * 22 de produse ar produce un "carnat" nesfarsit de thumbnail-uri). Restul
+ * peste $max e raportat separat ca numar, randat ca ultima piesa "+N".
+ */
+function papetarie_storefront_account_order_items_preview(WC_Order $order, int $max = 4): array
+{
+    $thumbs = [];
+
+    foreach ($order->get_items('line_item') as $item) {
+        if (!$item instanceof WC_Order_Item_Product) {
+            continue;
+        }
+
+        $product = $item->get_product();
+        $image_id = $product instanceof WC_Product ? (int) $product->get_image_id() : 0;
+        $image_url = $image_id > 0 ? wp_get_attachment_image_url($image_id, 'thumbnail') : wc_placeholder_img_src('thumbnail');
+
+        $thumbs[] = [
+            'name' => $item->get_name(),
+            'image' => (string) $image_url,
+            'quantity' => max(1, (int) $item->get_quantity()),
+        ];
+    }
+
+    return [
+        // Toate liniile, nu doar cele vizibile initial - butonul "inca N
+        // produse" le extinde inline (fara alt request), are nevoie de ele
+        // deja randate in pagina, doar ascunse cu "hidden" pana la click.
+        'items' => $thumbs,
+        'visible' => max(0, $max),
+    ];
+}
+
 function papetarie_storefront_account_real_order_statuses(): array
 {
     if (!function_exists('wc_get_order_statuses')) {
@@ -9956,7 +10853,6 @@ function papetarie_storefront_render_product_card(WC_Product $product): void
           <span class="pap-product-category"><?php echo esc_html($product_category); ?></span>
         <?php endif; ?>
         <h3 data-product-name="<?php echo esc_attr($product_name); ?>"><?php echo esc_html($product_name); ?></h3>
-        <?php echo papetarie_storefront_render_product_rating_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
       </a>
       <div class="pap-product-meta">
         <strong class="pap-price"><?php echo wp_kses_post($product->get_price_html()); ?></strong>
@@ -10829,7 +11725,22 @@ function papetarie_storefront_returns_endpoint_content(): void
     }
 
     $current_user = wp_get_current_user();
-    $prefill_order = isset($_GET['order_id']) ? sanitize_text_field(wp_unslash($_GET['order_id'])) : '';
+    // Link-ul de "Retur" de pe o comanda (papetarie_storefront_orders_actions())
+    // trimite ID-ul intern brut in query string ("order_id=24223"), folosit
+    // doar pentru identificare - aici insa valoarea ajunge direct in campul
+    // vizibil "Numar comanda", care trebuie sa arate acelasi format pe care
+    // clientul il vede peste tot in Contul meu ("NOTIX-0024"), nu ID-ul brut.
+    // Aceeasi verificare de proprietar ca la restul actiunilor din Contul
+    // meu, ca un client sa nu poata precompleta formularul cu numarul altcuiva
+    // doar modificand parametrul din URL. Semnalat de user 2026-09-01.
+    $prefill_order = '';
+    $prefill_order_id = isset($_GET['order_id']) ? absint($_GET['order_id']) : 0;
+    if ($prefill_order_id > 0) {
+        $prefill_order_obj = wc_get_order($prefill_order_id);
+        if ($prefill_order_obj instanceof WC_Order && (int) $prefill_order_obj->get_customer_id() === get_current_user_id()) {
+            $prefill_order = $prefill_order_obj->get_order_number();
+        }
+    }
     $reasons = [
         'defect' => __('Produs defect', 'papetarie-storefront'),
         'gresit' => __('Produs greșit livrat', 'papetarie-storefront'),
@@ -10848,7 +11759,7 @@ function papetarie_storefront_returns_endpoint_content(): void
 
         <p class="form-row form-row-wide">
           <label for="pap-return-order"><?php esc_html_e('Număr comandă', 'papetarie-storefront'); ?></label>
-          <input type="text" id="pap-return-order" name="pap_return_order" value="<?php echo esc_attr($prefill_order); ?>" placeholder="<?php esc_attr_e('Ex: 12345', 'papetarie-storefront'); ?>">
+          <input type="text" id="pap-return-order" name="pap_return_order" value="<?php echo esc_attr($prefill_order); ?>" placeholder="<?php esc_attr_e('Ex: NOTIX-0024', 'papetarie-storefront'); ?>">
         </p>
 
         <p class="form-row form-row-wide">

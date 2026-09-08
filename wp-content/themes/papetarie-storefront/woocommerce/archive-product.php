@@ -12,6 +12,14 @@ $archive_description = $current_term ? wp_strip_all_tags((string) term_descripti
 $query = $GLOBALS['wp_query'] ?? null;
 $product_count = $query instanceof WP_Query ? (int) $query->found_posts : 0;
 $is_empty_archive = $product_count === 0;
+// WooCommerce ruteaza si rezultatele de cautare de produse prin acest
+// template (is_post_type_archive('product') e adevarat si pentru
+// /?s=...&post_type=product), nu doar arhivele reale de categorie - de-aia
+// starile goale de mai jos trebuie sa distinga explicit intre "cautare fara
+// rezultate" si "categorie fara produse", altfel mesajul de categorie
+// ("in aceasta categorie...") apare gresit pe o cautare. Semnalat de user
+// 2026-09-01.
+$is_search_archive = is_search();
 $archive_action_url = $current_term ? get_term_link($current_term, 'product_cat') : (function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/'));
 
 if (is_wp_error($archive_action_url) || !$archive_action_url) {
@@ -196,7 +204,8 @@ get_header();
     </section>
   <?php endif; ?>
 
-  <section class="pap-shell pap-archive-layout">
+  <section class="pap-shell pap-archive-layout<?php echo $is_empty_archive ? ' pap-archive-layout--empty' : ''; ?>">
+    <?php if (!$is_empty_archive || !$is_search_archive) : ?>
     <aside class="pap-archive-sidebar" id="pap-archive-sidebar">
       <?php if (!$is_empty_archive) : ?>
         <?php if ($has_active_filters) : ?>
@@ -320,6 +329,7 @@ get_header();
         </div>
       <?php endif; ?>
     </aside>
+    <?php endif; ?>
 
     <div class="pap-archive-content" id="pap-archive-products">
       <?php if (woocommerce_product_loop()) : ?>
@@ -359,8 +369,24 @@ get_header();
               <path d="M60 20L57.5 24.5" stroke="#2D7DD2" stroke-width="3" stroke-linecap="round"/>
             </svg>
           </span>
-          <h2><?php esc_html_e('Nu există produse în această categorie încă', 'papetarie-storefront'); ?></h2>
-          <p><?php esc_html_e('În această categorie urmează să adăugăm produse potrivite. Revino curând pentru selecția completă.', 'papetarie-storefront'); ?></p>
+          <?php if ($is_search_archive) : ?>
+            <h2>
+              <?php
+              echo esc_html(sprintf(
+                  /* translators: %s: search term */
+                  __('Nu am găsit rezultate pentru „%s”', 'papetarie-storefront'),
+                  get_search_query(false)
+              ));
+              ?>
+            </h2>
+            <p><?php esc_html_e('Încearcă alți termeni de căutare sau răsfoiește categoriile din meniu.', 'papetarie-storefront'); ?></p>
+          <?php elseif ($current_term) : ?>
+            <h2><?php esc_html_e('Nu există produse în această categorie încă', 'papetarie-storefront'); ?></h2>
+            <p><?php esc_html_e('În această categorie urmează să adăugăm produse potrivite. Revino curând pentru selecția completă.', 'papetarie-storefront'); ?></p>
+          <?php else : ?>
+            <h2><?php esc_html_e('Nu există produse disponibile momentan', 'papetarie-storefront'); ?></h2>
+            <p><?php esc_html_e('Revino curând, actualizăm constant catalogul.', 'papetarie-storefront'); ?></p>
+          <?php endif; ?>
         </div>
       <?php endif; ?>
     </div>
