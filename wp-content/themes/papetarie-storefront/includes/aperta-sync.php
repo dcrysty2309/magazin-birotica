@@ -1962,6 +1962,19 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
         return trim($m[1]);
     }
 
+    // "Dimensiuni" (grup generic, refolosit cu sensuri diferite - vezi alte
+    // comentarii din acest fisier) contine uneori formatul standard de
+    // hartie A3/A4/A5/A6 cu milimetrii redundanti adaugati ("A3, 420 x 297
+    // mm") langa produse care au acelasi format scris simplu ("A3") - cum
+    // dimensiunile ISO 216 sunt fixe (A3 e mereu 420x297mm), sufixul in mm nu
+    // aduce nicio informatie noua, doar sparge acelasi format in 2 valori de
+    // filtru. Verificat 2026-09-09: doar 3 valori afectate site-wide (2 in
+    // Blocuri desen si schite, 1 in Agende), pattern ingust (necesita
+    // "A<cifra>," la inceput), deci sigur de aplicat general. Decizie user.
+    if ($group === 'Dimensiuni' && preg_match('/^(A[0-9]+)\s*,\s*\d+\s*x\s*\d+\s*mm/iu', trim($value), $m)) {
+        return strtoupper($m[1]);
+    }
+
     // La markerele OHP Schneider unitatea "mm" lipsea inconsecvent din
     // valoare - unele o au ("0,7 mm"), altele nu ("0,3 (S)", "0,5 (F)",
     // "1-1,5 (M)", "2-3 (B)") desi e aceeasi masuratoare, doar scrisa diferit
