@@ -2131,7 +2131,14 @@ function papetarie_storefront_get_checkout_products_inline_html(): string
           if (!$product_thumbnail) {
               $product_thumbnail = '<img src="' . esc_url(wc_placeholder_img_src('woocommerce_thumbnail')) . '" alt="' . esc_attr($_product->get_name()) . '" loading="lazy">';
           }
-          $product_name = wp_kses_post(apply_filters('woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key));
+          // Pentru variatii folosim numele curat al produsului-parinte (fara
+          // sufixul automat si fara o eventuala culoare coapta gresit -
+          // vezi papetarie_storefront_clean_variation_parent_name()), la
+          // fel ca in cos - "Culoare: X" apare oricum separat mai jos.
+          $_product_name_raw = $_product instanceof WC_Product_Variation
+              ? papetarie_storefront_clean_variation_parent_name($_product)
+              : $_product->get_name();
+          $product_name = wp_kses_post(apply_filters('woocommerce_cart_item_name', $_product_name_raw, $cart_item, $cart_item_key));
           $formatted_meta = $capture_output(static function () use ($cart_item): void {
               echo wc_get_formatted_cart_item_data($cart_item); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
           });
@@ -4890,15 +4897,48 @@ function papetarie_storefront_pick_products_in_categories(array $term_ids, array
  * in jurul lui. Pastreaza CTA-ul "Vezi cosul" catre pagina reala de cos, fara
  * flux paralel.
  */
+/**
+ * $products din wc_add_to_cart_message() e mereu cheiat pe ID-ul
+ * produsului-PARINTE (limitare WooCommerce core, nu ceva ce controlam noi),
+ * deci get_the_title() de mai jos ar arata titlul brut, cu o eventuala
+ * culoare coapta gresit (vezi papetarie_storefront_strip_baked_color_from_title()),
+ * fara nicio mentiune a variantei chiar alese - spre deosebire de cos/
+ * mini-cos, aici nu exista alt element care sa arate culoarea reala, deci
+ * ar fi cea mai confuza aparitie a bugului. Retinem ultima variatie
+ * adaugata per produs-parinte (seteaza la 'woocommerce_add_to_cart', care
+ * ruleaza inaintea acestui filtru) ca sa putem folosi acelasi nume curatat
+ * ca in cos. Decizie user 2026-09-09 (aplicare globala a fixului aprobat).
+ */
+function &papetarie_storefront_add_to_cart_variation_map(): array
+{
+    static $map = [];
+    return $map;
+}
+
+function papetarie_storefront_remember_add_to_cart_variation($cart_item_key, $product_id, $quantity, $variation_id): void
+{
+    if ((int) $variation_id > 0) {
+        $map = &papetarie_storefront_add_to_cart_variation_map();
+        $map[(int) $product_id] = (int) $variation_id;
+    }
+}
+add_action('woocommerce_add_to_cart', 'papetarie_storefront_remember_add_to_cart_variation', 10, 4);
+
 function papetarie_storefront_add_to_cart_message_html(string $message, $products, bool $show_qty): string
 {
     if (!is_array($products) || empty($products)) {
         return $message;
     }
 
+    $variationMap = papetarie_storefront_add_to_cart_variation_map();
     $items = [];
     foreach ($products as $product_id => $qty) {
-        $title = wp_strip_all_tags(get_the_title((int) $product_id));
+        $product_id = (int) $product_id;
+        $variationId = $variationMap[$product_id] ?? 0;
+        $variation = $variationId ? wc_get_product($variationId) : null;
+        $title = $variation instanceof WC_Product_Variation
+            ? wp_strip_all_tags(papetarie_storefront_clean_variation_parent_name($variation))
+            : wp_strip_all_tags(get_the_title($product_id));
         if ($title === '') {
             continue;
         }
@@ -5292,6 +5332,145 @@ function papetarie_storefront_cart_quantity_bounds(WC_Product $product): array
 }
 
 /**
+ * Cuvinte de culoare cunoscute, folosite pt a detecta o culoare "coapta"
+ * gresit in titlul unui produs variabil (vezi
+ * papetarie_storefront_strip_baked_color_from_title() mai jos). Cheia e
+ * forma fara diacritice (dupa remove_accents()), valoarea e fragmentul de
+ * regex care accepta atat varianta cu cat si fara diacritice din titlul
+ * original.
+ */
+function papetarie_storefront_color_word_patterns(): array
+{
+    return [
+        'negru' => 'negru',
+        'alb' => 'alb',
+        'albastru' => 'albastru',
+        'rosu' => 'ro[sș]u',
+        'roz' => 'roz',
+        'verde' => 'verde',
+        'galben' => 'galben',
+        'gri' => 'gri',
+        'bej' => 'bej',
+        'mov' => 'mov',
+        'portocaliu' => 'portocaliu',
+        'maro' => 'maro',
+        'auriu' => 'auriu',
+        'argintiu' => 'argintiu',
+        'turcoaz' => 'turcoaz',
+        'bordo' => 'bordo',
+        'crem' => 'crem',
+        'navy' => 'navy',
+        'kaki' => 'kaki|khaki',
+        'grena' => 'grena',
+    ];
+}
+
+/**
+ * Valorile reale ale atributului de culoare (Culoare/Culori/etc.) al unui
+ * produs variabil - taxonomie sau atribut local, oricare din cele doua.
+ */
+function papetarie_storefront_variation_color_attribute_values(WC_Product $parent): array
+{
+    foreach ($parent->get_attributes() as $attr) {
+        if (!is_object($attr) || mb_stripos(wc_attribute_label($attr->get_name(), $parent), 'culo') === false) {
+            continue;
+        }
+        $values = $attr->is_taxonomy()
+            ? wc_get_product_terms($parent->get_id(), $attr->get_name(), ['fields' => 'names'])
+            : $attr->get_options();
+
+        return array_values(array_filter(array_map('trim', (array) $values), static fn (string $v): bool => $v !== ''));
+    }
+
+    return [];
+}
+
+/**
+ * Aperta scrie uneori titlul unui produs variabil cu O SINGURA culoare
+ * "coapta" la finalul lui (ex. "Casti Over-Ear Bluetooth Tellur Buddy,
+ * albastru"), desi produsul are si alte culori reale (Roz etc). Cand
+ * clientul alege o alta varianta, titlul tot arata culoarea gresita in
+ * cos/comanda, desi mai jos apare corect "Culoare: Roz" - risc real de
+ * confuzie la facturare/livrare. Scoatem STRICT acel cuvant din finalul
+ * titlului, DOAR cand:
+ *  (a) atributul de culoare are minim 2 valori reale (altfel nu exista alta
+ *      varianta cu care sa se confunde),
+ *  (b) titlul contine EXACT UNUL din cuvintele de culoare cunoscute (daca
+ *      titlul enumera deja 2+ culori, ex. "... rosu/albastru Faber-Castell",
+ *      e o enumerare corecta a tuturor optiunilor, nu o culoare gresita -
+ *      nu se atinge),
+ *  (c) acel cuvant e chiar ULTIMUL cuvant din titlu (singurul tipar gasit
+ *      la scanarea sitewide - daca nu e la final, nu il atingem, ca sa nu
+ *      stricam un titlu cu forma neasteptata).
+ * Gasit + decizie user 2026-09-09: catalogul/pagina de produs raman
+ * neschimbate (titlul Aperta original), fixul se aplica DOAR la afisarea
+ * in cos/mini-cos si la numele salvat pe linia comenzii.
+ *
+ * @param string $title Titlul curat al produsului-parinte.
+ * @param array<int, string> $colorValues Valorile reale ale atributului de culoare.
+ */
+function papetarie_storefront_strip_baked_color_from_title(string $title, array $colorValues): string
+{
+    if (count($colorValues) < 2) {
+        return $title;
+    }
+
+    $patterns = papetarie_storefront_color_word_patterns();
+    $relevant = [];
+    foreach ($colorValues as $value) {
+        foreach (preg_split('/[\/,\s]+/u', $value) as $token) {
+            $key = strtolower((string) remove_accents(trim($token)));
+            if ($key !== '' && isset($patterns[$key])) {
+                $relevant[$key] = $patterns[$key];
+            }
+        }
+    }
+    if (!$relevant) {
+        return $title;
+    }
+
+    $matched = [];
+    foreach ($relevant as $key => $regex) {
+        if (preg_match('/(?<![\p{L}])(?:' . $regex . ')(?![\p{L}])/iu', $title)) {
+            $matched[] = $key;
+        }
+    }
+
+    if (count($matched) !== 1) {
+        return $title;
+    }
+
+    $regex = $relevant[$matched[0]];
+    $stripped = preg_replace('/(?:,\s*)?(?<![\p{L}])(?:' . $regex . ')(?![\p{L}])\s*$/iu', '', $title, 1, $replacements);
+    if ($replacements < 1) {
+        return $title;
+    }
+
+    $stripped = rtrim($stripped, " ,\t\n\r\0\x0B");
+
+    return $stripped !== '' ? $stripped : $title;
+}
+
+/**
+ * Numele "curat" de afisat pentru o variatie: titlul parintelui, cu
+ * culoarea coapta gresit scoasa (vezi mai sus) daca e cazul. Folosit peste
+ * tot unde afisam variatii FARA sufixul automat "- Eticheta" (cos, mini-cos)
+ * pt ca respectiva informatie apare oricum separat, structurat.
+ */
+function papetarie_storefront_clean_variation_parent_name(WC_Product_Variation $variation): string
+{
+    $parent = wc_get_product($variation->get_parent_id());
+    if (!$parent instanceof WC_Product) {
+        return $variation->get_name();
+    }
+
+    $title = $parent->get_name();
+    $colorValues = papetarie_storefront_variation_color_attribute_values($parent);
+
+    return papetarie_storefront_strip_baked_color_from_title($title, $colorValues);
+}
+
+/**
  * Reconstruieste "Eticheta: valoare" pentru fiecare atribut de variatie al
  * unui item din cos - practic aceeasi logica ca wc_get_formatted_cart_item_data()
  * din core, DAR fara verificarea ei "sari peste daca valoarea e deja in
@@ -5373,10 +5552,11 @@ function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, a
     // sufixul dublat aici, un nume de produs deja lung depasea clema de 2
     // randuri exact la sufix, taind vizual "- Dictando" la "-..." si
     // ascunzand ce variantă a fost aleasă - semnalat de user 2026-08-30.
-    // Pentru variatii folosim numele curat al produsului-parinte.
+    // Pentru variatii folosim numele curat al produsului-parinte (fara
+    // culoarea coapta gresit, daca e cazul - vezi
+    // papetarie_storefront_clean_variation_parent_name()).
     if ($is_product_valid && $product instanceof WC_Product_Variation) {
-        $parent_product = wc_get_product($product->get_parent_id());
-        $product_name = $parent_product instanceof WC_Product ? $parent_product->get_name() : $product->get_name();
+        $product_name = papetarie_storefront_clean_variation_parent_name($product);
     } else {
         $product_name = $is_product_valid ? $product->get_name() : __('Produs indisponibil', 'papetarie-storefront');
     }
@@ -5898,8 +6078,7 @@ function papetarie_storefront_cart_drawer_item_html(string $cart_item_key, array
     // dubleaza informatia deja aratata mai jos in .pap-cart-drawer-variation
     // si trunchiaza numele (o singura linie, ellipsis) exact la sufix.
     if ($product instanceof WC_Product_Variation) {
-        $parent_product = wc_get_product($product->get_parent_id());
-        $product_name = $parent_product instanceof WC_Product ? $parent_product->get_name() : $product->get_name();
+        $product_name = papetarie_storefront_clean_variation_parent_name($product);
     } else {
         $product_name = $product->get_name();
     }
@@ -10193,6 +10372,48 @@ function papetarie_storefront_checkout_save_company_for_future($order, array $da
     papetarie_storefront_company_book_save_entry($user_id, $posted, $selected_company_id);
 }
 add_action('woocommerce_checkout_create_order', 'papetarie_storefront_checkout_save_company_for_future', 20, 2);
+
+/**
+ * Numele liniei de comanda (salvat definitiv, apare pe factura/email/
+ * my-account/admin) foloseste implicit WC_Product_Variation::get_name(),
+ * care e "Titlu parinte - Sufix variatie" (ex. "..., albastru - Roz") -
+ * daca titlul are o culoare coapta gresit (vezi
+ * papetarie_storefront_strip_baked_color_from_title()), sufixul corect
+ * ("- Roz") ajunge lipit dupa culoarea gresita din titlu, confuz pt
+ * facturare/livrare. Inlocuim STRICT partea de titlu cu varianta curata,
+ * pastrand sufixul WC neatins (nu reimplementam formatarea lui). Daca
+ * numele implicit nu incepe exact cu titlul brut (formatul WC s-ar fi
+ * schimbat neasteptat), nu atingem nimic. Decizie user 2026-09-09.
+ */
+function papetarie_storefront_clean_variation_order_item_name(WC_Product_Variation $variation): string
+{
+    $rawName = $variation->get_name();
+    $parent = wc_get_product($variation->get_parent_id());
+    if (!$parent instanceof WC_Product) {
+        return $rawName;
+    }
+
+    $rawTitle = $parent->get_name();
+    $cleanTitle = papetarie_storefront_strip_baked_color_from_title(
+        $rawTitle,
+        papetarie_storefront_variation_color_attribute_values($parent)
+    );
+
+    if ($cleanTitle === $rawTitle || strpos($rawName, $rawTitle) !== 0) {
+        return $rawName;
+    }
+
+    return $cleanTitle . substr($rawName, strlen($rawTitle));
+}
+
+function papetarie_storefront_checkout_clean_order_line_item_name(\WC_Order_Item_Product $item, string $cart_item_key, array $values, \WC_Order $order): void
+{
+    $product = $values['data'] ?? null;
+    if ($product instanceof WC_Product_Variation) {
+        $item->set_name(papetarie_storefront_clean_variation_order_item_name($product));
+    }
+}
+add_action('woocommerce_checkout_create_order_line_item', 'papetarie_storefront_checkout_clean_order_line_item_name', 20, 4);
 
 function papetarie_storefront_checkout_validate(array $data, \WP_Error $errors): void
 {
