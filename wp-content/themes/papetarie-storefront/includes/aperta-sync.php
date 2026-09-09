@@ -3234,6 +3234,36 @@ function papetarie_storefront_aperta_upsert_is_changed(array $result): bool
 }
 
 /**
+ * Traducem valorile de varianta ("Variant" din feed) care vin de la Aperta
+ * STRICT in engleza - gasit 2026-09-09 la markerele metalice Schneider
+ * Paint-It (13 valori: "silver metallic", "blue metallic" etc.), afisate
+ * netraduse atat in dropdown-ul de cumparare a variantei, cat si in
+ * filtrul lateral (ambele deriva din aceeasi valoare bruta aici). Listă
+ * exactă (whitelist), nu regex generic - un variant complet necunoscut nu
+ * trebuie "ghicit", ramane neschimbat. Extensibil daca mai apar altele.
+ */
+function papetarie_storefront_aperta_translate_variant_value(string $value): string
+{
+    static $map = [
+        'silver metallic' => 'Argintiu metalizat',
+        'blue metallic' => 'Albastru metalizat',
+        'green metallic' => 'Verde metalizat',
+        'yellow metallic' => 'Galben metalizat',
+        'gold metallic' => 'Auriu metalizat',
+        'copper metallic' => 'Aramiu metalizat',
+        'red metallic' => 'Roșu metalizat',
+        'violet metallic' => 'Violet metalizat',
+        'polar blue metallic' => 'Albastru polar metalizat',
+        'vintage green metallic' => 'Verde vintage metalizat',
+        'vintage red metallic' => 'Roșu vintage metalizat',
+        'rose metallic' => 'Roz metalizat',
+        'frosted violet metallic' => 'Violet mat metalizat',
+    ];
+    $key = mb_strtolower(trim($value));
+    return $map[$key] ?? $value;
+}
+
+/**
  * @param array<int, array<string, string>> $rows
  * @return array{total: int, new: int, changed: int}
  */
@@ -3252,7 +3282,7 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
 
     $values = [];
     foreach ($rows as $row) {
-        $value = trim((string) $row['Variant']);
+        $value = papetarie_storefront_aperta_translate_variant_value(trim((string) $row['Variant']));
         if ($value !== '') {
             $values[$value] = true;
         }
@@ -3305,7 +3335,7 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
             continue;
         }
 
-        $variantValue = trim((string) $row['Variant']);
+        $variantValue = papetarie_storefront_aperta_translate_variant_value(trim((string) $row['Variant']));
         $variationId = papetarie_storefront_aperta_find_by_sku_meta($codUnic);
 
         // SKU-ul poate fi deja atasat unui produs SIMPLU (nu o variatie) -
