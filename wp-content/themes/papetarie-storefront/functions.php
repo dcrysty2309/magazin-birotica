@@ -4512,6 +4512,24 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
         // reapara filtrul dublu. Decizie user.
         'creioane-color' => ['Număr bucăți/set'],
         'creioane-cerate' => ['Număr bucăți/set'],
+        // "Căști și boxe" are doar 19 produse dar 11 grupuri de filtre in
+        // lateral - prea multe pt un cumparator, majoritatea specificatii
+        // tehnice de nisa (senzitivitate microfon, impedanta, greutati
+        // separate produs/pachet). Pastram doar cele 5 relevante si usor de
+        // folosit: Culoare, Conexiune, Conector De Incarcare, Versiunea
+        // Bluetooth, Raza Wireless. Decizie user 2026-09-09, nu se aplica
+        // automat la alte categorii.
+        'casti' => [
+            'Sensibilitatea Microfonului',
+            'Impedanță',
+            'Difuzor',
+            'Răspuns În Frecvență',
+            'Gama De Frecvență A Microfonului',
+            'Greutatea Produsului',
+            'Greutatea Pachetului',
+            'Timp De Încărcare',
+            'Lungimea Cablului',
+        ],
     ];
     $categorySlug = (string) ($term->slug ?? '');
     $excludedGroups = $categoryGroupExclusions[$categorySlug] ?? [];
@@ -5440,7 +5458,7 @@ function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, a
     >
       <?php if ($is_unavailable) : ?>
         <div class="pap-cart-item-stock-banner pap-cart-item-stock-banner--full" role="status" aria-live="polite">
-          <span class="pap-cart-item-stock-banner__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('warning'); ?></span>
+          <span class="pap-cart-item-stock-banner__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('alert-triangle'); ?></span>
           <span>
             <?php
             if (!$is_product_valid) {
@@ -5455,22 +5473,20 @@ function papetarie_storefront_render_cart_item_row_html(string $cart_item_key, a
         </div>
       <?php elseif ($is_stock_insufficient) : ?>
         <div class="pap-cart-item-stock-banner pap-cart-item-stock-banner--full" role="status" aria-live="polite">
-          <span class="pap-cart-item-stock-banner__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('warning'); ?></span>
-          <span>
-            <span class="pap-cart-item-stock-banner__title"><?php esc_html_e('Cantitatea din coș depășește stocul disponibil.', 'papetarie-storefront'); ?></span>
-            <?php if ($stock_quantity !== null) : ?>
-              <span class="pap-cart-item-stock-banner__line">
-                <?php
+          <span class="pap-cart-item-stock-banner__icon" aria-hidden="true"><?php echo papetarie_storefront_icon('alert-triangle'); ?></span>
+          <span class="pap-cart-item-stock-banner__title">
+            <?php
+            if ($stock_quantity !== null) {
                 echo esc_html(
                     sprintf(
-                        _n('Mai este disponibilă doar %s bucată.', 'Mai sunt disponibile doar %s bucăți.', $stock_quantity, 'papetarie-storefront'),
+                        _n('Doar %s bucată disponibilă — actualizează cantitatea.', 'Doar %s bucăți disponibile — actualizează cantitatea.', $stock_quantity, 'papetarie-storefront'),
                         number_format_i18n($stock_quantity)
                     )
                 );
-                ?>
-              </span>
-            <?php endif; ?>
-            <span class="pap-cart-item-stock-banner__line"><?php esc_html_e('Actualizează cantitatea pentru a continua.', 'papetarie-storefront'); ?></span>
+            } else {
+                esc_html_e('Cantitatea depășește stocul — actualizeaz-o pentru a continua.', 'papetarie-storefront');
+            }
+            ?>
           </span>
         </div>
       <?php endif; ?>
