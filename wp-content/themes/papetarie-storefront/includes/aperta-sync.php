@@ -1975,6 +1975,31 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
         return strtoupper($m[1]);
     }
 
+    // Acelasi fenomen ca mai sus, dar in grupul "Format" si cu paranteze in
+    // loc de virgula ("A4 (21x29,7 cm)", "A4 (210 x 297 mm)", "A3 (29,7 x 42
+    // cm)" etc.) - gasit 2026-09-09, 8 variante murdare in 4 categorii
+    // (Blocuri desen si schite, Blocuri mix media, Hartie speciala, Caiete),
+    // toate coexistand cu formele simple "A3"/"A4"/"A5"/"A6" deja folosite pe
+    // sute de alte produse. Aceeasi logica: dimensiunile ISO 216 sunt fixe,
+    // deci parantezele nu adauga informatie, doar fragmenteaza filtrul.
+    // Decizie user.
+    if ($group === 'Format' && preg_match('/^(A[0-9]+)\s*\(/iu', trim($value), $m)) {
+        return strtoupper($m[1]);
+    }
+
+    // Aceeasi idee, dar ordinea inversa - dimensiunile scrise inaintea
+    // codului, intre paranteze la final ("21x29,7 cm (A4)", "29,7x42 cm
+    // (A3)"). Gasit 2026-09-09, 2 valori. IMPORTANT: regex-ul de mai sus si
+    // cel de mai jos cer codul FARA "+" (ex. "A4", nu "A4+") - familia
+    // "A4+/A5+/A6+/A7+" NU e o dimensiune standard fixa, are dimensiuni
+    // reale diferite intre produse (verificat: "A4+" apare la 17x22cm,
+    // 22,5x29,7cm SI 24x32cm - trei produse diferite, aceeasi eticheta) deci
+    // nu poate fi simplificata fara sa piarda informatie reala - lasata
+    // intentionat neatinsa de ambele reguli.
+    if ($group === 'Format' && preg_match('/\((A[0-9]+)\)\s*\.?\s*$/iu', trim($value), $m)) {
+        return strtoupper($m[1]);
+    }
+
     // La markerele OHP Schneider unitatea "mm" lipsea inconsecvent din
     // valoare - unele o au ("0,7 mm"), altele nu ("0,3 (S)", "0,5 (F)",
     // "1-1,5 (M)", "2-3 (B)") desi e aceeasi masuratoare, doar scrisa diferit
