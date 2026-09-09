@@ -1942,13 +1942,15 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
     // scrisa in 4 feluri diferite pe tot site-ul (63 de produse: pixuri,
     // mine, linere, markere) - "0,4 (M)" (fara "mm"), "0,4 mm" (fara "(M)"),
     // "0,4 mm (M)" (forma completa, majoritara - 39 produse) si "0.4 mm (M)"
-    // (punct in loc de virgula zecimala). Unificate sub forma completa.
-    // Verificat 2026-09-06 ca grupul e folosit STRICT la instrumente de scris
-    // (nicio suprapunere cu alta categorie fara legatura, spre deosebire de
-    // grupul generic "Capacitate"), deci sigur de unificat printr-o regula
-    // generala. Decizie user.
+    // (punct in loc de virgula zecimala). Unificate initial sub forma completa
+    // "0,4 mm (M)" (decizie 2026-09-06). Codul "(M)" era insa adaugat de NOI,
+    // nu venea de la Aperta pentru toate SKU-urile (ex. Linere Link-It) - crea
+    // o asimetrie vizibila fata de valori vecine fara cod (ex. "1,0 mm" din
+    // aceeasi categorie). Simplificat 2026-09-08 (decizie user) la doar "0,4
+    // mm", fara cod - alte coduri (S/F/B/XB), cand vin efectiv din descrierea
+    // Aperta, raman neatinse de regula de mai jos.
     if ($group === 'Grosime de scriere' && preg_match('/^0[,.]4\s*(?:mm)?\s*(?:\(M\))?$/iu', trim($value))) {
-        return '0,4 mm (M)';
+        return '0,4 mm';
     }
 
     // "Diametrul minei" avea unele valori cu simbolul "Ø" in fata ("Ø 2,9
