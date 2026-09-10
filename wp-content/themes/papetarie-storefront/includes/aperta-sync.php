@@ -1757,6 +1757,16 @@ function papetarie_storefront_aperta_normalize_attr_group(string $group): string
         return 'Număr culori';
     }
 
+    // "Culoare Viziunea de noapte" (la camere WiFi) descrie tipul de LED-uri
+    // IR folosite noaptea, nu culoarea produsului - "culo" e substring in
+    // "Culoare", deci regula generica de mai jos l-ar fi inghitit gresit in
+    // filtrul de Culoare (gasit live: "Da, 6 buc. LED-uri duble" aparand ca
+    // optiune de culoare). Verificat inainte, la fel ca exceptia de mai sus
+    // pt "Numar culori". Decizie user 2026-09-10.
+    if (mb_stripos($group, 'viziune') !== false && mb_stripos($group, 'noapte') !== false) {
+        return '';
+    }
+
     if (mb_stripos($group, 'culo') !== false) {
         return 'Culoare';
     }
@@ -2263,6 +2273,52 @@ function papetarie_storefront_aperta_build_extra_wc_attributes(array $groupValue
 }
 
 /**
+ * O valoare de Culoare care enumera mai multe culori la un loc ("Culori
+ * disponibile: Gri, Albastru, Verde, Bej" / "Culoare: Negru, Albastru,
+ * Alb") vine dintr-o PROPOZITIE descriptiva din feed, nu dintr-o optiune
+ * reala de variatie (acelea sunt deja etichetate individual, mai sus, din
+ * $variantValues) - etichetata ca UN SINGUR termen compus, fragmenteaza
+ * filtrul de Culoare cu optiuni redundante (gasit sitewide: 49 asemenea
+ * termeni, aproape toti pt produse care au deja culorile corecte separat,
+ * cativa unde era singura sursa de culoare pt un produs simplu). Descompus
+ * aici in culorile individuale - functia asta e apelata DOAR din caile
+ * pentru atribute "extra"/produse simple (niciodata pt atributul real de
+ * variatie al unui produs variabil, care ramane neatins mai sus). Decizie
+ * user 2026-09-10.
+ *
+ * @return array<int, int> ID-urile termenilor (unul singur pt o valoare
+ *     normala, mai multe daca s-a descompus o enumerare de culori)
+ */
+function papetarie_storefront_aperta_resolve_attr_term_ids(string $group, string $value): array
+{
+    $normalizedGroup = papetarie_storefront_aperta_normalize_attr_group(trim($group));
+
+    if ($normalizedGroup === 'Culoare') {
+        $tokens = preg_split('/\s*(?:,|\/)\s*|\s+(?:și|si)\s+/iu', trim($value)) ?: [];
+        $tokens = array_values(array_filter(
+            array_map(static fn (string $t): string => trim($t, " .\t\n\r\0\x0B"), $tokens),
+            static fn (string $t): bool => $t !== ''
+        ));
+
+        if (count($tokens) >= 2) {
+            $termIds = [];
+            foreach ($tokens as $token) {
+                $termId = papetarie_storefront_aperta_get_or_create_attr_term('Culoare', $token);
+                if ($termId !== null) {
+                    $termIds[] = $termId;
+                }
+            }
+
+            return $termIds;
+        }
+    }
+
+    $termId = papetarie_storefront_aperta_get_or_create_attr_term($group, $value);
+
+    return $termId !== null ? [$termId] : [];
+}
+
+/**
  * Eticheteaza produsul-parinte cu termenii (grup, valoare) pentru toate
  * valorile distincte gasite la variantele lui - asa poate fi gasit prin
  * filtrare chiar daca pagina de arhiva listeaza doar produsul-parinte, nu
@@ -2276,13 +2332,10 @@ function papetarie_storefront_aperta_tag_attr_terms(int $productId, string $grou
     $termIds = [];
 
     foreach (array_unique($values) as $value) {
-        $termId = papetarie_storefront_aperta_get_or_create_attr_term($group, $value);
-        if ($termId !== null) {
-            $termIds[] = $termId;
-        }
+        $termIds = array_merge($termIds, papetarie_storefront_aperta_resolve_attr_term_ids($group, $value));
     }
 
-    wp_set_object_terms($productId, $termIds, 'product_attr_value', false);
+    wp_set_object_terms($productId, array_unique($termIds), 'product_attr_value', false);
 }
 
 /**
@@ -2299,13 +2352,10 @@ function papetarie_storefront_aperta_tag_multiple_attrs(int $productId, array $g
     $termIds = [];
 
     foreach ($groupValuePairs as $group => $value) {
-        $termId = papetarie_storefront_aperta_get_or_create_attr_term($group, $value);
-        if ($termId !== null) {
-            $termIds[] = $termId;
-        }
+        $termIds = array_merge($termIds, papetarie_storefront_aperta_resolve_attr_term_ids($group, $value));
     }
 
-    wp_set_object_terms($productId, $termIds, 'product_attr_value', false);
+    wp_set_object_terms($productId, array_unique($termIds), 'product_attr_value', false);
 }
 
 /**
@@ -2332,8 +2382,11 @@ function papetarie_storefront_aperta_tag_variant_and_extra_attrs(int $productId,
     }
 
     foreach ($extraGroupValuePairs as $group => $value) {
-        $termId = papetarie_storefront_aperta_get_or_create_attr_term($group, $value);
-        if ($termId !== null) {
+        // resolve_attr_term_ids() descompune o eventuala enumerare de
+        // culori din descriere ("Culori disponibile: X, Y, Z") - nu se
+        // aplica NICIODATA la $variantValues de mai sus (atributul real de
+        // variatie), doar la atributele "extra" extrase din text.
+        foreach (papetarie_storefront_aperta_resolve_attr_term_ids($group, $value) as $termId) {
             $termIds[] = $termId;
         }
     }
