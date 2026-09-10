@@ -21289,7 +21289,11 @@ body.theme-papetarie .pap-gallery-lightbox__nav svg {
 }
 
 .pap-gallery-lightbox__thumb.is-active {
-  border-color: var(--pap-orange);
+  /* Aceeasi culoare ca la thumbnail-ul activ din pagina de produs
+     (.pap-product-gallery-thumb.is-active) - portocaliul de aici era
+     inconsecvent, singurul loc din galerie cu alta culoare pt "activ".
+     Decizie user 2026-09-10. */
+  border-color: var(--pap-navy);
 }
 
 .pap-gallery-lightbox__thumb img {
