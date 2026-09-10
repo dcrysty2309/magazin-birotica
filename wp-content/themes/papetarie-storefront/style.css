@@ -7848,6 +7848,22 @@ body.theme-papetarie .woocommerce-error li a:focus-visible {
   text-decoration: underline;
 }
 
+/* Storefront's own base woocommerce.css pune un clearfix generic
+   (content:""; display:table;) pe ::before SI ::after la aceste 3 clase,
+   ramas de cand notice-urile foloseau float. ::before il suprascriem mai
+   jos (devine iconul, position:absolute, iese din flux) - dar ::after
+   ramane netusat, cu display:table + position:static, deci devine un al
+   DOILEA element real in flex-box-ul .woocommerce-error (vezi mai jos,
+   display:flex) - desi invizibil (inaltime 0), gap:8px tot aplica spatiu
+   intre <li> si el, marind cutia cu 8px in plus fata de continutul vizibil
+   real. Neutralizat complet aici (content:none scoate pseudo-elementul cu
+   totul, nu doar il ascunde). Gasit de user 2026-09-10. */
+body.theme-papetarie .woocommerce-message::after,
+body.theme-papetarie .woocommerce-info::after,
+body.theme-papetarie .woocommerce-error::after {
+  content: none !important;
+}
+
 /* SVG data-URIs instead of a Font Awesome glyph: the icon font's exact
    family name/version comes from the wpforms-lite plugin, which isn't part
    of this theme's deploy — a version mismatch between environments (or a
