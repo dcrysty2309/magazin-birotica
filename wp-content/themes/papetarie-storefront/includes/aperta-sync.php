@@ -25,8 +25,13 @@ const PAP_APERTA_EXCLUDED_TOP_LEVEL_CATEGORIES = ['Molotow', 'Universul copiilor
 // caii brute din feed, nu doar ultimul. "intretinere-si-curatenie" adaugata
 // 2026-09-02 (decizie user, acelasi motiv ca mai sus - spray-uri/solutii
 // chimice de curatare electronice); cele 13 produse deja importate au fost
-// mutate manual la cosul de gunoi in aceeasi sesiune.
-const PAP_APERTA_EXCLUDED_SUBCATEGORY_SLUGS = ['intretinere-si-curatenie'];
+// mutate manual la cosul de gunoi in aceeasi sesiune. "camere" adaugata
+// 2026-09-10 (decizie user) - categoria "Camere" a fost stearsa definitiv
+// de pe site (7 produse Tellur, doar 1 viabil, restul discontinuate la
+// Aperta) - fara aceasta excludere, o resincronizare viitoare ar
+// recrea automat categoria de indata ce Aperta trimite iar un produs de
+// tip camera.
+const PAP_APERTA_EXCLUDED_SUBCATEGORY_SLUGS = ['intretinere-si-curatenie', 'camere'];
 const PAP_APERTA_CHUNK_SIZE = 25;
 // Produsele nu mai sunt impartite pe un numar fix per bucata (vezi
 // PAP_APERTA_PRODUCTS_CHUNK_TIME_BUDGET mai jos) - un numar fix de 10 insemna

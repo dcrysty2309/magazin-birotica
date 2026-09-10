@@ -127,12 +127,13 @@ creativitate (Creativitate)
 periferice (Periferice)
   1. casti (Căști)
   2. boxe (Boxe)
-  3. camere (Camere)
-  4. mouse (Mouse)
-  5. tastaturi (Tastaturi)
-  6. baterii-externe (Baterii externe)
-  7. incarcatoare (Încărcătoare)
-  8. cabluri (Cabluri)
+  3. mouse (Mouse)
+  4. tastaturi (Tastaturi)
+  5. baterii-externe (Baterii externe)
+  6. incarcatoare (Încărcătoare)
+  7. cabluri (Cabluri)
+  <!-- "camere" eliminata definitiv 2026-09-10 (decizie user) - doar 1
+       produs viabil, restul discontinuate la Aperta. -->
 
 <!-- curatenie-si-sanitare (Curățenie și sanitare) - RAMURA ELIMINATĂ COMPLET 2026-09-02,
      decizie user: risc legal (produse chimice de curatenie/dezinfectie pot necesita
