@@ -7819,6 +7819,11 @@ body.theme-papetarie .woocommerce-error {
 }
 
 body.theme-papetarie .woocommerce-error li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 20px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -7953,7 +7958,8 @@ body.theme-papetarie .woocommerce-error:focus-visible {
   overflow: hidden;
 }
 
-body.theme-papetarie .woocommerce-message a.pap-atc-message-cta {
+body.theme-papetarie .woocommerce-message a.pap-atc-message-cta,
+body.theme-papetarie .woocommerce-error li a.pap-atc-message-cta {
   flex: 0 0 auto;
   font-size: 13px;
   font-weight: 600;

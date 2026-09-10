@@ -4969,6 +4969,24 @@ function papetarie_storefront_add_to_cart_message_html(string $message, $product
 }
 add_filter('wc_add_to_cart_message_html', 'papetarie_storefront_add_to_cart_message_html', 10, 3);
 
+/**
+ * Cand cantitatea ceruta depaseste stocul (ex. "avem 2 in stoc si ai deja 2
+ * in cosul tau"), WooCommerce core construieste singur mesajul de eroare cu
+ * un link "Vezi coșul" care are clasele default `class="button wc-forward"`
+ * (vezi WC_Cart::add_to_cart(), liniile ~1297 si ~1362) - acestea aduc
+ * stilul generic de buton al temei (float:right, fundal, hover alb, sageata),
+ * complet diferit de link-ul curat folosit la mesajul de succes
+ * (papetarie_storefront_add_to_cart_message_html() de mai sus). Inlocuim
+ * doar clasa, pastram textul deja tradus de WC neatins, ca sa arate identic
+ * cu "Vezi coșul" de la succes. Decizie user 2026-09-10.
+ */
+function papetarie_storefront_clean_cart_notice_forward_link(string $message): string
+{
+    return (string) preg_replace('/\sclass="button wc-forward[^"]*"/', ' class="pap-atc-message-cta"', $message);
+}
+add_filter('woocommerce_cart_product_not_enough_stock_already_in_cart_message', 'papetarie_storefront_clean_cart_notice_forward_link');
+add_filter('woocommerce_cart_product_cannot_add_another_message', 'papetarie_storefront_clean_cart_notice_forward_link');
+
 function papetarie_storefront_remove_storefront_sidebar(): void
 {
     if (!function_exists('is_woocommerce') || !is_woocommerce()) {
