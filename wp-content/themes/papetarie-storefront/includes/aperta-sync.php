@@ -1796,6 +1796,15 @@ function papetarie_storefront_aperta_normalize_attr_group(string $group): string
         return 'Număr straturi';
     }
 
+    // "Versiune Bluetooth" (fara articol) si "Versiunea Bluetooth" sunt
+    // acelasi concept, scris diferit intre produse - gasit la Căști și boxe
+    // (1 produs cu grupul fara articol, restul cu articol), fragmentand
+    // filtrul in 2 sectiuni separate pt aceeasi informatie. Decizie user
+    // 2026-09-10.
+    if (in_array(mb_strtolower(trim($group)), ['versiune bluetooth', 'versiunea bluetooth'], true)) {
+        return 'Versiunea Bluetooth';
+    }
+
     return $group;
 }
 
@@ -1885,6 +1894,24 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
             return '41–60 mm';
         }
         return 'Peste 60 mm';
+    }
+
+    // "V4.2"/"V5.0"/"V5.3" vs "5.0"/"5.1" fara "V" - acelasi numar de
+    // versiune Bluetooth, scris inconsecvent intre produse Tellur. Scoatem
+    // "V" peste tot (pastram orice sufix real ca "+EDR", nu e zgomot).
+    // Decizie user 2026-09-10.
+    if ($group === 'Versiunea Bluetooth' && preg_match('/^[Vv]\s*(\d.*)$/u', trim($value), $m)) {
+        return $m[1];
+    }
+
+    // "10m"/"16m" vs "10 m" si "Până la 10 metri" vs "Până la 10 m" - aceeasi
+    // raza wireless, scrisa cu/fara spatiu si cu unitatea completa "metri" in
+    // loc de abrevierea "m" folosita in majoritatea produselor. Unificam
+    // formatul, pastram distinctia reala "Până la X" (interval) vs "X" (raza
+    // exacta) - sunt informatii diferite, nu doar formatare. Decizie user
+    // 2026-09-10.
+    if ($group === 'Raza Wireless' && preg_match('/^(Până la\s+)?(\d+(?:[.,]\d+)?)\s*(?:m|metri)\.?$/iu', trim($value), $m)) {
+        return ($m[1] !== '' ? 'Până la ' : '') . $m[2] . ' m';
     }
 
     // Grupul generic "Capacitate" e refolosit de MAI MULTE categorii fara
