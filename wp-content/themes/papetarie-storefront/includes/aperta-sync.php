@@ -1842,6 +1842,19 @@ function papetarie_storefront_aperta_normalize_attr_group(string $group): string
  */
 function papetarie_storefront_aperta_normalize_attr_value(string $group, string $value): string
 {
+    // "Fulger" e o traducere gresita a "Lightning" (conectorul Apple) -
+    // Aperta scrie "Lightning" la majoritatea cablurilor, dar "Fulger" la
+    // unul singur ("Tip conectori: Fulger, tip C"), fragmentand acelasi
+    // conector real in 2 optiuni de filtru diferite. Unificam si formatul
+    // "tip C"/"Tip C" (fara cratima, in mijlocul valorii) cu forma
+    // consecventa folosita in restul site-ului, "Tip-C". Decizie user
+    // 2026-09-10.
+    if ($group === 'Tip Conectori') {
+        $value = preg_replace('/\bfulger\b/iu', 'Lightning', trim($value));
+        $value = preg_replace('/\btip[\s-]*c\b/iu', 'Tip-C', $value);
+        return trim($value);
+    }
+
     if ($group === 'Liniatură' && mb_stripos($value, 'matematic') === 0) {
         return 'Matematică';
     }
