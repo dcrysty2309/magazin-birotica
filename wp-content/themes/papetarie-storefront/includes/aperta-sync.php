@@ -2725,7 +2725,12 @@ function papetarie_storefront_aperta_extract_description_attributes(string $desc
 function papetarie_storefront_aperta_collect_desc_attr(array &$attrs, string $rawGroup, string $rawValue, int $maxValueLength): void
 {
     $rawGroup = trim($rawGroup);
-    $value = trim($rawValue);
+    // Aperta termina uneori linia descrierii cu ";" ramas de la o lista pe
+    // acelasi rand ("Pachetul include: Tastatură fără fir; ...") - fara sa
+    // taiem si separatorul, valoarea extrasa ramanea cu ";" agatat la
+    // final (ex. "Tastatură fără fir;"), vizibil ca atare in filtru.
+    // Gasit de user 2026-09-10.
+    $value = rtrim(trim($rawValue), " ;\t\n\r\0\x0B");
 
     if ($rawGroup === '' || $value === '' || mb_strlen($value) > $maxValueLength) {
         return;
