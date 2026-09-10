@@ -2164,6 +2164,10 @@ add_action('init', 'papetarie_storefront_aperta_register_attr_taxonomy');
  */
 function papetarie_storefront_aperta_get_or_create_attr_term(string $group, string $value): ?int
 {
+    // Plasa de siguranta - orice alta cale de tagare (nu doar cele 2 deja
+    // curatate la sursa) trece obligatoriu pe aici inainte de a crea/gasi
+    // termenul de filtru.
+    $value = html_entity_decode($value, ENT_QUOTES, 'UTF-8');
     $group = papetarie_storefront_aperta_normalize_attr_group(trim($group));
     $value = papetarie_storefront_aperta_normalize_attr_value($group, trim($value));
 
@@ -2725,6 +2729,14 @@ function papetarie_storefront_aperta_extract_description_attributes(string $desc
 function papetarie_storefront_aperta_collect_desc_attr(array &$attrs, string $rawGroup, string $rawValue, int $maxValueLength): void
 {
     $rawGroup = trim($rawGroup);
+    // Descrierea Aperta contine uneori entitati HTML scrise literal in text
+    // (ex. "&gt;65dB", "Plug &amp; Play") in loc de caracterul real - fara
+    // decodare, valoarea extrasa pastreaza textul brut "&gt;"/"&amp;", care
+    // apoi e re-escapat la afisare (esc_html) si ajunge sa arate LITERAL ca
+    // "&gt;"/"&amp;" pe pagina, in loc de ">"/"&". Decodam o singura data
+    // aici, la sursa - afecteaza atat tab-ul Specificatii cat si filtrul
+    // (ambele pornesc din acelasi $attrs). Gasit de user 2026-09-10.
+    $rawValue = html_entity_decode($rawValue, ENT_QUOTES, 'UTF-8');
     // Aperta termina uneori linia descrierii cu ";" ramas de la o lista pe
     // acelasi rand ("Pachetul include: Tastatură fără fir; ...") - fara sa
     // taiem si separatorul, valoarea extrasa ramanea cu ";" agatat la
@@ -3372,7 +3384,12 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
 
     $values = [];
     foreach ($rows as $row) {
-        $value = papetarie_storefront_aperta_translate_variant_value(trim((string) $row['Variant']));
+        // Aperta scrie uneori entitati HTML literal in coloana "Variant"
+        // (ex. "Alb & Negru" ajunge "Alb &amp; Negru") - decodam inainte de
+        // orice alta procesare, ca sa nu ajunga re-escapat, vizibil literal
+        // pe pagina. Gasit de user 2026-09-10.
+        $rawVariant = html_entity_decode(trim((string) $row['Variant']), ENT_QUOTES, 'UTF-8');
+        $value = papetarie_storefront_aperta_translate_variant_value($rawVariant);
         if ($value !== '') {
             $values[$value] = true;
         }
@@ -3425,7 +3442,7 @@ function papetarie_storefront_aperta_sync_variations(int $productId, array $rows
             continue;
         }
 
-        $variantValue = papetarie_storefront_aperta_translate_variant_value(trim((string) $row['Variant']));
+        $variantValue = papetarie_storefront_aperta_translate_variant_value(html_entity_decode(trim((string) $row['Variant']), ENT_QUOTES, 'UTF-8'));
         $variationId = papetarie_storefront_aperta_find_by_sku_meta($codUnic);
 
         // SKU-ul poate fi deja atasat unui produs SIMPLU (nu o variatie) -
