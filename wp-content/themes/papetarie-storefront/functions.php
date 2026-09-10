@@ -4537,6 +4537,11 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
             'Timp De Încărcare',
             'Lungimea Cablului',
         ],
+        // "Butoane" (numarul de butoane al mouse-ului) avea doar 2 valori
+        // aproape unice pe 3 produse din 7 - un filtru unde bifezi o
+        // valoare si gasesti 2 sau 1 produs nu ajuta la alegere. Decizie
+        // user 2026-09-10.
+        'mouse' => ['Butoane'],
     ];
     $categorySlug = (string) ($term->slug ?? '');
     $excludedGroups = $categoryGroupExclusions[$categorySlug] ?? [];
