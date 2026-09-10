@@ -1772,6 +1772,15 @@ function papetarie_storefront_aperta_normalize_attr_group(string $group): string
         return '';
     }
 
+    // "Temperatura De Culoare" (la lampi/incarcatoare cu lumina, ex. "3000K"
+    // = alb cald) descrie tonul luminii, nu culoarea fizica a produsului -
+    // acelasi tip de fals-pozitiv ca "Culoare Viziunea de noapte" de mai
+    // sus (produsul avea deja culoarea corecta separat: "Negru | Alb").
+    // Decizie user 2026-09-10.
+    if (mb_stripos($group, 'temperatur') !== false && mb_stripos($group, 'culo') !== false) {
+        return '';
+    }
+
     if (mb_stripos($group, 'culo') !== false) {
         return 'Culoare';
     }
@@ -1870,6 +1879,14 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
     }
     if ($group === 'Culoare' && trim($value) === 'Neagră') {
         return 'Negru';
+    }
+
+    // "De culoare crem" si "Cremă" sunt aceeasi culoare, scrisa diferit intre
+    // produse Tellur Green (3 vs 1 produse) - unificate sub forma scurta,
+    // consecventa cu restul culorilor din site (Alb, Negru, nu "De culoare
+    // alb"). Decizie user 2026-09-10.
+    if ($group === 'Culoare' && mb_strtolower(trim($value)) === 'de culoare crem') {
+        return 'Cremă';
     }
 
     // "100 bucăți în cutie de carton" si "100 buc/cutie" sunt acelasi lucru,
