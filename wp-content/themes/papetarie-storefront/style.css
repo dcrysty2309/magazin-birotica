@@ -21013,8 +21013,15 @@ body.theme-papetarie .pap-footer-meta a:hover {
 }
 
 .pap-product-gallery-main img {
-  max-width: 306px;
-  max-height: 264px;
+  /* Inainte limitam poza la un maxim fix de 306x264px, mult mai mic decat
+     cutia ei reala (440x380px pe desktop) - lasa mult spatiu alb nefolosit
+     in jur si facea poza sa para mica. Acum umple cutia disponibila
+     (pastrand proportiile, fara deformare) - se adapteaza automat si la
+     cutia responsive de pe mobil (aspect-ratio 4/3, vezi media query mai
+     jos), fara sa mai fie nevoie de o valoare fixa separata acolo. Decizie
+     user 2026-09-10. */
+  max-width: 100%;
+  max-height: 100%;
   width: auto;
   height: auto;
   object-fit: contain;
@@ -21087,8 +21094,8 @@ body.theme-papetarie .pap-product-gallery-thumbs-nav svg {
 }
 
 .pap-product-gallery-thumb {
-  width: 68px;
-  height: 68px;
+  width: 80px;
+  height: 80px;
   padding: 5px;
   border-radius: 3px;
   border: 2px solid #dde1e8;
@@ -21106,8 +21113,8 @@ body.theme-papetarie .pap-product-gallery-thumbs-nav svg {
 }
 
 .pap-product-gallery-thumb img {
-  width: 56px;
-  height: 56px;
+  width: 66px;
+  height: 66px;
   object-fit: contain;
 }
 
