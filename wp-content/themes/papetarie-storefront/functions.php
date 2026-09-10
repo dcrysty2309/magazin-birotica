@@ -4532,8 +4532,9 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
             'Difuzor',
             'Răspuns În Frecvență',
             'Gama De Frecvență A Microfonului',
-            'Greutatea Produsului',
-            'Greutatea Pachetului',
+            // "Greutatea Produsului"/"Greutatea Pachetului" nu mai trebuie
+            // listate aici - regula generala "greutat*" de mai jos le
+            // ascunde deja peste tot.
             'Timp De Încărcare',
             'Lungimea Cablului',
         ],
@@ -4548,6 +4549,19 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
 
     $filtered = array_filter($grouped, static function (array $values, string $group) use ($nonFilterableGroups, $minCoverage, $excludedGroups): bool {
         if (in_array($group, $nonFilterableGroups, true) || in_array($group, $excludedGroups, true)) {
+            return false;
+        }
+
+        // "Greutate" (deja ascuns mai sus) e doar UNA din cel putin 13
+        // variante aproape identice gasite sitewide ("Greutatea Produsului",
+        // "Greutatea Pachetului", "Greutatea Căștilor", "Greutate Pachet",
+        // "Greutate Carton" etc.) - fiecare produs are o greutate aproape
+        // unica in grame, deci niciuna nu ajuta la alegere, oricum s-ar numi
+        // grupul. Ascundem orice grup care incepe cu "greutat", nu doar
+        // numele exact "Greutate", ca sa nu mai trebuiasca adaugat unul cate
+        // unul de fiecare data cand apare sub alt nume la o categorie noua.
+        // Decizie user 2026-09-10.
+        if (mb_stripos($group, 'greutat') === 0) {
             return false;
         }
 

@@ -1881,6 +1881,16 @@ function papetarie_storefront_aperta_normalize_attr_value(string $group, string 
         return 'Negru';
     }
 
+    // Un cablu spiralat descrie lungimea ca "39cm și 150cm întins" (strans
+    // vs intins) - o valoare compusa, diferita de restul cablurilor (ex.
+    // "100 cm", "120 cm"), care arata rau amestecata printre ele in filtru.
+    // Pastram lungimea INTINSA (comparabila cu celelalte cabluri masurate
+    // drepte), cea stransa ramane doar in descriere/Specificatii, neatinsa.
+    // Decizie user 2026-09-10.
+    if ($group === 'Lungime' && preg_match('/^\d+\s*cm\s+(?:și|si)\s+(\d+)\s*cm\s+întins$/iu', trim($value), $m)) {
+        return $m[1] . ' cm';
+    }
+
     // "De culoare crem" si "Cremă" sunt aceeasi culoare, scrisa diferit intre
     // produse Tellur Green (3 vs 1 produse) - unificate sub forma scurta,
     // consecventa cu restul culorilor din site (Alb, Negru, nu "De culoare
