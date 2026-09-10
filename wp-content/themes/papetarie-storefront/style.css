@@ -21019,6 +21019,12 @@ body.theme-papetarie .pap-footer-meta a:hover {
 .pap-product-gallery-main {
   position: relative;
   height: 380px;
+  /* Ramă uniformă pe toate 4 laturile - fără padding, o poză mai înaltă
+     (portret) atingea marginile de sus/jos exact, dar avea spațiu alb pe
+     lateral (din object-fit:contain), asimetric și inestetic. Decizie
+     user 2026-09-10. */
+  padding: 16px;
+  box-sizing: border-box;
   border: 1px solid #dde1e8;
   border-radius: 4px;
   background: #fff;
