@@ -220,58 +220,68 @@ function papetarie_storefront_render_aperta_sync_page(): void
         </div>
       </div>
 
-      <div class="notice notice-info inline pap-aperta-legacy-notice">
-        <p>
-          <?php esc_html_e('Reaplică regulile curente de normalizare a etichetelor de filtru (ex. "Nr. file" / "Număr file" devin un singur filtru, "80 g" / "80 g/mp" la fel) pe toate produsele deja sincronizate — util după ce regulile s-au schimbat/completat, ca vechile etichete duplicate să se consolideze fără să aștepți o resincronizare completă. Nu atinge preț, stoc sau descriere.', 'papetarie-storefront'); ?>
-        </p>
-        <p>
-          <button type="button" class="button button-secondary" id="pap-aperta-backfill-attrs"><?php esc_html_e('Actualizează filtrele de atribute', 'papetarie-storefront'); ?></button>
-          <span id="pap-aperta-backfill-progress" style="margin-left:8px;"></span>
-        </p>
-      </div>
-
-      <div class="notice notice-info inline pap-aperta-legacy-notice">
-        <p><strong><?php esc_html_e('Sursa datelor (feed-urile Aperta)', 'papetarie-storefront'); ?></strong></p>
-        <p>
-          <?php esc_html_e('Produse (nume, preț, categorie, descriere — sincronizat zilnic):', 'papetarie-storefront'); ?>
-          <code><a href="<?php echo esc_url(PAP_APERTA_PRODUCTS_FEED_URL); ?>" target="_blank" rel="noopener"><?php echo esc_html(PAP_APERTA_PRODUCTS_FEED_URL); ?></a></code>
-          <br>
-          <?php esc_html_e('Stoc (sincronizat orar):', 'papetarie-storefront'); ?>
-          <code><a href="<?php echo esc_url(PAP_APERTA_STOCK_FEED_URL); ?>" target="_blank" rel="noopener"><?php echo esc_html(PAP_APERTA_STOCK_FEED_URL); ?></a></code>
-        </p>
-      </div>
-
       <?php $feedHistory = papetarie_storefront_aperta_list_feed_history(); ?>
-      <div class="notice notice-info inline pap-aperta-legacy-notice">
-        <p>
-          <?php echo esc_html(sprintf(
-              /* translators: %d: number of days of history kept */
-              __('Păstrăm o copie a fiecărui feed descărcat, câte una pe zi, ultimele %d zile (cele mai vechi se șterg automat) — pentru comparații „azi vs ieri" dacă ceva pare suspect (ex. 0 schimbări raportate mai multe zile la rând).', 'papetarie-storefront'),
-              PAP_APERTA_FEED_HISTORY_DAYS
-          )); ?>
-        </p>
-        <?php if (empty($feedHistory)) : ?>
-          <p><em><?php esc_html_e('Încă nu există nicio copie salvată — prima apare după următoarea sincronizare (funcție activă din 2026-09-11).', 'papetarie-storefront'); ?></em></p>
-        <?php else : ?>
-          <table class="widefat striped" style="max-width:420px;">
-            <thead>
-              <tr>
-                <th><?php esc_html_e('Data', 'papetarie-storefront'); ?></th>
-                <th><?php esc_html_e('Feed', 'papetarie-storefront'); ?></th>
-                <th><?php esc_html_e('Mărime', 'papetarie-storefront'); ?></th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($feedHistory as $item) : ?>
-                <tr>
-                  <td><?php echo esc_html($item['date']); ?></td>
-                  <td><?php echo esc_html($item['which'] === 'stoc' ? __('Stoc', 'papetarie-storefront') : __('Produse', 'papetarie-storefront')); ?></td>
-                  <td><?php echo esc_html(size_format($item['size'])); ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        <?php endif; ?>
+      <div class="pap-aperta-settings-group">
+        <details class="pap-aperta-settings-item">
+          <summary><?php esc_html_e('Actualizare filtre de atribute', 'papetarie-storefront'); ?></summary>
+          <div class="pap-aperta-settings-body">
+            <p>
+              <?php esc_html_e('Reaplică regulile curente de normalizare a etichetelor de filtru (ex. "Nr. file" / "Număr file" devin un singur filtru, "80 g" / "80 g/mp" la fel) pe toate produsele deja sincronizate — util după ce regulile s-au schimbat/completat, ca vechile etichete duplicate să se consolideze fără să aștepți o resincronizare completă. Nu atinge preț, stoc sau descriere.', 'papetarie-storefront'); ?>
+            </p>
+            <p>
+              <button type="button" class="button button-secondary" id="pap-aperta-backfill-attrs"><?php esc_html_e('Actualizează filtrele de atribute', 'papetarie-storefront'); ?></button>
+              <span id="pap-aperta-backfill-progress" style="margin-left:8px;"></span>
+            </p>
+          </div>
+        </details>
+
+        <details class="pap-aperta-settings-item">
+          <summary><?php esc_html_e('Sursa datelor (feed-urile Aperta)', 'papetarie-storefront'); ?></summary>
+          <div class="pap-aperta-settings-body">
+            <p>
+              <?php esc_html_e('Produse (nume, preț, categorie, descriere — sincronizat zilnic):', 'papetarie-storefront'); ?>
+              <code><a href="<?php echo esc_url(PAP_APERTA_PRODUCTS_FEED_URL); ?>" target="_blank" rel="noopener"><?php echo esc_html(PAP_APERTA_PRODUCTS_FEED_URL); ?></a></code>
+              <br>
+              <?php esc_html_e('Stoc (sincronizat orar):', 'papetarie-storefront'); ?>
+              <code><a href="<?php echo esc_url(PAP_APERTA_STOCK_FEED_URL); ?>" target="_blank" rel="noopener"><?php echo esc_html(PAP_APERTA_STOCK_FEED_URL); ?></a></code>
+            </p>
+          </div>
+        </details>
+
+        <details class="pap-aperta-settings-item">
+          <summary><?php esc_html_e('Istoric feed-uri Aperta', 'papetarie-storefront'); ?><?php echo !empty($feedHistory) ? ' (' . count($feedHistory) . ')' : ''; ?></summary>
+          <div class="pap-aperta-settings-body">
+            <p>
+              <?php echo esc_html(sprintf(
+                  /* translators: %d: number of days of history kept */
+                  __('Păstrăm o copie a fiecărui feed descărcat, câte una pe zi, ultimele %d zile (cele mai vechi se șterg automat) — pentru comparații „azi vs ieri" dacă ceva pare suspect (ex. 0 schimbări raportate mai multe zile la rând).', 'papetarie-storefront'),
+                  PAP_APERTA_FEED_HISTORY_DAYS
+              )); ?>
+            </p>
+            <?php if (empty($feedHistory)) : ?>
+              <p><em><?php esc_html_e('Încă nu există nicio copie salvată — prima apare după următoarea sincronizare (funcție activă din 2026-09-11).', 'papetarie-storefront'); ?></em></p>
+            <?php else : ?>
+              <table class="widefat striped" style="max-width:420px;">
+                <thead>
+                  <tr>
+                    <th><?php esc_html_e('Data', 'papetarie-storefront'); ?></th>
+                    <th><?php esc_html_e('Feed', 'papetarie-storefront'); ?></th>
+                    <th><?php esc_html_e('Mărime', 'papetarie-storefront'); ?></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($feedHistory as $item) : ?>
+                    <tr>
+                      <td><?php echo esc_html($item['date']); ?></td>
+                      <td><?php echo esc_html($item['which'] === 'stoc' ? __('Stoc', 'papetarie-storefront') : __('Produse', 'papetarie-storefront')); ?></td>
+                      <td><?php echo esc_html(size_format($item['size'])); ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            <?php endif; ?>
+          </div>
+        </details>
       </div>
 
       <?php if ($legacyCount > 0) : ?>
@@ -472,6 +482,59 @@ function papetarie_storefront_render_aperta_sync_page(): void
         cursor: pointer;
         color: #2271b1;
         font-size: 12px;
+      }
+
+      .pap-aperta-settings-group {
+        background: #fff;
+        border: 1px solid #dcdcde;
+        margin: 20px 0;
+      }
+
+      .pap-aperta-settings-item {
+        border-bottom: 1px solid #dcdcde;
+      }
+
+      .pap-aperta-settings-item:last-child {
+        border-bottom: none;
+      }
+
+      .pap-aperta-settings-item summary {
+        cursor: pointer;
+        padding: 12px 16px;
+        font-weight: 600;
+        color: #1d2327;
+        list-style: none;
+        user-select: none;
+      }
+
+      .pap-aperta-settings-item summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .pap-aperta-settings-item summary::before {
+        content: "\25B8";
+        display: inline-block;
+        width: 14px;
+        margin-right: 6px;
+        color: #2271b1;
+        transition: transform .15s ease;
+      }
+
+      .pap-aperta-settings-item[open] summary::before {
+        transform: rotate(90deg);
+      }
+
+      .pap-aperta-settings-item summary:hover {
+        background: #f6f7f7;
+      }
+
+      .pap-aperta-settings-body {
+        padding: 0 16px 16px 36px;
+        color: #3c434a;
+      }
+
+      .pap-aperta-settings-body p:first-child {
+        margin-top: 0;
       }
 
       .pap-aperta-table {
