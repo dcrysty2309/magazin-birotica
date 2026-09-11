@@ -799,6 +799,42 @@ get_header();
       var isUserExpanded = false;
       var resizeTimer = null;
 
+      // Taierea la exact COLLAPSE_THRESHOLD (pixel fix) cadea uneori chiar
+      // in golul dintre doua paragrafe (margin-bottom: 18px pe fiecare <p>
+      // - vezi style.css), nu in text - rezultat: text vizibil se opreste
+      // brusc, urmat de o zona goala mare pana la fade+buton "Citeste mai
+      // mult", cu spatiu prea putin intre buton si randul de sub el.
+      // Devenit vizibil abia dupa ce descrierile au inceput sa fie
+      // randate cu paragrafe separate in loc de un singur bloc de proza -
+      // semnalat de user cu exemplu concret 2026-09-11. Fix: "sarim" la
+      // marginea de JOS A TEXTULUI (nu si marginea) ultimului paragraf/
+      // element care incape integral sub prag, in loc sa taiem la un
+      // pixel fix - fade-ul acopera atunci mereu text real, niciodata gol.
+      function computeSnappedCollapseHeight(threshold) {
+        var children = descriptionBox.children;
+        var snapped = 0;
+        var found = false;
+
+        for (var i = 0; i < children.length; i++) {
+          var child = children[i];
+          if (child.classList && child.classList.contains('pap-product-description-fade')) {
+            continue;
+          }
+          var bottomEdge = child.offsetTop + child.offsetHeight;
+          if (bottomEdge <= threshold) {
+            snapped = bottomEdge;
+            found = true;
+          } else {
+            break;
+          }
+        }
+
+        // Niciun element intreg nu incape sub prag (un singur paragraf
+        // foarte lung, mai rar) - pastram taierea la pixelul fix, ca
+        // inainte, nu ascundem tot continutul.
+        return found ? snapped : threshold;
+      }
+
       function evaluateDescriptionCollapse() {
         var naturalHeight = descriptionBox.scrollHeight;
         var needsCollapse = naturalHeight > COLLAPSE_THRESHOLD + GRACE;
@@ -820,7 +856,7 @@ get_header();
           descriptionBox.style.maxHeight = naturalHeight + 'px';
         } else {
           descriptionBox.classList.remove('is-expanded');
-          descriptionBox.style.maxHeight = COLLAPSE_THRESHOLD + 'px';
+          descriptionBox.style.maxHeight = computeSnappedCollapseHeight(COLLAPSE_THRESHOLD) + 'px';
         }
       }
 
