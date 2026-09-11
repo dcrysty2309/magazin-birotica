@@ -230,6 +230,50 @@ function papetarie_storefront_render_aperta_sync_page(): void
         </p>
       </div>
 
+      <div class="notice notice-info inline pap-aperta-legacy-notice">
+        <p><strong><?php esc_html_e('Sursa datelor (feed-urile Aperta)', 'papetarie-storefront'); ?></strong></p>
+        <p>
+          <?php esc_html_e('Produse (nume, preț, categorie, descriere — sincronizat zilnic):', 'papetarie-storefront'); ?>
+          <code><a href="<?php echo esc_url(PAP_APERTA_PRODUCTS_FEED_URL); ?>" target="_blank" rel="noopener"><?php echo esc_html(PAP_APERTA_PRODUCTS_FEED_URL); ?></a></code>
+          <br>
+          <?php esc_html_e('Stoc (sincronizat orar):', 'papetarie-storefront'); ?>
+          <code><a href="<?php echo esc_url(PAP_APERTA_STOCK_FEED_URL); ?>" target="_blank" rel="noopener"><?php echo esc_html(PAP_APERTA_STOCK_FEED_URL); ?></a></code>
+        </p>
+      </div>
+
+      <?php $feedHistory = papetarie_storefront_aperta_list_feed_history(); ?>
+      <div class="notice notice-info inline pap-aperta-legacy-notice">
+        <p>
+          <?php echo esc_html(sprintf(
+              /* translators: %d: number of days of history kept */
+              __('Păstrăm o copie a fiecărui feed descărcat, câte una pe zi, ultimele %d zile (cele mai vechi se șterg automat) — pentru comparații „azi vs ieri" dacă ceva pare suspect (ex. 0 schimbări raportate mai multe zile la rând).', 'papetarie-storefront'),
+              PAP_APERTA_FEED_HISTORY_DAYS
+          )); ?>
+        </p>
+        <?php if (empty($feedHistory)) : ?>
+          <p><em><?php esc_html_e('Încă nu există nicio copie salvată — prima apare după următoarea sincronizare (funcție activă din 2026-09-11).', 'papetarie-storefront'); ?></em></p>
+        <?php else : ?>
+          <table class="widefat striped" style="max-width:420px;">
+            <thead>
+              <tr>
+                <th><?php esc_html_e('Data', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Feed', 'papetarie-storefront'); ?></th>
+                <th><?php esc_html_e('Mărime', 'papetarie-storefront'); ?></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($feedHistory as $item) : ?>
+                <tr>
+                  <td><?php echo esc_html($item['date']); ?></td>
+                  <td><?php echo esc_html($item['which'] === 'stoc' ? __('Stoc', 'papetarie-storefront') : __('Produse', 'papetarie-storefront')); ?></td>
+                  <td><?php echo esc_html(size_format($item['size'])); ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        <?php endif; ?>
+      </div>
+
       <?php if ($legacyCount > 0) : ?>
         <div class="notice notice-warning inline pap-aperta-legacy-notice">
           <p>

@@ -10,6 +10,11 @@ defined('ABSPATH') || exit;
 
 const PAP_APERTA_PRODUCTS_FEED_URL = 'https://www.aperta.ro/feed.csv';
 const PAP_APERTA_STOCK_FEED_URL = 'https://www.aperta.ro/feed-stoc.csv';
+// Cate zile de istoric feed pastram pt comparatii "azi vs ieri" (vezi
+// papetarie_storefront_aperta_snapshot_feed() mai jos) - restul se sterg
+// automat la fiecare descarcare noua, ca sa nu se adune la nesfarsit.
+// Cerut explicit de user 2026-09-11.
+const PAP_APERTA_FEED_HISTORY_DAYS = 7;
 // Categorii de top din feed excluse definitiv de la import (decizie user
 // 2026-07-28) - verificate pe segmentul 0 al coloanei "Categorie produs" din
 // feed, nu pe taxonomia noastra rezolvata (Molotow nu are propria categorie
@@ -854,7 +859,91 @@ function papetarie_storefront_aperta_download_feed(string $which): bool
 
     $body = wp_remote_retrieve_body($response);
 
-    return (bool) file_put_contents(papetarie_storefront_aperta_feed_path($which), $body);
+    $saved = (bool) file_put_contents(papetarie_storefront_aperta_feed_path($which), $body);
+    if ($saved) {
+        papetarie_storefront_aperta_snapshot_feed($which, $body);
+    }
+
+    return $saved;
+}
+
+function papetarie_storefront_aperta_feed_history_dir(): string
+{
+    return papetarie_storefront_aperta_feed_dir() . '/istoric';
+}
+
+/**
+ * Pastreaza o copie ZILNICA a fiecarui feed descarcat (produse + stoc) -
+ * fara asta, fisierul curent (feed.csv/feed-stoc.csv) e suprascris la
+ * fiecare sincronizare si nu ramane nicio urma a starii de ieri, deci nu
+ * exista cum sa compari "azi vs ieri" cand ceva pare suspect (ex. jurnalul
+ * de sincronizare arata 0 schimbari mai multe zile la rand - exact
+ * intrebarea care a dus la acest fix, 2026-09-11). O singura copie per zi
+ * per tip de feed (suprascrisa daca sincronizarea ruleaza de mai multe ori
+ * in aceeasi zi - stocul se sincronizeaza orar, n-are rost sa pastram
+ * fiecare rulare). Pastram ultimele PAP_APERTA_FEED_HISTORY_DAYS zile,
+ * restul se sterg automat la fiecare descarcare noua.
+ */
+function papetarie_storefront_aperta_snapshot_feed(string $which, string $body): void
+{
+    $dir = papetarie_storefront_aperta_feed_history_dir();
+    wp_mkdir_p($dir);
+
+    // Fisierele contin preturi/stocuri interne - blocam accesul web direct,
+    // la fel cum WordPress isi protejeaza propriile foldere de upload
+    // sensibile (ex. wp-content/uploads/woocommerce_uploads).
+    if (!file_exists($dir . '/index.php')) {
+        file_put_contents($dir . '/index.php', "<?php\n// Silence is golden.\n");
+    }
+    if (!file_exists($dir . '/.htaccess')) {
+        file_put_contents($dir . '/.htaccess', "Deny from all\n");
+    }
+
+    $today = current_time('Y-m-d');
+    file_put_contents($dir . '/' . $which . '-' . $today . '.csv', $body);
+
+    papetarie_storefront_aperta_prune_feed_history($dir);
+}
+
+function papetarie_storefront_aperta_prune_feed_history(string $dir): void
+{
+    $cutoff = strtotime('-' . PAP_APERTA_FEED_HISTORY_DAYS . ' days', current_time('timestamp'));
+
+    foreach (glob($dir . '/*.csv') ?: [] as $file) {
+        if (preg_match('/-(\d{4}-\d{2}-\d{2})\.csv$/', basename($file), $m)) {
+            $fileTime = strtotime($m[1]);
+            if ($fileTime !== false && $fileTime < $cutoff) {
+                @unlink($file);
+            }
+        }
+    }
+}
+
+/**
+ * Lista fisierelor din istoric, cele mai recente primele - folosita doar
+ * pt afisare in admin (vezi admin-aperta-sync.php).
+ *
+ * @return array<int, array{file: string, which: string, date: string, size: int}>
+ */
+function papetarie_storefront_aperta_list_feed_history(): array
+{
+    $dir = papetarie_storefront_aperta_feed_history_dir();
+    $items = [];
+
+    foreach (glob($dir . '/*.csv') ?: [] as $file) {
+        if (preg_match('/^(feed|stoc)-(\d{4}-\d{2}-\d{2})\.csv$/', basename($file), $m)) {
+            $items[] = [
+                'file' => basename($file),
+                'which' => $m[1],
+                'date' => $m[2],
+                'size' => (int) filesize($file),
+            ];
+        }
+    }
+
+    usort($items, static fn(array $a, array $b): int => strcmp($b['date'], $a['date']) ?: strcmp($a['which'], $b['which']));
+
+    return $items;
 }
 
 /**
