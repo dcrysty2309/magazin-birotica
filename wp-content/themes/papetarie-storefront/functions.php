@@ -4543,6 +4543,12 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
         // valoare si gasesti 2 sau 1 produs nu ajuta la alegere. Decizie
         // user 2026-09-10.
         'mouse' => ['Butoane'],
+        // "Capacitate" la Rucsaci are doar 2 valori reale ("21 litri" pe 2
+        // produse, "Aproximativ 20 litri" pe 6) - date corecte (linii de
+        // produs diferite, nu duplicat), dar user a decis ca nu ajuta la
+        // filtrare aici. Decizie user 2026-09-11, nu se aplica automat la
+        // alte categorii.
+        'rucsaci' => ['Capacitate'],
     ];
     $categorySlug = (string) ($term->slug ?? '');
     $excludedGroups = $categoryGroupExclusions[$categorySlug] ?? [];
@@ -4607,6 +4613,8 @@ function papetarie_storefront_get_category_attribute_filters(?WP_Term $term): ar
     $groupPriorityOverrides = [
         'hartie-color' => ['Stil culoare'],
         'accesorii-pentru-birou' => ['Tip produs'],
+        // User a cerut Material inaintea Culorii la Rucsaci (2026-09-11).
+        'rucsaci' => ['Material'],
     ];
     $priorityGroups = $groupPriorityOverrides[$categorySlug] ?? [];
 
