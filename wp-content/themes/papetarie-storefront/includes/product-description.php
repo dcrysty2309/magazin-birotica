@@ -185,6 +185,51 @@ function papetarie_storefront_render_description_run(array $run): string
 
         case 'prose':
         default:
-            return '<p>' . implode(' ', $run['lines']) . '</p>';
+            return papetarie_storefront_render_prose_paragraphs($run['lines']);
     }
+}
+
+/**
+ * Comentariul de la inceputul fisierului explica de ce liniile dintr-un
+ * bloc "prose" erau unite cu un singur spatiu, fara sa se tina cont de
+ * rupturile simple de linie (\n) - feed-ul Aperta uneori taie o propozitie
+ * la mijloc doar din cauza latimii fixe de export, nu pt ca ar fi un gand
+ * nou. DAR aceeasi regula unea si propozitii COMPLETE, punctate corect,
+ * fiecare pe randul ei, intr-un singur paragraf-zid, greu de citit -
+ * semnalat de user cu un exemplu concret (husa laptop NeoDeco) 2026-09-11.
+ *
+ * Distinctie: daca randul CURENT se termina cu punctuatie de final de
+ * propozitie (. ! ?, optional urmata de ghilimele/paranteza), urmatorul
+ * rand e cu siguranta un gand nou - devine paragraf separat. Daca NU se
+ * termina asa, e cu siguranta continuarea aceleiasi propozitii taiate la
+ * mijloc de latimea de export - ramane unit cu un spatiu, ca pana acum.
+ * Regula generica, doar la randare (post_content ramane neatins), se
+ * aplica automat retroactiv la orice produs afectat, fara migrare.
+ *
+ * @param string[] $lines
+ */
+function papetarie_storefront_render_prose_paragraphs(array $lines): string
+{
+    $paragraphs = [];
+    $current = '';
+
+    foreach ($lines as $line) {
+        $current = $current === '' ? $line : $current . ' ' . $line;
+
+        if (preg_match('/[.!?]["\')]*$/u', $line)) {
+            $paragraphs[] = $current;
+            $current = '';
+        }
+    }
+
+    if ($current !== '') {
+        $paragraphs[] = $current;
+    }
+
+    $html = '';
+    foreach ($paragraphs as $paragraph) {
+        $html .= '<p>' . $paragraph . '</p>';
+    }
+
+    return $html;
 }
