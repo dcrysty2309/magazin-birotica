@@ -2925,7 +2925,7 @@ function papetarie_storefront_aperta_product_needs_work(array $rows): bool
 function papetarie_storefront_aperta_upsert_product(array $rows): array
 {
     if (empty($rows)) {
-        return ['product_id' => 0, 'is_new' => false, 'is_variable' => false, 'old_price' => null, 'new_price' => null, 'was_trashed' => false, 'price_warning' => null];
+        return ['product_id' => 0, 'is_new' => false, 'is_variable' => false, 'fields_changed' => false, 'old_price' => null, 'new_price' => null, 'was_trashed' => false, 'price_warning' => null];
     }
 
     $first = $rows[0];
@@ -3074,6 +3074,21 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
     $oldPrice = (!$isNew && !$isVariable) ? get_post_meta($productId, '_regular_price', true) : '';
     $oldPrice = $oldPrice !== '' ? (float) $oldPrice : null;
 
+    // Starea "dinainte", retinuta ca sa putem raporta corect in jurnalul de
+    // sincronizare daca s-a schimbat ceva ALTCEVA decat pretul (nume,
+    // descriere, categorie, brand) - pana acum papetarie_storefront_aperta_upsert_is_changed()
+    // verifica STRICT pretul (la produse simple) sau doar variatiile noi/
+    // schimbate (la cele variabile), deci un produs caruia i s-a schimbat
+    // DOAR numele/descrierea/brandul aparea gresit ca "neschimbat" in jurnal -
+    // gasit 2026-09-11 dupa ce jurnalul a aratat 0 schimbari 7 nopti la rand,
+    // desi datele chiar se actualizeaza corect (verificat separat, sitewide).
+    $oldName = !$isNew ? get_the_title($productId) : null;
+    $oldDescription = !$isNew ? (string) get_post_field('post_content', $productId) : null;
+    $oldCategoryIds = !$isNew ? wp_get_post_terms($productId, 'product_cat', ['fields' => 'ids']) : [];
+    sort($oldCategoryIds);
+    $oldBrandTerms = !$isNew ? wp_get_post_terms($productId, 'product_brand', ['fields' => 'ids']) : [];
+    $oldBrandId = $oldBrandTerms[0] ?? 0;
+
     // Optimizare majora: daca produsul exista deja si toate randurile lui
     // din feed sunt identice cu ultima rulare (hash comparat), sarim complet
     // peste rezolvare categorie/brand, verificare poze si save() - in
@@ -3136,6 +3151,7 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
                 'variations' => null,
                 'was_trashed' => $wasTrashed,
                 'price_warning' => null,
+                'fields_changed' => false,
             ];
         }
     }
@@ -3203,6 +3219,7 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
                 'product_id' => $productId,
                 'is_new' => true,
                 'is_variable' => true,
+                'fields_changed' => true,
                 'old_price' => null,
                 'new_price' => null,
                 'variations' => $variationsSummary,
@@ -3274,10 +3291,20 @@ function papetarie_storefront_aperta_upsert_product(array $rows): array
         papetarie_storefront_aperta_record_new_product($productId, $name);
     }
 
+    $newCategoryIds = wp_get_post_terms($productId, 'product_cat', ['fields' => 'ids']);
+    sort($newCategoryIds);
+    $fieldsChanged = !$isNew && (
+        $oldName !== get_the_title($productId)
+        || $oldDescription !== (string) get_post_field('post_content', $productId)
+        || $oldCategoryIds !== $newCategoryIds
+        || $oldBrandId !== $brandId
+    );
+
     return [
         'product_id' => $productId,
         'is_new' => $isNew,
         'is_variable' => $isVariable,
+        'fields_changed' => $fieldsChanged,
         'old_price' => $oldPrice,
         'new_price' => $newPrice,
         'variations' => $variationsSummary,
@@ -3365,6 +3392,19 @@ function papetarie_storefront_aperta_describe_upsert(array $result): string
 function papetarie_storefront_aperta_upsert_is_changed(array $result): bool
 {
     if ($result['is_new']) {
+        return true;
+    }
+
+    // Pana acum verificam STRICT pretul (produse simple) sau doar variatiile
+    // noi/schimbate (produse variabile) - un produs caruia i s-a schimbat
+    // DOAR numele/descrierea/categoria/brandul aparea gresit ca "neschimbat"
+    // in jurnalul de sincronizare, desi datele chiar se actualizasera corect
+    // pe site. Gasit 2026-09-11: jurnalul aratase 0 schimbari 7 nopti la
+    // rand, ceea ce parea suspect desi verificarea separata, sitewide, a
+    // confirmat ca datele sunt corecte - vezi 'fields_changed', calculat in
+    // papetarie_storefront_aperta_upsert_product() prin compararea starii
+    // dinainte/dupa pe nume, descriere, categorie si brand.
+    if (!empty($result['fields_changed'])) {
         return true;
     }
 
