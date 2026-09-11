@@ -206,17 +206,37 @@ function papetarie_storefront_render_description_run(array $run): string
  * Regula generica, doar la randare (post_content ramane neatins), se
  * aplica automat retroactiv la orice produs afectat, fara migrare.
  *
+ * A doua fata a aceleiasi probleme, gasita separat: uneori Aperta trimite
+ * TOATE propozitiile unui produs pe UN SINGUR rand brut, fara niciun \n
+ * intre ele (ex. "Grund de umplere... Se usuca rapid... Aerosol extrem de
+ * inflamabil!..." tot pe acelasi rand) - regula de mai sus, care lucreaza
+ * doar cu rupturile de linie deja existente, nu are ce sa desparta in
+ * cazul asta, ramanand tot un singur paragraf-zid. Semnalat de user cu un
+ * al doilea exemplu concret (spray Schneider Primer) 2026-09-11, imediat
+ * dupa primul fix. Rezolvat desfacand FIECARE rand in propozitii separate
+ * INAINTE de gruparea de mai jos (vezi papetarie_storefront_split_into_sentences()),
+ * care foloseste acelasi semnal (majuscula dupa punct/semn de exclamare/
+ * intrebare) ca sa gaseasca limitele reale de propozitie chiar si intr-un
+ * rand brut nedespartit deloc.
+ *
  * @param string[] $lines
  */
 function papetarie_storefront_render_prose_paragraphs(array $lines): string
 {
+    $sentences = [];
+    foreach ($lines as $line) {
+        foreach (papetarie_storefront_split_into_sentences($line) as $sentence) {
+            $sentences[] = $sentence;
+        }
+    }
+
     $paragraphs = [];
     $current = '';
 
-    foreach ($lines as $line) {
-        $current = $current === '' ? $line : $current . ' ' . $line;
+    foreach ($sentences as $sentence) {
+        $current = $current === '' ? $sentence : $current . ' ' . $sentence;
 
-        if (preg_match('/[.!?]["\')]*$/u', $line)) {
+        if (preg_match('/[.!?]["\')]*$/u', $sentence)) {
             $paragraphs[] = $current;
             $current = '';
         }
@@ -232,4 +252,33 @@ function papetarie_storefront_render_prose_paragraphs(array $lines): string
     }
 
     return $html;
+}
+
+/**
+ * Desparte un rand brut in propozitii, folosind acelasi semnal folosit si
+ * de vecina ei de mai sus (papetarie_storefront_render_prose_paragraphs()):
+ * o majuscula imediat dupa un semn de final de propozitie (. ! ?) urmat de
+ * spatiu e aproape sigur un gand nou, nu o prescurtare/numar zecimal -
+ * "200 ml. Compatibil cu..." se desparte corect (Compatibil = majuscula),
+ * "20.5 cm este..." NU se desparte (e = minuscula, deci nu e o propozitie
+ * noua, ramane "20.5 cm este..." intreg).
+ *
+ * @return string[]
+ */
+function papetarie_storefront_split_into_sentences(string $line): array
+{
+    $line = trim($line);
+    if ($line === '') {
+        return [];
+    }
+
+    $parts = preg_split('/(?<=[.!?])\s+(?=\p{Lu})/u', $line);
+    if ($parts === false) {
+        return [$line];
+    }
+
+    return array_values(array_filter(
+        array_map('trim', $parts),
+        static fn(string $part): bool => $part !== ''
+    ));
 }
