@@ -1,0 +1,402 @@
+<title>Decizii marjă Notix</title>
+<style>
+  :root {
+    --paper: #eef1ee;
+    --surface: #ffffff;
+    --surface-2: #f6f7f5;
+    --ink: #1c2420;
+    --ink-soft: #55625b;
+    --ink-faint: #8a9690;
+    --line: #dde3dd;
+    --accent: #2b6e5a;
+    --accent-soft: #e2eee8;
+    --urgent: #a83a2c;
+    --urgent-soft: #fbe8e4;
+    --warn: #9c6a1f;
+    --warn-soft: #f7ecd8;
+    --info: #4a5578;
+    --info-soft: #e9eaf3;
+    --good: #2b6e5a;
+    --good-soft: #e2eee8;
+    --shadow: 0 1px 2px rgba(28,36,32,0.06), 0 8px 24px -12px rgba(28,36,32,0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141815;
+      --surface: #1c211d;
+      --surface-2: #20261f;
+      --ink: #eef2ee;
+      --ink-soft: #aab5ac;
+      --ink-faint: #74806e;
+      --line: #2c342c;
+      --accent: #6fbf9e;
+      --accent-soft: #203029;
+      --urgent: #e2897a;
+      --urgent-soft: #3a2420;
+      --warn: #e0b060;
+      --warn-soft: #362c1c;
+      --info: #a9b2dd;
+      --info-soft: #242840;
+      --good: #6fbf9e;
+      --good-soft: #1e2e26;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141815;
+    --surface: #1c211d;
+    --surface-2: #20261f;
+    --ink: #eef2ee;
+    --ink-soft: #aab5ac;
+    --ink-faint: #74806e;
+    --line: #2c342c;
+    --accent: #6fbf9e;
+    --accent-soft: #203029;
+    --urgent: #e2897a;
+    --urgent-soft: #3a2420;
+    --warn: #e0b060;
+    --warn-soft: #362c1c;
+    --info: #a9b2dd;
+    --info-soft: #242840;
+    --good: #6fbf9e;
+    --good-soft: #1e2e26;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+  h1, h2 { font-family: "Source Serif 4", Georgia, serif; text-wrap: balance; margin: 0; }
+  .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  header.top { margin-bottom: 22px; }
+  header.top .eyebrow {
+    font-size: 12.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 600; margin-bottom: 6px;
+  }
+  header.top h1 { font-size: 27px; font-weight: 600; color: var(--ink); }
+  header.top p.sub { color: var(--ink-soft); font-size: 14.5px; margin-top: 8px; max-width: 62ch; line-height: 1.5; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 22px 0 26px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 14px 12px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    text-align: left;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .stat:hover { transform: translateY(-1px); }
+  .stat[aria-pressed="true"] { border-color: currentColor; }
+  .stat .n { font-size: 26px; font-weight: 700; font-family: "IBM Plex Mono", monospace; line-height: 1; }
+  .stat .lbl { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; line-height: 1.3; }
+  .stat.urgent { color: var(--urgent); }
+  .stat.cercetare { color: var(--info); }
+  .stat.atentie { color: var(--warn); }
+  .stat.aplica { color: var(--good); }
+
+  .progress-bar {
+    height: 6px; border-radius: 4px; background: var(--line); overflow: hidden; margin: 4px 0 22px;
+    display: flex;
+  }
+  .progress-bar .fill { background: var(--accent); height: 100%; transition: width .2s ease; }
+  .progress-label { font-size: 12.5px; color: var(--ink-soft); display: flex; justify-content: space-between; margin-top: -14px; margin-bottom: 22px; }
+
+  .searchrow { display: flex; gap: 8px; margin-bottom: 24px; }
+  .searchrow input {
+    flex: 1; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 8px; padding: 9px 12px; font-size: 14px; font-family: inherit;
+  }
+  .searchrow input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .searchrow button {
+    border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-soft);
+    border-radius: 8px; padding: 9px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .searchrow button:hover { color: var(--ink); }
+
+  .group { margin-bottom: 12px; }
+  .group-title {
+    font-family: "Source Serif 4", Georgia, serif; font-size: 15px; font-weight: 600;
+    color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em;
+    padding-bottom: 8px; margin: 34px 0 18px; border-bottom: 1px solid var(--line);
+  }
+  .group:first-child .group-title { margin-top: 0; }
+
+  section.bucket { margin-bottom: 30px; }
+  section.bucket .head {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;
+  }
+  section.bucket .head h2 { font-size: 19px; font-weight: 600; }
+  section.bucket .head .count {
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px; padding: 2px 8px; border-radius: 20px;
+    font-weight: 600;
+  }
+  section.bucket .instr { color: var(--ink-soft); font-size: 13.5px; line-height: 1.5; margin: 4px 0 14px; max-width: 68ch; }
+
+  .urgent .head .count { background: var(--urgent-soft); color: var(--urgent); }
+  .cercetare .head .count { background: var(--info-soft); color: var(--info); }
+  .atentie .head .count { background: var(--warn-soft); color: var(--warn); }
+  .aplica .head .count { background: var(--good-soft); color: var(--good); }
+  .urgent .head h2 { color: var(--urgent); }
+  .cercetare .head h2 { color: var(--info); }
+  .atentie .head h2 { color: var(--warn); }
+  .aplica .head h2 { color: var(--good); }
+
+  .tablewrap { border: 1px solid var(--line); border-radius: 12px; overflow: auto; background: var(--surface); box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 640px; }
+  thead th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink-faint); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--line);
+    background: var(--surface-2); position: sticky; top: 0;
+  }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.done { opacity: 0.45; }
+  tbody tr.hidden-row { display: none; }
+  td.done-col { width: 34px; text-align: center; }
+  td.done-col input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  td.sub-col .topcat { display: block; font-size: 11px; color: var(--ink-faint); margin-bottom: 1px; }
+  td.sub-col .name { font-weight: 600; }
+  td.sub-col .prod-count {
+    display: block; font-size: 11px; color: var(--ink-faint); margin-top: 2px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  td.marja-col { font-family: "IBM Plex Mono", monospace; white-space: nowrap; }
+  td.marja-col .dash { color: var(--ink-faint); }
+  td.nota-col { color: var(--ink-soft); line-height: 1.4; }
+  .conf {
+    display: inline-block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.03em;
+    padding: 1px 6px; border-radius: 4px; font-weight: 600; margin-left: 6px; white-space: nowrap;
+  }
+  .conf.solida { background: var(--good-soft); color: var(--good); }
+  .conf.slaba { background: var(--warn-soft); color: var(--warn); }
+  .conf.revizuit { background: var(--info-soft); color: var(--info); }
+
+  footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-faint); }
+
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    td.nota-col { display: none; }
+    thead th:nth-child(4) { display: none; }
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Notix · marje de preț</div>
+    <h1>Ce decizie iei, pe fiecare subcategorie</h1>
+    <p class="sub">Toate cele 84 de subcategorii din cercetarea Laviniei (v4), grupate după ce trebuie să faci cu fiecare — nu după eticheta ei de încredere. Bifează pe măsură ce rezolvi câte una; progresul rămâne salvat în acest browser.</p>
+  </header>
+
+  <div class="stats" id="stats"></div>
+  <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+  <div class="progress-label"><span id="progressText">0 din 84 rezolvate</span><span>filtrează mai jos ↓</span></div>
+
+  <div class="searchrow">
+    <input type="text" id="search" placeholder="Caută subcategorie sau categorie (ex: carioci, birou)…">
+    <button id="clearBtn">Șterge filtru</button>
+  </div>
+
+  <div id="sections"></div>
+
+  <footer>Bazat pe Notix_cercetare_completa_toate_categoriile_v4.docx + Notix_marje_recomandate_pe_subcategorie_v2.docx · generat 2026-09-13</footer>
+</div>
+
+<script>
+const DATA = [{"topcat": "1. Articole din hârtie", "sub": "Agende", "marja": "35%", "incredere": "Solidă", "nota": "3 surse confirmate, interval 43-49%", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "44", "interval_max": "49", "interval_n": 3, "produse_notix": 44}, {"topcat": "1. Articole din hârtie", "sub": "Hârtie color", "marja": "20%", "incredere": "Slabă", "nota": "Interval larg 19-51%, aleasă cea mai mică valoare confirmată", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "19", "interval_max": "51", "interval_n": 3, "produse_notix": 10}, {"topcat": "1. Articole din hârtie", "sub": "Hârtie pentru copiator", "marja": "18%", "incredere": "Solidă", "nota": "Actualizat: 3/3 confirmate (18-24%), 2 pe brand echivalent Mondi", "not_found": 0, "similar": 2, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "18", "interval_max": "20", "interval_n": 3, "produse_notix": 6}, {"topcat": "1. Articole din hârtie", "sub": "Hârtie specială", "marja": "30%", "incredere": "Solidă", "nota": "Interval 34-49%, marjă sub minimul confirmat", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "34", "interval_max": "49", "interval_n": 3, "produse_notix": 6}, {"topcat": "1. Articole din hârtie", "sub": "Notesuri adezive", "marja": "30%", "incredere": "Solidă", "nota": "Actualizat: 3/3 confirmate (32-52%)", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "35", "interval_max": "52", "interval_n": 3, "produse_notix": 44}, {"topcat": "2. Artă", "sub": "Acrilice și culori ulei", "marja": "35%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "43", "interval_max": "45", "interval_n": 2, "produse_notix": 26}, {"topcat": "2. Artă", "sub": "Craft", "marja": "35%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "36", "interval_max": "51", "interval_n": 3, "produse_notix": 23}, {"topcat": "2. Artă", "sub": "Fun", "marja": "15%", "incredere": "Slabă", "nota": "Interval foarte larg 15-58%, aleasă valoarea minimă", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "45", "interval_max": "58", "interval_n": 2, "produse_notix": 5}, {"topcat": "2. Artă", "sub": "Mucki", "marja": "35%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "38", "interval_max": "58", "interval_n": 3, "produse_notix": 10}, {"topcat": "2. Artă", "sub": "Sticlă și porțelan", "marja": "30%", "incredere": "Slabă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "30", "interval_max": "54", "interval_n": 2, "produse_notix": 16}, {"topcat": "2. Artă", "sub": "Textile", "marja": "29%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "43", "interval_max": "54", "interval_n": 3, "produse_notix": 18}, {"topcat": "3. Articole școlare", "sub": "Accesorii", "marja": "35%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "37", "interval_max": "55", "interval_n": 3, "produse_notix": 46}, {"topcat": "3. Articole școlare", "sub": "Caiete", "marja": "30%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "22", "interval_max": "50", "interval_n": 3, "produse_notix": 90}, {"topcat": "3. Articole școlare", "sub": "Coperți și etichete", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Date insuficiente, o discrepanță mare de unitate găsită anterior", "not_found": 2, "similar": 1, "negative": 0, "thin": 0, "bucket": "cercetare", "interval_min": null, "interval_max": null, "interval_n": 0, "produse_notix": 9}, {"topcat": "3. Articole școlare", "sub": "Ghiozdane", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Un produs cu marjă negativă confirmată (Carioca Baby 2+)", "not_found": 1, "similar": 2, "negative": 1, "thin": 0, "bucket": "urgent", "interval_min": "40", "interval_max": "40", "interval_n": 1, "produse_notix": 78}, {"topcat": "3. Articole școlare", "sub": "Penare", "marja": "30%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "33", "interval_max": "45", "interval_n": 2, "produse_notix": 20}, {"topcat": "4. Creativitate", "sub": "Acuarele", "marja": "30%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "28", "interval_max": "37,6", "interval_n": 3, "produse_notix": 9}, {"topcat": "4. Creativitate", "sub": "Ascuțitori", "marja": "29%", "incredere": "Slabă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "37", "interval_max": "52", "interval_n": 3, "produse_notix": 38}, {"topcat": "4. Creativitate", "sub": "Blocuri desen și schițe", "marja": "40%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "44,9", "interval_max": "44,9", "interval_n": 2, "produse_notix": 18}, {"topcat": "4. Creativitate", "sub": "Blocuri mix media", "marja": "34%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "33,9", "interval_max": "49,8", "interval_n": 3, "produse_notix": 10}, {"topcat": "4. Creativitate", "sub": "Carioci", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Niciun produs verificat pe piață", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "cercetare", "interval_min": "30", "interval_max": "49", "interval_n": 2, "produse_notix": 55}, {"topcat": "4. Creativitate", "sub": "Carioci textile", "marja": "15%", "incredere": "DE REVIZUIT", "nota": "Date foarte slabe", "not_found": 1, "similar": 1, "negative": 0, "thin": 1, "bucket": "atentie", "interval_min": "18", "interval_max": "46", "interval_n": 2, "produse_notix": 7}, {"topcat": "4. Creativitate", "sub": "Creioane HB", "marja": "40%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "41", "interval_max": "64,3", "interval_n": 3, "produse_notix": 51}, {"topcat": "4. Creativitate", "sub": "Creioane cerate", "marja": "40%", "incredere": "Slabă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "15", "interval_max": "56,2", "interval_n": 3, "produse_notix": 22}, {"topcat": "4. Creativitate", "sub": "Creioane color", "marja": "27%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "27", "interval_max": "58,7", "interval_n": 3, "produse_notix": 74}, {"topcat": "4. Creativitate", "sub": "Instrumente de caligrafie", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Niciun produs verificat", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "cercetare", "interval_min": "36", "interval_max": "39", "interval_n": 2, "produse_notix": 16}, {"topcat": "4. Creativitate", "sub": "Linere color", "marja": "—", "incredere": "DE REVIZUIT", "nota": "O singură sursă", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "cercetare", "interval_min": "34", "interval_max": "58,7", "interval_n": 3, "produse_notix": 11}, {"topcat": "4. Creativitate", "sub": "Lipiciuri", "marja": "—", "incredere": "DE REVIZUIT", "nota": "O singură sursă", "not_found": 1, "similar": 0, "negative": 1, "thin": 0, "bucket": "urgent", "interval_min": "27,5", "interval_max": "27,5", "interval_n": 1, "produse_notix": 23}, {"topcat": "4. Creativitate", "sub": "Markere acrilice", "marja": "36%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "36,4", "interval_max": "53,1", "interval_n": 3, "produse_notix": 13}, {"topcat": "4. Creativitate", "sub": "Markere acrilice efect metalic", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Niciun produs verificat", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "cercetare", "interval_min": "37", "interval_max": "55", "interval_n": 3, "produse_notix": 10}, {"topcat": "4. Creativitate", "sub": "Markere decorative", "marja": "45%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "45", "interval_max": "47,4", "interval_n": 3, "produse_notix": 9}, {"topcat": "4. Creativitate", "sub": "Mask-up", "marja": "50%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "49,5", "interval_max": "76", "interval_n": 3, "produse_notix": 7}, {"topcat": "4. Creativitate", "sub": "Pensule", "marja": "45%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "46,4", "interval_max": "48,7", "interval_n": 2, "produse_notix": 9}, {"topcat": "4. Creativitate", "sub": "Plastilină", "marja": "45%", "incredere": "Slabă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "36", "interval_max": "49", "interval_n": 3, "produse_notix": 16}, {"topcat": "4. Creativitate", "sub": "Seturi colorat și pictură", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Niciun produs verificat", "not_found": 3, "similar": 0, "negative": 0, "thin": 0, "bucket": "cercetare", "interval_min": null, "interval_max": null, "interval_n": 0, "produse_notix": 8}, {"topcat": "4. Creativitate", "sub": "Seturi creative", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Niciun produs verificat", "not_found": 2, "similar": 0, "negative": 0, "thin": 1, "bucket": "cercetare", "interval_min": "6", "interval_max": "6", "interval_n": 1, "produse_notix": 66}, {"topcat": "4. Creativitate", "sub": "Tempera", "marja": "31%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "34", "interval_max": "49,2", "interval_n": 3, "produse_notix": 20}, {"topcat": "5. Periferice", "sub": "Cabluri", "marja": "33%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 1, "bucket": "atentie", "interval_min": "15", "interval_max": "44,1", "interval_n": 3, "produse_notix": 32}, {"topcat": "5. Periferice", "sub": "Căști și boxe", "marja": "20%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "19,5", "interval_max": "35,1", "interval_n": 3, "produse_notix": 19}, {"topcat": "5. Periferice", "sub": "Mouse și tastaturi", "marja": "—", "incredere": "DE REVIZUIT", "nota": "O marjă de doar 3,3% găsită — linie Tellur cu probleme cunoscute de cost", "not_found": 0, "similar": 0, "negative": 0, "thin": 1, "bucket": "cercetare", "interval_min": "3,3", "interval_max": "55,2", "interval_n": 3, "produse_notix": 6}, {"topcat": "5. Periferice", "sub": "Încărcătoare și baterii externe", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă negativă confirmată pe un produs", "not_found": 0, "similar": 1, "negative": 1, "thin": 0, "bucket": "urgent", "interval_min": "33", "interval_max": "36", "interval_n": 2, "produse_notix": 16}, {"topcat": "6. Bagajerie", "sub": "Genți", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Doar 1 produs verificat, marjă subțire (12%)", "not_found": 0, "similar": 0, "negative": 0, "thin": 1, "bucket": "cercetare", "interval_min": "12,2", "interval_max": "44", "interval_n": 3, "produse_notix": 15}, {"topcat": "6. Bagajerie", "sub": "Rucsaci", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă negativă confirmată — linie Tellur", "not_found": 0, "similar": 0, "negative": 1, "thin": 1, "bucket": "urgent", "interval_min": "6,8", "interval_max": "13,8", "interval_n": 2, "produse_notix": 23}, {"topcat": "6. Bagajerie", "sub": "Serviete", "marja": "30%", "incredere": "Slabă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "30", "interval_max": "43", "interval_n": 3, "produse_notix": 23}, {"topcat": "6. Bagajerie", "sub": "Trolere", "marja": "35%", "incredere": "Slabă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "40", "interval_max": "43,5", "interval_n": 3, "produse_notix": 4}, {"topcat": "7. Articole pentru birou", "sub": "Accesorii pentru birou", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Interval foarte larg 5-59%", "not_found": 0, "similar": 2, "negative": 0, "thin": 1, "bucket": "cercetare", "interval_min": "4,9", "interval_max": "58,9", "interval_n": 3, "produse_notix": 36}, {"topcat": "7. Articole pentru birou", "sub": "Benzi adezive", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă negativă pe produs identic (3M Scotch)", "not_found": 1, "similar": 0, "negative": 1, "thin": 0, "bucket": "urgent", "interval_min": "47,7", "interval_max": "47,7", "interval_n": 1, "produse_notix": 20}, {"topcat": "7. Articole pentru birou", "sub": "Calculatoare", "marja": "50%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "51,3", "interval_max": "70,1", "interval_n": 3, "produse_notix": 25}, {"topcat": "7. Articole pentru birou", "sub": "Capsatoare", "marja": "38%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "38,7", "interval_max": "42,8", "interval_n": 2, "produse_notix": 16}, {"topcat": "7. Articole pentru birou", "sub": "Decapsatoare și capse", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Discrepanță suspectă la SAX 24/6", "not_found": 1, "similar": 1, "negative": 1, "thin": 0, "bucket": "urgent", "interval_min": "56,4", "interval_max": "56,4", "interval_n": 1, "produse_notix": 17}, {"topcat": "7. Articole pentru birou", "sub": "Distrugătoare hârtie", "marja": "16%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "15,5", "interval_max": "53,9", "interval_n": 2, "produse_notix": 7}, {"topcat": "7. Articole pentru birou", "sub": "Foarfeci", "marja": "27%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "49,3", "interval_max": "60,8", "interval_n": 3, "produse_notix": 8}, {"topcat": "7. Articole pentru birou", "sub": "Laminatoare și ghilotine", "marja": "32%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "32,2", "interval_max": "49,1", "interval_n": 2, "produse_notix": 9}, {"topcat": "7. Articole pentru birou", "sub": "Perforatoare", "marja": "29%", "incredere": "Solidă", "nota": "Actualizat: 2/3 confirmate (29%, 66%)", "not_found": 2, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "29", "interval_max": "29", "interval_n": 1, "produse_notix": 11}, {"topcat": "7. Articole pentru birou", "sub": "Suporturi pentru birou", "marja": "—", "incredere": "DE REVIZUIT", "nota": "O marjă de doar 2,7% găsită", "not_found": 0, "similar": 0, "negative": 0, "thin": 1, "bucket": "cercetare", "interval_min": "2,7", "interval_max": "55", "interval_n": 3, "produse_notix": 22}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Accesorii și cutii din carton", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă negativă subțire găsită", "not_found": 0, "similar": 0, "negative": 1, "thin": 1, "bucket": "urgent", "interval_min": "29,4", "interval_max": "38,7", "interval_n": 2, "produse_notix": 10}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Arhivare", "marja": "24%", "incredere": "Solidă", "nota": "Actualizat: 3/3 confirmate (24-37%)", "not_found": 2, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "37", "interval_max": "37", "interval_n": 1, "produse_notix": 10}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Benzi cauciuc și adezive", "marja": "12%", "incredere": "Solidă", "nota": "Actualizat: 3/3 confirmate (12-51%), fără semnal negativ", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "11,9", "interval_max": "51,4", "interval_n": 2, "produse_notix": 17}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Bibliorafturi", "marja": "28%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "28,7", "interval_max": "34,4", "interval_n": 2, "produse_notix": 9}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Caiete mecanice", "marja": "30%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "29,9", "interval_max": "39,6", "interval_n": 2, "produse_notix": 9}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Clipboarduri", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă negativă subțire găsită", "not_found": 0, "similar": 1, "negative": 1, "thin": 1, "bucket": "urgent", "interval_min": "23,7", "interval_max": "30,6", "interval_n": 2, "produse_notix": 6}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Dosare", "marja": "40%", "incredere": "Slabă", "nota": "Marje confirmate foarte mari (68-70%), aplicată o valoare mai conservatoare", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "68,4", "interval_max": "70,2", "interval_n": 2, "produse_notix": 35}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Ecusoane și accesorii", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă negativă mare — de verificat urgent", "not_found": 1, "similar": 0, "negative": 1, "thin": 0, "bucket": "urgent", "interval_min": "77,3", "interval_max": "77,3", "interval_n": 1, "produse_notix": 16}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Etichete universale copiator", "marja": "10%", "incredere": "Solidă", "nota": "Confirmat consistent pe toate cele 3 produse", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "10", "interval_max": "10", "interval_n": 3, "produse_notix": 21}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Etichete și aparate preț", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă negativă găsită", "not_found": 0, "similar": 0, "negative": 1, "thin": 0, "bucket": "urgent", "interval_min": "36,4", "interval_max": "53,5", "interval_n": 2, "produse_notix": 18}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Folii și mape de protecție", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă subțire (5,2%) + o marjă negativă nouă găsită (mapă Tarifold)", "not_found": 2, "similar": 0, "negative": 0, "thin": 1, "bucket": "cercetare", "interval_min": "5,2", "interval_max": "5,2", "interval_n": 1, "produse_notix": 30}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Indexuri", "marja": "—", "incredere": "DE REVIZUIT", "nota": "A doua marjă negativă găsită (2 din 3 produse) — categorie prioritară de renegociat cu furnizorul", "not_found": 1, "similar": 1, "negative": 1, "thin": 0, "bucket": "urgent", "interval_min": "59,6", "interval_max": "59,6", "interval_n": 1, "produse_notix": 15}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Intercalatoare", "marja": "27%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "27,9", "interval_max": "32,1", "interval_n": 2, "produse_notix": 9}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Mape și accesorii", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Marjă aproape zero (0,5%) pe un produs", "not_found": 0, "similar": 1, "negative": 1, "thin": 1, "bucket": "urgent", "interval_min": "0,5", "interval_max": "31,3", "interval_n": 2, "produse_notix": 26}, {"topcat": "8. Organizare, arhivare, prezentare", "sub": "Prezentare și afișare", "marja": "45%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "49,9", "interval_max": "68,6", "interval_n": 2, "produse_notix": 45}, {"topcat": "9. Accesorii pentru scris", "sub": "Corectoare", "marja": "—", "incredere": "DE REVIZUIT", "nota": "O marjă de doar 9% găsită pe un produs", "not_found": 0, "similar": 0, "negative": 0, "thin": 1, "bucket": "cercetare", "interval_min": "9", "interval_max": "59", "interval_n": 3, "produse_notix": 10}, {"topcat": "9. Accesorii pentru scris", "sub": "Creioane mecanice și mine", "marja": "28%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "37", "interval_max": "54", "interval_n": 3, "produse_notix": 19}, {"topcat": "9. Accesorii pentru scris", "sub": "Gume de șters", "marja": "19%", "incredere": "Solidă", "nota": "", "not_found": 1, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "31", "interval_max": "56", "interval_n": 2, "produse_notix": 22}, {"topcat": "9. Accesorii pentru scris", "sub": "Linere", "marja": "26%", "incredere": "Slabă", "nota": "O discrepanță suspectă exclusă din calcul", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "26", "interval_max": "68", "interval_n": 3, "produse_notix": 9}, {"topcat": "9. Accesorii pentru scris", "sub": "Markere permanente", "marja": "28%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 1, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "32", "interval_max": "58", "interval_n": 3, "produse_notix": 14}, {"topcat": "9. Accesorii pentru scris", "sub": "Markere universale", "marja": "18%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "30", "interval_max": "31", "interval_n": 3, "produse_notix": 16}, {"topcat": "9. Accesorii pentru scris", "sub": "Markere whiteboard/flipchart", "marja": "18%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "38", "interval_max": "53", "interval_n": 3, "produse_notix": 11}, {"topcat": "9. Accesorii pentru scris", "sub": "Mine pentru pixuri", "marja": "39%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "45", "interval_max": "57", "interval_n": 3, "produse_notix": 24}, {"topcat": "9. Accesorii pentru scris", "sub": "Pixuri cu gel Viscoglide", "marja": "35%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "35", "interval_max": "60", "interval_n": 3, "produse_notix": 38}, {"topcat": "9. Accesorii pentru scris", "sub": "Pixuri cu pastă", "marja": "—", "incredere": "DE REVIZUIT", "nota": "O marjă de doar 4% găsită pe un produs (Zebra F-301)", "not_found": 0, "similar": 1, "negative": 0, "thin": 1, "bucket": "cercetare", "interval_min": "30", "interval_max": "45", "interval_n": 3, "produse_notix": 51}, {"topcat": "9. Accesorii pentru scris", "sub": "Rezerve cerneală/corector", "marja": "29%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "29", "interval_max": "50", "interval_n": 3, "produse_notix": 13}, {"topcat": "9. Accesorii pentru scris", "sub": "Rollere cu cerneală", "marja": "18%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 0, "negative": 0, "thin": 0, "bucket": "aplica", "interval_min": "32", "interval_max": "57", "interval_n": 3, "produse_notix": 23}, {"topcat": "9. Accesorii pentru scris", "sub": "Stilouri și rollere cu rezerve", "marja": "—", "incredere": "DE REVIZUIT", "nota": "Interval foarte larg 14-65%", "not_found": 0, "similar": 2, "negative": 0, "thin": 0, "bucket": "cercetare", "interval_min": "37", "interval_max": "65", "interval_n": 3, "produse_notix": 58}, {"topcat": "9. Accesorii pentru scris", "sub": "Textmarkere", "marja": "27%", "incredere": "Solidă", "nota": "", "not_found": 0, "similar": 2, "negative": 0, "thin": 0, "bucket": "atentie", "interval_min": "42", "interval_max": "58", "interval_n": 3, "produse_notix": 15}];
+
+const GROUPS = [
+  { key: 'gata', title: 'Poți aplica acum', buckets: ['aplica', 'atentie'] },
+  { key: 'ramas', title: 'Ce mai rămâne de făcut', buckets: ['urgent', 'cercetare'] },
+];
+
+const BUCKETS = [
+  {
+    key: 'aplica',
+    title: 'Aplică direct',
+    instr: 'Date solide — comparație pe produs identic, cel puțin o sursă confirmată, fără niciun risc găsit. Poți aplica marja propusă fără nicio grijă suplimentară.',
+  },
+  {
+    key: 'atentie',
+    title: 'Aplică, dar cu atenție',
+    instr: 'Avem un număr propus, dar cu un semn de întrebare — o variantă de produs puțin diferită, o singură sursă, sau o marjă subțire pe un produs. Poți aplica marja propusă acum; merită doar o verificare ulterioară, fără grabă.',
+  },
+  {
+    key: 'urgent',
+    title: 'Urgent — verifică prețul sau costul acum',
+    instr: 'Am găsit un semn clar că suntem deja la fel de scumpi sau mai scumpi decât piața pe cel puțin un produs din categorie. Verifică prețul nostru și costul real de la Aperta pentru produsul semnalat — poate fi o greșeală de preț la noi, un preț greșit în feed, sau chiar ceva de renegociat cu furnizorul.',
+  },
+  {
+    key: 'cercetare',
+    title: 'De cercetat manual — nu avem încă un număr',
+    instr: 'Nu există date de piață suficiente ca să propunem o marjă sigură. Rămân la prețul curent (cost brut, fără marjă) până cercetăm manual 2-3 produse reale din fiecare — decizia ta din 13 sep.',
+  },
+];
+
+function buildMotiv(d) {
+  const parts = [];
+  if (d.interval_min != null && d.interval_max != null) {
+    const alesTxt = (d.marja && d.marja !== '—') ? ` → aleasă ${d.marja}` : '';
+    parts.push(`Interval găsit pe piață: ${d.interval_min}–${d.interval_max}% (${d.interval_n} comparații)${alesTxt}.`);
+  }
+  if (d.bucket === 'aplica') {
+    parts.push('Marjă solidă, comparație directă pe produs identic, fără risc găsit.');
+  } else if (d.bucket === 'urgent') {
+    parts.push('Marjă negativă confirmată — prețul nostru e deja la nivelul pieței sau peste.');
+  } else if (d.bucket === 'cercetare') {
+    parts.push('Niciun număr de încredere propus încă.');
+  } else if (d.bucket === 'atentie') {
+    const bits = [];
+    if (d.incredere === 'Slabă') bits.push('încredere slabă (interval larg sau puține surse)');
+    if (d.similar > 0) bits.push(`${d.similar} comparație${d.similar > 1 ? 'i' : ''} pe variantă similară, nu identică`);
+    if (d.not_found > 0) bits.push(`${d.not_found} produs${d.not_found > 1 ? 'e' : ''} din eșantion fără sursă găsită`);
+    if (d.thin > 0) bits.push('marjă subțire găsită pe un produs');
+    parts.push('De ce cu atenție: ' + (bits.length ? bits.join('; ') : 'semnal minor găsit în cercetare') + '.');
+  }
+  if (d.nota) parts.push(d.nota);
+  return parts.join(' · ');
+}
+
+const STORE_KEY = 'notix-pricing-decisions-v1';
+function loadDone() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch (e) { return {}; }
+}
+function saveDone(obj) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(obj)); } catch (e) {}
+}
+let done = loadDone();
+
+function slug(topcat, sub) {
+  return (topcat + '|' + sub).toLowerCase().replace(/\s+/g, '-');
+}
+
+function confClass(inc) {
+  if (inc === 'Solidă') return 'solida';
+  if (inc === 'Slabă') return 'slaba';
+  return 'revizuit';
+}
+
+function render() {
+  const counts = { urgent: 0, cercetare: 0, atentie: 0, aplica: 0 };
+  DATA.forEach(d => counts[d.bucket]++);
+
+  function renderBucket(b) {
+    const items = DATA.filter(d => d.bucket === b.key).sort((a,z) => a.topcat.localeCompare(z.topcat) || a.sub.localeCompare(z.sub));
+    const rows = items.map(d => {
+      const id = slug(d.topcat, d.sub);
+      const isDone = !!done[id];
+      const marjaHtml = d.marja === '—' || d.marja === '?'
+        ? '<span class="dash">—</span>'
+        : `${d.marja}<span class="conf ${confClass(d.incredere)}">${d.incredere === 'DE REVIZUIT' ? 'de revizuit' : d.incredere.toLowerCase()}</span>`;
+      return `
+        <tr class="${isDone ? 'done' : ''}" data-id="${id}" data-search="${(d.topcat + ' ' + d.sub).toLowerCase()}">
+          <td class="done-col"><input type="checkbox" ${isDone ? 'checked' : ''} data-id="${id}" aria-label="Marchează ca rezolvat"></td>
+          <td class="sub-col"><span class="topcat">${d.topcat.replace(/^\d+\.\s*/, '')}</span><span class="name">${d.sub}</span><span class="prod-count">${d.produse_notix != null ? d.produse_notix + ' produse la noi' : ''}</span></td>
+          <td class="marja-col">${marjaHtml}</td>
+          <td class="nota-col">${buildMotiv(d)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <section class="bucket ${b.key}" data-bucket="${b.key}">
+        <div class="head">
+          <h2>${b.title}</h2>
+          <span class="count">${items.length} subcategorii</span>
+        </div>
+        <p class="instr">${b.instr}</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th></th><th>Subcategorie</th><th>Marjă</th><th>De ce această decizie</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </section>
+    `;
+  }
+
+  const statsEl = document.getElementById('stats');
+  statsEl.innerHTML = BUCKETS.map(b => `
+    <button class="stat ${b.key}" data-bucket="${b.key}" aria-pressed="false">
+      <div class="n">${counts[b.key]}</div>
+      <div class="lbl">${b.title}</div>
+    </button>
+  `).join('');
+
+  const sectionsEl = document.getElementById('sections');
+  sectionsEl.innerHTML = GROUPS.map(g => `
+    <div class="group" data-group="${g.key}">
+      <h3 class="group-title">${g.title}</h3>
+      ${g.buckets.map(key => renderBucket(BUCKETS.find(b => b.key === key))).join('')}
+    </div>
+  `).join('');
+
+  updateProgress();
+  attachHandlers();
+}
+
+function updateProgress() {
+  const total = DATA.length;
+  const doneCount = Object.values(done).filter(Boolean).length;
+  document.getElementById('progressFill').style.width = (total ? (doneCount/total*100) : 0) + '%';
+  document.getElementById('progressText').textContent = `${doneCount} din ${total} rezolvate`;
+}
+
+function attachHandlers() {
+  document.querySelectorAll('input[type=checkbox][data-id]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = cb.dataset.id;
+      if (cb.checked) done[id] = true; else delete done[id];
+      saveDone(done);
+      const row = cb.closest('tr');
+      row.classList.toggle('done', cb.checked);
+      updateProgress();
+    });
+  });
+
+  document.querySelectorAll('.stat').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const bucket = btn.dataset.bucket;
+      const section = document.querySelector(`section.bucket[data-bucket="${bucket}"]`);
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
+document.getElementById('search').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('tbody tr[data-search]').forEach(row => {
+    row.classList.toggle('hidden-row', q !== '' && !row.dataset.search.includes(q));
+  });
+  document.querySelectorAll('section.bucket').forEach(sec => {
+    const visibleRows = sec.querySelectorAll('tbody tr:not(.hidden-row)').length;
+    sec.style.display = (q !== '' && visibleRows === 0) ? 'none' : '';
+  });
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('search').value = '';
+  document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('hidden-row'));
+  document.querySelectorAll('section.bucket').forEach(sec => sec.style.display = '');
+});
+
+render();
+</script>
