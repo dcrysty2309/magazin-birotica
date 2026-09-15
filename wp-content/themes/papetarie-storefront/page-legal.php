@@ -100,9 +100,10 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
 
   .pap-legal-body { display: flex; gap: 24px; padding-block: 44px 60px; align-items: flex-start; }
   .pap-legal-toc {
-    width: 220px; flex-shrink: 0; position: sticky; top: 24px;
+    width: 390px; flex-shrink: 0; position: sticky; top: 24px;
     border: 1px solid #e5e8ec; border-radius: 6px; padding: 22px 20px; background: #fff;
   }
+  .pap-legal-toc a { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pap-legal-toc:empty { display: none; }
   .pap-legal-toc-title { font-family: var(--pap-font-sans); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #8a96a8; margin-bottom: 14px; }
   .pap-legal-toc a { display: block; font-family: var(--pap-font-sans); font-size: 13px; color: #3d4a63; text-decoration: none; padding: 7px 0 7px 14px; border-left: 2px solid #dde1e8; margin-bottom: 2px; line-height: 1.4; }
