@@ -198,8 +198,13 @@
   tr.detail-row.collapsed { display: none; }
   .produse-list { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; }
   .produs-item { font-size: 12.5px; line-height: 1.6; }
-  .produs-item .pnume { font-weight: 600; color: var(--ink); text-decoration: none; }
-  .produs-item .pnume:hover { text-decoration: underline; }
+  .produs-item .pnume {
+    font-weight: 600; color: var(--accent); text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    text-underline-offset: 2px;
+  }
+  .produs-item .pnume:hover { text-decoration-color: var(--accent); }
+  .produs-item .pnume::after { content: " ↗"; font-size: 10px; opacity: 0.7; }
   .produs-item .pcost { color: var(--ink-soft); }
   .sursa-item { margin-left: 14px; color: var(--ink-soft); }
   .sursa-item a { color: var(--info); text-decoration: none; }
@@ -335,7 +340,7 @@ function render() {
         const badgeText = s.match === 'identic' ? 'am găsit produs fix asta din oferta ta' : 'am folosit model asemănător';
         return `<div class="sursa-item">↳ <a href="${esc(s.link)}" target="_blank" rel="noopener">${esc(s.nume)}</a><span class="match-badge ${s.match}">${esc(badgeText)}</span></div>`;
       }).join('');
-      return `<div class="produs-item"><a class="pnume" href="${esc(p.link)}" target="_blank" rel="noopener">${esc(p.produs)}</a> <span class="pcost">— ${esc(p.cost)}</span>${surse}</div>`;
+      return `<div class="produs-item"><a class="pnume" href="${esc(p.link)}" target="_blank" rel="noopener" title="Deschide produsul pe notix.ro">${esc(p.produs)}</a> <span class="pcost">— ${esc(p.cost)}</span>${surse}</div>`;
     }).join('');
     const detail = `
       <tr class="detail-row collapsed" id="detail-${esc(id)}">
