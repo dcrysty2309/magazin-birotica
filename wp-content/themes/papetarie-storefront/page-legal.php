@@ -125,6 +125,9 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
     .pap-legal-toc { display: none; }
     .pap-legal-hero-title { font-size: 23px; }
   }
+  <?php if (!empty($pap_legal_conf['image'])) : ?>
+  body.theme-papetarie { background: #ffffff; }
+  <?php endif; ?>
 </style>
 
 <?php
