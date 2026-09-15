@@ -265,15 +265,15 @@ const GROUPS = [
 const BUCKETS = [
   {
     key: 'aplica',
-    title: 'Gata de pus pe site',
-    instr: 'Date solide — comparație pe produs identic, cel puțin o sursă confirmată, fără niciun risc găsit. Poți aplica marja propusă fără nicio grijă suplimentară.',
-    filter: (d) => d.bucket === 'aplica',
+    title: 'Marjă solidă — gata de pus pe site',
+    instr: 'Cel puțin 2-3 surse reale confirmă consistent acest număr. Poți aplica marja propusă fără nicio grijă — chiar dacă la vreuna mai există o notă minoră (un produs din eșantion negăsit, o variantă apropiată), numărul în sine e bine susținut.',
+    filter: (d) => d.incredere === 'Solidă' && !d.needs_manual,
   },
   {
     key: 'atentie',
-    title: 'OK, dar cu o mică rezervă',
-    instr: 'Avem un număr propus și suficiente date (de obicei 2-3 comparații reale), dar cu un semn de întrebare — o variantă de produs puțin diferită, o marjă subțire pe un produs, sau prețuri care variază mult între retaileri. Poți aplica marja propusă acum; merită doar o verificare ulterioară, fără grabă.',
-    filter: (d) => d.bucket === 'atentie' && !d.needs_manual,
+    title: 'Marjă slabă — aplică cu rezervă',
+    instr: 'Datele există, dar sunt insuficiente pentru încredere mare — o singură sursă, interval foarte larg între surse, sau prețuri care variază mult între retaileri. Poți aplica marja propusă acum, dar merită revizuită mai atent la un moment dat.',
+    filter: (d) => d.incredere === 'Slabă' && !d.needs_manual,
   },
   {
     key: 'interventie',
@@ -301,19 +301,24 @@ function buildMotiv(d) {
     const alesTxt = (d.marja && d.marja !== '—') ? ` → aleasă ${d.marja}` : '';
     parts.push(`Interval găsit pe piață: ${d.interval_min}–${d.interval_max}% (${d.interval_n} comparații)${alesTxt}.`);
   }
-  if (d.bucket === 'aplica') {
-    parts.push('Marjă solidă, comparație directă pe produs identic, fără risc găsit.');
+  if (d.needs_manual) {
+    parts.push('Date insuficiente sau contradictorii — necesită surse noi, cu link, înainte să avem încredere în acest număr.');
   } else if (d.bucket === 'urgent') {
     parts.push('Marjă negativă confirmată — prețul nostru e deja la nivelul pieței sau peste.');
   } else if (d.bucket === 'cercetare') {
     parts.push('Niciun număr de încredere propus încă.');
-  } else if (d.bucket === 'atentie') {
+  } else if (d.incredere === 'Solidă') {
     const bits = [];
-    if (d.incredere === 'Slabă') bits.push('încredere slabă (interval larg sau puține surse)');
     if (d.similar > 0) bits.push(`${d.similar} comparație${d.similar > 1 ? 'i' : ''} pe variantă similară, nu identică`);
     if (d.not_found > 0) bits.push(`${d.not_found} produs${d.not_found > 1 ? 'e' : ''} din eșantion fără sursă găsită`);
     if (d.thin > 0) bits.push('marjă subțire găsită pe un produs');
-    parts.push('De ce cu atenție: ' + (bits.length ? bits.join('; ') : 'semnal minor găsit în cercetare') + '.');
+    parts.push('Marjă solidă, confirmată consistent pe mai multe surse' + (bits.length ? ' — notă: ' + bits.join('; ') : ', fără risc găsit') + '.');
+  } else if (d.incredere === 'Slabă') {
+    const bits = ['încredere slabă (interval larg sau puține surse)'];
+    if (d.similar > 0) bits.push(`${d.similar} comparație${d.similar > 1 ? 'i' : ''} pe variantă similară, nu identică`);
+    if (d.not_found > 0) bits.push(`${d.not_found} produs${d.not_found > 1 ? 'e' : ''} din eșantion fără sursă găsită`);
+    if (d.thin > 0) bits.push('marjă subțire găsită pe un produs');
+    parts.push('De ce cu rezervă: ' + bits.join('; ') + '.');
   }
   if (d.nota) parts.push(d.nota);
   return parts.join(' · ');
