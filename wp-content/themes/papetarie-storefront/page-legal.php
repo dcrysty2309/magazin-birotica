@@ -98,15 +98,21 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
     .pap-legal-hex-deco--micro2, .pap-legal-hero-dotgrid, .pap-legal-hex-deco--bg3 { display: none; }
   }
 
-  .pap-legal-body { display: flex; gap: 40px; padding-block: 44px 60px; align-items: flex-start; }
-  .pap-legal-toc { width: 220px; flex-shrink: 0; position: sticky; top: 24px; }
+  .pap-legal-body { display: flex; gap: 24px; padding-block: 44px 60px; align-items: flex-start; }
+  .pap-legal-toc {
+    width: 220px; flex-shrink: 0; position: sticky; top: 24px;
+    border: 1px solid #e5e8ec; border-radius: 6px; padding: 22px 20px; background: #fff;
+  }
   .pap-legal-toc:empty { display: none; }
   .pap-legal-toc-title { font-family: var(--pap-font-sans); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #8a96a8; margin-bottom: 14px; }
   .pap-legal-toc a { display: block; font-family: var(--pap-font-sans); font-size: 13px; color: #3d4a63; text-decoration: none; padding: 7px 0 7px 14px; border-left: 2px solid #dde1e8; margin-bottom: 2px; line-height: 1.4; }
   .pap-legal-toc a:hover { color: var(--pap-navy); border-left-color: #f2600c; }
   .pap-legal-toc a.is-active { color: #f2600c; font-weight: 700; border-left-color: #f2600c; }
 
-  .pap-legal-content { flex: 1; min-width: 0; font-family: var(--pap-font-sans); }
+  .pap-legal-content {
+    flex: 1; min-width: 0; font-family: var(--pap-font-sans);
+    border: 1px solid #e5e8ec; border-radius: 6px; padding: 32px 36px; background: #fff;
+  }
   .pap-legal-content p, .pap-legal-content li { font-size: 14px; line-height: 1.7; color: #3d4a63; text-align: justify; hyphens: auto; }
   .pap-legal-content ul { padding-left: 20px; }
   .pap-legal-content h2 {
