@@ -8,7 +8,7 @@ get_header();
 $slug = get_post_field('post_name', get_the_ID());
 
 $pap_legal_map = [
-    'termeni-si-conditii'           => ['icon' => 'file-lines-outline', 'eyebrow' => 'Informații legale', 'desc' => 'Regulile de utilizare a site-ului și de plasare a comenzilor.'],
+    'termeni-si-conditii'           => ['icon' => 'file-lines-outline', 'eyebrow' => 'Informații legale', 'desc' => 'Regulile de utilizare a site-ului și de plasare a comenzilor.', 'image' => 'legal-hero-termeni.jpg'],
     'politica-de-confidentialitate' => ['icon' => 'shield',             'eyebrow' => 'Informații legale', 'desc' => 'Cum colectăm și protejăm datele tale personale.'],
     'politica-de-retur'             => ['icon' => 'undo',               'eyebrow' => 'Comenzi și retur',  'desc' => 'Cum returnezi un produs în 14 zile, fără complicații.'],
     'livrare'                       => ['icon' => 'truck-outline',      'eyebrow' => 'Comenzi și retur',  'desc' => 'Termene, costuri și zone de livrare prin curierul Cargus.'],
@@ -27,6 +27,11 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
     background: #F6F8FB;
     min-height: 260px;
     display: flex; align-items: center;
+  }
+  .pap-legal-hero--photo {
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: cover;
   }
 
   /* --- partea stanga: text --- */
@@ -118,8 +123,16 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
   }
 </style>
 
+<?php
+$pap_legal_hero_style = '';
+if (!empty($pap_legal_conf['image'])) {
+    $pap_legal_hero_image_url = get_stylesheet_directory_uri() . '/assets/images/' . $pap_legal_conf['image'];
+    $pap_legal_hero_style = ' style="background-image:url(\'' . esc_url($pap_legal_hero_image_url) . '\');"';
+}
+?>
 <main id="primary" class="site-main pap-legal-page">
-  <div class="pap-legal-hero">
+  <div class="pap-legal-hero<?php echo !empty($pap_legal_conf['image']) ? ' pap-legal-hero--photo' : ''; ?>"<?php echo $pap_legal_hero_style; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+    <?php if (empty($pap_legal_conf['image'])) : ?>
     <div class="pap-legal-hero-illustration" aria-hidden="true">
       <svg class="pap-legal-hex-deco pap-legal-hex-deco--bgL" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#E8EDF5"/></svg>
       <svg class="pap-legal-hex-deco pap-legal-hex-deco--grayL" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="#C7D3E8"/></svg>
@@ -140,6 +153,7 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
       <svg class="pap-legal-hex-deco pap-legal-hex-deco--orange" viewBox="0 0 100 100"><polygon points="50,2 98,26 98,74 50,98 2,74 2,26" fill="none" stroke="#F2600C" stroke-width="1.6"/></svg>
       <div class="pap-legal-hero-showcase"><?php echo papetarie_storefront_icon($pap_legal_conf['icon']); ?></div>
     </div>
+    <?php endif; ?>
     <div class="pap-shell pap-legal-hero-inner">
       <div class="pap-legal-hero-text">
         <div class="pap-legal-hero-badge-row">
