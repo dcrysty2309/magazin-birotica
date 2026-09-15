@@ -33,6 +33,10 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
     background-position: right center;
     background-size: cover;
   }
+  .pap-legal-hero--photo .pap-legal-hero-badge-row,
+  .pap-legal-hero--photo .pap-legal-hero-accent-line {
+    display: none;
+  }
 
   /* --- partea stanga: text --- */
   .pap-legal-hero-inner { position: relative; z-index: 3; width: 100%; padding-block: 32px; }
