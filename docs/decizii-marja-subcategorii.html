@@ -713,6 +713,7 @@ function renderQuizPanel() {
       document.getElementById('quizCustomInput').value = btn.dataset.margin;
       panel.querySelectorAll('.comp-margin').forEach(b => b.classList.remove('picked'));
       btn.classList.add('picked');
+      saveCurrentQuizAnswer();
     });
   });
   panel.querySelectorAll('.quiz-dot').forEach(btn => {
