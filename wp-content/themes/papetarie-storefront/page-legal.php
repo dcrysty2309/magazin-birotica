@@ -119,9 +119,30 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
   .pap-legal-content h2 {
     margin: 0; padding: 22px 0 10px; font-size: 16.5px; font-weight: 800; color: #f2600c; scroll-margin-top: 20px;
     border-top: 1px solid #e5e8ec;
+    display: flex; align-items: center; gap: 14px;
   }
   .pap-legal-content h2:first-of-type { border-top: 0; padding-top: 0; }
+  .pap-legal-h2-num {
+    flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+    background: #f2600c; color: #fff; font-size: 14px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pap-legal-h2-text {
+    color: var(--pap-navy); border-bottom: 3px solid #f2600c; padding-bottom: 6px; line-height: 1.2;
+  }
   .pap-legal-content h3 { font-family: var(--pap-font-sans); font-size: 14.5px; font-weight: 800; color: var(--pap-navy); margin: 16px 0 8px; }
+
+  /* --- lista de definitii, transformata din <ul><li><strong>Termen</strong> — text</li></ul> --- */
+  .pap-legal-defs {
+    display: grid; grid-template-columns: max-content 1fr; column-gap: 20px; row-gap: 12px;
+    list-style: none; padding: 0; margin: 0 0 20px;
+  }
+  .pap-legal-defs li { display: contents; }
+  .pap-legal-def-term {
+    background: #EEF2F8; color: var(--pap-navy); font-weight: 700; font-size: 13.5px;
+    border-radius: 6px; padding: 8px 14px; white-space: nowrap; align-self: start;
+  }
+  .pap-legal-def-desc { align-self: center; text-align: left !important; }
 
   .pap-legal-note { display: flex; gap: 12px; align-items: flex-start; background: #fff8ec; border: 1px solid #f5e0ae; border-radius: 12px; padding: 14px 18px; margin: 0 0 30px; }
   .pap-legal-note-icon { flex-shrink: 0; margin-top: 1px; color: #e0a512; font-weight: 900; font-size: 15px; font-family: var(--pap-font-sans); }
@@ -214,6 +235,48 @@ if (!empty($pap_legal_conf['image'])) {
       if (i === 0) { a.classList.add('is-active'); }
       toc.appendChild(a);
     });
+
+    // transformam titlurile numerotate "N. Text" intr-un badge rotund + text subliniat.
+    // daca sectiunea e "Definitii", restilizam si lista <ul> care ii urmeaza imediat.
+    headings.forEach(function (h) {
+      var text = h.textContent.trim();
+      var m = text.match(/^(\d+)\.\s*(.+)$/);
+      if (!m) { return; }
+
+      if (/^Defini/i.test(m[2])) {
+        var ul = h.nextElementSibling;
+        if (ul && ul.tagName === 'UL') {
+          ul.classList.add('pap-legal-defs');
+          ul.querySelectorAll('li').forEach(function (li) {
+            var strong = li.querySelector('strong');
+            if (!strong) { return; }
+            var termText = strong.textContent;
+            var fullText = li.textContent;
+            var descText = fullText.slice(fullText.indexOf(termText) + termText.length).replace(/^\s*[—-]\s*/, '');
+            li.innerHTML = '';
+            var termEl = document.createElement('span');
+            termEl.className = 'pap-legal-def-term';
+            termEl.textContent = termText;
+            var descEl = document.createElement('span');
+            descEl.className = 'pap-legal-def-desc';
+            descEl.textContent = descText;
+            li.appendChild(termEl);
+            li.appendChild(descEl);
+          });
+        }
+      }
+
+      h.innerHTML = '';
+      var numEl = document.createElement('span');
+      numEl.className = 'pap-legal-h2-num';
+      numEl.textContent = m[1];
+      var textEl = document.createElement('span');
+      textEl.className = 'pap-legal-h2-text';
+      textEl.textContent = m[2];
+      h.appendChild(numEl);
+      h.appendChild(textEl);
+    });
+
     var links = toc.querySelectorAll('a');
     links.forEach(function (link) {
       link.addEventListener('click', function () {
