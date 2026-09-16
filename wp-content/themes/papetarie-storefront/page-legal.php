@@ -115,7 +115,7 @@ $pap_legal_conf = $pap_legal_map[$slug] ?? ['icon' => 'file-lines-outline', 'eye
     border: 1px solid #e5e8ec; border-radius: 6px; padding: 32px 36px; background: #fff;
   }
   .pap-legal-content p, .pap-legal-content li { font-size: 14px; line-height: 1.7; color: #3d4a63; text-align: justify; hyphens: auto; }
-  .pap-legal-content ul { padding-left: 20px; }
+  .pap-legal-content ul { padding-left: 0; margin-top: 20px; }
   .pap-legal-content h2 {
     margin: 0; padding: 22px 0 10px; font-size: 16.5px; font-weight: 800; color: #f2600c; scroll-margin-top: 20px;
     border-top: 1px solid #e5e8ec;
