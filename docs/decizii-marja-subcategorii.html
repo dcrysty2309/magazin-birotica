@@ -713,16 +713,31 @@ function renderQuizPanel() {
       document.getElementById('quizCustomInput').value = btn.dataset.margin;
       panel.querySelectorAll('.comp-margin').forEach(b => b.classList.remove('picked'));
       btn.classList.add('picked');
-      saveCurrentQuizAnswer();
     });
   });
   panel.querySelectorAll('.quiz-dot').forEach(btn => {
-    btn.addEventListener('click', () => { quizIdx = parseInt(btn.dataset.idx, 10); renderQuizPanel(); });
+    btn.addEventListener('click', () => { commitCurrentIfFilled(); quizIdx = parseInt(btn.dataset.idx, 10); renderQuizPanel(); });
   });
-  document.getElementById('quizExitBtn').addEventListener('click', exitQuiz);
-  document.getElementById('quizPrevBtn').addEventListener('click', () => { if (quizIdx > 0) { quizIdx--; renderQuizPanel(); } });
+  document.getElementById('quizExitBtn').addEventListener('click', () => { commitCurrentIfFilled(); exitQuiz(); });
+  document.getElementById('quizPrevBtn').addEventListener('click', () => { if (quizIdx > 0) { commitCurrentIfFilled(); quizIdx--; renderQuizPanel(); } });
   document.getElementById('quizSkipBtn').addEventListener('click', goToNextQuizItem);
   document.getElementById('quizSaveBtn').addEventListener('click', saveCurrentQuizAnswer);
+}
+
+function commitCurrentIfFilled() {
+  const input = document.getElementById('quizCustomInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val || isNaN(parseFloat(val))) return;
+  const key = QUIZ_KEYS[quizIdx];
+  const answer = { marja: val, sub: QUIZ[key].sub, decidedAt: new Date().toISOString() };
+  quizAnswers[key] = answer;
+  if (quizDb) {
+    try { quizDb.collection('quiz_answers').doc(key).set(answer); } catch (e) {}
+  } else {
+    saveQuizAnswersLocal();
+  }
+  updateQuizLauncher();
 }
 
 async function saveCurrentQuizAnswer() {
